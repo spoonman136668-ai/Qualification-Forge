@@ -1,0 +1,56 @@
+﻿name: Windows Lane Smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Verify environment and generate evidence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          if (-not $IsWindows) { throw 'NOT_WINDOWS' }
+          if ($PSVersionTable.PSVersion.Major -lt 7) {
+            throw 'POWERSHELL_VERSION_INVALID'
+          }
+
+          $Actual = [Convert]::ToHexString(
+            [Security.Cryptography.SHA256]::HashData(
+              [Text.Encoding]::UTF8.GetBytes('abc')
+            )
+          ).ToLowerInvariant()
+
+          $Expected = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
+
+          if ($Actual -ne $Expected) {
+            throw 'SHA256_VECTOR_FAILED'
+          }
+
+          New-Item -ItemType Directory evidence -Force | Out-Null
+
+          [ordered]@{
+            schema = 'qualification-forge.smoke.v1'
+            result = 'PASS'
+            workflow_sha = $env:GITHUB_SHA
+            run_id = $env:GITHUB_RUN_ID
+            runner_os = $env:RUNNER_OS
+            sha256 = $Actual
+          } | ConvertTo-Json |
+            Set-Content evidence/smoke.json -Encoding utf8
+
+          Write-Host 'WINDOWS_LANE_SMOKE=PASS'
+
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: qualification-forge-r1
+          path: evidence/smoke.json
+          retention-days: 7
