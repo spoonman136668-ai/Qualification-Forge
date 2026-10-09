@@ -1,6 +1,8 @@
-﻿name: Windows Lane Smoke
+name: Windows Lane Smoke
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
