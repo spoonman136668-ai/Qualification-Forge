@@ -54,12 +54,12 @@ jobs:
             if ($LASTEXITCODE -ne 0 -or $actual -cne $env:KTRADE_EXPECTED_SOURCE_SHA) { throw 'DIC04_PIN_DRIFT' }
             Write-Host 'DIC04_SOURCE_IDENTITY=PASS'
             $testCases = @(
-              @('REJECTION','TestDIC04DenyUntrustedInputAndMethods')
+              [pscustomobject]@{ Name = 'REJECTION'; Test = 'TestDIC04DenyUntrustedInputAndMethods' }
             )
             $fails = 0
             foreach ($item in $testCases) {
-              $name = [string]$item[0]
-              $test = [string]$item[1]
+              $name = [string]$item.Name
+              $test = [string]$item.Test
               try {
                 & go test -count=1 -timeout=120s ./pkg -run ('^' + $test + '$') *> $logPath
                 if ($LASTEXITCODE -eq 0) {
