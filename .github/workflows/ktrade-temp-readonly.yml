@@ -76,7 +76,7 @@ jobs:
               $package = './internal/incidentcapsule'
             }
             'dic04' {
-              $sha = '5bd7c23c2d2dd202e8ce9463c2934673ca8dcf5c'
+              $sha = '713897f81fdebc2903dfc9aeb20f882baf3a41f6'
               $focused = 'TestDIC04'
               $package = './pkg'
             }
