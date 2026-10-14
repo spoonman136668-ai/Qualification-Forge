@@ -54,10 +54,7 @@ jobs:
             if ($LASTEXITCODE -ne 0 -or $actual -cne $env:KTRADE_EXPECTED_SOURCE_SHA) { throw 'DIC04_PIN_DRIFT' }
             Write-Host 'DIC04_SOURCE_IDENTITY=PASS'
             $testCases = @(
-              @('ROUNDTRIP','TestDIC04RuntimePreviewRoundTripReadOnly'),
-              @('NO_LINK','TestDIC04NoLinkCanOnlyRequestEvidence'),
-              @('REJECTION','TestDIC04DenyUntrustedInputAndMethods'),
-              @('INJECTION','TestDIC04RejectRepairInjectionAndForgedEvidence')
+              @('REJECTION','TestDIC04DenyUntrustedInputAndMethods')
             )
             $fails = 0
             foreach ($item in $testCases) {
@@ -70,6 +67,18 @@ jobs:
                 } else {
                   $fails++
                   Write-Host ('DIC04_' + $name + '=FAIL')
+                  if ($name -eq 'REJECTION') {
+                    $known = @('unknown-key','trailing-json','request-too-large','invalid-content-type','cross-origin','invalid-origin','valid-origin')
+                    $raw = Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue
+                    $subFailed = $false
+                    foreach ($case in $known) {
+                      if (@($raw | Where-Object { $_ -match ('^\\s*--- FAIL: TestDIC04DenyUntrustedInputAndMethods/' + [regex]::Escape($case) + '\\s') }).Count -gt 0) {
+                        Write-Host ('DIC04_HTTP_CASE_' + $case.Replace('-','_').ToUpperInvariant() + '=FAIL')
+                        $subFailed = $true
+                      }
+                    }
+                    if (-not $subFailed) { Write-Host 'DIC04_HTTP_CASE_PARENT_METHOD_OR_SETUP=FAIL' }
+                  }
                 }
               } catch {
                 $fails++
