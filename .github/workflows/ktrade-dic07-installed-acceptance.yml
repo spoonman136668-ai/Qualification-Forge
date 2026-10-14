@@ -94,7 +94,31 @@ jobs:
                 Write-Host ('DIC07_'+$marker+'=PASS')
               }
             }
-            if($exit -ne 0){throw 'DIC07_INSTALLED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            if($exit -ne 0){
+              $codes=@(
+                'SCRATCH_OUTSIDE_RUNNER_TEMP','SCRATCH_MUST_BE_NEW',
+                'PACKAGE_MISSING','INSTALLED_EXECUTABLE_IDENTITY',
+                'FOUR_EXES_INCOMPLETE','STALE_PRODUCT_EXECUTABLE',
+                'MANIFEST_IDENTITY','PACKAGE_TAMPER','FIXTURE_PATH_EXISTS',
+                'SYNTHETIC_CONFIG_FAILED','FIREWALL_DISABLED',
+                'NETWORK_BLOCK_NOT_ENFORCED','NETWORK_BLOCK_WRONG_EXECUTABLE',
+                'FULL_RUNTIME_NOT_READY_OFFLINE','INSTALLED_OPERATOR_UI',
+                'CSRF_COOKIE_UNAVAILABLE','CSRF_NEGATIVE_GATE',
+                'INSTALLED_INCIDENT_SAVE','INSTALLED_INVENTORY_INVALID',
+                'INSTALLED_EXPORT_INVALID','RESTART_LOST_INCIDENT',
+                'SAVED_RECORD_MISSING','TAMPER_ACCEPTED',
+                'SYNTHETIC_USER_DATA_MODIFIED'
+              )
+              $knownMatch=$false
+              foreach($code in $codes){
+                if(@($log|Where-Object {$_.Contains('DIC07_'+$code)}).Count -gt 0){
+                  Write-Host ('DIC07_FAILURE_CLASS_'+$code+'=FAIL')
+                  $knownMatch=$true
+                }
+              }
+              if(-not $knownMatch){Write-Host 'DIC07_FAILURE_CLASS_UNCLASSIFIED=FAIL'}
+              throw 'DIC07_INSTALLED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'
+            }
             Write-Host 'DIC07_OFFLINE_INSTALLED_ACCEPTANCE=PASS'
           }finally{
             Pop-Location
