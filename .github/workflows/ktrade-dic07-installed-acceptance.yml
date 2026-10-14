@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE_SHA: '7c6657428edde1fb722f57e968e00f8baa640c8a'
+      KTRADE_EXPECTED_SOURCE_SHA: '5067623f6b20c1aa235a0c67a38bcf182f8bcff4'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -86,6 +86,7 @@ jobs:
              'SYNTHETIC_CONFIG','SYNTHETIC_KEY','FIREWALL_PROFILE',
              'NO_BROKER_EGRESS_FIREWALL',
              'PACKAGED_EXE_LOCAL_OPERATOR_READY','INSTALLED_OPERATOR_PANEL',
+             'NATIVE_OBSERVED_HEALTH_ALERT','NATIVE_NO_HEALTH_ALERT','NATIVE_INVALID_HEALTH_RESPONSE',
              'INSTALLED_CSRF_REJECTS_UNAUTHORIZED_SAVE','INSTALLED_SAVE_LIST_EXPORT',
              'INSTALLED_RESTART_PRESERVES_REPORT','INSTALLED_TAMPER_REJECTED',
              'SYNTHETIC_PREFERENCES_PNL_PINE_UNCHANGED','DIC07_FULL_SYNTHETIC_OFFLINE_ACCEPTANCE'
@@ -125,6 +126,20 @@ jobs:
               foreach($phase in $phases){
                 if(@($log|Where-Object{$_ -ceq ('DIC07_FAILURE_PHASE_'+$phase+'=FAIL')}).Count -gt 0){
                   Write-Host ('DIC07_FAILURE_PHASE_'+$phase+'=FAIL')
+                  $knownMatch=$true
+                }
+              }
+              foreach($status in @(400,401,403,404,409,413,422,429,500,503)){
+                if(@($log|Where-Object {$_ -ceq ('DIC07_SAVE_HTTP_'+$status+'=FAIL')}).Count -gt 0){
+                  Write-Host ('DIC07_SAVE_HTTP_'+$status+'=FAIL')
+                  $knownMatch=$true
+                }
+              }
+              foreach($code in @('INCIDENT_UNAVAILABLE','INCIDENT_BODY_REJECTED',
+                'INCIDENT_EVIDENCE_UNAVAILABLE','INCIDENT_NO_ALERT','INCIDENT_INVALID',
+                'INCIDENT_STORE_UNAVAILABLE','CSRF_REJECTED')){
+                if(@($log|Where-Object{$_ -ceq ('DIC07_SAVE_ERROR_'+$code+'=FAIL')}).Count -gt 0){
+                  Write-Host ('DIC07_SAVE_ERROR_'+$code+'=FAIL')
                   $knownMatch=$true
                 }
               }
