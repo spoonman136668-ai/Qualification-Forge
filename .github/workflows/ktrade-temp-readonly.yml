@@ -22,6 +22,7 @@ on:
           - r26
           - dic02
           - dic03
+          - dic04
 
 permissions:
   contents: read
@@ -73,6 +74,11 @@ jobs:
               $sha = 'd6264c279e996b2207c67e5aa1dec328980fb8e8'
               $focused = 'TestDIC03'
               $package = './internal/incidentcapsule'
+            }
+            'dic04' {
+              $sha = '5bd7c23c2d2dd202e8ce9463c2934673ca8dcf5c'
+              $focused = 'TestDIC04'
+              $package = './pkg'
             }
             default { throw 'KTRADE_QUAL_UNRECOGNIZED_CANDIDATE' }
           }
