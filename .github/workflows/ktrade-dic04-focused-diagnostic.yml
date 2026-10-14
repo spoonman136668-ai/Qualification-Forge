@@ -21,7 +21,7 @@ jobs:
       KTRADE_CI_PROMOTION_ALLOWED: '0'
       GOMAXPROCS: '2'
       GOFLAGS: '-p=2'
-      KTRADE_EXPECTED_SOURCE_SHA: '5bd7c23c2d2dd202e8ce9463c2934673ca8dcf5c'
+      KTRADE_EXPECTED_SOURCE_SHA: '713897f81fdebc2903dfc9aeb20f882baf3a41f6'
     steps:
       - name: Confirm Windows and restricted checkout identity
         shell: pwsh
@@ -53,40 +53,24 @@ jobs:
             $actual = (& git rev-parse HEAD).Trim()
             if ($LASTEXITCODE -ne 0 -or $actual -cne $env:KTRADE_EXPECTED_SOURCE_SHA) { throw 'DIC04_PIN_DRIFT' }
             Write-Host 'DIC04_SOURCE_IDENTITY=PASS'
-            $testCases = @(
-              [pscustomobject]@{ Name = 'REJECTION'; Test = 'TestDIC04DenyUntrustedInputAndMethods' }
-            )
-            $fails = 0
-            foreach ($item in $testCases) {
-              $name = [string]$item.Name
-              $test = [string]$item.Test
+            function Invoke-PrivateCheck([string]$label,[string]$program,[string[]]$arguments) {
               try {
-                & go test -count=1 -timeout=120s ./pkg -run ('^' + $test + '$') *> $logPath
-                if ($LASTEXITCODE -eq 0) {
-                  Write-Host ('DIC04_' + $name + '=PASS')
-                } else {
-                  $fails++
-                  Write-Host ('DIC04_' + $name + '=FAIL')
-                  if ($name -eq 'REJECTION') {
-                    $known = @('unknown-key','trailing-json','request-too-large','invalid-content-type','cross-origin','invalid-origin','valid-origin')
-                    $raw = Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue
-                    $subFailed = $false
-                    foreach ($case in $known) {
-                      if (@($raw | Where-Object { $_.Contains('--- FAIL: TestDIC04DenyUntrustedInputAndMethods/' + $case + ' ') }).Count -gt 0) {
-                        Write-Host ('DIC04_HTTP_CASE_' + $case.Replace('-','_').ToUpperInvariant() + '=FAIL')
-                        $subFailed = $true
-                      }
-                    }
-                    if (-not $subFailed) { Write-Host 'DIC04_HTTP_CASE_PARENT_METHOD_OR_SETUP=FAIL' }
-                  }
-                }
+                & $program @arguments *> $logPath
+                if ($LASTEXITCODE -ne 0) { throw 'NONZERO' }
               } catch {
-                $fails++
-                Write-Host ('DIC04_' + $name + '=FAIL')
+                throw ('DIC04_' + $label + '_FAILED_PRIVATE_OUTPUT_WITHHELD')
               }
+              Write-Host ('DIC04_' + $label + '=PASS')
             }
-            if ($fails -gt 0) { throw 'DIC04_ONE_OR_MORE_SYNTHETIC_CASES_FAILED' }
-            Write-Host 'DIC04_ALL_FOCUSED_CASES=PASS'
+            Invoke-PrivateCheck 'FOCUSED' 'go' @('test','-count=1','-timeout=120s','./pkg','-run','^TestDIC04')
+            Invoke-PrivateCheck 'FULL_REGRESSION' 'go' @('test','-count=1','-timeout=420s','./...')
+            Invoke-PrivateCheck 'VET' 'go' @('vet','./...')
+            Invoke-PrivateCheck 'GO_BUILD' 'go' @('build','./...')
+            Invoke-PrivateCheck 'WINDOWS_FOUR_EXE_BUILD' 'cmd.exe' @('/d','/c','RUN-BUILD-WINDOWS.cmd')
+            $after = (& git rev-parse HEAD).Trim()
+            if ($after -cne $env:KTRADE_EXPECTED_SOURCE_SHA) { throw 'DIC04_SOURCE_MUTATED' }
+            if (@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) { throw 'DIC04_TRACKED_SOURCE_MUTATED' }
+            Write-Host 'DIC04_PRIVATE_SOURCE_UNCHANGED=PASS'
           } finally {
             Pop-Location
             Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
