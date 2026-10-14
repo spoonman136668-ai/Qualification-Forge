@@ -1,0 +1,87 @@
+name: KTRADE DIC-06 durable incident qualification
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ktrade-dic06-durable-incident-qualification.yml
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      KTRADE_EXPECTED_SOURCE_SHA: 'f113b96d45d39d29bc9ceef582834544c94c1b1e'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Require isolated hosted Windows worker
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') { throw 'DIC06_UNTRUSTED_WORKER' }
+          Write-Host 'DIC06_HOSTED_WINDOWS=PASS'
+      - name: Checkout exact private KTRADE source without persisted credential
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: ${{ env.KTRADE_EXPECTED_SOURCE_SHA }}
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Configure Go without public source cache
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+      - name: Focused tests and one full Windows source regression with private output suppressed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $logPath = Join-Path $env:RUNNER_TEMP 'ktrade-dic06-private-test.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try {
+            $actual = (& git rev-parse HEAD).Trim()
+            if ($LASTEXITCODE -ne 0 -or $actual -cne $env:KTRADE_EXPECTED_SOURCE_SHA) { throw 'DIC06_SOURCE_IDENTITY_DRIFT' }
+            Write-Host 'DIC06_SOURCE_IDENTITY=PASS'
+            function Invoke-PrivateCheck([string]$label, [string]$program, [string[]]$arguments) {
+              try {
+                & $program @arguments *> $logPath
+                if ($LASTEXITCODE -ne 0) { throw 'NONZERO' }
+              } catch {
+                throw ('DIC06_' + $label + '_FAILED_PRIVATE_OUTPUT_WITHHELD')
+              }
+              Write-Host ('DIC06_' + $label + '=PASS')
+            }
+            Invoke-PrivateCheck 'STORE_FOCUSED' 'go' @('test','-count=1','-timeout=180s','./internal/incidentcapsule','-run','^TestDIC06')
+            Invoke-PrivateCheck 'OPERATOR_FOCUSED' 'go' @('test','-count=1','-timeout=180s','./pkg','-run','^TestDIC06')
+            Invoke-PrivateCheck 'FULL_REGRESSION' 'go' @('test','-count=1','-timeout=420s','./...')
+            Invoke-PrivateCheck 'VET' 'go' @('vet','./...')
+            Invoke-PrivateCheck 'GO_BUILD' 'go' @('build','./...')
+            Invoke-PrivateCheck 'JS_PARSE' 'node' @('--check','pkg/web/app.js')
+            Invoke-PrivateCheck 'FOUR_WINDOWS_EXES' 'cmd.exe' @('/d','/c','RUN-BUILD-WINDOWS.cmd')
+            $actual = (& git rev-parse HEAD).Trim()
+            if ($actual -cne $env:KTRADE_EXPECTED_SOURCE_SHA) { throw 'DIC06_SOURCE_CHANGED' }
+            if (@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) { throw 'DIC06_TRACKED_SOURCE_CHANGED' }
+            Write-Host 'DIC06_SOURCE_UNCHANGED=PASS'
+            Write-Host 'DIC06_APP_RUNTIME_NOT_EXECUTED=PASS'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+          }
+      - name: Purge private source without publishing artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if (Test-Path -LiteralPath $source) { Remove-Item -LiteralPath $source -Recurse -Force -ErrorAction SilentlyContinue }
+          Write-Host 'DIC06_PUBLIC_ARTIFACT_UPLOAD=DISABLED'
