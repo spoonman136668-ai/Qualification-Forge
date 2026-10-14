@@ -72,7 +72,7 @@ jobs:
                     $raw = Get-Content -LiteralPath $logPath -ErrorAction SilentlyContinue
                     $subFailed = $false
                     foreach ($case in $known) {
-                      if (@($raw | Where-Object { $_ -match ('^\\s*--- FAIL: TestDIC04DenyUntrustedInputAndMethods/' + [regex]::Escape($case) + '\\s') }).Count -gt 0) {
+                      if (@($raw | Where-Object { $_.Contains('--- FAIL: TestDIC04DenyUntrustedInputAndMethods/' + $case + ' ') }).Count -gt 0) {
                         Write-Host ('DIC04_HTTP_CASE_' + $case.Replace('-','_').ToUpperInvariant() + '=FAIL')
                         $subFailed = $true
                       }
