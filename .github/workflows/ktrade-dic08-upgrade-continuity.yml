@@ -52,8 +52,8 @@ jobs:
             $sha=(& git rev-parse HEAD).Trim()
             if($LASTEXITCODE -ne 0 -or $sha -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC08_SOURCE_PIN_MISMATCH'}
             Write-Host 'DIC08_SOURCE_PIN=PASS'
-            function Invoke-PrivateCheck([string]$label,[string]$cmd,[string[]]$args){
-              try{& $cmd @args *> $private; if($LASTEXITCODE -ne 0){throw 'nonzero'}}
+            function Invoke-PrivateCheck([string]$label,[string]$cmd,[string[]]$arguments){
+              try{& $cmd @arguments *> $private; if($LASTEXITCODE -ne 0){throw 'nonzero'}}
               catch{throw ('DIC08_'+$label+'_PRIVATE_FAILURE')}
               Write-Host ('DIC08_'+$label+'=PASS')
             }
