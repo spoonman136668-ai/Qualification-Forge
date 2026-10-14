@@ -1,0 +1,91 @@
+name: KTRADE DIC-04 bounded synthetic diagnostic
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ktrade-dic04-focused-diagnostic.yml
+
+permissions:
+  contents: read
+
+jobs:
+  dic04:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+      KTRADE_EXPECTED_SOURCE_SHA: '5bd7c23c2d2dd202e8ce9463c2934673ca8dcf5c'
+    steps:
+      - name: Confirm Windows and restricted checkout identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') { throw 'DIC04_NOT_HOSTED_WINDOWS' }
+          Write-Host 'DIC04_HOSTED_WINDOWS=PASS'
+      - name: Checkout exact private pinned source without persisted credential
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: ${{ env.KTRADE_EXPECTED_SOURCE_SHA }}
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Set up Go without cache
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+      - name: Run bounded private-test classifiers (no private output)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $logPath = Join-Path $env:RUNNER_TEMP 'ktrade-dic04-private-test.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try {
+            $actual = (& git rev-parse HEAD).Trim()
+            if ($LASTEXITCODE -ne 0 -or $actual -cne $env:KTRADE_EXPECTED_SOURCE_SHA) { throw 'DIC04_PIN_DRIFT' }
+            Write-Host 'DIC04_SOURCE_IDENTITY=PASS'
+            $testCases = @(
+              @('ROUNDTRIP','TestDIC04RuntimePreviewRoundTripReadOnly'),
+              @('NO_LINK','TestDIC04NoLinkCanOnlyRequestEvidence'),
+              @('REJECTION','TestDIC04DenyUntrustedInputAndMethods'),
+              @('INJECTION','TestDIC04RejectRepairInjectionAndForgedEvidence')
+            )
+            $fails = 0
+            foreach ($item in $testCases) {
+              $name = [string]$item[0]
+              $test = [string]$item[1]
+              try {
+                & go test -count=1 -timeout=120s ./pkg -run ('^' + $test + '$') *> $logPath
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host ('DIC04_' + $name + '=PASS')
+                } else {
+                  $fails++
+                  Write-Host ('DIC04_' + $name + '=FAIL')
+                }
+              } catch {
+                $fails++
+                Write-Host ('DIC04_' + $name + '=FAIL')
+              }
+            }
+            if ($fails -gt 0) { throw 'DIC04_ONE_OR_MORE_SYNTHETIC_CASES_FAILED' }
+            Write-Host 'DIC04_ALL_FOCUSED_CASES=PASS'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+          }
+      - name: Remove private checkout
+        if: always()
+        shell: pwsh
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if (Test-Path -LiteralPath $source) { Remove-Item -LiteralPath $source -Force -Recurse -ErrorAction SilentlyContinue }
+          Write-Host 'DIC04_NO_PUBLIC_PRIVATE_ARTIFACTS=PASS'
