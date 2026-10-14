@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE_SHA: '34bff211ccab0c11ea45b4123a43481579cbeb32'
+      KTRADE_EXPECTED_SOURCE_SHA: '926e5480b3f728ce021a1ac8a7f3b8d8d015219b'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -82,7 +82,9 @@ jobs:
             & pwsh -NoProfile -File 'windows/ktrade-dic07-installed-acceptance.ps1' -ScratchRoot $scratch *> $privateLog
             $exit=$LASTEXITCODE
             $allow=@(
-             'PACKAGED_FOUR_EXES_AND_MANIFEST','NO_BROKER_EGRESS_FIREWALL',
+             'PACKAGED_FOUR_EXES_AND_MANIFEST','SYNTHETIC_SENTINELS',
+             'SYNTHETIC_CONFIG','SYNTHETIC_KEY','FIREWALL_PROFILE',
+             'NO_BROKER_EGRESS_FIREWALL',
              'PACKAGED_EXE_LOCAL_OPERATOR_READY','INSTALLED_OPERATOR_PANEL',
              'INSTALLED_CSRF_REJECTS_UNAUTHORIZED_SAVE','INSTALLED_SAVE_LIST_EXPORT',
              'INSTALLED_RESTART_PRESERVES_REPORT','INSTALLED_TAMPER_REJECTED',
@@ -113,6 +115,16 @@ jobs:
               foreach($code in $codes){
                 if(@($log|Where-Object {$_.Contains('DIC07_'+$code)}).Count -gt 0){
                   Write-Host ('DIC07_FAILURE_CLASS_'+$code+'=FAIL')
+                  $knownMatch=$true
+                }
+              }
+              $phases=@('INIT','SYNTHETIC_SENTINELS','SYNTHETIC_CONFIG',
+                        'SYNTHETIC_KEY','FIREWALL_PROFILE','FIREWALL_RULE',
+                        'APP_STARTUP','INSTALLED_CSRF_AND_UI',
+                        'INSTALLED_INCIDENT_SAVE','INSTALLED_RESTART','INSTALLED_TAMPER')
+              foreach($phase in $phases){
+                if(@($log|Where-Object{$_ -ceq ('DIC07_FAILURE_PHASE_'+$phase+'=FAIL')}).Count -gt 0){
+                  Write-Host ('DIC07_FAILURE_PHASE_'+$phase+'=FAIL')
                   $knownMatch=$true
                 }
               }
