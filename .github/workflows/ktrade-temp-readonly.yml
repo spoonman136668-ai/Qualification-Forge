@@ -1,0 +1,182 @@
+name: KTRADE temporary read-only qualification
+
+# Owner-invoked only. Public logs: never emit private source, credentials,
+# test output, or upload source/build artifacts.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Read-only access probe or source-only tests"
+        required: true
+        type: choice
+        default: probe
+        options:
+          - probe
+          - source-tests
+      candidate:
+        description: "Pinned private KTRADE review commit"
+        required: true
+        type: choice
+        default: r26
+        options:
+          - r26
+          - dic02
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/main'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+
+    steps:
+      - name: Require ephemeral GitHub-hosted Windows and select immutable commit
+        id: identity
+        shell: pwsh
+        env:
+          QUAL_MODE: ${{ inputs.mode }}
+          QUAL_CANDIDATE: ${{ inputs.candidate }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows') {
+            throw 'KTRADE_QUAL_WRONG_EXECUTION_ENVIRONMENT'
+          }
+          if ($env:QUAL_MODE -cnotin @('probe','source-tests')) {
+            throw 'KTRADE_QUAL_INVALID_MODE'
+          }
+          switch ($env:QUAL_CANDIDATE) {
+            'r26' {
+              $sha = '3fc252c88aa5dc538093be7f7046d2f6c6af739b'
+              $focused = 'TestKTRADER26'
+              $package = './pkg'
+            }
+            'dic02' {
+              $sha = 'cf04f7b03673ec3c67a13188860abcc1bbdc4e6b'
+              $focused = 'TestDIC02'
+              $package = './internal/incidentcapsule'
+            }
+            default { throw 'KTRADE_QUAL_UNRECOGNIZED_CANDIDATE' }
+          }
+          "sha=$sha" >> $env:GITHUB_OUTPUT
+          "focused=$focused" >> $env:GITHUB_OUTPUT
+          "package=$package" >> $env:GITHUB_OUTPUT
+          Write-Host 'KTRADE_PUBLIC_HOSTED_VM=PASS'
+
+      - name: Probe read-only contents access without printing private data
+        shell: pwsh
+        env:
+          KTRADE_READ_TOKEN: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+          EXPECTED_SHA: ${{ steps.identity.outputs.sha }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ([string]::IsNullOrWhiteSpace($env:KTRADE_READ_TOKEN)) {
+            throw 'KTRADE_TEMP_READONLY_SECRET_MISSING'
+          }
+          try {
+            $headers = @{
+              Accept = 'application/vnd.github+json'
+              Authorization = ('Bearer ' + $env:KTRADE_READ_TOKEN)
+              'X-GitHub-Api-Version' = '2022-11-28'
+            }
+            $uri = 'https://api.github.com/repos/spoonman136668-ai/ckb/contents/go.mod?ref=' + $env:EXPECTED_SHA
+            $response = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers -TimeoutSec 30
+            if ($response.type -cne 'file' -or [string]::IsNullOrWhiteSpace($response.sha)) {
+              throw 'INVALID_CONTENTS_RESPONSE'
+            }
+          } catch {
+            # Never print exception objects, request headers or returned source.
+            throw 'KTRADE_TEMP_PRIVATE_READ_PROBE_FAILED'
+          } finally {
+            Remove-Variable headers,response -ErrorAction SilentlyContinue
+          }
+          Write-Host 'KTRADE_TEMP_PRIVATE_CONTENTS_READ=PASS'
+          Write-Host 'KTRADE_PROBE_DID_NOT_CHECKOUT_SOURCE=PASS'
+
+      - name: Checkout exact private review commit without persisted credentials
+        if: inputs.mode == 'source-tests'
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: ${{ steps.identity.outputs.sha }}
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+
+      - name: Set up Go without public cache or published build artifacts
+        if: inputs.mode == 'source-tests'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+
+      - name: Focused and one full regression, vet, Windows builds (output withheld)
+        if: inputs.mode == 'source-tests'
+        shell: pwsh
+        env:
+          EXPECTED_SHA: ${{ steps.identity.outputs.sha }}
+          FOCUSED_PACKAGE: ${{ steps.identity.outputs.package }}
+          FOCUSED_PATTERN: ${{ steps.identity.outputs.focused }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $logPath = Join-Path $env:RUNNER_TEMP 'ktrade-private-test.log'
+          Push-Location $source
+          try {
+            $actual = (& git rev-parse HEAD).Trim()
+            if ($LASTEXITCODE -ne 0 -or $actual -cne $env:EXPECTED_SHA) {
+              throw 'KTRADE_PINNED_PRIVATE_IDENTITY_DRIFT'
+            }
+            if (@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) {
+              throw 'KTRADE_CHECKOUT_DIRTY'
+            }
+            function Invoke-PrivateCheck([string]$label, [string]$program, [string[]]$arguments) {
+              try {
+                & $program @arguments *> $logPath
+                if ($LASTEXITCODE -ne 0) {
+                  throw 'command returned nonzero'
+                }
+              } catch {
+                throw ('KTRADE_' + $label + '_FAILED_PRIVATE_OUTPUT_WITHHELD')
+              }
+              Write-Host ('KTRADE_' + $label + '=PASS')
+            }
+            Invoke-PrivateCheck 'FOCUSED' 'go' @('test', '-count=1', $env:FOCUSED_PACKAGE, '-run', $env:FOCUSED_PATTERN)
+            Invoke-PrivateCheck 'FULL_REGRESSION' 'go' @('test', '-count=1', '-timeout=420s', './...')
+            Invoke-PrivateCheck 'VET' 'go' @('vet', './...')
+            Invoke-PrivateCheck 'GO_BUILD' 'go' @('build', './...')
+            Invoke-PrivateCheck 'WINDOWS_FOUR_EXE_BUILD' 'cmd.exe' @('/d', '/c', 'RUN-BUILD-WINDOWS.cmd')
+            $actual = (& git rev-parse HEAD).Trim()
+            if ($actual -cne $env:EXPECTED_SHA) { throw 'KTRADE_SOURCE_HEAD_MUTATED' }
+            if (@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) {
+              throw 'KTRADE_TRACKED_SOURCE_MUTATED'
+            }
+            Write-Host 'KTRADE_PRIVATE_SOURCE_UNCHANGED=PASS'
+            Write-Host 'KTRADE_APP_RUNTIME_NOT_EXECUTED=PASS'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Remove private source from temporary hosted workspace
+        if: always() && inputs.mode == 'source-tests'
+        shell: pwsh
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if (Test-Path -LiteralPath $source) {
+            Remove-Item -LiteralPath $source -Force -Recurse -ErrorAction SilentlyContinue
+          }
+          Write-Host 'KTRADE_PUBLIC_ARTIFACT_UPLOAD=DISABLED'
