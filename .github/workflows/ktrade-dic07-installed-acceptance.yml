@@ -1,0 +1,120 @@
+name: KTRADE DIC-07 isolated installed acceptance
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ktrade-dic07-installed-acceptance.yml
+
+permissions:
+  contents: read
+
+jobs:
+  accept:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      KTRADE_EXPECTED_SOURCE_SHA: '34bff211ccab0c11ea45b4123a43481579cbeb32'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Confirm ephemeral hosted Windows environment
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') { throw 'DIC07_NOT_EPHEMERAL_HOSTED_WINDOWS' }
+          Write-Host 'DIC07_HOSTED_WINDOWS=PASS'
+      - name: Checkout exact private source without retaining credentials
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: ${{ env.KTRADE_EXPECTED_SOURCE_SHA }}
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Set up isolated Go build without shared cache
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+      - name: Source identity, focused regression and package build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $logPath=Join-Path $env:RUNNER_TEMP 'dic07-private-source-tests.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try {
+            $actual=(& git rev-parse HEAD).Trim()
+            if($LASTEXITCODE -ne 0 -or $actual -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC07_PIN_IDENTITY_DRIFT'}
+            Write-Host 'DIC07_SOURCE_IDENTITY=PASS'
+            function Invoke-PrivateCheck([string]$label,[string]$program,[string[]]$arguments){
+              try{
+                & $program @arguments *> $logPath
+                if($LASTEXITCODE -ne 0){throw 'nonzero'}
+              }catch{throw ('DIC07_'+$label+'_FAILED_PRIVATE_OUTPUT_WITHHELD')}
+              Write-Host ('DIC07_'+$label+'=PASS')
+            }
+            Invoke-PrivateCheck 'INCIDENT_STORE_FOCUSED' 'go' @('test','-count=1','-timeout=180s','./internal/incidentcapsule','-run','^TestDIC06')
+            Invoke-PrivateCheck 'INCIDENT_OPERATOR_FOCUSED' 'go' @('test','-count=1','-timeout=180s','./pkg','-run','^TestDIC06')
+            Invoke-PrivateCheck 'FULL_REGRESSION' 'go' @('test','-count=1','-timeout=420s','./...')
+            Invoke-PrivateCheck 'VET' 'go' @('vet','./...')
+            Invoke-PrivateCheck 'GO_BUILD' 'go' @('build','./...')
+            Invoke-PrivateCheck 'JS_PARSE' 'node' @('--check','pkg/web/app.js')
+            Write-Host 'DIC07_SOURCE_QUALIFIED=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+          }
+      - name: Execute actual portable package offline under verified application firewall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $privateLog=Join-Path $env:RUNNER_TEMP 'dic07-private-installed-execution.log'
+          $scratch=Join-Path $env:RUNNER_TEMP 'dic07-synthetic-acceptance'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & pwsh -NoProfile -File 'windows/ktrade-dic07-installed-acceptance.ps1' -ScratchRoot $scratch *> $privateLog
+            $exit=$LASTEXITCODE
+            $allow=@(
+             'PACKAGED_FOUR_EXES_AND_MANIFEST','NO_BROKER_EGRESS_FIREWALL',
+             'PACKAGED_EXE_LOCAL_OPERATOR_READY','INSTALLED_OPERATOR_PANEL',
+             'INSTALLED_CSRF_REJECTS_UNAUTHORIZED_SAVE','INSTALLED_SAVE_LIST_EXPORT',
+             'INSTALLED_RESTART_PRESERVES_REPORT','INSTALLED_TAMPER_REJECTED',
+             'SYNTHETIC_PREFERENCES_PNL_PINE_UNCHANGED','DIC07_FULL_SYNTHETIC_OFFLINE_ACCEPTANCE'
+            )
+            $log=@(Get-Content -LiteralPath $privateLog -ErrorAction SilentlyContinue)
+            foreach($marker in $allow){
+              if(@($log|Where-Object {$_ -ceq ('DIC07_'+$marker+'=PASS')}).Count -eq 1){
+                Write-Host ('DIC07_'+$marker+'=PASS')
+              }
+            }
+            if($exit -ne 0){throw 'DIC07_INSTALLED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            Write-Host 'DIC07_OFFLINE_INSTALLED_ACCEPTANCE=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $privateLog -Force -ErrorAction SilentlyContinue
+            if(Test-Path -LiteralPath $scratch){Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+      - name: Verify tracked private source unchanged
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC07_SOURCE_MUTATED'}
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC07_TRACKED_SOURCE_MUTATED'}
+            Write-Host 'DIC07_SOURCE_UNCHANGED=PASS'
+          }finally{Pop-Location}
+      - name: Purge private checkout without public artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $source){Remove-Item -LiteralPath $source -Recurse -Force -ErrorAction SilentlyContinue}
+          Write-Host 'DIC07_PUBLIC_PRIVATE_ARTIFACT_UPLOAD=DISABLED'
