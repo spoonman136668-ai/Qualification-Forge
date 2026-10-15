@@ -55,6 +55,7 @@ jobs:
                 if($marker -ceq 'DIC39_SIGNED_ENVELOPE_DIAGNOSTIC' -or $marker -ceq 'FOCUSED_PACKAGED_RECOVERY_NEGATIVES'){
                   $selected = @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {
                     $_ -match '^(# |FAIL|--- FAIL|panic:|\s*ktrade_dic39)' -or
+                    $_ -match '^pkg/(historical_evidence_envelope|ktrade_dic39_authenticated_evidence_test)\\.go:[0-9]+:[0-9]+:' -or
                     $_ -match 'DIC39 isolated child phase|did not reach durable crash boundary|failed independent phase|restart revived'
                   } | Select-Object -Last 14)
                   foreach($line in $selected) {
