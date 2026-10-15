@@ -150,6 +150,30 @@ jobs:
               $line='DIC07_FAILURE_PHASE_'+$phase+'=FAIL'
               if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
             }
+            # Publish bounded stage and assertion identifiers only, never browser exception text.
+            $allowedBrowserStages=@('BRAVE_BINARY','BRAVE_LAUNCH','PAGE_GOTO','INCIDENT_INSPECT',
+              'INCIDENT_SAVE','INCIDENT_LIST','INCIDENT_EXPORT','PRODUCT_SELECT',
+              'SUPPORT_BUTTON','SUPPORT_DOWNLOAD','ZIP_VALIDATION')
+            foreach($stage in $allowedBrowserStages){
+              $line='DIC13_FAILURE_STAGE_'+$stage+'=FAIL'
+              if(@($lines|Where-Object{$_ -ceq $line}).Count -gt 0){Write-Host $line}
+            }
+            $allowedBrowserAsserts=@(
+              'BRAVE_EXECUTABLE_MISSING','BROKER_ENV_UNSAFE','BRAVE_OPERATOR_NOT_READY',
+              'BRAVE_KTRADE_IDENTITY','BRAVE_NATIVE_INCIDENT_REVIEW_UNAVAILABLE',
+              'BRAVE_INCIDENT_DOWNLOAD_HIDDEN','BRAVE_INCIDENT_EXPORT_FORMAT',
+              'BRAVE_INCIDENT_EXPORT_PRIVACY','BRAVE_INCIDENT_EXPORT_JSON',
+              'ZIP_BINARY_INVALID','ZIP_DUPLICATE_ENTRY','ZIP_REQUIRED_FILES_MISSING',
+              'ZIP_OVERSIZE','ZIP_PATH_ESCAPE','ZIP_SECRET_CANARY_LEAK','ZIP_PRIVATE_KEY_LEAK',
+              'ZIP_MANIFEST_EMPTY','ZIP_MANIFEST_ENTRY_MISSING','ZIP_MANIFEST_DIGEST_MISMATCH',
+              'ZIP_MANIFEST_LENGTH_MISMATCH','ZIP_BRANDING_MISSING','ZIP_PRIVACY_BRANDING_MISSING',
+              'ZIP_BROKER_READ','ZIP_BROKER_MUTATION','ZIP_RUNTIME_MUTATION',
+              'ZIP_BROWSER_PERSISTENCE','BRAVE_SUPPORT_FILENAME','BRAVE_ORIGIN_DRIFT'
+            )
+            foreach($name in $allowedBrowserAsserts){
+              $line='DIC13_'+$name+'=FAIL'
+              if(@($lines|Where-Object{$_ -ceq $line}).Count -gt 0){Write-Host $line}
+            }
             if($code -ne 0){throw 'DIC13_REAL_BRAVE_ACCEPTANCE_FAILED_PRIVATE_DETAILS_WITHHELD'}
             foreach($marker in $required){
               if(@($lines|Where-Object{$_ -ceq $marker}).Count -ne 1){throw 'DIC13_REQUIRED_MARKER_MISSING'}
@@ -196,7 +220,7 @@ jobs:
           $encoded=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($data+"`n"))
           $body=@{message='evidence: DIC-13 Brave acceptance run';content=$encoded;branch='main'}|ConvertTo-Json
           try{
-            Invoke-RestMethod -Method Put -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/dic13-last-run.json' -ContentType 'application/json' -Headers @{
+            Invoke-RestMethod -Method Put -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/dic13-runs/' + $env:GITHUB_RUN_ID + '.json') -ContentType 'application/json' -Headers @{
               Authorization=('Bearer '+$env:GH_TOKEN)
               Accept='application/vnd.github+json'
               'X-GitHub-Api-Version'='2022-11-28'
