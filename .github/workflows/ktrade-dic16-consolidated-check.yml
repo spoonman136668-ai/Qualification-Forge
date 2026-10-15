@@ -104,15 +104,17 @@ jobs:
             )
             $lines=@(Get-Content -LiteralPath $private -ErrorAction SilentlyContinue)
             foreach($name in $allow){
-              if(@($lines|Where-Object{$_ -ceq ('DIC07_'+$name+'=PASS')}).Count -eq 1){
+              $count=@($lines|Where-Object{$_ -ceq ('DIC07_'+$name+'=PASS')}).Count
+              $required=if($name -ceq 'PACKAGED_EXE_LOCAL_OPERATOR_READY'){2}else{1}
+              if($count -ge $required){
                 Write-Host ('DIC16_'+$name+'=PASS')
               }
             }
             if($exit -ne 0){throw 'DIC16_OFFLINE_PACKAGE_PRIVATE_FAILURE'}
             foreach($name in $allow){
-              if(@($lines|Where-Object{$_ -ceq ('DIC07_'+$name+'=PASS')}).Count -ne 1){
-                throw ('DIC16_MISSING_REQUIRED_'+$name)
-              }
+              $count=@($lines|Where-Object{$_ -ceq ('DIC07_'+$name+'=PASS')}).Count
+              $required=if($name -ceq 'PACKAGED_EXE_LOCAL_OPERATOR_READY'){2}else{1}
+              if($count -lt $required){throw ('DIC16_MISSING_REQUIRED_'+$name)}
             }
             Write-Host 'DIC16_INSTALLED_COMBINED_SOURCE=PASS'
           }finally{
