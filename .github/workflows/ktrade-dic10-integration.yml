@@ -1,0 +1,85 @@
+name: KTRADE DIC-10 Pine incident source integration
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ktrade-dic10-integration.yml
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      KTRADE_EXPECTED_SOURCE_SHA: 'd9a62e1a2ce1a1aefe0a9bbff8061a06018c73a1'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Require disposable Windows without production authority
+        shell: pwsh
+        run: |
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC10_UNSAFE_RUNNER'}
+          Write-Host 'DIC10_HOSTED_WINDOWS=PASS'
+      - name: Checkout exact private candidate without persisting credential
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: ${{ env.KTRADE_EXPECTED_SOURCE_SHA }}
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Setup isolated Go without shared cache
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+      - name: Independent focused joint-gate source tests and Windows builds
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $private=Join-Path $env:RUNNER_TEMP 'dic10-private-test.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            $sha=(& git rev-parse HEAD).Trim()
+            if($LASTEXITCODE -ne 0 -or $sha -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC10_SOURCE_IDENTITY_DRIFT'}
+            Write-Host 'DIC10_SOURCE_IDENTITY=PASS'
+            function Check([string]$label,[string]$program,[string[]]$arguments){
+              try{& $program @arguments *> $private;if($LASTEXITCODE -ne 0){throw 'nonzero'}}
+              catch{throw ('DIC10_'+$label+'_PRIVATE_FAILURE')}
+              Write-Host ('DIC10_'+$label+'=PASS')
+            }
+            Check 'COEXISTENCE_UPGRADE' 'go' @('test','-count=1','-timeout=200s','./internal/durableupgrade','-run','^TestDIC10')
+            Check 'COEXISTENCE_HTTP_UI' 'go' @('test','-count=1','-timeout=200s','./pkg','-run','^TestDIC10')
+            Check 'R12_STARTUP' 'go' @('test','-count=1','-timeout=200s','.','-run','^TestKTRADERecoveryR12')
+            Check 'R13_MANAGEMENT' 'go' @('test','-count=1','-timeout=200s','./pkg','-run','^TestKTRADERecoveryR13')
+            Check 'PINE_PORTABILITY' 'go' @('test','-count=1','-timeout=200s','./internal/durableupgrade','-run','^TestPineLibrary')
+            Check 'INCIDENT_SOURCE_SAFEGUARDS' 'go' @('test','-count=1','-timeout=200s','./internal/durableupgrade','-run','^TestDIC08')
+            Check 'FULL_REGRESSION' 'go' @('test','-count=1','-timeout=420s','./...')
+            Check 'VET' 'go' @('vet','./...')
+            Check 'GO_BUILD' 'go' @('build','./...')
+            Check 'JS_PARSE' 'node' @('--check','pkg/web/app.js')
+            Check 'FOUR_WINDOWS_EXES' 'cmd.exe' @('/d','/c','RUN-BUILD-WINDOWS.cmd')
+            if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC10_SOURCE_MUTATED'}
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC10_TRACKED_SOURCE_CHANGED'}
+            Write-Host 'DIC10_SOURCE_UNCHANGED=PASS'
+            Write-Host 'DIC10_NO_RUNTIME_OR_BROKER=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $private -Force -ErrorAction SilentlyContinue
+          }
+      - name: Purge private source without publishing artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          $p=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          Write-Host 'DIC10_PUBLIC_PRIVATE_ARTIFACT_UPLOAD=DISABLED'
