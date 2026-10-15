@@ -14,7 +14,7 @@ function RunUpgrade([string[]]$Args,[string]$Label,[bool]$ExpectedSuccess=$true)
   $global:LASTEXITCODE=0
   try{ & $script:Upgrade @Args *> $log }catch{$global:LASTEXITCODE=1}
   $code=$LASTEXITCODE
-  if($ExpectedSuccess -and $code -ne 0){Fail ($Label+'_FAILED_PRIVATE_OUTPUT_WITHHELD')}
+  if($ExpectedSuccess -and $code -ne 0){Write-Host ('DIC14_FAILURE_STEP_'+$Label+'=FAIL');Fail ($Label+'_FAILED_PRIVATE_OUTPUT_WITHHELD')}
   if(-not $ExpectedSuccess -and $code -eq 0){Fail ($Label+'_UNEXPECTED_SUCCESS')}
   Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
 }
@@ -78,8 +78,11 @@ try{
   $snapshot=Join-Path $scratch 'verified-snapshot'
   $original=((& $script:Upgrade digest --root $source | ConvertFrom-Json).durable_digest)
   Require ($LASTEXITCODE -eq 0 -and $original -match '^[0-9a-f]{64}$') 'SOURCE_DIGEST'
+  Mark 'SOURCE_DIGEST'
   RunUpgrade @('snapshot','--source-root',$source,'--snapshot-root',$snapshot,'--source-version','DIC14-SYNTHETIC-ONLY','--target-version','DIC14-SYNTHETIC-TARGET') 'SNAPSHOT'
+  Mark 'SNAPSHOT_CREATED'
   RunUpgrade @('verify','--snapshot-root',$snapshot) 'VERIFY'
+  Mark 'SNAPSHOT_VERIFIED'
   $man=(Get-Content -LiteralPath (Join-Path $snapshot 'upgrade-manifest.json') -Raw | ConvertFrom-Json)
   $paths=@($man.files | ForEach-Object {$_.path})
   foreach($rel in $seed.Keys){
