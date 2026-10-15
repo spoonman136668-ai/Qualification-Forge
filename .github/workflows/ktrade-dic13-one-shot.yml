@@ -100,9 +100,11 @@ jobs:
             if($original.IndexOf($needle,[StringComparison]::Ordinal) -lt 0){throw 'DIC13_QUALIFIED_HARNESS_ANCHOR_MISSING'}
             $injection=@'
           $Phase='DIC13_REAL_BRAVE'
-          $canaryPath=Join-Path $App 'data/logs/ktrade.log'
+          $canaryPath=Join-Path $App 'data/logs/ckb.log'
           New-Item -ItemType Directory -Path (Split-Path -Parent $canaryPath) -Force|Out-Null
           [IO.File]::AppendAllText($canaryPath,("api_key: DIC13_PRIVATE_CANARY_NEVER_EXPORT" + [Environment]::NewLine))
+          Mark 'DIC13_CANARY_WRITTEN'
+          Mark 'DIC13_BROWSER_INVOCATION'
           & python $env:DIC13_PY $env:DIC13_BRAVE $env:DIC13_PROFILE $env:DIC13_SCRATCH
           Assert ($LASTEXITCODE -eq 0) 'DIC13_BRAVE_OR_PRIVACY_NEGATIVE'
           '@
@@ -140,7 +142,8 @@ jobs:
               'INSTALLED_CSRF_REJECTS_UNAUTHORIZED_SAVE','INSTALLED_SAVE_LIST_EXPORT',
               'COMBINED_OPERATOR_PINE_AND_INCIDENT_UI','COMBINED_PINE_LIST_FETCHED',
               'COMBINED_PINE_IMPORT_AND_FAVORITES_SAVED',
-              'INSTALLED_RESTART_PRESERVES_REPORT','COMBINED_PINE_AND_INCIDENT_RESTART_CONTINUITY'
+              'INSTALLED_RESTART_PRESERVES_REPORT','COMBINED_PINE_AND_INCIDENT_RESTART_CONTINUITY',
+              'DIC13_CANARY_WRITTEN','DIC13_BROWSER_INVOCATION'
             )
             foreach($name in $allowedDIC07){
               $line='DIC07_'+$name+'=PASS'
@@ -148,6 +151,13 @@ jobs:
             }
             foreach($phase in @('INIT','SYNTHETIC_SENTINELS','SYNTHETIC_CONFIG','SYNTHETIC_KEY','FIREWALL_PROFILE','FIREWALL_RULE','APP_STARTUP','INSTALLED_CSRF_AND_UI','INSTALLED_INCIDENT_SAVE','DIC13_REAL_BRAVE','INSTALLED_RESTART','INSTALLED_TAMPER')){
               $line='DIC07_FAILURE_PHASE_'+$phase+'=FAIL'
+              if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
+            }
+            $browserPasses=@('REAL_BRAVE_PAGE','BRAVE_INSPECT_CLICK','BRAVE_INCIDENT_SAVE_CLICK',
+              'BRAVE_INCIDENT_LIST_CLICK','BRAVE_INCIDENT_EXPORT_CLICK','BRAVE_SYNTHETIC_PRODUCT_SELECTED',
+              'ZIP_MANIFEST_HASHES_AND_PRIVACY','BRAVE_SUPPORT_EXPORT_CLICK','BRAVE_LOOPBACK_ONLY')
+            foreach($name in $browserPasses){
+              $line='DIC13_'+$name+'=PASS'
               if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
             }
             # Publish bounded stage and assertion identifiers only, never browser exception text.
