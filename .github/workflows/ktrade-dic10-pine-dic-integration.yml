@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE_SHA: 'd037a8789118ce0fb76fd918bf09120226c87fee'
+      KTRADE_EXPECTED_SOURCE_SHA: '37a60ef649b627f0b8923278b39495f92292a8a0'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -85,6 +85,12 @@ jobs:
           $scratch=Join-Path $env:RUNNER_TEMP 'dic10-isolated-installed'
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
           try{
+            $testFile=Join-Path (Get-Location) 'windows/ktrade-dic10-synthetic-installed-combined.ps1'
+            $parseTokens=$null
+            $parseErrors=$null
+            $null=[System.Management.Automation.Language.Parser]::ParseFile($testFile,[ref]$parseTokens,[ref]$parseErrors)
+            if($null -ne $parseErrors -and @($parseErrors).Count -gt 0){throw 'DIC10_INSTALLED_HARNESS_PARSE_INVALID'}
+            Write-Host 'DIC10_INSTALLED_HARNESS_PARSE=PASS'
             & pwsh -NoProfile -File 'windows/ktrade-dic10-synthetic-installed-combined.ps1' -ScratchRoot $scratch *> $private
             $exit=$LASTEXITCODE
             $lines=@(Get-Content -LiteralPath $private -ErrorAction SilentlyContinue)
