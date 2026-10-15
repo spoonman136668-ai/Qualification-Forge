@@ -133,6 +133,23 @@ jobs:
             foreach($marker in $required){
               if(@($lines|Where-Object{$_ -ceq $marker}).Count -eq 1){Write-Host $marker}
             }
+            $allowedDIC07=@(
+              'PACKAGED_FOUR_EXES_AND_MANIFEST','SYNTHETIC_SENTINELS','SYNTHETIC_CONFIG',
+              'SYNTHETIC_KEY','FIREWALL_PROFILE','NO_BROKER_EGRESS_FIREWALL',
+              'PACKAGED_EXE_LOCAL_OPERATOR_READY','INSTALLED_OPERATOR_PANEL',
+              'INSTALLED_CSRF_REJECTS_UNAUTHORIZED_SAVE','INSTALLED_SAVE_LIST_EXPORT',
+              'COMBINED_OPERATOR_PINE_AND_INCIDENT_UI','COMBINED_PINE_LIST_FETCHED',
+              'COMBINED_PINE_IMPORT_AND_FAVORITES_SAVED',
+              'INSTALLED_RESTART_PRESERVES_REPORT','COMBINED_PINE_AND_INCIDENT_RESTART_CONTINUITY'
+            )
+            foreach($name in $allowedDIC07){
+              $line='DIC07_'+$name+'=PASS'
+              if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
+            }
+            foreach($phase in @('INIT','SYNTHETIC_SENTINELS','SYNTHETIC_CONFIG','SYNTHETIC_KEY','FIREWALL_PROFILE','FIREWALL_RULE','APP_STARTUP','INSTALLED_CSRF_AND_UI','INSTALLED_INCIDENT_SAVE','DIC13_REAL_BRAVE','INSTALLED_RESTART','INSTALLED_TAMPER')){
+              $line='DIC07_FAILURE_PHASE_'+$phase+'=FAIL'
+              if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
+            }
             if($code -ne 0){throw 'DIC13_REAL_BRAVE_ACCEPTANCE_FAILED_PRIVATE_DETAILS_WITHHELD'}
             foreach($marker in $required){
               if(@($lines|Where-Object{$_ -ceq $marker}).Count -ne 1){throw 'DIC13_REQUIRED_MARKER_MISSING'}
