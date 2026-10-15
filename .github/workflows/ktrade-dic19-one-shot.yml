@@ -1,0 +1,140 @@
+name: KTRADE DIC-19 frozen pre-migration source parity gap audit
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ktrade-dic19-one-shot.yml
+
+permissions:
+  contents: write
+
+jobs:
+  historical-gap-audit:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      HISTORICAL_SHA: '813f4b21de27606bbe6e52a94eec150b72408b80'
+      CURRENT_SHA: '7b5f641f7c37dcc643d79a24f9fefa49cd2469be'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+
+    steps:
+      - name: Restrict to disposable Windows without trading authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC19_RUNNER_UNSAFE'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'DIC19_AUTHORITY_UNSAFE'}
+          Write-Host 'DIC19_ISOLATED_WINDOWS=PASS'
+
+      - name: Checkout public auditor only
+        uses: actions/checkout@v4
+        with:
+          path: qual-public
+          persist-credentials: false
+
+      - name: Checkout exact accepted September release-freeze source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 813f4b21de27606bbe6e52a94eec150b72408b80
+          path: historical-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+
+      - name: Checkout exact current draft-review source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 7b5f641f7c37dcc643d79a24f9fefa49cd2469be
+          path: current-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+
+      - name: Verify exact Git trees and absent historical APIs without executing source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $script=Join-Path $env:GITHUB_WORKSPACE 'qual-public/qualification/dic19_source_parity.py'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'historical-private'
+          $current=Join-Path $env:GITHUB_WORKSPACE 'current-private'
+          $log=Join-Path $env:RUNNER_TEMP 'dic19-private.log'
+          try {
+            & python -m py_compile $script *> $log
+            if($LASTEXITCODE -ne 0){throw 'DIC19_PYTHON_PARSE_FAILED'}
+            & python $script --historical $old --current $current *> $log
+            $code=$LASTEXITCODE
+            $lines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue)
+            $required=@(
+              'DIC19_TWO_IMMUTABLE_SOURCE_TREES=PASS',
+              'DIC19_HISTORICAL_PRODUCTION_PATH_GAPS_FOUR=PASS',
+              'DIC19_HISTORICAL_TEST_PATH_GAPS_140=PASS',
+              'DIC19_TRADEGUARDCONTINUITY_PUBLIC_API_ABSENCE_CONFIRMED=PASS',
+              'DIC19_TRANSIENTBROKERRECOVERY_PUBLIC_API_ABSENCE_CONFIRMED=PASS',
+              'DIC19_FUNCTIONAL_EQUIVALENCE=UNQUALIFIED',
+              'DIC19_HISTORICAL_SIGNED_1_5_7=BLOCKED',
+              'DIC19_RELEASE_PROMOTION=PROHIBITED',
+              'DIC19_READONLY_SOURCE_PARITY_INVENTORY=PASS'
+            )
+            foreach($line in $required){
+              if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
+            }
+            if($code -ne 0){throw 'DIC19_PARITY_AUDIT_NEGATIVE_PRIVATE_DETAILS_WITHHELD'}
+            foreach($line in $required){
+              if(@($lines|Where-Object{$_ -ceq $line}).Count -ne 1){throw 'DIC19_REQUIRED_EVIDENCE_MISSING'}
+            }
+            Write-Host 'DIC19_NONEXECUTING_HISTORICAL_GAP_AUDIT_ACCEPTED=PASS'
+          }finally{Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+
+      - name: Purge both private source snapshots; publish no artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('historical-private','current-private','qual-public')){
+            $path=Join-Path $env:GITHUB_WORKSPACE $name
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Write-Host 'DIC19_PRIVATE_ARTIFACT_UPLOAD=DISABLED'
+
+      - name: Write only bounded run identity and no-parity verdict
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINAL_STATUS: ${{ job.status }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $record=[ordered]@{
+            schema='ktrade.dic19.source-parity-gaps.v1'
+            run_id=$env:GITHUB_RUN_ID
+            workflow_sha=$env:GITHUB_SHA
+            historical_source_sha=$env:HISTORICAL_SHA
+            current_source_sha=$env:CURRENT_SHA
+            audit_job_status=$env:FINAL_STATUS
+            historical_signed_v157='NOT_ADMITTED'
+            source_api_equivalence='NOT_QUALIFIED'
+            production_promotion=$false
+            broker_access=$false
+            user_profile_access=$false
+            private_artifact_uploads=0
+          } | ConvertTo-Json -Compress
+          $body=@{
+            message='evidence: DIC-19 source-only parity inventory'
+            content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($record+"`n"))
+            branch='main'
+          }|ConvertTo-Json
+          try{
+            $uri='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/dic19-runs/'+$env:GITHUB_RUN_ID+'.json'
+            Invoke-RestMethod -Method Put -Uri $uri -ContentType 'application/json' -Headers @{
+              Authorization=('Bearer '+$env:GH_TOKEN)
+              Accept='application/vnd.github+json'
+              'X-GitHub-Api-Version'='2022-11-28'
+            } -Body $body -TimeoutSec 30|Out-Null
+          }catch{throw 'DIC19_RUN_RECEIPT_WRITE_FAILED'}
+          Write-Host 'DIC19_PUBLIC_SOURCE_GAP_VERDICT_RECORDED=PASS'
