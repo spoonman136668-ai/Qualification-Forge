@@ -1,0 +1,139 @@
+name: KTRADE DIC-16 consolidated source and installed acceptance
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ktrade-dic16-consolidated-check.yml
+permissions:
+  contents: read
+jobs:
+  qualify:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      KTRADE_EXPECTED_SOURCE_SHA: '7b5f641f7c37dcc643d79a24f9fefa49cd2469be'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Require genuine isolated hosted Windows with zero live authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC16_UNTRUSTED_WORKER'}
+          Write-Host 'DIC16_HOSTED_WINDOWS=PASS'
+      - name: Checkout immutable private combined DIC and Pine source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: ${{ env.KTRADE_EXPECTED_SOURCE_SHA }}
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Install isolated Go toolchain with cache disabled
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+      - name: Qualify combined source at exact head with a single full regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $private=Join-Path $env:RUNNER_TEMP 'dic16-private-source.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            $actual=(& git rev-parse HEAD).Trim()
+            if($LASTEXITCODE -ne 0 -or $actual -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC16_SOURCE_IDENTITY_DRIFT'}
+            Write-Host 'DIC16_SOURCE_IDENTITY=PASS'
+            function Check([string]$label,[string]$program,[string[]]$arguments){
+              try{& $program @arguments *> $private;if($LASTEXITCODE -ne 0){throw 'nonzero'}}
+              catch{throw ('DIC16_'+$label+'_PRIVATE_FAILURE')}
+              Write-Host ('DIC16_'+$label+'=PASS')
+            }
+            Check 'R12_PINE_STARTUP' 'go' @('test','-count=1','-timeout=180s','.','-run','^TestKTRADERecoveryR12')
+            Check 'R13_PINE_FAVORITES_MANAGEMENT' 'go' @('test','-count=1','-timeout=180s','./pkg','-run','^TestKTRADERecoveryR13')
+            Check 'PINE_AND_INCIDENT_UPDATER' 'go' @('test','-count=1','-timeout=180s','./internal/durableupgrade','-run','^(TestPineLibrary|TestDIC08|TestDIC15)')
+            Check 'INCIDENT_CUSTODY' 'go' @('test','-count=1','-timeout=180s','./internal/incidentcapsule','-run','^TestDIC06')
+            Check 'PRIVACY_BROWSER_UI' 'go' @('test','-count=1','-timeout=180s','./pkg','-run','^TestDIC(12|13)')
+            Check 'ONE_FULL_REGRESSION' 'go' @('test','-count=1','-timeout=420s','./...')
+            Check 'VET' 'go' @('vet','./...')
+            Check 'GO_BUILD' 'go' @('build','./...')
+            Check 'JS_SYNTAX' 'node' @('--check','pkg/web/app.js')
+            if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC16_SOURCE_DRIFT'}
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC16_TRACKED_SOURCE_MUTATED'}
+            Write-Host 'DIC16_SOURCE_UNCHANGED=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $private -Force -ErrorAction SilentlyContinue
+          }
+      - name: Qualify packaged KTRADE offline with Pine and incidents together
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $private=Join-Path $env:RUNNER_TEMP 'dic16-private-package.log'
+          $scratch=Join-Path $env:RUNNER_TEMP 'dic16-combined-offline-install'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & pwsh -NoProfile -File 'windows/ktrade-dic10-synthetic-installed-combined.ps1' -ScratchRoot $scratch *> $private
+            $exit=$LASTEXITCODE
+            $allow=@(
+              'PACKAGED_FOUR_EXES_AND_MANIFEST',
+              'NO_BROKER_EGRESS_FIREWALL',
+              'PACKAGED_EXE_LOCAL_OPERATOR_READY',
+              'INSTALLED_OPERATOR_PANEL',
+              'NATIVE_OBSERVED_HEALTH_ALERT',
+              'INSTALLED_CSRF_REJECTS_UNAUTHORIZED_SAVE',
+              'INSTALLED_SAVE_LIST_EXPORT',
+              'COMBINED_OPERATOR_PINE_AND_INCIDENT_UI',
+              'COMBINED_PINE_LIST_FETCHED',
+              'COMBINED_BUILTIN_PINE_CATALOG',
+              'COMBINED_PINE_NO_SOURCE_LEAK',
+              'COMBINED_PINE_CSRF_DENIAL',
+              'COMBINED_PINE_IMPORT_AND_FAVORITES_SAVED',
+              'INSTALLED_RESTART_PRESERVES_REPORT',
+              'COMBINED_PINE_AND_INCIDENT_RESTART_CONTINUITY',
+              'INSTALLED_TAMPER_REJECTED',
+              'SYNTHETIC_PREFERENCES_PNL_PINE_UNCHANGED',
+              'DIC07_FULL_SYNTHETIC_OFFLINE_ACCEPTANCE'
+            )
+            $lines=@(Get-Content -LiteralPath $private -ErrorAction SilentlyContinue)
+            foreach($name in $allow){
+              if(@($lines|Where-Object{$_ -ceq ('DIC07_'+$name+'=PASS')}).Count -eq 1){
+                Write-Host ('DIC16_'+$name+'=PASS')
+              }
+            }
+            if($exit -ne 0){throw 'DIC16_OFFLINE_PACKAGE_PRIVATE_FAILURE'}
+            foreach($name in $allow){
+              if(@($lines|Where-Object{$_ -ceq ('DIC07_'+$name+'=PASS')}).Count -ne 1){
+                throw ('DIC16_MISSING_REQUIRED_'+$name)
+              }
+            }
+            Write-Host 'DIC16_INSTALLED_COMBINED_SOURCE=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $private -Force -ErrorAction SilentlyContinue
+            if(Test-Path -LiteralPath $scratch){Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+      - name: Confirm private repository unchanged after installed run
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC16_FINAL_PIN_MISMATCH'}
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC16_FINAL_SOURCE_CHANGED'}
+            Write-Host 'DIC16_FINAL_SOURCE_UNCHANGED=PASS'
+          }finally{Pop-Location}
+      - name: Remove all temporary private checkout data
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue}
+          Write-Host 'DIC16_PUBLIC_PRIVATE_ARTIFACT_UPLOAD=DISABLED'
