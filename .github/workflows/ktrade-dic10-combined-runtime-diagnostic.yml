@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     env:
-      KTRADE_EXPECTED_SOURCE_SHA: '6fc5ccf642edc2e33a9ada01afdd8c3250aecc35'
+      KTRADE_EXPECTED_SOURCE_SHA: '3e02bd2cbdd67d5c9d61b854689dddc6ee9b5dfb'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -93,6 +93,11 @@ jobs:
               foreach($status in @(400,401,403,404,409,422,429,500,503)){
                 if(@($lines|Where-Object{$_ -ceq ('DIC07_COMBINED_PINE_LIST_HTTP_'+$status+'=FAIL')}).Count -gt 0){
                   Write-Host ('DIC10_PINE_LIST_HTTP_'+$status+'=FAIL')
+                }
+              }
+              foreach($code in @('COMBINED_PINE_UNAUTHORIZED_WRITE_ACCEPTED','COMBINED_PINE_NEGATIVE_HTTP_400','COMBINED_PINE_NEGATIVE_HTTP_401','COMBINED_PINE_NEGATIVE_HTTP_404','COMBINED_PINE_NEGATIVE_HTTP_405','COMBINED_PINE_NEGATIVE_HTTP_409','COMBINED_PINE_NEGATIVE_HTTP_422','COMBINED_PINE_NEGATIVE_HTTP_500','COMBINED_PINE_NEGATIVE_HTTP_503')){
+                if(@($lines|Where-Object{$_ -ceq ('DIC07_'+$code+'=FAIL')}).Count -gt 0){
+                  Write-Host ('DIC10_'+$code+'=FAIL')
                 }
               }
               if(@($lines|Where-Object{$_ -ceq 'DIC07_COMBINED_PINE_LIST_REQUEST_FAILED=FAIL'}).Count -gt 0){
