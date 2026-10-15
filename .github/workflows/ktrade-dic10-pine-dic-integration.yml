@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE_SHA: '37a60ef649b627f0b8923278b39495f92292a8a0'
+      KTRADE_EXPECTED_SOURCE_SHA: '07f5fdc8c2abcf9d916aa4b2ba881de23dc7766b'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
