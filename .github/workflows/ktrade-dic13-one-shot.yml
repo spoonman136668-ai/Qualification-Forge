@@ -95,6 +95,21 @@ jobs:
             if($LASTEXITCODE -ne 0 -or $sha -cne $env:EXPECTED_SHA){throw 'DIC13_PINNED_SHA_INVALID'}
             if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC13_SOURCE_DIRTY_PRE'}
             Write-Host 'DIC13_EXACT_REVIEW_SHA=PASS'
+            # One full regression; no cached acceptance across a changed source.
+            $sourceLog=Join-Path $env:RUNNER_TEMP 'dic13-source.log'
+            function CheckSource([string]$name,[string[]]$argv) {
+              & go @argv *> $sourceLog
+              if($LASTEXITCODE -ne 0){throw ('DIC13_'+$name+'_FAILED_PRIVATE_OUTPUT_WITHHELD')}
+              Write-Host ('DIC13_'+$name+'=PASS')
+            }
+            try {
+              CheckSource 'FOCUSED_DOM' @('test','-count=1','-run','^TestDIC13','./pkg')
+              CheckSource 'ONE_FULL_REGRESSION' @('test','-count=1','-timeout=420s','./...')
+              CheckSource 'VET' @('vet','./...')
+              CheckSource 'GO_BUILD' @('build','./...')
+            } finally {
+              Remove-Item -LiteralPath $sourceLog -Force -ErrorAction SilentlyContinue
+            }
             $original=[IO.File]::ReadAllText($harness)
             $needle="  Mark 'COMBINED_PINE_IMPORT_AND_FAVORITES_SAVED'"
             if($original.IndexOf($needle,[StringComparison]::Ordinal) -lt 0){throw 'DIC13_QUALIFIED_HARNESS_ANCHOR_MISSING'}
