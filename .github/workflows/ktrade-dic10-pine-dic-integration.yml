@@ -78,6 +78,7 @@ jobs:
             Remove-Item -LiteralPath $private -Force -ErrorAction SilentlyContinue
           }
       - name: Run actual packaged offline KTRADE combined Pine and DIC continuity
+        # Exact-head repeatability check after an isolated runtime PASS on run 38664524495.
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
