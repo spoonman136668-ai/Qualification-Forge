@@ -9,10 +9,14 @@ function Fail([string]$Code){throw ('DIC14_'+$Code)}
 function Require([bool]$Condition,[string]$Code){if(-not $Condition){Fail $Code}}
 function Mark([string]$Code){Write-Host ('DIC14_'+$Code+'=PASS')}
 function Hash([string]$Path){return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()}
-function RunUpgrade([string[]]$Args,[string]$Label,[bool]$ExpectedSuccess=$true){
+function RunUpgrade([string[]]$CommandArguments,[string]$Label,[bool]$ExpectedSuccess=$true){
   $log=Join-Path $ScratchRoot 'private-upgrade.log'
   $global:LASTEXITCODE=0
-  try{ & $script:Upgrade @Args *> $log }catch{$global:LASTEXITCODE=1}
+  if($Label -eq 'SNAPSHOT'){
+    if($CommandArguments.Count -ne 9){Fail 'SNAPSHOT_ARG_BINDING_INVALID'}
+    Mark 'SNAPSHOT_ARG_BINDING'
+  }
+  try{ & $script:Upgrade @CommandArguments *> $log }catch{$global:LASTEXITCODE=1}
   $code=$LASTEXITCODE
   if($ExpectedSuccess -and $code -ne 0){Write-Host ('DIC14_FAILURE_STEP_'+$Label+'=FAIL');Fail ($Label+'_FAILED_PRIVATE_OUTPUT_WITHHELD')}
   if(-not $ExpectedSuccess -and $code -eq 0){Fail ($Label+'_UNEXPECTED_SUCCESS')}
