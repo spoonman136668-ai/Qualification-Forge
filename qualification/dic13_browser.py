@@ -131,6 +131,11 @@ def main():
                 page.locator("#addProduct").click(timeout=25000)
                 page.wait_for_function("() => (typeof S !== 'undefined' && !!S.product)", timeout=30000)
             marker("BRAVE_SYNTHETIC_PRODUCT_SELECTED")
+            stage("DIAGNOSTICS_NAVIGATION")
+            page.locator("#advancedViewButton").click(timeout=25000)
+            page.locator("#inspectorMoreLabel").click(timeout=25000)
+            page.locator('#inspectorTabs [data-tab="diagnostics"]').click(timeout=25000)
+            marker("BRAVE_DIAGNOSTICS_NAVIGATION")
             stage("SUPPORT_BUTTON")
             button = page.locator('[data-action="export-support-bundle"]:visible').first
             button.wait_for(state="visible", timeout=20000)
