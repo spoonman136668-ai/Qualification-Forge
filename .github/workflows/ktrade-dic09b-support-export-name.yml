@@ -1,0 +1,79 @@
+name: KTRADE DIC-09B support export source qualification
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ktrade-dic09b-support-export-name.yml
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      KTRADE_EXPECTED_SOURCE_SHA: '7ac07c61ef84950f029b2733a7730e452c227688'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Require ephemeral Windows VM
+        shell: pwsh
+        run: |
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC09B_NOT_ISOLATED_WINDOWS'}
+          Write-Host 'DIC09B_HOSTED_WINDOWS=PASS'
+      - name: Fetch exact private pinned KTRADE source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: ${{ env.KTRADE_EXPECTED_SOURCE_SHA }}
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Install Go without public source cache
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+      - name: Exact-head focused/full tests vet and four-executable build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'dic09b-private-test.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            $sha=(& git rev-parse HEAD).Trim()
+            if($LASTEXITCODE -ne 0 -or $sha -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC09B_PIN_DRIFT'}
+            Write-Host 'DIC09B_SOURCE_IDENTITY=PASS'
+            function Check([string]$label,[string]$program,[string[]]$arguments){
+              try{& $program @arguments *> $log;if($LASTEXITCODE -ne 0){throw 'nonzero'}}
+              catch{throw ('DIC09B_'+$label+'_PRIVATE_FAILURE')}
+              Write-Host ('DIC09B_'+$label+'=PASS')
+            }
+            Check 'FOCUSED_EXPORT' 'go' @('test','-count=1','-timeout=150s','./pkg','-run','^TestDIC09')
+            Check 'FULL_REGRESSION' 'go' @('test','-count=1','-timeout=420s','./...')
+            Check 'VET' 'go' @('vet','./...')
+            Check 'GO_BUILD' 'go' @('build','./...')
+            Check 'FOUR_WINDOWS_EXES' 'cmd.exe' @('/d','/c','RUN-BUILD-WINDOWS.cmd')
+            if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC09B_SOURCE_CHANGED'}
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC09B_TRACKED_SOURCE_CHANGED'}
+            Write-Host 'DIC09B_SOURCE_UNCHANGED=PASS'
+            Write-Host 'DIC09B_APPLICATION_RUNTIME_NOT_EXECUTED=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Clean private checkout without artifact upload
+        if: always()
+        shell: pwsh
+        run: |
+          $path=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue}
+          Write-Host 'DIC09B_PUBLIC_PRIVATE_ARTIFACT_UPLOAD=DISABLED'
