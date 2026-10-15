@@ -143,6 +143,7 @@ jobs:
               'DIC13_BRAVE_INCIDENT_LIST_CLICK=PASS',
               'DIC13_BRAVE_INCIDENT_EXPORT_CLICK=PASS',
               'DIC13_BRAVE_SYNTHETIC_PRODUCT_SELECTED=PASS',
+              'DIC13_BRAVE_DIAGNOSTICS_NAVIGATION=PASS',
               'DIC13_ZIP_MANIFEST_HASHES_AND_PRIVACY=PASS',
               'DIC13_BRAVE_SUPPORT_EXPORT_CLICK=PASS',
               'DIC13_BRAVE_LOOPBACK_ONLY=PASS',
@@ -170,7 +171,7 @@ jobs:
               if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
             }
             $browserPasses=@('REAL_BRAVE_PAGE','BRAVE_INCIDENT_DISCLOSURE_CLICK','BRAVE_INSPECT_CLICK','BRAVE_INCIDENT_SAVE_CLICK',
-              'BRAVE_INCIDENT_LIST_CLICK','BRAVE_INCIDENT_EXPORT_CLICK','BRAVE_SYNTHETIC_PRODUCT_SELECTED',
+              'BRAVE_INCIDENT_LIST_CLICK','BRAVE_INCIDENT_EXPORT_CLICK','BRAVE_SYNTHETIC_PRODUCT_SELECTED','BRAVE_DIAGNOSTICS_NAVIGATION',
               'ZIP_MANIFEST_HASHES_AND_PRIVACY','BRAVE_SUPPORT_EXPORT_CLICK','BRAVE_LOOPBACK_ONLY')
             foreach($name in $browserPasses){
               $line='DIC13_'+$name+'=PASS'
@@ -178,7 +179,7 @@ jobs:
             }
             # Publish bounded stage and assertion identifiers only, never browser exception text.
             $allowedBrowserStages=@('BRAVE_BINARY','BRAVE_LAUNCH','PAGE_GOTO','DISCLOSURE_OPEN','INCIDENT_INSPECT',
-              'INCIDENT_SAVE','INCIDENT_LIST','INCIDENT_EXPORT','PRODUCT_SELECT',
+              'INCIDENT_SAVE','INCIDENT_LIST','INCIDENT_EXPORT','PRODUCT_SELECT','DIAGNOSTICS_NAVIGATION',
               'SUPPORT_BUTTON','SUPPORT_DOWNLOAD','ZIP_VALIDATION')
             foreach($stage in $allowedBrowserStages){
               $line='DIC13_FAILURE_STAGE_'+$stage+'=FAIL'
