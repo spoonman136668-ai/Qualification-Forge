@@ -124,6 +124,34 @@ jobs:
                   Write-Host ('DIC10_FAILURE_PHASE_'+$phase+'=FAIL')
                 }
               }
+              $known=@(
+                'COMBINED_PINE_UI_NOT_RENDERED',
+                'COMBINED_BUILTIN_PINE_CATALOG_UNAVAILABLE',
+                'COMBINED_PINE_DISCOVERY_LEAKS_SOURCE',
+                'COMBINED_BUILTIN_PINE_ID_INVALID',
+                'COMBINED_PINE_FAVORITES_CSRF_BYPASS',
+                'COMBINED_PINE_FAVORITE_NOT_SAVED',
+                'COMBINED_PINE_IMPORT_INVALID',
+                'COMBINED_PINE_SOURCE_READBACK_FAILED',
+                'COMBINED_RESTART_LOST_PINE_OR_FAVORITES',
+                'COMBINED_RESTART_LOST_INCIDENT'
+              )
+              $categorized=$false
+              foreach($code in $known){
+                if(@($lines|Where-Object{$_.Contains('DIC07_'+$code)}).Count -gt 0){
+                  Write-Host ('DIC10_FAILURE_CLASS_'+$code+'=FAIL')
+                  $categorized=$true
+                }
+              }
+              if(-not $categorized){
+                foreach($status in @(400,401,403,404,409,422,500,503)){
+                  if(@($lines|Where-Object{$_.Contains('Response status code: '+$status)}).Count -gt 0){
+                    Write-Host ('DIC10_FAILURE_HTTP_'+$status+'=FAIL')
+                    $categorized=$true
+                  }
+                }
+              }
+              if(-not $categorized){Write-Host 'DIC10_FAILURE_CLASS_OTHER=FAIL'}
               throw 'DIC10_COMBINED_INSTALLED_PRIVATE_FAILURE'
             }
             Write-Host 'DIC10_ACTUAL_OFFLINE_INSTALLED_COEXISTENCE=PASS'
