@@ -92,6 +92,10 @@ jobs:
           }finally{
             Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
           }
+          # Negative subprocesses correctly exit nonzero. Reset their inherited
+          # LASTEXITCODE only after all required denial assertions passed.
+          $global:LASTEXITCODE=0
+          Write-Host 'DIC18_EXPECTED_CHILD_FAILURES_DID_NOT_FAIL_GATE=PASS'
 
       - name: Purge disposable fixtures and do not upload artifacts
         if: always()
