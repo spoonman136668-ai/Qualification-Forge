@@ -13,7 +13,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 60
     env:
-      EXPECTED_SHA: '8528b3c329ad4555a67146fa4d8e87ef333ff0c8'
+      EXPECTED_SHA: 'a026574b9fa300411a50b416bf2a3e000daa0de2'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ckb
-          ref: 8528b3c329ad4555a67146fa4d8e87ef333ff0c8
+          ref: a026574b9fa300411a50b416bf2a3e000daa0de2
           path: checked-private
           persist-credentials: false
           fetch-depth: 1
