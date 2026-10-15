@@ -105,7 +105,7 @@ jobs:
           [IO.File]::AppendAllText($canaryPath,("api_key: DIC13_PRIVATE_CANARY_NEVER_EXPORT" + [Environment]::NewLine))
           & python $env:DIC13_PY $env:DIC13_BRAVE $env:DIC13_PROFILE $env:DIC13_SCRATCH
           Assert ($LASTEXITCODE -eq 0) 'DIC13_BRAVE_OR_PRIVACY_NEGATIVE'
-'@
+          '@
             $injection=($injection -split "\r?\n"|ForEach-Object{$_.TrimStart()}) -join "`n"
             $injection="  "+($injection -replace "`n","`n  ")
             $patched=$original.Replace($needle,$needle+"`n"+$injection)
