@@ -1,0 +1,138 @@
+name: KTRADE DIC-18 historic predecessor fail-closed admission
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/ktrade-dic18-one-shot.yml
+
+permissions:
+  contents: write
+
+jobs:
+  dic18-historical-evidence-negative:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 12
+    env:
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      HISTORICAL_OBSERVED_SHA256: '4309b4de16fb7e26043919cad0d0ffa5dbc81103c8639fa16b20509a90462213'
+      VERIFIER_GIT_BLOB: 'eba12a1879342141aa057af289ebdfdf85fe12e5'
+    steps:
+      - name: Confirm Windows and prohibited authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC18_NOT_HOSTED_WINDOWS'}
+          foreach($n in @('KTRADE_CI_LIVE_AUTHORITY','KTRADE_CI_COINBASE_ALLOWED','KTRADE_CI_PROMOTION_ALLOWED')){
+            if([Environment]::GetEnvironmentVariable($n) -cne '0'){throw 'DIC18_AUTHORITY_NOT_ISOLATED'}
+          }
+          Write-Host 'DIC18_INDEPENDENT_WINDOWS_NO_LIVE_AUTHORITY=PASS'
+
+      - name: Checkout read-only public predecessor verifier
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Verify exact code and fail-closed historic evidence intake
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $script=Join-Path $env:GITHUB_WORKSPACE 'qualification/dic15_predecessor_attestation.ps1'
+          $blob=(& git hash-object -- 'qualification/dic15_predecessor_attestation.ps1').Trim()
+          if($LASTEXITCODE -ne 0 -or $blob -cne $env:VERIFIER_GIT_BLOB){throw 'DIC18_VERIFIER_CODE_IDENTITY_DRIFT'}
+          Write-Host 'DIC18_VERIFIER_IDENTITY=PASS'
+          $tokens=$null;$errors=$null
+          $null=[Management.Automation.Language.Parser]::ParseFile($script,[ref]$tokens,[ref]$errors)
+          if(@($errors).Count -ne 0){throw 'DIC18_VERIFIER_SYNTAX_ERROR'}
+          $scratch=Join-Path $env:RUNNER_TEMP 'dic18-negative-fixtures'
+          if(Test-Path -LiteralPath $scratch){throw 'DIC18_SCRATCH_ALREADY_EXISTS'}
+          New-Item -ItemType Directory -Path $scratch|Out-Null
+          $privateLog=Join-Path $scratch 'private.log'
+          $expected=$env:HISTORICAL_OBSERVED_SHA256
+          $dummySigner=('0'*40)
+          if($expected -cnotmatch '^[a-f0-9]{64}$'){throw 'DIC18_REPORTED_HASH_BAD'}
+          function ExpectDeny([string]$name,[string[]]$arguments,[string]$code){
+            try{
+              & pwsh -NoLogo -NoProfile -File $script @arguments *> $privateLog
+              if($LASTEXITCODE -eq 0){throw 'UNTRUSTED_CANDIDATE_ACCEPTED'}
+              $txt=[IO.File]::ReadAllText($privateLog)
+              if(-not $txt.Contains('DIC15_'+$code)){throw 'DENIAL_REASON_NOT_MATCHED'}
+              Write-Host ('DIC18_'+$name+'=PASS')
+            }catch{throw ('DIC18_'+$name+'_FAILED_PRIVATE_DETAILS_WITHHELD')}
+            finally{Remove-Item -LiteralPath $privateLog -Force -ErrorAction SilentlyContinue}
+          }
+          try{
+            $notepad=Join-Path $env:WINDIR 'System32/notepad.exe'
+            if(-not(Test-Path -LiteralPath $notepad -PathType Leaf)){throw 'DIC18_BENIGN_PE_FIXTURE_MISSING'}
+            $fake=Join-Path $scratch 'ckb.exe'
+            Copy-Item -LiteralPath $notepad -Destination $fake
+            $fakeHash=(Get-FileHash -LiteralPath $fake -Algorithm SHA256).Hash.ToLowerInvariant()
+            if($fakeHash -ceq $expected){throw 'DIC18_FIXTURE_UNEXPECTED_DIGEST'}
+            ExpectDeny 'NO_REAL_PREDECESSOR_REJECTED' @('-ExecutablePath',(Join-Path $scratch 'absent/ckb.exe'),'-ExpectedSHA256',$expected,'-ExpectedSignerThumbprint',$dummySigner) 'HISTORICAL_EXECUTABLE_UNAVAILABLE'
+            ExpectDeny 'EXTERNAL_WINDOWS_PATH_REJECTED' @('-ExecutablePath',$notepad,'-ExpectedSHA256',$expected,'-ExpectedSignerThumbprint',$dummySigner) 'NOT_EPHEMERAL_EVIDENCE'
+            ExpectDeny 'WRONG_EXECUTABLE_NAME_REJECTED' @('-ExecutablePath',$notepad,'-ExpectedSHA256',$expected,'-ExpectedSignerThumbprint',$dummySigner) 'NOT_EPHEMERAL_EVIDENCE'
+            ExpectDeny 'REPORTED_HISTORICAL_HASH_PROTECTED' @('-ExecutablePath',$fake,'-ExpectedSHA256',$expected,'-ExpectedSignerThumbprint',$dummySigner) 'PREDECESSOR_HASH_MISMATCH'
+            $signature=Get-AuthenticodeSignature -LiteralPath $fake
+            if($signature.Status -ne 'Valid'){throw 'DIC18_FIXTURE_SIGNATURE_NOT_VALID'}
+            ExpectDeny 'MATCHING_FILE_HASH_FAKE_SIGNER_REJECTED' @('-ExecutablePath',$fake,'-ExpectedSHA256',$fakeHash,'-ExpectedSignerThumbprint',$dummySigner) 'SIGNER_IDENTITY_MISMATCH'
+            ExpectDeny 'OLDER_SOURCE_VERSION_REJECTED' @('-ExecutablePath',$fake,'-ExpectedSHA256',$fakeHash,'-ExpectedSignerThumbprint',$dummySigner,'-ExpectedVersion','1.5.0') 'PREDECESSOR_VERSION_NOT_ALLOWED'
+            ExpectDeny 'MISSING_TRUST_PIN_REJECTED' @('-ExecutablePath',$fake,'-ExpectedSHA256',$fakeHash,'-ExpectedSignerThumbprint','NOT-PINNED') 'INDEPENDENT_SIGNER_NOT_PINNED'
+            Write-Host 'DIC18_NEGATIVE_AUTHENTICATION_CONTROLS=PASS'
+            Write-Host 'DIC18_AUTHENTIC_SIGNED_V157_BINARY=BLOCKED_NOT_PROVIDED'
+            Write-Host 'DIC18_AUTHENTIC_V157_INSTALLER_AND_MANIFEST=BLOCKED_NOT_PROVIDED'
+            Write-Host 'DIC18_REAL_USER_PROFILE=NOT_READ'
+            Write-Host 'DIC18_RELEASE_PROMOTION=NOT_AUTHORIZED'
+          }finally{
+            Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Purge disposable fixtures and do not upload artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          $p=Join-Path $env:RUNNER_TEMP 'dic18-negative-fixtures'
+          Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host 'DIC18_PRIVATE_ARTIFACT_UPLOAD=DISABLED'
+
+      - name: Preserve only public run identity and unresolved historical gate
+        if: always()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FINAL_STATUS: ${{ job.status }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $data=[ordered]@{
+            schema='ktrade.dic18.predecessor-admission.v1'
+            run_id=$env:GITHUB_RUN_ID
+            workflow_sha=$env:GITHUB_SHA
+            verifier_git_blob=$env:VERIFIER_GIT_BLOB
+            negative_control_job_status=$env:FINAL_STATUS
+            previously_observed_executable_sha256=$env:HISTORICAL_OBSERVED_SHA256
+            genuine_installer_supplied=$false
+            independently_pinned_signer_supplied=$false
+            signed_historical_compatibility_qualified=$false
+            user_profile_read=$false
+            broker_access=$false
+            promotion_allowed=$false
+            uploaded_private_artifacts=0
+          }|ConvertTo-Json -Compress
+          $body=@{
+            message='evidence: DIC18 real predecessor unavailable; negative acceptance gate only'
+            content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($data+[Environment]::NewLine))
+            branch='main'
+          }|ConvertTo-Json
+          try{
+            $uri='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/dic18-runs/'+$env:GITHUB_RUN_ID+'.json'
+            Invoke-RestMethod -Method Put -Uri $uri -ContentType 'application/json' -Headers @{
+              Authorization=('Bearer '+$env:GH_TOKEN)
+              Accept='application/vnd.github+json'
+              'X-GitHub-Api-Version'='2022-11-28'
+            } -Body $body -TimeoutSec 30|Out-Null
+          }catch{throw 'DIC18_PUBLIC_RECEIPT_FAILURE'}
+          Write-Host 'DIC18_PUBLIC_BLOCKER_RECEIPT=PASS'
