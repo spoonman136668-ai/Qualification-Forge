@@ -122,6 +122,7 @@ jobs:
             $lines=@(Get-Content -LiteralPath $privateLog -ErrorAction SilentlyContinue)
             $required=@(
               'DIC13_REAL_BRAVE_PAGE=PASS',
+              'DIC13_BRAVE_INCIDENT_DISCLOSURE_CLICK=PASS',
               'DIC13_BRAVE_INSPECT_CLICK=PASS',
               'DIC13_BRAVE_INCIDENT_SAVE_CLICK=PASS',
               'DIC13_BRAVE_INCIDENT_LIST_CLICK=PASS',
@@ -153,7 +154,7 @@ jobs:
               $line='DIC07_FAILURE_PHASE_'+$phase+'=FAIL'
               if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
             }
-            $browserPasses=@('REAL_BRAVE_PAGE','BRAVE_INSPECT_CLICK','BRAVE_INCIDENT_SAVE_CLICK',
+            $browserPasses=@('REAL_BRAVE_PAGE','BRAVE_INCIDENT_DISCLOSURE_CLICK','BRAVE_INSPECT_CLICK','BRAVE_INCIDENT_SAVE_CLICK',
               'BRAVE_INCIDENT_LIST_CLICK','BRAVE_INCIDENT_EXPORT_CLICK','BRAVE_SYNTHETIC_PRODUCT_SELECTED',
               'ZIP_MANIFEST_HASHES_AND_PRIVACY','BRAVE_SUPPORT_EXPORT_CLICK','BRAVE_LOOPBACK_ONLY')
             foreach($name in $browserPasses){
@@ -161,7 +162,7 @@ jobs:
               if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
             }
             # Publish bounded stage and assertion identifiers only, never browser exception text.
-            $allowedBrowserStages=@('BRAVE_BINARY','BRAVE_LAUNCH','PAGE_GOTO','INCIDENT_INSPECT',
+            $allowedBrowserStages=@('BRAVE_BINARY','BRAVE_LAUNCH','PAGE_GOTO','DISCLOSURE_OPEN','INCIDENT_INSPECT',
               'INCIDENT_SAVE','INCIDENT_LIST','INCIDENT_EXPORT','PRODUCT_SELECT',
               'SUPPORT_BUTTON','SUPPORT_DOWNLOAD','ZIP_VALIDATION')
             foreach($stage in $allowedBrowserStages){
@@ -171,6 +172,7 @@ jobs:
             $allowedBrowserAsserts=@(
               'BRAVE_EXECUTABLE_MISSING','BROKER_ENV_UNSAFE','BRAVE_OPERATOR_NOT_READY',
               'BRAVE_KTRADE_IDENTITY','BRAVE_NATIVE_INCIDENT_REVIEW_UNAVAILABLE',
+              'INCIDENT_DISCLOSURE_MISSING','INCIDENT_DISCLOSURE_NOT_VISIBLE','INCIDENT_DISCLOSURE_NOT_OPEN',
               'BRAVE_INCIDENT_DOWNLOAD_HIDDEN','BRAVE_INCIDENT_EXPORT_FORMAT',
               'BRAVE_INCIDENT_EXPORT_PRIVACY','BRAVE_INCIDENT_EXPORT_JSON',
               'ZIP_BINARY_INVALID','ZIP_DUPLICATE_ENTRY','ZIP_REQUIRED_FILES_MISSING',
