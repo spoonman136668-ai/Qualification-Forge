@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE_SHA: 'c5d5734b1eadd4629f441d3e4f5eabad107250d6'
+      KTRADE_EXPECTED_SOURCE_SHA: 'd037a8789118ce0fb76fd918bf09120226c87fee'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -76,6 +76,55 @@ jobs:
           }finally{
             Pop-Location
             Remove-Item -LiteralPath $private -Force -ErrorAction SilentlyContinue
+          }
+      - name: Run actual packaged offline KTRADE combined Pine and DIC continuity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $private=Join-Path $env:RUNNER_TEMP 'dic10-private-combined-installed.log'
+          $scratch=Join-Path $env:RUNNER_TEMP 'dic10-isolated-installed'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & pwsh -NoProfile -File 'windows/ktrade-dic10-synthetic-installed-combined.ps1' -ScratchRoot $scratch *> $private
+            $exit=$LASTEXITCODE
+            $lines=@(Get-Content -LiteralPath $private -ErrorAction SilentlyContinue)
+            $required=@(
+              'PACKAGED_FOUR_EXES_AND_MANIFEST',
+              'NO_BROKER_EGRESS_FIREWALL',
+              'PACKAGED_EXE_LOCAL_OPERATOR_READY',
+              'INSTALLED_OPERATOR_PANEL',
+              'INSTALLED_CSRF_REJECTS_UNAUTHORIZED_SAVE',
+              'INSTALLED_SAVE_LIST_EXPORT',
+              'COMBINED_OPERATOR_PINE_AND_INCIDENT_UI',
+              'COMBINED_BUILTINS_DISCOVERY_METADATA_ONLY',
+              'COMBINED_PINE_CSRF_DENIAL',
+              'COMBINED_PINE_IMPORT_AND_FAVORITES_SAVED',
+              'INSTALLED_RESTART_PRESERVES_REPORT',
+              'COMBINED_PINE_AND_INCIDENT_RESTART_CONTINUITY',
+              'INSTALLED_TAMPER_REJECTED',
+              'SYNTHETIC_PREFERENCES_PNL_PINE_UNCHANGED',
+              'DIC07_FULL_SYNTHETIC_OFFLINE_ACCEPTANCE'
+            )
+            foreach($name in $required){
+              if(@($lines|Where-Object{$_ -ceq ('DIC07_'+$name+'=PASS')}).Count -eq 1){
+                Write-Host ('DIC10_'+$name+'=PASS')
+              }elseif($exit -eq 0){
+                throw ('DIC10_MISSING_RUNTIME_GATE_'+$name)
+              }
+            }
+            if($exit -ne 0){
+              foreach($phase in @('INIT','SYNTHETIC_CONFIG','SYNTHETIC_KEY','FIREWALL_PROFILE','FIREWALL_RULE','APP_STARTUP','INSTALLED_CSRF_AND_UI','INSTALLED_INCIDENT_SAVE','INSTALLED_RESTART','INSTALLED_TAMPER')){
+                if(@($lines|Where-Object{$_ -ceq ('DIC07_FAILURE_PHASE_'+$phase+'=FAIL')}).Count -gt 0){
+                  Write-Host ('DIC10_FAILURE_PHASE_'+$phase+'=FAIL')
+                }
+              }
+              throw 'DIC10_COMBINED_INSTALLED_PRIVATE_FAILURE'
+            }
+            Write-Host 'DIC10_ACTUAL_OFFLINE_INSTALLED_COEXISTENCE=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $private -Force -ErrorAction SilentlyContinue
+            if(Test-Path -LiteralPath $scratch){Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue}
           }
       - name: Purge checkout no uploads
         if: always()
