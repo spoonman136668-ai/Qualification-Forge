@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      KTRADE_EXPECTED_SOURCE_SHA: '1821bbbbe0645d375fe128b1410a2d728564dad3'
+      KTRADE_EXPECTED_SOURCE_SHA: '11a4b08730a74cb0d56767be8df9b930a9e0c577'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -69,7 +69,17 @@ jobs:
                 Write-Host ('DIC11_'+$label+'=PASS')
               }
             }
-            if($exit -ne 0){throw 'DIC11_STANDARD_USER_ACL_PRIVATE_FAILURE'}
+            if($exit -ne 0){
+              $phases=@('INIT','CREATE_USER_A','CREATE_USER_B','GROUP_MEMBERSHIP',
+                'DIRECTORY_ACL','STANDARD_USER_WRITE','STANDARD_USER_READ',
+                'UNRELATED_USER_DENIAL','INTEGRITY_AFTER_DENIAL')
+              foreach($phase in $phases){
+                if(@($lines|Where-Object{$_ -ceq ('DIC11_FAILURE_PHASE_'+$phase+'=FAIL')}).Count -gt 0){
+                  Write-Host ('DIC11_FAILURE_PHASE_'+$phase+'=FAIL')
+                }
+              }
+              throw 'DIC11_STANDARD_USER_ACL_PRIVATE_FAILURE'
+            }
             Write-Host 'DIC11_NONADMIN_ACL_ACCEPTANCE=PASS'
             if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_EXPECTED_SOURCE_SHA){throw 'DIC11_SOURCE_CHANGED'}
             if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC11_TRACKED_SOURCE_CHANGED'}
