@@ -71,11 +71,13 @@ jobs:
             if(-not(Test-Path -LiteralPath $notepad -PathType Leaf)){throw 'DIC18_BENIGN_PE_FIXTURE_MISSING'}
             $fake=Join-Path $scratch 'ckb.exe'
             Copy-Item -LiteralPath $notepad -Destination $fake
+            $misnamed=Join-Path $scratch 'misnamed.exe'
+            Copy-Item -LiteralPath $notepad -Destination $misnamed
             $fakeHash=(Get-FileHash -LiteralPath $fake -Algorithm SHA256).Hash.ToLowerInvariant()
             if($fakeHash -ceq $expected){throw 'DIC18_FIXTURE_UNEXPECTED_DIGEST'}
             ExpectDeny 'NO_REAL_PREDECESSOR_REJECTED' @('-ExecutablePath',(Join-Path $scratch 'absent/ckb.exe'),'-ExpectedSHA256',$expected,'-ExpectedSignerThumbprint',$dummySigner) 'HISTORICAL_EXECUTABLE_UNAVAILABLE'
             ExpectDeny 'EXTERNAL_WINDOWS_PATH_REJECTED' @('-ExecutablePath',$notepad,'-ExpectedSHA256',$expected,'-ExpectedSignerThumbprint',$dummySigner) 'NOT_EPHEMERAL_EVIDENCE'
-            ExpectDeny 'WRONG_EXECUTABLE_NAME_REJECTED' @('-ExecutablePath',$notepad,'-ExpectedSHA256',$expected,'-ExpectedSignerThumbprint',$dummySigner) 'NOT_EPHEMERAL_EVIDENCE'
+            ExpectDeny 'WRONG_EXECUTABLE_NAME_REJECTED' @('-ExecutablePath',$misnamed,'-ExpectedSHA256',$expected,'-ExpectedSignerThumbprint',$dummySigner) 'HISTORICAL_EXECUTABLE_NAME_DRIFT'
             ExpectDeny 'REPORTED_HISTORICAL_HASH_PROTECTED' @('-ExecutablePath',$fake,'-ExpectedSHA256',$expected,'-ExpectedSignerThumbprint',$dummySigner) 'PREDECESSOR_HASH_MISMATCH'
             $signature=Get-AuthenticodeSignature -LiteralPath $fake
             if($signature.Status -ne 'Valid'){throw 'DIC18_FIXTURE_SIGNATURE_NOT_VALID'}
