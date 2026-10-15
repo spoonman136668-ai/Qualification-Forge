@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      KTRADE_EXPECTED_SOURCE_SHA: '11a4b08730a74cb0d56767be8df9b930a9e0c577'
+      KTRADE_EXPECTED_SOURCE_SHA: '342d2b6fcb432d0846c8347eb73f7e9155a326e0'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -76,6 +76,12 @@ jobs:
               foreach($phase in $phases){
                 if(@($lines|Where-Object{$_ -ceq ('DIC11_FAILURE_PHASE_'+$phase+'=FAIL')}).Count -gt 0){
                   Write-Host ('DIC11_FAILURE_PHASE_'+$phase+'=FAIL')
+                }
+              }
+              foreach($code in @('LOCAL_ACCOUNT_CMDLET_MISSING','ACCOUNT_CREATION_DENIED',
+                'ACCOUNT_PASSWORD_POLICY','ACCOUNT_COLLISION','OTHER_ACCOUNT_SETUP')){
+                if(@($lines|Where-Object{$_ -ceq ('DIC11_ACCOUNT_FAILURE_CLASS_'+$code+'=FAIL')}).Count -gt 0){
+                  Write-Host ('DIC11_ACCOUNT_FAILURE_CLASS_'+$code+'=FAIL')
                 }
               }
               throw 'DIC11_STANDARD_USER_ACL_PRIVATE_FAILURE'
