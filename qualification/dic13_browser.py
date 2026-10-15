@@ -107,12 +107,12 @@ def main():
                 page.locator("#addProduct").click(timeout=25000)
                 page.wait_for_function("() => (typeof S !== 'undefined' && !!S.product)", timeout=30000)
             marker("BRAVE_SYNTHETIC_PRODUCT_SELECTED")
-            button = page.locator('[data-action="export-support-bundle"]').first
+            button = page.locator('[data-action="export-support-bundle"]:visible').first
             button.wait_for(state="visible", timeout=20000)
             with page.expect_download(timeout=45000) as task:
                 button.click(timeout=20000)
             archive = task.value
-            require(re.fullmatch(r"ktrade-support-[a-z0-9_]+-\\d{8}T\\d{6}Z\\.zip", archive.suggested_filename, flags=re.I) is not None, "BRAVE_SUPPORT_FILENAME")
+            require(re.fullmatch(r"ktrade-support-[a-z0-9_]+-\d{8}T\d{6}Z\.zip", archive.suggested_filename, flags=re.I) is not None, "BRAVE_SUPPORT_FILENAME")
             verify_support_zip(Path(archive.path()).read_bytes())
             marker("BRAVE_SUPPORT_EXPORT_CLICK")
             require(page.evaluate("() => location.host") == "127.0.0.1:19871", "BRAVE_ORIGIN_DRIFT")
