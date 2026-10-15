@@ -110,6 +110,17 @@ jobs:
             foreach($line in $must){
               if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
             }
+            # Limited diagnostic vocabulary; never expose private process stderr.
+            $phases=@('SOURCE_DIGEST','SNAPSHOT_CREATED','SNAPSHOT_VERIFIED')
+            foreach($name in $phases){
+              $line='DIC14_'+$name+'=PASS'
+              if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
+            }
+            foreach($name in @('SNAPSHOT','VERIFY','TAMPER_REJECTED','INSTALL','DUPLICATE_INSTALL',
+              'SEAL_ROLLBACK','ROLLBACK_AFTER_NEW_TRADING_STATE','SAFE_ROLLBACK','RUNNING_SOURCE_REJECTED')){
+              $line='DIC14_FAILURE_STEP_'+$name+'=FAIL'
+              if(@($lines|Where-Object{$_ -ceq $line}).Count -eq 1){Write-Host $line}
+            }
             if($code -ne 0){throw 'DIC14_PRIVATE_SYNTHETIC_QUALIFICATION_FAILED'}
             foreach($line in $must){
               if(@($lines|Where-Object{$_ -ceq $line}).Count -ne 1){throw 'DIC14_REQUIRED_VERDICT_MISSING'}
