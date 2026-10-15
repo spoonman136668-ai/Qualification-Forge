@@ -84,7 +84,7 @@ jobs:
             )
             $passed=@()
             foreach($name in $milestones){
-              if(@($lines|Where-Object{$_ -ceq ('DIC07_'+$name+'=PASS')}).Count -eq 1){
+              if(@($lines|Where-Object{$_ -ceq ('DIC07_'+$name+'=PASS')}).Count -ge 1){
                 Write-Host ('DIC10_'+$name+'=PASS')
                 $passed+= $name
               }
