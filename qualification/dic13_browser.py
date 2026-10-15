@@ -88,8 +88,12 @@ def main():
             stage("DISCLOSURE_OPEN")
             disclosure = page.locator("#incidentReportingDisclosure")
             require(disclosure.count() == 1, "INCIDENT_DISCLOSURE_MISSING")
-            require(disclosure.locator("summary").is_visible(), "INCIDENT_DISCLOSURE_NOT_VISIBLE")
-            disclosure.locator("summary").click(timeout=25000)
+            # An inner evidence <details> has another <summary>; select only
+            # the operator-controlled disclosure's immediate summary.
+            summary = disclosure.locator(":scope > summary")
+            require(summary.count() == 1, "INCIDENT_DISCLOSURE_SUMMARY_AMBIGUOUS")
+            require(summary.is_visible(), "INCIDENT_DISCLOSURE_NOT_VISIBLE")
+            summary.click(timeout=25000)
             require(disclosure.get_attribute("open") is not None, "INCIDENT_DISCLOSURE_NOT_OPEN")
             marker("BRAVE_INCIDENT_DISCLOSURE_CLICK")
             stage("INCIDENT_INSPECT")
