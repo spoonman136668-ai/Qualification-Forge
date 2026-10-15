@@ -38,6 +38,53 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
           token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: DIC33 real packaged EXE isolated startup and risk recovery
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC33_NOT_EPHEMERAL_HOSTED_WINDOWS'}
+          if($env:KTRADE_CI_SOURCE_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0'){throw 'DIC33_NOT_ZERO_AUTHORITY'}
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $head=(& git -C $root rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne $env:EXPECTED_SHA){throw 'DIC33_PACKAGED_SOURCE_DRIFT'}
+          $scratch=Join-Path $env:RUNNER_TEMP ('DIC33-PRIVATE-'+[guid]::NewGuid().ToString('N'))
+          $privateLog=Join-Path $env:RUNNER_TEMP ('DIC33-RUNTIME-PRIVATE-'+[guid]::NewGuid().ToString('N')+'.log')
+          try {
+            & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'windows/ktrade-dic33-packaged-startup-recovery.ps1') -ScratchRoot $scratch *> $privateLog
+            if($LASTEXITCODE -ne 0){
+              $allowed='DIC33_(?:FAILURE_PHASE_[A-Z_]+|[A-Z_]+_(?:MISSING|FAILED|INVALID|UNAVAILABLE|BLOCKED|UNSAFE|DRIFT))'
+              $diagnostics=@(Get-Content -LiteralPath $privateLog -ErrorAction SilentlyContinue |
+                ForEach-Object { [regex]::Matches([string]$_,$allowed) } |
+                ForEach-Object { $_ } | Select-Object -Last 8)
+              foreach($d in $diagnostics){
+                if($d.Value -match '^DIC33_[A-Z_]+$'){Write-Host ('DIC33_SYNTHETIC_DIAG '+$d.Value)}
+              }
+              throw 'DIC33_PACKAGED_RUNTIME_FAIL_PRIVATE_LOG_WITHHELD'
+            }
+            $markers=@(
+              'PACKAGED_FOUR_EXES_AND_MANIFEST',
+              'NO_BROKER_EGRESS_FIREWALL',
+              'PACKAGED_DURABLE_RISK_SEEDED',
+              'PACKAGED_STARTUP_PRESERVES_PENDING_ESCROW',
+              'PACKAGED_RESTART_PRESERVES_PENDING_ESCROW',
+              'PACKAGED_MISSING_RISK_FAIL_CLOSED',
+              'PACKAGED_CORRUPT_RISK_FAIL_CLOSED',
+              'PACKAGED_POST_NEGATIVE_RESTORE_PRESERVES_PENDING_ESCROW',
+              'SYNTHETIC_PREFERENCES_PNL_PINE_UNCHANGED',
+              'FULL_SYNTHETIC_OFFLINE_ACCEPTANCE'
+            )
+            $lines=Get-Content -LiteralPath $privateLog
+            foreach($marker in $markers){
+              if(@($lines|Where-Object{$_ -ceq ('DIC33_'+$marker+'=PASS')}).Count -ne 1){
+                throw ('DIC33_PACKAGED_MARKER_MISSING_'+$marker)
+              }
+            }
+            if(@(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC33_PACKAGED_MUTATED_SOURCE'}
+            Write-Host 'DIC33_OFFLINE_FIREWALLED_PACKAGED_EXE_RECOVERY=PASS'
+          }finally{
+            Remove-Item -LiteralPath $privateLog -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $scratch -Force -Recurse -ErrorAction SilentlyContinue
+          }
       - name: Focused fail-closed risk controls and one full regression
         shell: pwsh
         run: |
@@ -106,44 +153,6 @@ jobs:
           }finally{
             Remove-Item -LiteralPath $log,$pkg -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
-          }
-      - name: DIC33 real packaged EXE isolated startup and risk recovery
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC33_NOT_EPHEMERAL_HOSTED_WINDOWS'}
-          if($env:KTRADE_CI_SOURCE_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0'){throw 'DIC33_NOT_ZERO_AUTHORITY'}
-          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
-          $head=(& git -C $root rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne $env:EXPECTED_SHA){throw 'DIC33_PACKAGED_SOURCE_DRIFT'}
-          $scratch=Join-Path $env:RUNNER_TEMP ('DIC33-PRIVATE-'+[guid]::NewGuid().ToString('N'))
-          $privateLog=Join-Path $env:RUNNER_TEMP ('DIC33-RUNTIME-PRIVATE-'+[guid]::NewGuid().ToString('N')+'.log')
-          try {
-            & pwsh -NoProfile -NonInteractive -File (Join-Path $root 'windows/ktrade-dic33-packaged-startup-recovery.ps1') -ScratchRoot $scratch *> $privateLog
-            if($LASTEXITCODE -ne 0){throw 'DIC33_PACKAGED_RUNTIME_FAIL_PRIVATE_LOG_WITHHELD'}
-            $markers=@(
-              'PACKAGED_FOUR_EXES_AND_MANIFEST',
-              'NO_BROKER_EGRESS_FIREWALL',
-              'PACKAGED_DURABLE_RISK_SEEDED',
-              'PACKAGED_STARTUP_PRESERVES_PENDING_ESCROW',
-              'PACKAGED_RESTART_PRESERVES_PENDING_ESCROW',
-              'PACKAGED_MISSING_RISK_FAIL_CLOSED',
-              'PACKAGED_CORRUPT_RISK_FAIL_CLOSED',
-              'PACKAGED_POST_NEGATIVE_RESTORE_PRESERVES_PENDING_ESCROW',
-              'SYNTHETIC_PREFERENCES_PNL_PINE_UNCHANGED',
-              'FULL_SYNTHETIC_OFFLINE_ACCEPTANCE'
-            )
-            $lines=Get-Content -LiteralPath $privateLog
-            foreach($marker in $markers){
-              if(@($lines|Where-Object{$_ -ceq ('DIC33_'+$marker+'=PASS')}).Count -ne 1){
-                throw ('DIC33_PACKAGED_MARKER_MISSING_'+$marker)
-              }
-            }
-            if(@(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC33_PACKAGED_MUTATED_SOURCE'}
-            Write-Host 'DIC33_OFFLINE_FIREWALLED_PACKAGED_EXE_RECOVERY=PASS'
-          }finally{
-            Remove-Item -LiteralPath $privateLog -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath $scratch -Force -Recurse -ErrorAction SilentlyContinue
           }
       - name: Destroy private checkout and withhold private artifacts
         if: always()
