@@ -38,6 +38,47 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
           token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Focused fail-closed risk controls and one full regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-StrictMode -Version Latest
+          $log = Join-Path $env:RUNNER_TEMP 'dic39-private.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try {
+            $actual = (& git rev-parse HEAD).Trim()
+            if($LASTEXITCODE -ne 0 -or $actual -cne $env:EXPECTED_SHA){throw 'DIC39_SOURCE_DRIFT'}
+            Write-Host 'DIC39_EXACT_REVIEW_SHA=PASS'
+            function RunGo([string]$marker,[string[]]$argv) {
+              & go @argv *> $log
+              if($LASTEXITCODE -ne 0){
+                if($marker -ceq 'DIC39_SIGNED_ENVELOPE_DIAGNOSTIC' -or $marker -ceq 'FOCUSED_PACKAGED_RECOVERY_NEGATIVES'){
+                  $selected = @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {
+                    $_ -match '^(# |FAIL|--- FAIL|panic:|\s*ktrade_dic39)' -or
+                    $_ -match 'DIC39 isolated child phase|did not reach durable crash boundary|failed independent phase|restart revived'
+                  } | Select-Object -Last 14)
+                  foreach($line in $selected) {
+                    $safe = [regex]::Replace([string]$line, '[A-Za-z]:\\[^\s\x22]+', '[LOCAL_PATH]')
+                    $safe = [regex]::Replace($safe, 'Bearer\s+\S+', 'Bearer [REDACTED]')
+                    if($safe.Length -gt 360){$safe=$safe.Substring(0,360)}
+                    Write-Host ('DIC39_SYNTHETIC_DIAG '+$safe)
+                  }
+                }
+                throw ('DIC39_'+$marker+'_FAIL_PRIVATE_LOG_WITHHELD')
+              }
+              Write-Host ('DIC39_'+$marker+'=PASS')
+            }
+            RunGo 'DIC39_SIGNED_ENVELOPE_DIAGNOSTIC' @('test','-count=1','-timeout=75s','-run','^TestDIC39(SyntheticSignaturesAndRowsNeverGrantRealCustodyAuthority|AuthenticatedEvidenceNegativeMatrix)$','./pkg')
+            RunGo 'FOCUSED_PACKAGED_RECOVERY_NEGATIVES' @('test','-count=1','-run','^TestDIC(20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39)','./pkg')
+            RunGo 'ONE_FULL_REGRESSION' @('test','-count=1','-timeout=420s','./...')
+            RunGo 'VET' @('vet','./...')
+            RunGo 'GO_BUILD' @('build','./...')
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC39_TRACKED_SOURCE_CHANGED'}
+            Write-Host 'DIC39_SOURCE_UNCHANGED=PASS'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
       - name: DIC39 real packaged EXE isolated startup and risk recovery
         shell: pwsh
         run: |
@@ -91,47 +132,6 @@ jobs:
           }finally{
             Remove-Item -LiteralPath $privateLog -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $scratch -Force -Recurse -ErrorAction SilentlyContinue
-          }
-      - name: Focused fail-closed risk controls and one full regression
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          Set-StrictMode -Version Latest
-          $log = Join-Path $env:RUNNER_TEMP 'dic39-private.log'
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
-          try {
-            $actual = (& git rev-parse HEAD).Trim()
-            if($LASTEXITCODE -ne 0 -or $actual -cne $env:EXPECTED_SHA){throw 'DIC39_SOURCE_DRIFT'}
-            Write-Host 'DIC39_EXACT_REVIEW_SHA=PASS'
-            function RunGo([string]$marker,[string[]]$argv) {
-              & go @argv *> $log
-              if($LASTEXITCODE -ne 0){
-                if($marker -ceq 'DIC39_SIGNED_ENVELOPE_DIAGNOSTIC' -or $marker -ceq 'FOCUSED_PACKAGED_RECOVERY_NEGATIVES'){
-                  $selected = @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {
-                    $_ -match '^(# |FAIL|--- FAIL|panic:|\s*ktrade_dic39)' -or
-                    $_ -match 'DIC39 isolated child phase|did not reach durable crash boundary|failed independent phase|restart revived'
-                  } | Select-Object -Last 14)
-                  foreach($line in $selected) {
-                    $safe = [regex]::Replace([string]$line, '[A-Za-z]:\\[^\s\x22]+', '[LOCAL_PATH]')
-                    $safe = [regex]::Replace($safe, 'Bearer\s+\S+', 'Bearer [REDACTED]')
-                    if($safe.Length -gt 360){$safe=$safe.Substring(0,360)}
-                    Write-Host ('DIC39_SYNTHETIC_DIAG '+$safe)
-                  }
-                }
-                throw ('DIC39_'+$marker+'_FAIL_PRIVATE_LOG_WITHHELD')
-              }
-              Write-Host ('DIC39_'+$marker+'=PASS')
-            }
-            RunGo 'DIC39_SIGNED_ENVELOPE_DIAGNOSTIC' @('test','-count=1','-timeout=75s','-run','^TestDIC39(SyntheticSignaturesAndRowsNeverGrantRealCustodyAuthority|AuthenticatedEvidenceNegativeMatrix)$','./pkg')
-            RunGo 'FOCUSED_PACKAGED_RECOVERY_NEGATIVES' @('test','-count=1','-run','^TestDIC(20|21|22|23|24|25|26|27|28|29|30|31|32|33|34|35|36|37|38|39)','./pkg')
-            RunGo 'ONE_FULL_REGRESSION' @('test','-count=1','-timeout=420s','./...')
-            RunGo 'VET' @('vet','./...')
-            RunGo 'GO_BUILD' @('build','./...')
-            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC39_TRACKED_SOURCE_CHANGED'}
-            Write-Host 'DIC39_SOURCE_UNCHANGED=PASS'
-          } finally {
-            Pop-Location
-            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
           }
       - name: Four Windows package executables and hash manifest
         shell: pwsh
