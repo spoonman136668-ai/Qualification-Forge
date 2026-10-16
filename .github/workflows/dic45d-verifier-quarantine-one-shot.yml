@@ -65,6 +65,17 @@ jobs:
             'go.mod'='6c8f972637248472c242d23e822b4c24afdde397'
             'testdata/38827824609.json'='fd449b16f753492758da705d9f037e5879288662'
           }
+          # Windows checkout may hydrate LF Git blobs as CRLF. Rehydrate only
+          # the four qualification-only files directly from the pinned index.
+          # No source commit, production file, or controller is changed.
+          & git -C $repo config --local core.autocrlf false
+          if($LASTEXITCODE -ne 0){throw 'DIC45D_GIT_EOLOPTION_FAILED'}
+          foreach($name in $expected.Keys){
+            $path='qualification/dic45d-verifier-r1/'+$name
+            & git -C $repo -c core.autocrlf=false checkout-index --force -- $path
+            if($LASTEXITCODE -ne 0){throw 'DIC45D_EXACT_BLOB_REHYDRATION_FAILED'}
+          }
+          Write-Host 'DIC45D_EXACT_GIT_BLOB_REHYDRATION=PASS'
           foreach($name in $expected.Keys){
             $path='qualification/dic45d-verifier-r1/'+$name
             $blob=(& git -C $repo rev-parse "$($env:QUARANTINE_SHA):$path").Trim()
