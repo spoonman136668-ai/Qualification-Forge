@@ -14,9 +14,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     env:
-      QUALIFIED_PRIVATE_SHA: '10f22052d37480ed05cf198642951207202e408c'
+      QUALIFIED_PRIVATE_SHA: 'fa5c5eb87ea3704d537cfa4ea366287ac2afc654'
       KTRADE_ORIGINAL_SOURCE_SHA: '3cabbdb30fd772e7c730e0089f82ed71168f46b9'
-      CONTROLLER_PROPOSAL_SHA: '5a17780f22a58233085382d8cdf47ce3d4bb2369'
+      CONTROLLER_PROPOSAL_SHA: '69e65f3a07676600a78d550a7d99cbe27b39fa46'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
       GOWORK: 'off'
@@ -38,9 +38,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ckb
-          ref: 10f22052d37480ed05cf198642951207202e408c
+          ref: fa5c5eb87ea3704d537cfa4ea366287ac2afc654
           path: candidate-private
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
           token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
       - name: Setup standard Go compiler without shared upload cache
@@ -54,11 +54,11 @@ jobs:
           $ErrorActionPreference='Stop'
           $repo=Join-Path $env:GITHUB_WORKSPACE 'candidate-private'
           if((& git -C $repo rev-parse HEAD).Trim() -cne $env:QUALIFIED_PRIVATE_SHA){throw 'REVIEW_QUALIFIER_HEAD_DRIFT'}
-          if((& git -C $repo rev-parse 'HEAD^').Trim() -cne $env:KTRADE_ORIGINAL_SOURCE_SHA){throw 'REVIEW_KTRADE_PRODUCT_DRIFT'}
+          if((& git -C $repo rev-parse 'HEAD^^').Trim() -cne $env:KTRADE_ORIGINAL_SOURCE_SHA){throw 'REVIEW_KTRADE_PRODUCT_DRIFT'}
           $expected=[ordered]@{
-            'autonomy_ktrade_review_admission.go'='43c81c2a41ca46892802bca03e9a5a13806c34e5'
-            'autonomy_ktrade_review_admission_test.go'='fd1ced0188b655086c88f4d49d76b1d21e462988'
-            'gate_harness.go'='94587eef00eaaa5838b796a930a1240032a1bcb4'
+            'autonomy_ktrade_review_admission.go'='c8e16402a1b4615ad8ee116814f51fe1e45c1881'
+            'autonomy_ktrade_review_admission_test.go'='f3d83e5d940274421eab704860b93c4e7b0ffcac'
+            'gate_harness.go'='e55637c9674d4b448ad6f3e2c607015c6e5d84e4'
             'go.mod'='eba26caa4d30a87ba9895931ad8484b71da30415'
           }
           foreach($name in $expected.Keys){
@@ -122,8 +122,8 @@ jobs:
             plane_proposed_source_sha=$env:CONTROLLER_PROPOSAL_SHA
             qualification_private_sha=$env:QUALIFIED_PRIVATE_SHA
             original_ktrade_source_sha=$env:KTRADE_ORIGINAL_SOURCE_SHA
-            gate_source_blob='43c81c2a41ca46892802bca03e9a5a13806c34e5'
-            gate_test_blob='fd1ced0188b655086c88f4d49d76b1d21e462988'
+            gate_source_blob='c8e16402a1b4615ad8ee116814f51fe1e45c1881'
+            gate_test_blob='f3d83e5d940274421eab704860b93c4e7b0ffcac'
             isolated_hosted_windows_tests=$true
             focused_vet_and_build=$true
             full_controller_regression_qualified=$false
