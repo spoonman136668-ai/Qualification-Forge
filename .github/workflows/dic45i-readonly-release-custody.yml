@@ -1,0 +1,96 @@
+name: DIC-45I read-only versioned-release custody Windows checks
+on:
+  push:
+    branches: [qualification/dic45i-versioned-release-custody-r1]
+    paths: [.github/workflows/dic45i-readonly-release-custody.yml]
+permissions:
+  contents: write
+concurrency:
+  group: dic45i-windows-release-custody-one-shot
+  cancel-in-progress: false
+jobs:
+  custody-negative-tests:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      VERIFIED_PARENT: 'f30afef74741e0f41d8ae9dd46a1ce301645e290'
+      CKB_PLANE_SOURCE_COMMIT: '9fc298bb22d474904dbc1cc0d1339891b692dbdf'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      CKB_PLANE_ACCEPTED_REF_MUTATION: '0'
+    steps:
+      - name: Refuse non-ephemeral host and active authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC45I_HOSTED_WINDOWS_REQUIRED'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'DIC45I_LIVE_AUTHORITY_REFUSED'}
+          Write-Host 'DIC45I_EPHEMERAL_WINDOWS_ZERO_AUTHORITY=PASS'
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Bind exact mirrored private source blobs and workflow parent
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){throw 'DIC45I_WORKFLOW_SOURCE_DRIFT'}
+          if((& git rev-parse HEAD^).Trim() -cne $env:VERIFIED_PARENT){throw 'DIC45I_WORKFLOW_PARENT_DRIFT'}
+          $expected=[ordered]@{
+            'qualification/dic45i-readonly/Test-DIC45IReleaseCustody.psm1'='224069184bc563aabda7a026725515416c641afe'
+            'qualification/dic45i-readonly/Run-DIC45IReleaseNegativeTests.ps1'='457b4c5811c6d4bdb384f8957df6b003cc32a13c'
+          }
+          foreach($path in $expected.Keys){
+            $blob=(& git rev-parse "HEAD:$path").Trim()
+            if($LASTEXITCODE -ne 0 -or $blob -cne [string]$expected[$path]){throw 'DIC45I_MIRROR_SOURCE_BLOB_DRIFT'}
+          }
+          Write-Host 'DIC45I_EXACT_SOURCE_BYTES=PASS'
+      - name: Execute isolated PowerShell positive and fail-closed Windows tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & pwsh -NoProfile -NonInteractive -File 'qualification/dic45i-readonly/Run-DIC45IReleaseNegativeTests.ps1'
+          if($LASTEXITCODE -ne 0){throw 'DIC45I_WINDOWS_NEGATIVE_TESTS_FAILED'}
+          Write-Host 'DIC45I_WINDOWS_RELEASE_CUSTODY_NEGATIVES=PASS'
+      - name: Verify zero tracked-source modifications and no live install
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC45I_TRACKED_SOURCE_CHANGED'}
+          Write-Host 'DIC45I_SOURCE_UNCHANGED=PASS'
+          Write-Host 'DIC45I_ACTUAL_PREDECESSOR_CUSTODY=NOT_VERIFIED'
+          Write-Host 'DIC45I_OPERATOR_BINARY_REHASH=NOT_PERFORMED'
+          Write-Host 'DIC45I_VERSIONED_RELEASE_INSTALL=NOT_PERFORMED'
+          Write-Host 'DIC45I_CONTROLLER_ADMISSION=FALSE'
+          Write-Host 'DIC45I_BROKER_AUTHORITY=FALSE'
+      - name: Publish sanitized fixture-only receipt, never user files
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $doc=[ordered]@{
+            schema='ktrade.dic45i.readonly-release-custody-windows-fixture.v1'
+            run_id=$env:GITHUB_RUN_ID
+            workflow_sha=$env:GITHUB_SHA
+            ckb_plane_source_commit=$env:CKB_PLANE_SOURCE_COMMIT
+            module_git_blob='224069184bc563aabda7a026725515416c641afe'
+            test_git_blob='457b4c5811c6d4bdb384f8957df6b003cc32a13c'
+            github_hosted_windows=$true
+            synthetic_release_guard_tests_pass=$true
+            real_release_store_observed=$false
+            real_candidate_binary_rehashed=$false
+            independent_binary_attestation=$false
+            versioned_release_staged=$false
+            native_controller_replaced=$false
+            controller_admitted=$false
+            production_broker_authorized=$false
+            private_artifacts=0
+          }|ConvertTo-Json -Compress
+          $body=@{message='evidence: DIC45I immutable read-only synthetic release custody tests';content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($doc+"`n"));branch='main'}|ConvertTo-Json
+          $uri='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/dic45i-runs/'+$env:GITHUB_RUN_ID+'.json'
+          Invoke-RestMethod -Method Put -Uri $uri -ContentType 'application/json' -Headers @{Authorization=('Bearer '+$env:GH_TOKEN);Accept='application/vnd.github+json';'X-GitHub-Api-Version'='2022-11-28'} -Body $body -TimeoutSec 30|Out-Null
+          Write-Host 'DIC45I_SANITIZED_FIXTURE_RECEIPT=PASS'
