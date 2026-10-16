@@ -39,7 +39,7 @@ jobs:
           repository: spoonman136668-ai/ckb
           ref: 587e18fd5df49897e2aebbf65558c73be610be64
           path: checked-private
-          fetch-depth: 1
+          fetch-depth: 2
           persist-credentials: false
           token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
       - name: Install Go compiler with no shared cache
