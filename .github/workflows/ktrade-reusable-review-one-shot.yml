@@ -1,0 +1,139 @@
+name: KTRADE reusable controller review-only admission Windows focused
+on:
+  push:
+    branches: [qualification/ktrade-reusable-review-windows-r1]
+    paths: [.github/workflows/ktrade-reusable-review-one-shot.yml]
+permissions:
+  contents: write
+concurrency:
+  group: ktrade-reusable-admission-windows-once
+  cancel-in-progress: false
+jobs:
+  source-verified-review-ledger:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      QUALIFIED_PRIVATE_SHA: '10f22052d37480ed05cf198642951207202e408c'
+      KTRADE_ORIGINAL_SOURCE_SHA: '3cabbdb30fd772e7c730e0089f82ed71168f46b9'
+      CONTROLLER_PROPOSAL_SHA: '5a17780f22a58233085382d8cdf47ce3d4bb2369'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      CKB_PLANE_ACCEPTED_REF_MUTATION: '0'
+    steps:
+      - name: Require ephemeral isolated Windows with no broker/release authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'REUSABLE_GATE_WINDOWS_ONLY'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'REUSABLE_GATE_AUTHORITY_INVALID'}
+          Write-Host 'KTRADE_REVIEW_HOSTED_WINDOWS_NO_AUTHORITY=PASS'
+      - name: Checkout private source-identical isolated qualification branch
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 10f22052d37480ed05cf198642951207202e408c
+          path: candidate-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Setup standard Go compiler without shared upload cache
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Bind exact unmodified candidate and original KTRADE baseline
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $repo=Join-Path $env:GITHUB_WORKSPACE 'candidate-private'
+          if((& git -C $repo rev-parse HEAD).Trim() -cne $env:QUALIFIED_PRIVATE_SHA){throw 'REVIEW_QUALIFIER_HEAD_DRIFT'}
+          if((& git -C $repo rev-parse 'HEAD^').Trim() -cne $env:KTRADE_ORIGINAL_SOURCE_SHA){throw 'REVIEW_KTRADE_PRODUCT_DRIFT'}
+          $expected=[ordered]@{
+            'autonomy_ktrade_review_admission.go'='43c81c2a41ca46892802bca03e9a5a13806c34e5'
+            'autonomy_ktrade_review_admission_test.go'='fd1ced0188b655086c88f4d49d76b1d21e462988'
+            'gate_harness.go'='94587eef00eaaa5838b796a930a1240032a1bcb4'
+            'go.mod'='eba26caa4d30a87ba9895931ad8484b71da30415'
+          }
+          foreach($name in $expected.Keys){
+            $path='qualification/ktrade-review-ledger-r1/'+$name
+            $sha=(& git -C $repo rev-parse "$($env:QUALIFIED_PRIVATE_SHA):$path").Trim()
+            if($LASTEXITCODE -ne 0 -or $sha -cne [string]$expected[$name]){throw 'REVIEW_CODE_MIRROR_HASH_DRIFT'}
+          }
+          Write-Host 'KTRADE_REVIEW_EXACT_PRIVATE_SOURCE_BLOBS=PASS'
+      - name: Run isolated full focused source-evidence Git and SQLite admission suite
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'candidate-private/qualification/ktrade-review-ledger-r1'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-reusable-admission-private.log'
+          Push-Location $src
+          try{
+            & go mod tidy *> $log
+            if($LASTEXITCODE -ne 0){throw 'REVIEW_GO_MODULE_DEPENDENCY_FAILED'}
+            & go test -count=1 -timeout=240s ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'REVIEW_FOCUSED_SOURCE_OR_SQLITE_TEST_FAILED_PRIVATE_LOG_WITHHELD'}
+            Write-Host 'KTRADE_REVIEW_SOURCE_GIT_AND_SQLITE_TESTS=PASS'
+            & go vet ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'REVIEW_GO_VET_FAILED_PRIVATE_LOG_WITHHELD'}
+            Write-Host 'KTRADE_REVIEW_GO_VET=PASS'
+            & go build ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'REVIEW_GO_BUILD_FAILED_PRIVATE_LOG_WITHHELD'}
+            Write-Host 'KTRADE_REVIEW_GO_BUILD=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Verify product unchanged, installed controller and research untouched
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'candidate-private'
+          $changed=@(& git -C $root status --porcelain=v1 --untracked-files=no -- . ':(exclude)qualification/ktrade-review-ledger-r1')
+          if($LASTEXITCODE -ne 0 -or $changed.Count -ne 0){throw 'REVIEW_PRODUCT_FILES_MODIFIED'}
+          Write-Host 'KTRADE_PRODUCT_SOURCE_UNCHANGED=PASS'
+          Write-Host 'CKB_PLANE_INTEGRATED_REGRESSION=NOT_RUN'
+          Write-Host 'NATIVE_CONTROLLER_INSTALLED=FALSE'
+          Write-Host 'REVIEW_ADMISSION_ENABLED=FALSE'
+          Write-Host 'PRODUCTION_OR_BROKER_AUTHORITY=FALSE'
+      - name: Destroy private source without uploading code
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'candidate-private') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Host 'PRIVATE_CODE_UPLOAD=DISABLED'
+      - name: Publish sanitized exact-binary qualification receipt
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $doc=[ordered]@{
+            schema='ktrade.reusable.review-admission.windows-focused.v1'
+            run_id=$env:GITHUB_RUN_ID
+            workflow_sha=$env:GITHUB_SHA
+            plane_proposed_source_sha=$env:CONTROLLER_PROPOSAL_SHA
+            qualification_private_sha=$env:QUALIFIED_PRIVATE_SHA
+            original_ktrade_source_sha=$env:KTRADE_ORIGINAL_SOURCE_SHA
+            gate_source_blob='43c81c2a41ca46892802bca03e9a5a13806c34e5'
+            gate_test_blob='fd1ced0188b655086c88f4d49d76b1d21e462988'
+            isolated_hosted_windows_tests=$true
+            focused_vet_and_build=$true
+            full_controller_regression_qualified=$false
+            source_only=$true
+            native_controller_installed=$false
+            review_admitted=$false
+            production_or_broker_authority=$false
+            private_artifacts=0
+          }|ConvertTo-Json -Compress
+          $body=@{message='evidence: reusable KTRADE review intake focused Windows';content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($doc+"`n"));branch='main'}|ConvertTo-Json
+          $url='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/ktrade-reusable-review-runs/'+$env:GITHUB_RUN_ID+'.json'
+          Invoke-RestMethod -Uri $url -Method Put -ContentType 'application/json' -Headers @{Authorization=('Bearer '+$env:GH_TOKEN);Accept='application/vnd.github+json';'X-GitHub-Api-Version'='2022-11-28'} -Body $body -TimeoutSec 30|Out-Null
+          Write-Host 'KTRADE_REUSABLE_REVIEW_SANITIZED_RECEIPT=PASS'
