@@ -1,0 +1,135 @@
+name: DIC45E inert admission-preflight Windows qualification
+on:
+  push:
+    branches: [qualification/dic45e-preflight-windows-r1]
+    paths: [.github/workflows/ktrade-dic45e-inert-preflight-one-shot.yml]
+permissions:
+  contents: write
+concurrency:
+  group: dic45e-inert-preflight-exact-source
+  cancel-in-progress: false
+jobs:
+  qualify-preflight:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      QUARANTINE_SHA: '587e18fd5df49897e2aebbf65558c73be610be64'
+      DIC44_CANDIDATE_SHA: '3cabbdb30fd772e7c730e0089f82ed71168f46b9'
+      CKB_PLANE_PR577_SHA: '8224de96912ac431e336833b9bb5b49448e04dab'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Require ephemeral isolated Windows and zero production authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC45E_RUNNER_INVALID'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'DIC45E_POLICY_INVALID'}
+          Write-Host 'DIC45E_HOSTED_WINDOWS_NO_AUTHORITY=PASS'
+      - name: Checkout exact isolated KTRADE verification branch commit
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 587e18fd5df49897e2aebbf65558c73be610be64
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Install Go compiler with no shared cache
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Verify immutable Git blob identity and unchanged DIC44 parent
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $head=(& git -C $p rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne $env:QUARANTINE_SHA){throw 'DIC45E_CHECKOUT_DRIFT'}
+          $parent=(& git -C $p rev-parse "$($env:QUARANTINE_SHA)^").Trim()
+          if($LASTEXITCODE -ne 0 -or $parent -cne $env:DIC44_CANDIDATE_SHA){throw 'DIC45E_PRODUCT_PARENT_DRIFT'}
+          $expected=[ordered]@{
+            'gate.go'='81d3b62e0ee9a4073dca8c0ffc2c2a63d15f2aec'
+            'gate_test.go'='47d0ffe7bcb5497575ee049692825456b2eb0acc'
+            'go.mod'='928ca04767b3a253d8c8f7e75d9b6697c36ae50b'
+          }
+          foreach($name in $expected.Keys){
+            $file="qualification/dic45e-preflight-r1/$name"
+            $sha=(& git -C $p rev-parse "$($env:QUARANTINE_SHA):$file").Trim()
+            if($LASTEXITCODE -ne 0 -or $sha -cne [string]$expected[$name]){throw 'DIC45E_SOURCE_BLOB_MISMATCH'}
+          }
+          Write-Host 'DIC45E_SOURCE_IDENTICAL_TO_PR577=PASS'
+      - name: Run focused fail-closed Go tests vet and build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'checked-private/qualification/dic45e-preflight-r1'
+          $log=Join-Path $env:RUNNER_TEMP 'dic45e-test-private.log'
+          Push-Location $dir
+          try{
+            & go test -count=1 -timeout=180s ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'DIC45E_FOCUSED_TEST_FAILURE_LOG_WITHHELD'}
+            Write-Host 'DIC45E_WINDOWS_FOCUSED_AUTHORITY_NEGATIVES=PASS'
+            & go vet ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'DIC45E_WINDOWS_VET_FAILED_LOG_WITHHELD'}
+            Write-Host 'DIC45E_WINDOWS_VET=PASS'
+            & go build ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'DIC45E_WINDOWS_BUILD_FAILED_LOG_WITHHELD'}
+            Write-Host 'DIC45E_WINDOWS_BUILD=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Verify original KTRADE product files unmodified and no admission
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $changed=@(& git -C $p status --porcelain=v1 --untracked-files=no -- . ':(exclude)qualification/dic45e-preflight-r1')
+          if($LASTEXITCODE -ne 0 -or $changed.Count -ne 0){throw 'DIC45E_PRODUCT_SOURCE_MODIFIED'}
+          Write-Host 'DIC45E_KTRADE_PRODUCT_UNCHANGED=PASS'
+          Write-Host 'DIC45E_R1P_CONTROLLER_ADMISSION=FALSE'
+          Write-Host 'DIC45E_ACCEPTED_REF_MUTATION=FALSE'
+          Write-Host 'DIC45E_PRODUCTION_OR_BROKER_ACCESS=FALSE'
+      - name: Destroy temporary private source, no source artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'checked-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host 'DIC45E_PRIVATE_SOURCE_UPLOAD=DISABLED'
+      - name: Record sanitized qualification receipt
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $doc=[ordered]@{
+            schema='ktrade.dic45e.inert-policy-preflight-windows.v1'
+            run_id=$env:GITHUB_RUN_ID
+            workflow_sha=$env:GITHUB_SHA
+            source_plane_pr_sha=$env:CKB_PLANE_PR577_SHA
+            qualification_quarantine_sha=$env:QUARANTINE_SHA
+            ktrade_original_sha=$env:DIC44_CANDIDATE_SHA
+            gate_source_blob='81d3b62e0ee9a4073dca8c0ffc2c2a63d15f2aec'
+            gate_test_blob='47d0ffe7bcb5497575ee049692825456b2eb0acc'
+            hosted_windows_focused_pass=$true
+            vet_build_pass=$true
+            full_controller_regression_pass=$false
+            live_controller_admission=$false
+            accepted_ref_mutation=$false
+            production_or_broker_authorized=$false
+            private_artifacts=0
+          }|ConvertTo-Json -Compress
+          $body=@{message='evidence: DIC45E inert admission preflight hosted Windows';content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($doc+"`n"));branch='main'}|ConvertTo-Json
+          $url='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/dic45e-runs/'+$env:GITHUB_RUN_ID+'.json'
+          Invoke-RestMethod -Uri $url -Method Put -ContentType 'application/json' -Headers @{Authorization=('Bearer '+$env:GH_TOKEN);Accept='application/vnd.github+json';'X-GitHub-Api-Version'='2022-11-28'} -Body $body -TimeoutSec 30|Out-Null
+          Write-Host 'DIC45E_SANITIZED_READONLY_RECEIPT=PASS'
