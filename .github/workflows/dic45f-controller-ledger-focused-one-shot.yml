@@ -36,7 +36,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ckb
-          ref: d9e358449a643b1ee78f190a76b12b3877acdef7
+          ref: 8f517b4974d419226feb330d902f40e23870fcf4
           path: checked-private
           fetch-depth: 3
           persist-credentials: false
