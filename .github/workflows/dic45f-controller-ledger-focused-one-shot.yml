@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      PRIVATE_SHA: 'd9e358449a643b1ee78f190a76b12b3877acdef7'
+      PRIVATE_SHA: '8f517b4974d419226feb330d902f40e23870fcf4'
       ORIGINAL_DIC44_SHA: '3cabbdb30fd772e7c730e0089f82ed71168f46b9'
       CONTROLLER_PR579_PARENT: '5d058f74a6f1c5723e3a3d4972f0aac109b8defa'
       KTRADE_CI_SOURCE_ONLY: '1'
@@ -38,7 +38,7 @@ jobs:
           repository: spoonman136668-ai/ckb
           ref: d9e358449a643b1ee78f190a76b12b3877acdef7
           path: checked-private
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
           token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
       - uses: actions/setup-go@v5
@@ -52,12 +52,12 @@ jobs:
           $repo=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $head=(& git -C $repo rev-parse HEAD).Trim()
           if($LASTEXITCODE -ne 0 -or $head -cne $env:PRIVATE_SHA){throw 'DIC45F_QUALIFIER_HEAD_DRIFT'}
-          $parent=(& git -C $repo rev-parse 'HEAD^').Trim()
+          $parent=(& git -C $repo rev-parse 'HEAD^^').Trim()
           if($LASTEXITCODE -ne 0 -or $parent -cne $env:ORIGINAL_DIC44_SHA){throw 'DIC45F_KTRADE_ORIGINAL_DRIFT'}
           $expect=[ordered]@{
             'autonomy_dic45_review.go'='17d42cc801c82f1cdc60cac8618ffcaa6b9bec92'
             'autonomy_dic45_review_test.go'='73687a71cd23fcfd643fd30cbdc58bb42f1bc1a7'
-            'gate_harness_test.go'='07150f804f0ed448c13c202fbaaf30aa32d75e6e'
+            'gate_harness_test.go'='ffbdaa4dce30ae17d3e4df98871fb634aa6ad28e'
             'go.mod'='3555c09ed812d2dcd2886fedb6fccd1dcae3eda0'
           }
           foreach($name in $expect.Keys){
@@ -74,6 +74,8 @@ jobs:
           $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private/qualification/dic45f-gate-r1'
           Push-Location $src
           try{
+            & go mod tidy *> $log
+            if($LASTEXITCODE -ne 0){throw 'DIC45F_QUALIFICATION_DEPENDENCIES_UNAVAILABLE'}
             & go test -count=1 -timeout=240s ./... *> $log
             if($LASTEXITCODE -ne 0){throw 'DIC45F_FOCUSED_WINDOWS_SQLITE_LEDGER_FAIL_PRIVATE_LOG_WITHHELD'}
             Write-Host 'DIC45F_WINDOWS_FOCUSED_SQLITE_LEDGER=PASS'
