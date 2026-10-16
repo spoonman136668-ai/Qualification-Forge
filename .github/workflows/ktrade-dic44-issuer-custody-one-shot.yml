@@ -1,0 +1,200 @@
+name: DIC44 independent original issuer and review-source custody
+on:
+  push:
+    branches: [qualification/dic44-independent-issuer-witness-r1]
+    paths: [.github/workflows/ktrade-dic44-issuer-custody-one-shot.yml]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: dic44-issuer-custody-one-shot
+  cancel-in-progress: false
+
+jobs:
+  witness:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/dic44-independent-issuer-witness-r1' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 18
+    env:
+      ORIGINAL_RUN_ID: '38827824609'
+      ORIGINAL_WORKFLOW_SHA: '4bbf8099a8c18edccb58a98ffd169feeefda8576'
+      ORIGINAL_RECEIPT_BLOB: 'fd449b16f753492758da705d9f037e5879288662'
+      CANDIDATE_SHA: '3cabbdb30fd772e7c730e0089f82ed71168f46b9'
+      BASELINE_SHA: '0dcb8e41324b5893a270d0df928eff8e0010d39d'
+      CANDIDATE_TREE: 'be4172fe1e87fe99a9a60b7de932a7bcdb4560c5'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+
+    steps:
+      - name: Require disposable hosted Windows and zero brokerage or promotion
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'WITNESS_WRONG_RUNNER'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'WITNESS_UNSAFE_POLICY'}
+          Write-Host 'DIC44_ISSUER_HOSTED_WINDOWS_ISOLATION=PASS'
+
+      - name: Checkout issuer repository including immutable historical workflow and receipt
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate original receipt bytes and frozen issuer workflow object
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $p='qualification-evidence/dic44-runs/38827824609.json'
+          if(-not(Test-Path -LiteralPath $p -PathType Leaf)){throw 'ORIGINAL_RECEIPT_NOT_FOUND'}
+          $blob=(& git rev-parse "HEAD:$p").Trim()
+          if($LASTEXITCODE -ne 0 -or $blob -cne $env:ORIGINAL_RECEIPT_BLOB){throw 'ORIGINAL_RECEIPT_GIT_BLOB_DRIFT'}
+          $worktree=(& git hash-object -- $p).Trim()
+          if($LASTEXITCODE -ne 0 -or $worktree -cne $env:ORIGINAL_RECEIPT_BLOB){throw 'ORIGINAL_RECEIPT_CHECKOUT_BYTES_DRIFT'}
+          $origWorkflow=(& git rev-parse ($env:ORIGINAL_WORKFLOW_SHA+':.github/workflows/ktrade-dic44-one-shot.yml')).Trim()
+          if($LASTEXITCODE -ne 0 -or $origWorkflow -cne '873d5083be5d948deaec60d8f672e3ecf600cc95'){throw 'ORIGINAL_ISSUER_WORKFLOW_DRIFT'}
+          $receipt=Get-Content -LiteralPath $p -Raw | ConvertFrom-Json
+          if([string]$receipt.schema -cne 'ktrade.dic44.upstream-source-provenance.v1' -or
+             [string]$receipt.run_id -cne $env:ORIGINAL_RUN_ID -or
+             [string]$receipt.workflow_sha -cne $env:ORIGINAL_WORKFLOW_SHA -or
+             [string]$receipt.source_sha -cne $env:CANDIDATE_SHA -or
+             [string]$receipt.job_status -cne 'success' -or
+             -not [bool]$receipt.source_only -or
+             -not [bool]$receipt.one_full_regression_qualified -or
+             -not [bool]$receipt.vet_and_build_qualified -or
+             [bool]$receipt.genuine_broker_history_qualified -or
+             [bool]$receipt.live_broker_authorized -or
+             [bool]$receipt.release_promotion -or
+             [int]$receipt.private_artifacts -ne 0){throw 'ORIGINAL_QUALIFICATION_CLAIMS_DRIFT'}
+          Write-Host 'DIC44_ISSUER_RECEIPT_AND_FROZEN_WORKFLOW_BLOB=PASS'
+
+      - name: Independently query authentic original GitHub Actions run and required successful steps
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $headers=@{Authorization=('Bearer '+$env:GH_TOKEN);Accept='application/vnd.github+json';'X-GitHub-Api-Version'='2022-11-28'}
+          try {
+            $base='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$env:ORIGINAL_RUN_ID
+            $run=Invoke-RestMethod -Uri $base -Headers $headers -TimeoutSec 30
+            if([string]$run.status -cne 'completed' -or [string]$run.conclusion -cne 'success' -or
+               [string]$run.head_sha -cne $env:ORIGINAL_WORKFLOW_SHA -or
+               [string]$run.path -cne '.github/workflows/ktrade-dic44-one-shot.yml' -or
+               [string]$run.event -cne 'push' -or
+               [string]$run.actor.login -cne 'spoonman136668-ai' -or
+               [int]$run.run_attempt -ne 1){throw 'DIC44_ORIGINAL_GITHUB_RUN_IDENTITY_DRIFT'}
+            $jobs=Invoke-RestMethod -Uri ($base+'/jobs?per_page=100') -Headers $headers -TimeoutSec 30
+            if([int]$jobs.total_count -ne 1 -or @($jobs.jobs).Count -ne 1){throw 'DIC44_ORIGINAL_JOB_COUNT_DRIFT'}
+            $job=$jobs.jobs[0]
+            if([string]$job.name -cne 'dic44-risk-admission' -or [string]$job.conclusion -cne 'success'){throw 'DIC44_ORIGINAL_JOB_FAILURE'}
+            $required=@(
+              'Verify hosted isolation and zero live authority',
+              'Checkout immutable private KTRADE candidate',
+              'Focused fail-closed risk controls and one full regression',
+              'DIC44 real packaged EXE isolated startup and risk recovery',
+              'Four Windows package executables and hash manifest',
+              'Destroy private checkout and withhold private artifacts',
+              'Record successful sanitized immutable qualification receipt'
+            )
+            foreach($name in $required){
+              $matching=@($job.steps|Where-Object{$_.name -ceq $name -and $_.conclusion -ceq 'success'})
+              if($matching.Count -ne 1){throw 'DIC44_ORIGINAL_REQUIRED_STEP_NOT_SUCCESS'}
+            }
+          } catch {
+            throw 'DIC44_ORIGINAL_GITHUB_ISSUER_CUSTODY_FAILED_NO_PRIVATE_DATA_PRINTED'
+          }
+          Write-Host 'DIC44_AUTHENTIC_ORIGINAL_RUN_AND_REQUIRED_JOBS=PASS'
+
+      - name: Checkout exact unchanged private KTRADE review source with existing temporary read token
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 3cabbdb30fd772e7c730e0089f82ed71168f46b9
+          path: private-ktrade
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+
+      - name: Independently verify candidate commit tree ancestral scope and destination review branch
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $r=Join-Path $env:GITHUB_WORKSPACE 'private-ktrade'
+          $head=(& git -C $r rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne $env:CANDIDATE_SHA){throw 'DIC44_PRIVATE_SOURCE_SHA_DRIFT'}
+          $tree=(& git -C $r rev-parse ($env:CANDIDATE_SHA+'^{tree}')).Trim()
+          if($LASTEXITCODE -ne 0 -or $tree -cne $env:CANDIDATE_TREE){throw 'DIC44_PRIVATE_TREE_DRIFT'}
+          $base=(& git -C $r merge-base $env:BASELINE_SHA $env:CANDIDATE_SHA).Trim()
+          if($LASTEXITCODE -ne 0 -or $base -cne $env:BASELINE_SHA){throw 'DIC44_BASE_ANCESTRY_DRIFT'}
+          $count=(& git -C $r rev-list --count ($env:BASELINE_SHA+'..'+$env:CANDIDATE_SHA)).Trim()
+          if($LASTEXITCODE -ne 0 -or $count -cne '3'){throw 'DIC44_COMMIT_COUNT_DRIFT'}
+          $diff=@(& git -C $r diff --name-status --no-renames $env:BASELINE_SHA $env:CANDIDATE_SHA -- | Sort-Object)
+          if($LASTEXITCODE -ne 0){throw 'DIC44_DIFF_UNAVAILABLE'}
+          $allowed=@(
+            "A`tpkg/historical_broker_exact_decimal.go",
+            "M`tpkg/historical_readonly_broker_intake.go",
+            "A`tpkg/ktrade_dic44_exact_fill_validation_test.go"
+          )|Sort-Object
+          if(($diff -join '|') -cne ($allowed -join '|')){throw 'DIC44_CHANGED_PATH_OR_STATUS_DRIFT'}
+          $target=(& git -C $r rev-parse 'refs/remotes/origin/review/ktrade-dic01-capsule-20261013^{commit}').Trim()
+          if($LASTEXITCODE -ne 0 -or $target -cne $env:BASELINE_SHA){throw 'DIC44_DESTINATION_REVIEW_BASELINE_DRIFT'}
+          if(@(& git -C $r status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC44_PRIVATE_SOURCE_MODIFIED'}
+          Write-Host 'DIC44_REAL_SOURCE_ANCESTRY_TREE_DIFF_AND_REVIEW_BRANCH=PASS'
+          Write-Host 'DIC44_REVIEW_ADMISSION=NOT_PERFORMED'
+          Write-Host 'DIC44_REVIEW_BRANCH_MERGE=NOT_PERFORMED'
+
+      - name: Destroy private checkout and withhold all private-source artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'private-ktrade') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host 'DIC44_PRIVATE_SOURCE_ARTIFACTS=ZERO'
+
+      - name: Publish sanitized issuer/source GitHub witness
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $doc=[ordered]@{
+            schema='ktrade.dic44.independent-issuer-source-custody.v1'
+            run_id=$env:GITHUB_RUN_ID
+            witness_workflow_sha=$env:GITHUB_SHA
+            original_run_id=$env:ORIGINAL_RUN_ID
+            original_workflow_sha=$env:ORIGINAL_WORKFLOW_SHA
+            original_receipt_blob_sha=$env:ORIGINAL_RECEIPT_BLOB
+            candidate_source_sha=$env:CANDIDATE_SHA
+            baseline_sha=$env:BASELINE_SHA
+            candidate_tree_sha=$env:CANDIDATE_TREE
+            hosted_windows=$true
+            original_actions_api_run_success_verified=$true
+            original_required_job_steps_success_verified=$true
+            git_receipt_blob_verified=$true
+            original_issuer_workflow_blob_verified=$true
+            private_git_ancestry_scope_verified=$true
+            destination_review_branch_baseline_verified=$true
+            original_source_regression_not_reexecuted=$true
+            cryptographic_issuer_signature_proven=$false
+            live_controller_admitted=$false
+            review_branch_merged=$false
+            live_broker_authorized=$false
+            promotion_authorized=$false
+            private_artifacts=0
+          }|ConvertTo-Json -Compress
+          $uri='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/dic44-issuer-witness-runs/'+$env:GITHUB_RUN_ID+'.json'
+          $body=@{message='evidence: independent DIC44 original issuer API and immutable private source witness';branch='main';content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($doc+"`n"))}|ConvertTo-Json
+          Invoke-RestMethod -Uri $uri -Method Put -ContentType 'application/json' -Headers @{
+            Authorization=('Bearer '+$env:GH_TOKEN)
+            Accept='application/vnd.github+json'
+            'X-GitHub-Api-Version'='2022-11-28'
+          } -Body $body -TimeoutSec 30|Out-Null
+          Write-Host 'DIC44_INDEPENDENT_ISSUER_SOURCE_WITNESS_PUBLISHED=PASS'
