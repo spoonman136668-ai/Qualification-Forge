@@ -1,0 +1,95 @@
+name: KTRADE final controller acceptance script read-only Windows validation
+on:
+  push:
+    branches: [qualification/ktrade-controller-acceptance-script-r1]
+    paths: [.github/workflows/ktrade-controller-acceptance-static-windows.yml]
+permissions:
+  contents: write
+concurrency:
+  group: ktrade-native-acceptance-static
+  cancel-in-progress: false
+jobs:
+  parse-acceptance:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Confirm disposable GitHub-hosted Windows with no native authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'QUALIFIER_IS_NOT_HOSTED_WINDOWS'}
+          Write-Host 'KTRADE_SCRIPT_HOSTED_WINDOWS=PASS'
+      - name: Checkout exact private script-only quarantine
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 20c2cc551a9f55e753cc67b89367d3d3d714c842
+          path: private-source
+          persist-credentials: false
+          fetch-depth: 2
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Authenticate exact source blob and original KTRADE tree
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $repo=Join-Path $env:GITHUB_WORKSPACE 'private-source'
+          $head=(& git -C $repo rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne '20c2cc551a9f55e753cc67b89367d3d3d714c842'){throw 'SCRIPT_QUARANTINE_DRIFT'}
+          $parent=(& git -C $repo rev-parse 'HEAD^').Trim()
+          if($LASTEXITCODE -ne 0 -or $parent -cne '3cabbdb30fd772e7c730e0089f82ed71168f46b9'){throw 'KTRADE_PRODUCT_SOURCE_DRIFT'}
+          $script='qualification/ktrade-reusable-script/Invoke-KTRADEControllerSourceQualification.ps1'
+          $sha=(& git -C $repo rev-parse "HEAD:$script").Trim()
+          if($LASTEXITCODE -ne 0 -or $sha -cne 'c3b1e0d783fd1ed00c0033d2e94cb803862d0620'){throw 'CONTROLLER_SCRIPT_GIT_BLOB_DRIFT'}
+          Write-Host 'KTRADE_ACCEPTANCE_SCRIPT_EXACT_SOURCE=PASS'
+      - name: Parse PowerShell AST without invoking qualifier
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $script=Join-Path $env:GITHUB_WORKSPACE 'private-source/qualification/ktrade-reusable-script/Invoke-KTRADEControllerSourceQualification.ps1'
+          $tokens=$null; $syntaxErrors=$null
+          $ast=[System.Management.Automation.Language.Parser]::ParseFile($script,[ref]$tokens,[ref]$syntaxErrors)
+          if($null -eq $ast -or $syntaxErrors.Count -ne 0){throw 'KTRADE_ACCEPTANCE_SCRIPT_POWERSHELL_PARSE_FAILED'}
+          $body=[IO.File]::ReadAllText($script)
+          foreach($pin in @('364b856cf2358f6130dcb824eaf13ecb45002f21','c729035e664fb8664ac3415f733a6acee9691718','go version go1.25.5 windows/amd64','STAGED-NOT-INSTALLED','ONE_FULL_CONTROLLER_REGRESSION','LIVE_CONTROLLER_AND_RESEARCH_UNCHANGED')){
+            if(-not $body.Contains($pin)){throw 'QUALIFIER_IDENTITY_OR_SAFETY_PIN_MISSING'}
+          }
+          # This is syntax/structure qualification ONLY, no program execution.
+          Write-Host 'KTRADE_WINDOWS_POWERSHELL_AST_SYNTAX=PASS'
+          Write-Host 'KTRADE_FROZEN_FULL_SOURCE_PINS=PASS'
+          Write-Host 'KTRADE_FULL_CONTROLLER_REGRESSION=NOT_EXECUTED'
+          Write-Host 'KTRADE_NATIVE_CONTROLLER_INSTALLED=FALSE'
+          Write-Host 'KTRADE_REVIEW_ADMITTED=FALSE'
+      - name: Destroy private source with no artifact publication
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'private-source') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Host 'KTRADE_PRIVATE_SCRIPT_UPLOAD=DISABLED'
+      - name: Preserve path-free syntax evidence
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $doc=[ordered]@{
+            schema='ktrade.reusable.native-acceptance-script.syntax-windows.v1'
+            run_id=$env:GITHUB_RUN_ID
+            workflow_sha=$env:GITHUB_SHA
+            private_qualifier_sha='20c2cc551a9f55e753cc67b89367d3d3d714c842'
+            exact_script_blob='c3b1e0d783fd1ed00c0033d2e94cb803862d0620'
+            controller_source_commit='364b856cf2358f6130dcb824eaf13ecb45002f21'
+            controller_source_tree='c729035e664fb8664ac3415f733a6acee9691718'
+            hosted_windows_powershell_parse=$true
+            acceptance_script_executed=$false
+            full_controller_regression_qualified=$false
+            staged_binary_installed=$false
+            native_review_admission=$false
+            live_or_broker_authority=$false
+            source_artifacts=0
+          }|ConvertTo-Json -Compress
+          $body=@{message='evidence: reusable controller acceptance script Windows syntax only';content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($doc+"`n"));branch='main'}|ConvertTo-Json
+          $uri='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/ktrade-reusable-native-script-runs/'+$env:GITHUB_RUN_ID+'.json'
+          Invoke-RestMethod -Method Put -Uri $uri -ContentType 'application/json' -Headers @{Authorization=('Bearer '+$env:GH_TOKEN);Accept='application/vnd.github+json';'X-GitHub-Api-Version'='2022-11-28'} -Body $body -TimeoutSec 30|Out-Null
+          Write-Host 'KTRADE_SCRIPT_READONLY_SYNTAX_RECEIPT=PASS'
