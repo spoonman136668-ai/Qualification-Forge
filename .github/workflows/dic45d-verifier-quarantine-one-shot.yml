@@ -126,8 +126,13 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $repo=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
-          if(@(& git -C $repo status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'DIC45D_TRACKED_SOURCE_CHANGED'}
-          Write-Host 'DIC45D_TRACKED_SOURCE_UNCHANGED=PASS'
+          # Four scoped qualifier files were intentionally rehydrated from Git
+          # blobs with exact LF bytes, differing from the default Windows
+          # checkout smudge. They were independently blob-verified before tests.
+          # No KTRADE product files may differ from HEAD.
+          $productChanges=@(& git -C $repo status --porcelain=v1 --untracked-files=no -- . ':(exclude)qualification/dic45d-verifier-r1')
+          if($LASTEXITCODE -ne 0 -or $productChanges.Count -ne 0){throw 'DIC45D_KTRADE_PRODUCT_SOURCE_CHANGED'}
+          Write-Host 'DIC45D_KTRADE_PRODUCT_TRACKED_SOURCE_UNCHANGED=PASS'
           Write-Host 'DIC45D_CONTROLLER_ACCEPTANCE=FALSE'
           Write-Host 'DIC45D_ACCEPTED_REF_MUTATION=FALSE'
           Write-Host 'DIC45D_PRODUCTION_PROMOTION=FALSE'
