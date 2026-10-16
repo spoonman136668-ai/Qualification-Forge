@@ -1,0 +1,136 @@
+name: DIC-45F source-identical review admission focused Windows
+on:
+  push:
+    branches: [qualification/dic45f-review-ledger-focused-win-r1]
+    paths: [.github/workflows/dic45f-controller-ledger-focused-one-shot.yml]
+permissions:
+  contents: write
+concurrency:
+  group: dic45f-source-identical-review-ledger
+  cancel-in-progress: false
+jobs:
+  verify-ledger:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai' && github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      PRIVATE_SHA: 'd9e358449a643b1ee78f190a76b12b3877acdef7'
+      ORIGINAL_DIC44_SHA: '3cabbdb30fd772e7c730e0089f82ed71168f46b9'
+      CONTROLLER_PR579_PARENT: '5d058f74a6f1c5723e3a3d4972f0aac109b8defa'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Require ephemeral hosted Windows and no controller/broker authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'DIC45F_WRONG_RUNNER'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'DIC45F_UNSAFE_AUTHORITY'}
+          Write-Host 'DIC45F_HOSTED_WIN_NO_AUTHORITY=PASS'
+      - uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: d9e358449a643b1ee78f190a76b12b3877acdef7
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Pin original DIC44 and all source-identical controller Go blobs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $repo=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $head=(& git -C $repo rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne $env:PRIVATE_SHA){throw 'DIC45F_QUALIFIER_HEAD_DRIFT'}
+          $parent=(& git -C $repo rev-parse 'HEAD^').Trim()
+          if($LASTEXITCODE -ne 0 -or $parent -cne $env:ORIGINAL_DIC44_SHA){throw 'DIC45F_KTRADE_ORIGINAL_DRIFT'}
+          $expect=[ordered]@{
+            'autonomy_dic45_review.go'='17d42cc801c82f1cdc60cac8618ffcaa6b9bec92'
+            'autonomy_dic45_review_test.go'='73687a71cd23fcfd643fd30cbdc58bb42f1bc1a7'
+            'gate_harness_test.go'='07150f804f0ed448c13c202fbaaf30aa32d75e6e'
+            'go.mod'='3555c09ed812d2dcd2886fedb6fccd1dcae3eda0'
+          }
+          foreach($name in $expect.Keys){
+            $path='qualification/dic45f-gate-r1/'+$name
+            $blob=(& git -C $repo rev-parse "$($env:PRIVATE_SHA):$path").Trim()
+            if($LASTEXITCODE -ne 0 -or $blob -cne [string]$expect[$name]){throw 'DIC45F_QUALIFIER_SOURCE_BLOB_DRIFT'}
+          }
+          Write-Host 'DIC45F_FROZEN_CONTROLLER_GO_BLOBS=PASS'
+      - name: Focused real SQLite review-ledger positive and negative tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'dic45f-private-focused.log'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private/qualification/dic45f-gate-r1'
+          Push-Location $src
+          try{
+            & go test -count=1 -timeout=240s ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'DIC45F_FOCUSED_WINDOWS_SQLITE_LEDGER_FAIL_PRIVATE_LOG_WITHHELD'}
+            Write-Host 'DIC45F_WINDOWS_FOCUSED_SQLITE_LEDGER=PASS'
+            & go vet ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'DIC45F_WINDOWS_FOCUSED_VET_FAIL_PRIVATE_LOG_WITHHELD'}
+            Write-Host 'DIC45F_WINDOWS_FOCUSED_VET=PASS'
+            & go build ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'DIC45F_WINDOWS_FOCUSED_BUILD_FAIL_PRIVATE_LOG_WITHHELD'}
+            Write-Host 'DIC45F_WINDOWS_FOCUSED_BUILD=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: No KTRADE product modifications or controller admission
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $repo=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $diff=@(& git -C $repo status --porcelain=v1 --untracked-files=no -- . ':(exclude)qualification/dic45f-gate-r1')
+          if($LASTEXITCODE -ne 0 -or $diff.Count -ne 0){throw 'DIC45F_KTRADE_PRODUCT_MODIFIED'}
+          Write-Host 'DIC45F_KTRADE_PRODUCT_UNMODIFIED=PASS'
+          Write-Host 'DIC45F_FULL_CONTROLLER_REGRESSION=NOT_RUN'
+          Write-Host 'DIC45F_LIVE_R1P_ADMISSION=FALSE'
+          Write-Host 'DIC45F_ACCEPTED_REF_MUTATION=FALSE'
+          Write-Host 'DIC45F_BROKER_OR_PRODUCTION_AUTHORITY=FALSE'
+      - name: Remove private source without artifact publication
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'checked-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Host 'DIC45F_PRIVATE_SOURCE_ARTIFACT_UPLOAD=DISABLED'
+      - name: Persist sanitized focused-qualification receipt only
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $doc=[ordered]@{
+            schema='ktrade.dic45f.review-ledger-focused-windows.v1'
+            run_id=$env:GITHUB_RUN_ID
+            workflow_sha=$env:GITHUB_SHA
+            controller_source_head=$env:CONTROLLER_PR579_PARENT
+            source_identical_gate_blob='17d42cc801c82f1cdc60cac8618ffcaa6b9bec92'
+            source_identical_test_blob='73687a71cd23fcfd643fd30cbdc58bb42f1bc1a7'
+            qualifier_private_sha=$env:PRIVATE_SHA
+            ktrade_original_sha=$env:ORIGINAL_DIC44_SHA
+            hosted_windows_source_only=$true
+            focused_sqlite_ledger_qualified=$true
+            focused_vet_build_qualified=$true
+            full_controller_regression_qualified=$false
+            installed_r1p_admitted=$false
+            accepted_ref_mutated=$false
+            broker_or_production_authority=$false
+            private_artifacts=0
+          }|ConvertTo-Json -Compress
+          $body=@{message='evidence: DIC45F source-identical inert review ledger windows focused';content=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($doc+"`n"));branch='main'}|ConvertTo-Json
+          $url='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/qualification-evidence/dic45f-runs/'+$env:GITHUB_RUN_ID+'.json'
+          Invoke-RestMethod -Uri $url -Method Put -ContentType 'application/json' -Headers @{Authorization=('Bearer '+$env:GH_TOKEN);Accept='application/vnd.github+json';'X-GitHub-Api-Version'='2022-11-28'} -Body $body -TimeoutSec 30|Out-Null
+          Write-Host 'DIC45F_FOCUSED_SANITIZED_RECEIPT=PASS'
