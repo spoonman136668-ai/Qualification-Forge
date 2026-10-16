@@ -68,8 +68,7 @@ jobs:
           # Windows checkout may hydrate LF Git blobs as CRLF. Rehydrate only
           # the four qualification-only files directly from the pinned index.
           # No source commit, production file, or controller is changed.
-          & git -C $repo config --local core.autocrlf false
-          if($LASTEXITCODE -ne 0){throw 'DIC45D_GIT_EOLOPTION_FAILED'}
+          # Keep the host checkout's original Git config unchanged.
           foreach($name in $expected.Keys){
             $path='qualification/dic45d-verifier-r1/'+$name
             & git -C $repo -c core.autocrlf=false checkout-index --force -- $path
