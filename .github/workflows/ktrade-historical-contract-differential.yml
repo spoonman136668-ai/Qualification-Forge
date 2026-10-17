@@ -85,17 +85,19 @@ jobs:
               if($exit -ne 0 -and $names.Count -eq 0){throw 'FAILURE_NOT_TEST_IDENTIFIED'}
               $joined=[string]::Join([Environment]::NewLine,$names)
               $hash=([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($joined)))).ToLowerInvariant()
-              Write-Output ('KTRADE_'+$folder.ToUpperInvariant()+'_FAILURE_COUNT='+$names.Count)
-              Write-Output ('KTRADE_'+$folder.ToUpperInvariant()+'_FAILURE_SET_SHA256='+$hash)
-              return @{Count=$names.Count;Hash=$hash;Exit=$exit}
+              Write-Host ('KTRADE_'+$folder.ToUpperInvariant()+'_FAILURE_COUNT='+$names.Count)
+              Write-Host ('KTRADE_'+$folder.ToUpperInvariant()+'_FAILURE_SET_SHA256='+$hash)
+              return @{TestFailureCount=[int]$names.Count;Fingerprint=$hash;ExitCode=[int]$exit}
             }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
           }
           $a=Diagnose 'original' '6d9bf14e39f2df87743ac7dc9decb4d8a082efa1' '0d54e849c7c7a32e0b5876e2d694852b076be074'
           $b=Diagnose 'recovered' '60ecf34994d9c7648a39a6f0104c09ff4297d83d' 'f120e79635288111fa58ca6fb541d232ed531d79'
-          $same=($a.Count -eq $b.Count -and $a.Hash -ceq $b.Hash -and $a.Exit -eq $b.Exit)
+          $same=($a['TestFailureCount'] -eq $b['TestFailureCount'] -and $a['Fingerprint'] -ceq $b['Fingerprint'] -and $a['ExitCode'] -eq $b['ExitCode'])
           Write-Output ('KTRADE_PREMIGRATION_FAILURE_SET_IDENTICAL='+$same.ToString().ToUpperInvariant())
           if(-not $same){throw 'RECOVERY_FAILURE_SET_DIFFERS_FROM_ORIGINAL'}
-          Write-Output 'KTRADE_ORIGINAL_SOURCE_CONTRACT_NEGATIVES_INHERITED=TRUE'
+          if($b['TestFailureCount'] -gt 0){Write-Output 'KTRADE_ORIGINAL_SOURCE_CONTRACT_NEGATIVES_INHERITED=TRUE'}
+          else{Write-Output 'KTRADE_HISTORICAL_SOURCE_CONTRACTS=PASS'}
+          exit 0
       - name: Erase both confidential checkouts
         if: always()
         shell: pwsh
