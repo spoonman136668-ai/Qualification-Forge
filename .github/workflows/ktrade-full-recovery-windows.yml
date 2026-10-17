@@ -45,22 +45,33 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:KTRADE_READ_TOKEN)) {
             throw 'KTRADE_READ_ONLY_PRIVATE_ACCESS_TOKEN_UNAVAILABLE'
           }
+          $h = @{
+            Authorization = ('Bearer ' + $env:KTRADE_READ_TOKEN)
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          # Identify credential scope without printing credentials, API
+          # responses, private file names, or private source material.
           try {
-            $h = @{
-              Authorization = ('Bearer ' + $env:KTRADE_READ_TOKEN)
-              Accept = 'application/vnd.github+json'
-              'X-GitHub-Api-Version' = '2022-11-28'
-            }
-            $uri = 'https://api.github.com/repos/spoonman136668-ai/ktrade/git/commits/' + $env:EXPECTED_SOURCE_SHA
-            $v = Invoke-RestMethod -Method Get -Uri $uri -Headers $h -TimeoutSec 30
-            if ($v.sha -cne $env:EXPECTED_SOURCE_SHA -or $v.tree.sha -cne $env:EXPECTED_SOURCE_TREE) {
-              throw 'source identity mismatch'
+            $legacy = Invoke-RestMethod -Method Get -Uri 'https://api.github.com/repos/spoonman136668-ai/ckb/git/commits/520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc' -Headers $h -TimeoutSec 30
+            if ($legacy.sha -ceq '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc') {
+              Write-Output 'QUALIFICATION_FORGE_EXISTING_CKB_TOKEN_ACCESS=PASS'
             }
           } catch {
-            throw 'KTRADE_PRIVATE_SOURCE_ACCESS_OR_TREE_IDENTITY_FAILED'
-          } finally {
-            Remove-Variable h,v -ErrorAction SilentlyContinue
+            Write-Output 'QUALIFICATION_FORGE_EXISTING_CKB_TOKEN_ACCESS=UNAVAILABLE'
           }
+          try {
+            $uri = 'https://api.github.com/repos/spoonman136668-ai/ktrade/git/commits/' + $env:EXPECTED_SOURCE_SHA
+            $v = Invoke-RestMethod -Method Get -Uri $uri -Headers $h -TimeoutSec 30
+          } catch {
+            throw 'QUALIFICATION_FORGE_KTRADE_REPOSITORY_READ_ACCESS_UNAVAILABLE'
+          } finally {
+            Remove-Variable h,legacy -ErrorAction SilentlyContinue
+          }
+          if ($v.sha -cne $env:EXPECTED_SOURCE_SHA -or $v.tree.sha -cne $env:EXPECTED_SOURCE_TREE) {
+            throw 'QUALIFICATION_FORGE_KTRADE_SOURCE_IDENTITY_MISMATCH'
+          }
+          Remove-Variable v -ErrorAction SilentlyContinue
           Write-Output 'KTRADE_SOURCE_ACCESS_AND_TREE_IDENTITY=PASS'
           Write-Output 'PRIVATE_SOURCE_OUTPUT=WITHHELD'
 
