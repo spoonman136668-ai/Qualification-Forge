@@ -1,0 +1,140 @@
+name: KTRADE historical Pine UI source and real offline HTTP qualification
+on:
+  push:
+    branches: [qualification/ktrade-full-recovery-win-20261017]
+    paths: [.github/workflows/ktrade-historical-pine-ui-wiring.yml]
+permissions:
+  contents: read
+jobs:
+  historical:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      EXPECTED_SOURCE_SHA: '1308a6c43da30bbae1a7a202fce32a096ffe22a8'
+      EXPECTED_TREE: 'b2f595c9de49907c5bc27dbeb484be10c8b74cd0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Read exact private KTRADE source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 1308a6c43da30bbae1a7a202fce32a096ffe22a8
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Prove source birth and execute historical original JavaScript UI diagnostics
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-pine-original-js.log'
+          if((& git -C $root rev-parse HEAD).Trim() -cne $env:EXPECTED_SOURCE_SHA -or
+             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE){throw 'KTRADE_IDENTITY_DRIFT'}
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'KTRADE_WRONG_RUNNER'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'KTRADE_LIVE_AUTHORITY_NOT_DISABLED'}
+          $expected=@{
+            'templates/chart.tmpl'='aa4df05a4291ad58c57036c2e07a5060426b3e73'
+            'static/trading.html'='9267d336e924160bc962876c19d254206d963d13'
+            'static/ide.html'='8a785dffc1f35b9904a61750ffdf6df9f9ce1aab'
+            'static/ide.js'='37aad9c1cf762bf5ac30f5c3d11f2344e432ffef'
+            'static/chart_bootstrap_v13_004.js'='7671436f102f669c48c135ebba7a14c46059fccd'
+          }
+          foreach($path in $expected.Keys){
+            if((& git -C $root rev-parse ('HEAD:'+$path)).Trim() -cne $expected[$path]){throw 'KTRADE_ORIGINAL_PREMIGRATION_UI_BLOB_DRIFT'}
+          }
+          Write-Output 'KTRADE_ORIGINAL_PREMIGRATION_UI_GIT_BLOB_PARITY=PASS'
+          Push-Location $root
+          try{
+            & node --test tests/historical_pine_editor_chart_wiring.test.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_ORIGINAL_PINE_UI_DIAGNOSTICS_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            Write-Output 'KTRADE_EXECUTED_ORIGINAL_PINE_UI_WIRING_TESTS=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Build actual historical tagged Go runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade-pine-ui-qualified.exe'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-pine-ui-build.log'
+          Push-Location $root
+          try{
+            & go mod download *> $log
+            if($LASTEXITCODE -ne 0){throw 'GO_MODULES_FAILED'}
+            & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0 -or -not(Test-Path -LiteralPath $exe -PathType Leaf)){throw 'KTRADE_PINE_FULL_WINDOWS_BUILD_FAILED'}
+            Write-Output 'KTRADE_ORIGINAL_PINE_BACKEND_WINDOWS_COMPILE=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Actual isolated HTTP Pine compile and caller-supplied synthetic backtest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $checkout=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-pine-ui-'+$env:GITHUB_RUN_ID)
+          $exe=Join-Path $root 'ktrade.exe'
+          $stdout=Join-Path $env:RUNNER_TEMP 'ktrade-pine-ui.stdout.log'
+          $stderr=Join-Path $env:RUNNER_TEMP 'ktrade-pine-ui.stderr.log'
+          $proc=$null
+          try{
+            New-Item -ItemType Directory -Path $root -Force | Out-Null
+            Copy-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-pine-ui-qualified.exe') -Destination $exe -Force
+            foreach($folder in @('static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $checkout $folder) -Destination (Join-Path $root $folder) -Recurse -Force
+            }
+            $proc=Start-Process -FilePath $exe -WorkingDirectory $root -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            $address=''
+            for($i=0;$i -lt 100;$i++){
+              if($proc.HasExited){throw 'KTRADE_PINE_HTTP_EXITED_EARLY'}
+              $body=[string](Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue)
+              if($body -match 'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:\d+)'){$address=$Matches[1];break}
+              Start-Sleep -Milliseconds 400
+            }
+            if(-not $address){throw 'KTRADE_PINE_HTTP_LISTEN_TIMEOUT'}
+            $base='http://'+$address
+            foreach($route in @('/','/ide','/chart')){
+              $page=Invoke-WebRequest -Uri ($base+$route) -TimeoutSec 8
+              if($page.StatusCode -ne 200 -or -not ([string]$page.Content -match 'KTRADE')){throw 'KTRADE_HTML_NOT_SERVED'}
+            }
+            Write-Output 'KTRADE_HISTORIC_THREE_PINE_UI_HTML_ROUTES=PASS'
+            $pine=("//@version=5"+[Environment]::NewLine+"indicator('Synthetic', overlay=true)"+[Environment]::NewLine+"plot(close)")
+            $compiled=Invoke-RestMethod -Uri ($base+'/api/pine/compile') -Method Post -ContentType 'application/json' -Body (@{code=$pine;name='Synthetic'}|ConvertTo-Json -Compress) -TimeoutSec 12
+            if($compiled.success -ne $true){throw 'KTRADE_ORIGINAL_PINE_HTTP_COMPILE_FAILED'}
+            Write-Output 'KTRADE_ORIGINAL_PINE_HTTP_COMPILE=PASS'
+            $bars=@()
+            for($i=0;$i -lt 64;$i++){
+              $price=100+$i
+              $bars+=@{ProductID='BTC-USD';Time=(1780000000+60*$i);Open=$price;High=($price+2);Low=($price-2);Close=($price+1);Volume=100}
+            }
+            $payload=@{source=$pine;candles=$bars;params=@{}}|ConvertTo-Json -Depth 8 -Compress
+            $backtest=Invoke-RestMethod -Uri ($base+'/api/backtest') -Method Post -ContentType 'application/json' -Body $payload -TimeoutSec 20
+            if($backtest.success -ne $true -or $null -eq $backtest.result){throw 'KTRADE_OFFLINE_PINE_BACKTEST_FAILED'}
+            Write-Output 'KTRADE_REAL_PINE_SYNTHETIC_HTTP_BACKTEST=PASS'
+            $reject=Invoke-WebRequest -Uri ($base+'/api/orders/place') -Method Post -ContentType 'application/json' -Body '{}' -SkipHttpErrorCheck -TimeoutSec 7
+            if([int]$reject.StatusCode -lt 400){throw 'KTRADE_LIVE_ORDER_NOT_BLOCKED'}
+            Write-Output 'KTRADE_BROKERAGE_ENDPOINT_FAIL_CLOSED=PASS'
+          }finally{
+            if($null -ne $proc){try{Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue}catch{};try{$proc.WaitForExit(3000)|Out-Null}catch{};$proc.Dispose()}
+            Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $stdout,$stderr,(Join-Path $env:RUNNER_TEMP 'ktrade-pine-ui-qualified.exe') -Force -ErrorAction SilentlyContinue
+          }
+      - name: Clean private source with no artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'checked-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_PRIVATE_ARTIFACTS_NONE=TRUE'
+          Write-Output 'KTRADE_REAL_USER_STATE_UNTOUCHED=TRUE'
+          Write-Output 'KTRADE_RELEASE_PROMOTION=FALSE'
