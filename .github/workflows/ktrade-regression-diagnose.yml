@@ -1,0 +1,98 @@
+name: KTRADE read-only regression failure classification
+
+on:
+  push:
+    branches:
+      - qualification/ktrade-full-recovery-win-20261017
+    paths: [.github/workflows/ktrade-regression-diagnose.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      EXPECTED_KTRADE_SHA: '60ecf34994d9c7648a39a6f0104c09ff4297d83d'
+      EXPECTED_TREE: 'f120e79635288111fa58ca6fb541d232ed531d79'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout fixed recovery commit without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 60ecf34994d9c7648a39a6f0104c09ff4297d83d
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Categorize repository regression without disclosing private logs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-regression-private-diagnostics.log'
+          Push-Location $root
+          try {
+            if((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_KTRADE_SHA -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE) {
+              throw 'KTRADE_REGRESSION_DIAGNOSIS_SOURCE_DRIFT'
+            }
+            if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'UNSAFE_AUTHORITY'}
+            function TestPrivate([string]$area,[string[]]$paths) {
+              & go test -mod=readonly -count=1 -timeout=600s @paths *> $log
+              if($LASTEXITCODE -eq 0) {
+                Write-Output ('KTRADE_FOCUSED_REGRESSION_'+$area+'=PASS')
+                return
+              }
+              $all=[string](Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue)
+              $tests=[regex]::Matches($all,'(?m)^--- FAIL: (Test[A-Za-z0-9_]+)')
+              $family=[System.Collections.Generic.SortedSet[string]]::new([StringComparer]::Ordinal)
+              foreach($test in $tests) {
+                $name=$test.Groups[1].Value
+                $label='OTHER'
+                if($name -match '^TestPhase(\d+)'){$label='Phase'+$Matches[1]}
+                elseif($name -match '^TestP(\d+)'){$label='P'+$Matches[1]}
+                elseif($name -match '^TestDIC(\d+)'){$label='DIC'+$Matches[1]}
+                elseif($name -match '^TestPine'){$label='PINE'}
+                elseif($name -match '^TestKTRADE'){$label='KTRADE'}
+                $null=$family.Add($label)
+              }
+              $kind='UNKNOWN'
+              if($tests.Count -gt 0){$kind='TEST_FAILURE'}
+              elseif($all -match '(?m)^# ktrade/'){$kind='GO_COMPILATION'}
+              elseif($all -match '(?m)^panic:'){$kind='PANIC'}
+              Write-Output ('KTRADE_FAILING_AREA='+$area)
+              Write-Output ('KTRADE_FAILURE_KIND='+$kind)
+              Write-Output ('KTRADE_FAILURE_TEST_COUNT='+$tests.Count)
+              Write-Output ('KTRADE_FAILURE_FAMILIES='+([string]::Join(',',$family)))
+              throw ('KTRADE_FOCUSED_REGRESSION_'+$area+'_FAILED_PRIVATE_OUTPUT_WITHHELD')
+            }
+            & go mod download *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_GO_MODULE_DOWNLOAD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            TestPrivate 'PKG_ROOT' @('./pkg')
+            TestPrivate 'PINE_COMPILER' @('./pkg/compiler_service')
+            TestPrivate 'RECOVERY_INTERNAL' @('./internal/...')
+            TestPrivate 'COMMANDS' @('./cmd/...')
+            Write-Output 'KTRADE_SEGMENTED_REGRESSION=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Wipe private checkout
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'checked-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_PRIVATE_DIAGNOSTIC_OUTPUT=WITHHELD'
