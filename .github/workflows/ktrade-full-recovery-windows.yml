@@ -1,0 +1,157 @@
+name: KTRADE full recovery isolated Windows source qualification
+
+on:
+  push:
+    branches:
+      - qualification/ktrade-full-recovery-win-20261017
+    paths:
+      - .github/workflows/ktrade-full-recovery-windows.yml
+
+permissions:
+  contents: read
+
+jobs:
+  historical-full-app:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/ktrade-full-recovery-win-20261017'
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      EXPECTED_SOURCE_SHA: '1592e3ea464dab813bcdebd976ebaced5a5d6ea0'
+      EXPECTED_SOURCE_TREE: 'd2709b3d6ba2edbfc61ededa731f4e5a67edad8a'
+      KTRADE_CI_SOURCE_ONLY: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Verify isolated GitHub-hosted Windows and private source access
+        shell: pwsh
+        env:
+          KTRADE_READ_TOKEN: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {
+            throw 'KTRADE_WRONG_QUALIFICATION_ENVIRONMENT'
+          }
+          if ($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'KTRADE_LIVE_AUTHORITY_UNSAFE'
+          }
+          if ([string]::IsNullOrWhiteSpace($env:KTRADE_READ_TOKEN)) {
+            throw 'KTRADE_READ_ONLY_PRIVATE_ACCESS_TOKEN_UNAVAILABLE'
+          }
+          try {
+            $h = @{
+              Authorization = ('Bearer ' + $env:KTRADE_READ_TOKEN)
+              Accept = 'application/vnd.github+json'
+              'X-GitHub-Api-Version' = '2022-11-28'
+            }
+            $uri = 'https://api.github.com/repos/spoonman136668-ai/ktrade/git/commits/' + $env:EXPECTED_SOURCE_SHA
+            $v = Invoke-RestMethod -Method Get -Uri $uri -Headers $h -TimeoutSec 30
+            if ($v.sha -cne $env:EXPECTED_SOURCE_SHA -or $v.tree.sha -cne $env:EXPECTED_SOURCE_TREE) {
+              throw 'source identity mismatch'
+            }
+          } catch {
+            throw 'KTRADE_PRIVATE_SOURCE_ACCESS_OR_TREE_IDENTITY_FAILED'
+          } finally {
+            Remove-Variable h,v -ErrorAction SilentlyContinue
+          }
+          Write-Output 'KTRADE_SOURCE_ACCESS_AND_TREE_IDENTITY=PASS'
+          Write-Output 'PRIVATE_SOURCE_OUTPUT=WITHHELD'
+
+      - name: Checkout exact private KTRADE source with ephemeral credentials
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 1592e3ea464dab813bcdebd976ebaced5a5d6ea0
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+
+      - name: Set up pinned Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+
+      - name: Run exact-source guard tests and full backend compilation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log = Join-Path $env:RUNNER_TEMP 'ktrade-private-qualification.log'
+          $exe = Join-Path $env:RUNNER_TEMP 'ktrade-full-qualified.exe'
+          Push-Location $root
+          try {
+            $actual = (& git rev-parse HEAD).Trim()
+            $tree = (& git rev-parse 'HEAD^{tree}').Trim()
+            if ($LASTEXITCODE -ne 0 -or $actual -cne $env:EXPECTED_SOURCE_SHA -or $tree -cne $env:EXPECTED_SOURCE_TREE) {
+              throw 'KTRADE_EXACT_CHECKOUT_DRIFT'
+            }
+            if (@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) {
+              throw 'KTRADE_CHECKOUT_DIRTY'
+            }
+            Write-Output 'KTRADE_EXACT_CHECKOUT=PASS'
+            function RunPrivate([string]$label, [string[]]$argsList) {
+              try {
+                & go @argsList *> $log
+                if ($LASTEXITCODE -ne 0) { throw 'private step failed' }
+              } catch {
+                throw ('KTRADE_' + $label + '_FAILED_PRIVATE_OUTPUT_WITHHELD')
+              }
+              Write-Output ('KTRADE_' + $label + '=PASS')
+            }
+            RunPrivate 'MODULE_DOWNLOAD' @('mod','download')
+            RunPrivate 'PAPER_BROKERAGE_FOCUSED_TEST' @('test','-mod=readonly','-count=1','-timeout=600s','-run','^TestHistoricalAdvancedOrderManagerFailsClosedWithoutBrokerNetwork$','./pkg')
+            RunPrivate 'FULL_WINDOWS_TAGGED_BUILD' @('build','-mod=readonly','-tags=ktrade_full','-o',$exe,'./cmd/ktrade')
+            if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
+              throw 'KTRADE_FULL_WINDOWS_EXE_MISSING'
+            }
+            $digest = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+            Write-Output ("KTRADE_WINDOWS_FULL_EXE_SHA256=" + $digest)
+            if (@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) {
+              throw 'KTRADE_TRACKED_SOURCE_MUTATED'
+            }
+            Write-Output 'KTRADE_TRACKED_SOURCE_UNCHANGED=PASS'
+            Write-Output 'KTRADE_BINARY_NOT_EXECUTED=TRUE'
+            Write-Output 'KTRADE_USER_PROFILE_NOT_TOUCHED=TRUE'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log,$exe -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Validate historical desktop JavaScript syntax
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log = Join-Path $env:RUNNER_TEMP 'ktrade-private-electron-check.log'
+          try {
+            & node --check (Join-Path $root 'electron/main.js') *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'Electron main failed' }
+            & node --check (Join-Path $root 'electron/preload.js') *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'Electron preload failed' }
+            Write-Output 'KTRADE_ELECTRON_SYNTAX=PASS'
+          } catch {
+            throw 'KTRADE_ELECTRON_SYNTAX_FAILED_PRIVATE_OUTPUT_WITHHELD'
+          } finally {
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Remove private checkout and prevent publication
+        if: always()
+        shell: pwsh
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if (Test-Path -LiteralPath $source) {
+            Remove-Item -LiteralPath $source -Force -Recurse -ErrorAction SilentlyContinue
+          }
+          Write-Output 'KTRADE_PRIVATE_SOURCE_REMOVAL_ATTEMPTED=TRUE'
+          Write-Output 'KTRADE_PUBLIC_BUILD_ARTIFACTS=DISABLED'
+          Write-Output 'KTRADE_RELEASE_PROMOTION=FALSE'
