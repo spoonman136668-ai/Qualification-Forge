@@ -109,7 +109,7 @@ jobs:
               if($page.StatusCode -ne 200 -or -not ([string]$page.Content -match 'KTRADE')){throw 'KTRADE_HTML_NOT_SERVED'}
             }
             Write-Output 'KTRADE_HISTORIC_THREE_PINE_UI_HTML_ROUTES=PASS'
-            $pine=("//@version=5"+[Environment]::NewLine+"indicator('Synthetic', overlay=true)"+[Environment]::NewLine+"plot(close)")
+            $pine=("//@version=5"+[Environment]::NewLine+'indicator("Synthetic", overlay=true)'+[Environment]::NewLine+"plot(close)")
             $compiled=Invoke-RestMethod -Uri ($base+'/api/pine/compile') -Method Post -ContentType 'application/json' -Body (@{code=$pine;name='Synthetic'}|ConvertTo-Json -Compress) -TimeoutSec 12
             if($compiled.success -ne $true){throw 'KTRADE_ORIGINAL_PINE_HTTP_COMPILE_FAILED'}
             Write-Output 'KTRADE_ORIGINAL_PINE_HTTP_COMPILE=PASS'
