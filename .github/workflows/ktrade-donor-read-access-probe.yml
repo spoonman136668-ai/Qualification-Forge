@@ -1,0 +1,70 @@
+name: KTRADE read-token permissions diagnostic
+on:
+  push:
+    branches: [qualification/ktrade-full-recovery-win-20261017]
+    paths: [.github/workflows/ktrade-donor-read-access-probe.yml]
+permissions:
+  contents: read
+jobs:
+  read-only-probe:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 8
+    env:
+      READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+    steps:
+      - name: Check existing token access to both source repositories
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if([string]::IsNullOrWhiteSpace($env:READ_TOKEN)){
+            Write-Output 'KTRADE_QUALIFIER_TOKEN_PRESENT=FALSE'
+            throw 'EXISTING_READ_SECRET_UNAVAILABLE'
+          }
+          Write-Output 'KTRADE_QUALIFIER_TOKEN_PRESENT=TRUE'
+          $http=[System.Net.Http.HttpClient]::new()
+          $http.Timeout=[TimeSpan]::FromSeconds(18)
+          $token=$env:READ_TOKEN
+          $env:READ_TOKEN=''
+          try {
+            $http.DefaultRequestHeaders.UserAgent.ParseAdd('KTRADE-Source-Read-Only-Probe')
+            $apiAuthorization=[System.Net.Http.Headers.AuthenticationHeaderValue]::new('Bearer',$token)
+            $gitEncoded=[Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes('x-access-token:'+$token))
+            $gitAuthorization=[System.Net.Http.Headers.AuthenticationHeaderValue]::new('Basic',$gitEncoded)
+            $checks=@(
+              @{name='KTRADE';repo='spoonman136668-ai/ktrade';sha='738a21a655bb52e1977437befdf98b8b338ad9de'},
+              @{name='DONOR_CKB';repo='spoonman136668-ai/ckb';sha='520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'}
+            )
+            $failed=$false
+            foreach($check in $checks){
+              $uri='https://api.github.com/repos/'+$check.repo+'/git/commits/'+$check.sha
+              $req=[System.Net.Http.HttpRequestMessage]::new('GET',$uri)
+              $req.Headers.Authorization=$apiAuthorization
+              $req.Headers.Accept.ParseAdd('application/vnd.github+json')
+              try{
+                $res=$http.SendAsync($req,[System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
+                Write-Output ('KTRADE_'+$check.name+'_API_PINNED_COMMIT_HTTP='+[int]$res.StatusCode)
+                if([int]$res.StatusCode -ne 200){$failed=$true}
+              }finally{if($null -ne $res){$res.Dispose()};$req.Dispose();$res=$null}
+              $gitUri='https://github.com/'+$check.repo+'.git/info/refs?service=git-upload-pack'
+              $gitRequest=[System.Net.Http.HttpRequestMessage]::new('GET',$gitUri)
+              $gitRequest.Headers.Authorization=$gitAuthorization
+              try{
+                $reply=$http.SendAsync($gitRequest,[System.Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
+                Write-Output ('KTRADE_'+$check.name+'_GIT_READ_HTTP='+[int]$reply.StatusCode)
+                if([int]$reply.StatusCode -ne 200){$failed=$true}
+              }finally{if($null -ne $reply){$reply.Dispose()};$gitRequest.Dispose();$reply=$null}
+            }
+            if($failed){throw 'KTRADE_EXISTING_SECRET_READ_AUTH_NOT_VERIFIED_FOR_BOTH_REPOS'}
+            Write-Output 'KTRADE_EXISTING_SECRET_CAN_READ_BOTH_REPOSITORIES=PASS'
+          }finally{
+            $token=$null;$gitEncoded=$null
+            $http.Dispose()
+          }
+      - name: No tokens or repository content published
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Output 'KTRADE_READ_PROBE_CLONE_OR_SOURCE_DOWNLOAD=NONE'
+          Write-Output 'KTRADE_SECRET_VALUE_PRINTED=FALSE'
+          Write-Output 'KTRADE_PRODUCTION_PROMOTION=FALSE'
