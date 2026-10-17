@@ -1,0 +1,114 @@
+name: KTRADE source-identical Windows newline acceptance
+
+on:
+  push:
+    branches: [qualification/ktrade-full-recovery-win-20261017]
+    paths: [.github/workflows/ktrade-source-identical-windows-full-regression.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  exact-git-bytes:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      EXPECTED_SOURCE_SHA: '60ecf34994d9c7648a39a6f0104c09ff4297d83d'
+      EXPECTED_TREE_SHA: 'f120e79635288111fa58ca6fb541d232ed531d79'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout exact private source without persisted credentials
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 60ecf34994d9c7648a39a6f0104c09ff4297d83d
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Validate original git bytes and restore exact worktree from index
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if((& git -C $root rev-parse HEAD).Trim() -cne $env:EXPECTED_SOURCE_SHA -or
+             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE_SHA){throw 'SOURCE_COMMIT_OR_TREE_DRIFT'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'UNSAFE_AUTHORITY'}
+          $paths=@(
+            'cmd/ktrade/main_full.go',
+            'electron/main.js',
+            'electron/preload.js',
+            'package.json',
+            'config.json',
+            'static/trading.html',
+            'static/desktop_error_report_manager.js',
+            'static/error_handler.js',
+            'static/diagnostic.html',
+            'templates/chart.tmpl'
+          )
+          $nonIdentical=0
+          foreach($p in $paths){
+            $disk=Join-Path $root ($p.Replace('/',[IO.Path]::DirectorySeparatorChar))
+            $expected=(& git -C $root rev-parse ('HEAD:'+$p)).Trim()
+            if($LASTEXITCODE -ne 0){throw 'MISSING_HISTORICAL_BLOB'}
+            $actual=(& git -C $root hash-object --no-filters -- $disk).Trim()
+            if($LASTEXITCODE -ne 0){throw 'UNREADABLE_HISTORICAL_WORKTREE'}
+            if($actual -cne $expected){$nonIdentical++}
+          }
+          Write-Output ('KTRADE_WINDOWS_WORKTREE_BLOBS_DIFFERED='+$nonIdentical)
+          # GitHub Windows can checkout LF blobs as CRLF. Restore exactly the
+          # already-pinned Git objects only, never rewrite original code.
+          & git -C $root -c core.autocrlf=false checkout-index --force --all
+          if($LASTEXITCODE -ne 0){throw 'SOURCE_EXACT_GIT_REHYDRATION_FAILED'}
+          foreach($p in $paths){
+            $disk=Join-Path $root ($p.Replace('/',[IO.Path]::DirectorySeparatorChar))
+            $expected=(& git -C $root rev-parse ('HEAD:'+$p)).Trim()
+            $actual=(& git -C $root hash-object --no-filters -- $disk).Trim()
+            if($LASTEXITCODE -ne 0 -or $actual -cne $expected){throw 'SOURCE_BYTE_IDENTITY_STILL_DRIFTED'}
+          }
+          Write-Output 'KTRADE_PINNED_GIT_BYTES_REHYDRATED=PASS'
+          Write-Output 'KTRADE_REPAIR_CHANGED_GIT_SOURCE=FALSE'
+      - name: Focused source-contract test families and one full regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-exact-byte-test-private.log'
+          Push-Location $root
+          try{
+            & go mod download *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_DEPENDENCY_FETCH_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            & go test -mod=readonly -count=1 -timeout=420s -run '^TestPhase(16|17|19|21|25|26|27|28|29)' ./pkg *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_HISTORIC_SOURCE_CONTRACTS_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            Write-Output 'KTRADE_HISTORICAL_SOURCE_CONTRACT_FOCUSED=PASS'
+            & go test -mod=readonly -count=1 -timeout=900s ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_ONE_FULL_REGRESSION_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            Write-Output 'KTRADE_ONE_FULL_REGRESSION=PASS'
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_VET_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            Write-Output 'KTRADE_VET=PASS'
+            if((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SOURCE_SHA){throw 'SOURCE_HEAD_MUTATED'}
+            Write-Output 'KTRADE_SOURCE_HEAD_UNCHANGED=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Remove private checkout without artifact publication
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'checked-private') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_PRIVATE_SOURCE_UPLOAD=NONE'
+          Write-Output 'KTRADE_PRODUCTION_PROMOTION=FALSE'
