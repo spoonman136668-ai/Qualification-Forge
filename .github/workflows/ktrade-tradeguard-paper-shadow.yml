@@ -1,0 +1,110 @@
+name: KTRADE donor TradeGuard isolated paper shadow
+on:
+  push:
+    branches: [qualification/ktrade-full-recovery-win-20261017]
+    paths: [.github/workflows/ktrade-tradeguard-paper-shadow.yml]
+permissions:
+  contents: read
+jobs:
+  shadow:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      EXPECTED_KTRADE: '4aca57a5f61a962ca15abc25c0a68464f9e59d13'
+      EXPECTED_TREE: '59dfe910df640cfc472bc46c82576983933edbb3'
+      EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
+      EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
+      EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Checkout exact consolidated source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 4aca57a5f61a962ca15abc25c0a68464f9e59d13
+          path: ktrade-private
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout authentic pinned donor for actual TradeGuard
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc
+          path: donor-private
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Verify original donor and recovery source birth before shadow test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $ktrade=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $donor=Join-Path $env:GITHUB_WORKSPACE 'donor-private'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'KTRADE_WRONG_QUALIFICATION_RUNNER'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'KTRADE_LIVE_EXECUTION_NOT_AUTHORIZED'}
+          if((& git -C $ktrade rev-parse HEAD).Trim() -cne $env:EXPECTED_KTRADE -or (& git -C $ktrade rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE){throw 'KTRADE_SOURCE_SHA_OR_TREE_DRIFT'}
+          if((& git -C $donor rev-parse HEAD).Trim() -cne $env:EXPECTED_DONOR){throw 'KTRADE_AUTHENTIC_DONOR_COMMIT_DRIFT'}
+          foreach($root in @($ktrade,$donor)){
+            if((& git -C $root rev-parse HEAD:internal/papertrading/ledger.go).Trim() -cne $env:EXPECTED_PAPER_BLOB){throw 'KTRADE_PAPER_LEDGER_DONOR_SOURCE_DRIFT'}
+          }
+          if((& git -C $donor rev-parse HEAD:pkg/risk.go).Trim() -cne $env:EXPECTED_RISK_BLOB){throw 'KTRADE_TRADEGUARD_SOURCE_DRIFT'}
+          if(Test-Path -LiteralPath (Join-Path $ktrade 'pkg/risk.go')){throw 'KTRADE_SHADOW_INCORRECTLY_SHIPPED_RISK_TO_APPLICATION'}
+          Write-Output 'KTRADE_DONOR_TRADEGUARD_SOURCE_SHA=PASS'
+          Write-Output 'KTRADE_PAPER_LEDGER_EXACT_SHARED_BLOB=PASS'
+          Write-Output 'KTRADE_TRADEGUARD_SHADOW_HAS_NO_APPLICATION_EXECUTION_AUTHORITY=PASS'
+      - name: Independently execute genuine donor TradeGuard beside TEMP paper ledger
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $ktrade=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $donor=Join-Path $env:GITHUB_WORKSPACE 'donor-private'
+          $scratch=Join-Path $donor 'internal/shadowqual'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-shadow-private-tests.log'
+          try{
+            New-Item -ItemType Directory -Path $scratch -Force|Out-Null
+            Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/shadow_test.go') -Destination (Join-Path $scratch 'shadow_test.go') -Force
+            Push-Location $donor
+            try{
+              & go mod download *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_DONOR_DEPENDENCIES_FAILED'}
+              & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=300s ./internal/shadowqual *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_ACTUAL_DONOR_TRADEGUARD_SHADOW_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            }finally{Pop-Location}
+            Write-Output 'KTRADE_AUTHENTIC_DONOR_TRADEGUARD_SHADOW_PROPOSED_BUY_RETRY=PASS'
+            Write-Output 'KTRADE_SHADOW_POLICY_VETO_PAPER_STILL_FILLS_NEGATIVE=PASS'
+            Write-Output 'KTRADE_SHADOW_KILL_RESTART_DISAGREEMENT_NEGATIVE=PASS'
+            Write-Output 'KTRADE_DONOR_PRODUCT_EXPOSURE_PAPER_IDENTITY_GAP=CONFIRMED'
+            Push-Location $ktrade
+            try{
+              & go test -mod=readonly -count=1 ./internal/papertrading ./internal/paperweb *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_CONSOLIDATED_PAPER_BASELINE_REGRESSED'}
+              & node --test tests/paper_tradeguard_reconciliation.test.cjs *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_PAPER_SHADOW_BOUNDARY_REGRESSED'}
+            }finally{Pop-Location}
+            Write-Output 'KTRADE_CONSOLIDATED_PAPER_UNMODIFIED_GO_AND_JS_GATES=PASS'
+          }finally{
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+          }
+      - name: Confidential checkout cleanup without upload
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('ktrade-private','donor-private')){
+            Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE $name) -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          Write-Output 'KTRADE_PRIVATE_SOURCE_PUBLISHED=FALSE'
+          Write-Output 'KTRADE_REAL_USER_DATA_TOUCHED=FALSE'
+          Write-Output 'KTRADE_PRODUCTION_OR_LIVE_TRADE=FALSE'
