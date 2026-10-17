@@ -1,0 +1,105 @@
+name: KTRADE historical contract differential proof
+on:
+  push:
+    branches: [qualification/ktrade-full-recovery-win-20261017]
+    paths: [.github/workflows/ktrade-historical-contract-differential.yml]
+permissions:
+  contents: read
+jobs:
+  compare:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOWORK: 'off'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Retrieve exact pre-migration source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 6d9bf14e39f2df87743ac7dc9decb4d8a082efa1
+          path: original
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Retrieve exact recovered source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 60ecf34994d9c7648a39a6f0104c09ff4297d83d
+          path: recovered
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Go setup
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Compare sanitized failures of identical tests on original versus recovered
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'WRONG_HOST'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'UNSAFE_AUTHORITY'}
+          $paths=@('cmd/ktrade/main_full.go','electron/main.js','electron/preload.js','package.json','config.json','static/trading.html','static/desktop_error_report_manager.js','static/error_handler.js','static/diagnostic.html','templates/chart.tmpl')
+          function Rehydrate([string]$root) {
+            foreach($name in $paths){
+              $file=Join-Path $root ($name.Replace('/',[IO.Path]::DirectorySeparatorChar))
+              $psi=[System.Diagnostics.ProcessStartInfo]::new()
+              $psi.FileName='git'
+              $psi.ArgumentList.Add('-C');$psi.ArgumentList.Add($root)
+              $psi.ArgumentList.Add('cat-file');$psi.ArgumentList.Add('blob');$psi.ArgumentList.Add('HEAD:'+$name)
+              $psi.UseShellExecute=$false;$psi.RedirectStandardOutput=$true;$psi.RedirectStandardError=$true
+              $proc=[System.Diagnostics.Process]::Start($psi)
+              try{
+                $mem=[IO.MemoryStream]::new()
+                $proc.StandardOutput.BaseStream.CopyTo($mem)
+                if(-not $proc.WaitForExit(15000) -or $proc.ExitCode -ne 0){throw 'GIT_BLOB_READ_FAILED'}
+                [IO.File]::WriteAllBytes($file,$mem.ToArray())
+                $mem.Dispose()
+              }finally{$proc.Dispose()}
+              $a=(& git -C $root hash-object --no-filters -- $file).Trim()
+              $b=(& git -C $root rev-parse ('HEAD:'+$name)).Trim()
+              if($a -cne $b){throw 'RAW_BLOB_IDENTITY_FAILED'}
+            }
+          }
+          function Diagnose([string]$folder,[string]$commit,[string]$tree) {
+            $root=Join-Path $env:GITHUB_WORKSPACE $folder
+            if((& git -C $root rev-parse HEAD).Trim() -cne $commit -or
+               (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $tree){throw 'SOURCE_IDENTITY_DRIFT'}
+            Rehydrate $root
+            $log=Join-Path $env:RUNNER_TEMP ($folder+'-private-test.log')
+            Push-Location $root
+            try{
+              & go mod download *> $log
+              if($LASTEXITCODE -ne 0){throw 'MODULE_DOWNLOAD_FAILED'}
+              & go test -mod=readonly -count=1 -timeout=420s -run '^TestPhase(16|17|19|21|25|26|27|28|29)' ./pkg *> $log
+              $exit=$LASTEXITCODE
+              $raw=[string](Get-Content -LiteralPath $log -Raw)
+              $names=@([regex]::Matches($raw,'(?m)^--- FAIL: (Test[A-Za-z0-9_]+)')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
+              if($exit -ne 0 -and $names.Count -eq 0){throw 'FAILURE_NOT_TEST_IDENTIFIED'}
+              $joined=[string]::Join([Environment]::NewLine,$names)
+              $hash=([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($joined)))).ToLowerInvariant()
+              Write-Output ('KTRADE_'+$folder.ToUpperInvariant()+'_FAILURE_COUNT='+$names.Count)
+              Write-Output ('KTRADE_'+$folder.ToUpperInvariant()+'_FAILURE_SET_SHA256='+$hash)
+              return @{Count=$names.Count;Hash=$hash;Exit=$exit}
+            }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+          }
+          $a=Diagnose 'original' '6d9bf14e39f2df87743ac7dc9decb4d8a082efa1' '0d54e849c7c7a32e0b5876e2d694852b076be074'
+          $b=Diagnose 'recovered' '60ecf34994d9c7648a39a6f0104c09ff4297d83d' 'f120e79635288111fa58ca6fb541d232ed531d79'
+          $same=($a.Count -eq $b.Count -and $a.Hash -ceq $b.Hash -and $a.Exit -eq $b.Exit)
+          Write-Output ('KTRADE_PREMIGRATION_FAILURE_SET_IDENTICAL='+$same.ToString().ToUpperInvariant())
+          if(-not $same){throw 'RECOVERY_FAILURE_SET_DIFFERS_FROM_ORIGINAL'}
+          Write-Output 'KTRADE_ORIGINAL_SOURCE_CONTRACT_NEGATIVES_INHERITED=TRUE'
+      - name: Erase both confidential checkouts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'original'),(Join-Path $env:GITHUB_WORKSPACE 'recovered') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_PRIVATE_FILES_SHARED=FALSE'
+          Write-Output 'KTRADE_PRODUCTION_MUTATION=FALSE'
