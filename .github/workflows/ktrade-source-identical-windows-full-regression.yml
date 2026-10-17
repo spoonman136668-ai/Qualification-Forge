@@ -68,10 +68,30 @@ jobs:
             if($actual -cne $expected){$nonIdentical++}
           }
           Write-Output ('KTRADE_WINDOWS_WORKTREE_BLOBS_DIFFERED='+$nonIdentical)
-          # GitHub Windows can checkout LF blobs as CRLF. Restore exactly the
-          # already-pinned Git objects only, never rewrite original code.
-          & git -C $root -c core.autocrlf=false checkout-index --force --all
-          if($LASTEXITCODE -ne 0){throw 'SOURCE_EXACT_GIT_REHYDRATION_FAILED'}
+          # Checkout filters on hosted Windows may re-smudge index blobs.
+          # Read the Git object itself via binary stdout, never via the
+          # PowerShell text pipeline, and restore it byte-for-byte in TEMP.
+          foreach($p in $paths){
+            $disk=Join-Path $root ($p.Replace('/',[IO.Path]::DirectorySeparatorChar))
+            $psi=[System.Diagnostics.ProcessStartInfo]::new()
+            $psi.FileName='git'
+            $psi.ArgumentList.Add('-C')
+            $psi.ArgumentList.Add($root)
+            $psi.ArgumentList.Add('cat-file')
+            $psi.ArgumentList.Add('blob')
+            $psi.ArgumentList.Add('HEAD:'+$p)
+            $psi.UseShellExecute=$false
+            $psi.RedirectStandardOutput=$true
+            $psi.RedirectStandardError=$true
+            $pGit=[System.Diagnostics.Process]::Start($psi)
+            try{
+              $ms=[System.IO.MemoryStream]::new()
+              try{$pGit.StandardOutput.BaseStream.CopyTo($ms)}finally{}
+              if(-not $pGit.WaitForExit(15000) -or $pGit.ExitCode -ne 0){throw 'RAW_GIT_BLOB_READ_FAILED'}
+              [System.IO.File]::WriteAllBytes($disk,$ms.ToArray())
+              $ms.Dispose()
+            }finally{$pGit.Dispose()}
+          }
           foreach($p in $paths){
             $disk=Join-Path $root ($p.Replace('/',[IO.Path]::DirectorySeparatorChar))
             $expected=(& git -C $root rev-parse ('HEAD:'+$p)).Trim()
