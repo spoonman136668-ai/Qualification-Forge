@@ -19,8 +19,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 55
     env:
-      EXPECTED_SOURCE_SHA: '1592e3ea464dab813bcdebd976ebaced5a5d6ea0'
-      EXPECTED_SOURCE_TREE: 'd2709b3d6ba2edbfc61ededa731f4e5a67edad8a'
+      EXPECTED_SOURCE_SHA: '2ff2d4fc8de8287e8dc588b9f36e24bce77ee06a'
+      EXPECTED_SOURCE_TREE: 'f39d26e13a1d7da440b239dcc4f59dd9dca74a13'
       KTRADE_CI_SOURCE_ONLY: '1'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -70,7 +70,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1592e3ea464dab813bcdebd976ebaced5a5d6ea0
+          ref: 2ff2d4fc8de8287e8dc588b9f36e24bce77ee06a
           path: checked-private
           fetch-depth: 1
           persist-credentials: false
@@ -121,11 +121,112 @@ jobs:
               throw 'KTRADE_TRACKED_SOURCE_MUTATED'
             }
             Write-Output 'KTRADE_TRACKED_SOURCE_UNCHANGED=PASS'
-            Write-Output 'KTRADE_BINARY_NOT_EXECUTED=TRUE'
-            Write-Output 'KTRADE_USER_PROFILE_NOT_TOUCHED=TRUE'
+            Write-Output 'KTRADE_BINARY_NOT_YET_EXECUTED=TRUE'
           } finally {
             Pop-Location
-            Remove-Item -LiteralPath $log,$exe -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Launch packaged-layout historical backend on isolated loopback and verify real routes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $exe = Join-Path $env:RUNNER_TEMP 'ktrade-full-qualified.exe'
+          $stage = Join-Path $env:RUNNER_TEMP ('ktrade-isolated-' + $env:GITHUB_RUN_ID)
+          $binary = Join-Path $stage 'ktrade.exe'
+          $stdout = Join-Path $env:RUNNER_TEMP 'ktrade-isolated-stdout.log'
+          $stderr = Join-Path $env:RUNNER_TEMP 'ktrade-isolated-stderr.log'
+          $proc = $null
+          $oldEnv = @{}
+          foreach ($key in @('USERPROFILE','HOME','APPDATA','LOCALAPPDATA','KTRADE_RECOVERY_ISOLATED','KTRADE_USE_LEGACY_CDP_CONFIG')) {
+            $oldEnv[$key] = [Environment]::GetEnvironmentVariable($key, 'Process')
+          }
+          try {
+            if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'KTRADE_QUALIFIED_BINARY_MISSING' }
+            New-Item -ItemType Directory -Path $stage -Force | Out-Null
+            Copy-Item -LiteralPath $exe -Destination $binary
+            foreach ($name in @('static','templates','strategies')) {
+              $source = Join-Path $root $name
+              if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw 'KTRADE_HISTORIC_RESOURCE_MISSING' }
+              Copy-Item -LiteralPath $source -Destination (Join-Path $stage $name) -Recurse -Force
+            }
+            foreach ($name in @('home','appdata','localappdata')) {
+              New-Item -ItemType Directory -Path (Join-Path $stage $name) -Force | Out-Null
+            }
+            $env:USERPROFILE = Join-Path $stage 'home'
+            $env:HOME = $env:USERPROFILE
+            $env:APPDATA = Join-Path $stage 'appdata'
+            $env:LOCALAPPDATA = Join-Path $stage 'localappdata'
+            $env:KTRADE_USE_LEGACY_CDP_CONFIG = '0'
+            $env:KTRADE_RECOVERY_ISOLATED = '1'
+            $proc = Start-Process -FilePath $binary -WorkingDirectory $stage -PassThru -WindowStyle Hidden -RedirectStandardError $stderr -RedirectStandardOutput $stdout
+            $addr = ''
+            for ($i = 0; $i -lt 120; $i++) {
+              if ($proc.HasExited) { throw 'KTRADE_ISOLATED_BACKEND_EXITED_BEFORE_READY' }
+              if (Test-Path -LiteralPath $stderr -PathType Leaf) {
+                $logText = Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue
+                if ($logText -match 'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:\d+)') {
+                  $addr = $Matches[1]
+                  break
+                }
+              }
+              Start-Sleep -Milliseconds 500
+            }
+            if ([string]::IsNullOrWhiteSpace($addr)) { throw 'KTRADE_ISOLATED_BACKEND_READINESS_TIMEOUT' }
+            $base = 'http://' + $addr
+            Write-Output 'KTRADE_ISOLATED_LOOPBACK_STARTUP=PASS'
+            foreach ($route in @('/','/ide','/chart')) {
+              $resp = Invoke-WebRequest -Uri ($base + $route) -TimeoutSec 8
+              if ([int]$resp.StatusCode -ne 200 -or -not ([string]$resp.Content -match 'KTRADE')) {
+                throw 'KTRADE_HISTORIC_HTML_ROUTE_INVALID'
+              }
+            }
+            Write-Output 'KTRADE_HISTORIC_UI_ROUTE_CONTENT=PASS'
+            $static = Invoke-WebRequest -Uri ($base + '/static/pine_engine_ckb.js') -TimeoutSec 8
+            if ([int]$static.StatusCode -ne 200 -or ([string]$static.Content).Length -lt 100) {
+              throw 'KTRADE_PACKAGED_STATIC_PINE_ASSET_MISSING'
+            }
+            Write-Output 'KTRADE_PACKAGED_STATIC_ASSETS=PASS'
+            $metrics = Invoke-RestMethod -Uri ($base + '/api/pine/metrics') -TimeoutSec 8
+            $symbols = Invoke-RestMethod -Uri ($base + '/api/pine/symbols') -TimeoutSec 8
+            if ($null -eq $metrics -or @($symbols.keywords).Count -lt 5) {
+              throw 'KTRADE_PINE_DIAGNOSTICS_API_INVALID'
+            }
+            $sourceCode = "//@version=5" + [Environment]::NewLine + 'indicator("Synthetic Recovery")'
+            $lintBody = @{code=$sourceCode} | ConvertTo-Json -Compress
+            $lint = Invoke-RestMethod -Uri ($base + '/api/pine/lint') -Method Post -ContentType 'application/json' -Body $lintBody -TimeoutSec 8
+            if ($null -eq $lint -or -not ($lint.PSObject.Properties.Name -contains 'diagnostics')) {
+              throw 'KTRADE_PINE_LINT_API_INVALID'
+            }
+            Write-Output 'KTRADE_PINE_DIAGNOSTICS_AND_LINT=PASS'
+            $body = @{workspace=@{symbol='BTC-USD';timeframe='1m';code=$sourceCode}} | ConvertTo-Json -Depth 5 -Compress
+            $load = Invoke-RestMethod -Uri ($base + '/api/workspace/load') -Method Post -Body $body -ContentType 'application/json' -TimeoutSec 8
+            $save = Invoke-RestMethod -Uri ($base + '/api/workspace/save') -Method Post -Body '{}' -ContentType 'application/json' -TimeoutSec 8
+            if ($load.success -ne $true -or $save.success -ne $true -or $save.workspace.code -cne $sourceCode) {
+              throw 'KTRADE_SYNTHETIC_WORKSPACE_ROUNDTRIP_FAILED'
+            }
+            Write-Output 'KTRADE_SYNTHETIC_WORKSPACE_ROUNDTRIP=PASS'
+            $orderBody = @{product_id='BTC-USD'; side='BUY'; size='1'} | ConvertTo-Json -Compress
+            $order = Invoke-WebRequest -Uri ($base + '/api/orders/place') -Method Post -Body $orderBody -ContentType 'application/json' -SkipHttpErrorCheck -TimeoutSec 8
+            $orderJson = $order.Content | ConvertFrom-Json
+            if ([int]$order.StatusCode -lt 400 -or [bool]$orderJson.success) {
+              throw 'KTRADE_BROKERAGE_ENDPOINT_NOT_FAIL_CLOSED'
+            }
+            Write-Output 'KTRADE_LIVE_ORDER_ENDPOINT_REJECTED=PASS'
+            if ($proc.HasExited) { throw 'KTRADE_ISOLATED_BACKEND_CRASHED' }
+            Write-Output 'KTRADE_ISOLATED_RUNTIME_FUNCTIONAL_SMOKE=PASS'
+          } finally {
+            if ($null -ne $proc) {
+              try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
+              try { $proc.WaitForExit(5000) | Out-Null } catch {}
+              $proc.Dispose()
+            }
+            foreach ($key in $oldEnv.Keys) {
+              [Environment]::SetEnvironmentVariable($key, $oldEnv[$key], 'Process')
+            }
+            Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $stdout,$stderr -Force -ErrorAction SilentlyContinue
           }
 
       - name: Validate historical desktop JavaScript syntax
@@ -154,6 +255,9 @@ jobs:
           if (Test-Path -LiteralPath $source) {
             Remove-Item -LiteralPath $source -Force -Recurse -ErrorAction SilentlyContinue
           }
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-full-qualified.exe') -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP ('ktrade-isolated-' + $env:GITHUB_RUN_ID)) -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-isolated-stdout.log'),(Join-Path $env:RUNNER_TEMP 'ktrade-isolated-stderr.log') -Force -ErrorAction SilentlyContinue
           Write-Output 'KTRADE_PRIVATE_SOURCE_REMOVAL_ATTEMPTED=TRUE'
           Write-Output 'KTRADE_PUBLIC_BUILD_ARTIFACTS=DISABLED'
           Write-Output 'KTRADE_RELEASE_PROMOTION=FALSE'
