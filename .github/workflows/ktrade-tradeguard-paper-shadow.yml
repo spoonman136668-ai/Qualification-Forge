@@ -1,7 +1,7 @@
 name: KTRADE donor TradeGuard isolated paper shadow
 on:
   push:
-    branches: [qualification/ktrade-paper-proposal-20261017]
+    branches: [qualification/ktrade-paper-reconcile-20261017]
     paths: [.github/workflows/ktrade-tradeguard-paper-shadow.yml]
 permissions:
   contents: read
@@ -11,13 +11,15 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     env:
-      EXPECTED_KTRADE: 'e4739dbe01e1b5c58c6753997bccdb57f64865d6'
-      EXPECTED_TREE: '0a1bf91c8683cf064c1a9a0c68e4e77b9af4e3ae'
+      EXPECTED_KTRADE: 'f729231252157d7f37b02e5febe7583bb513b80a'
+      EXPECTED_TREE: 'aff7d520498b7e2d3d281cafb0b2e30c74ed8db0'
       EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
       EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
       EXPECTED_PROPOSAL_BLOB: 'b0c41b3bb69a51ef1528b52aa33245a11c4d0d3e'
       EXPECTED_PROPOSAL_TEST_BLOB: '12d2a8004e46cb3922314a1eb8eff265999d4d0f'
+      EXPECTED_RECONCILE_BLOB: '3719c8fd65962f5573bd86f0948d758439db4333'
+      EXPECTED_RECONCILE_TEST_BLOB: '4e02b1a44a69a94bcb45f266e4952461e8b7df11'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -31,7 +33,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: e4739dbe01e1b5c58c6753997bccdb57f64865d6
+          ref: f729231252157d7f37b02e5febe7583bb513b80a
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -65,6 +67,9 @@ jobs:
           if(Test-Path -LiteralPath (Join-Path $ktrade 'pkg/risk.go')){throw 'KTRADE_SHADOW_INCORRECTLY_SHIPPED_RISK_TO_APPLICATION'}
           if((& git -C $ktrade rev-parse HEAD:internal/paperproposal/proposal.go).Trim() -cne $env:EXPECTED_PROPOSAL_BLOB){throw 'KTRADE_PROPOSAL_SOURCE_BLOB_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/proposal_test.go).Trim() -cne $env:EXPECTED_PROPOSAL_TEST_BLOB){throw 'KTRADE_PROPOSAL_DONOR_TEST_BLOB_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/paperreconcile/reconcile.go).Trim() -cne $env:EXPECTED_RECONCILE_BLOB){throw 'KTRADE_RECONCILE_SOURCE_BLOB_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/reconcile_test.go).Trim() -cne $env:EXPECTED_RECONCILE_TEST_BLOB){throw 'KTRADE_RECONCILE_DONOR_TEST_BLOB_DRIFT'}
+          Write-Output 'KTRADE_RECONCILE_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_PROPOSAL_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_DONOR_TRADEGUARD_SOURCE_SHA=PASS'
           Write-Output 'KTRADE_PAPER_LEDGER_EXACT_SHARED_BLOB=PASS'
@@ -77,13 +82,18 @@ jobs:
           $donor=Join-Path $env:GITHUB_WORKSPACE 'donor-private'
           $scratch=Join-Path $donor 'internal/shadowqual'
           $proposalScratch=Join-Path $donor 'internal/paperproposal'
+          $reconcileScratch=Join-Path $donor 'internal/paperreconcile'
           $log=Join-Path $env:RUNNER_TEMP 'ktrade-shadow-private-tests.log'
           try{
             New-Item -ItemType Directory -Path $scratch -Force|Out-Null
             New-Item -ItemType Directory -Path $proposalScratch -Force|Out-Null
+            New-Item -ItemType Directory -Path $reconcileScratch -Force|Out-Null
+            Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperreconcile/reconcile.go') -Destination (Join-Path $reconcileScratch 'reconcile.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperreconcile/reconcile_test.go') -Destination (Join-Path $reconcileScratch 'reconcile_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperproposal/proposal.go') -Destination (Join-Path $proposalScratch 'proposal.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/shadow_test.go') -Destination (Join-Path $scratch 'shadow_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/proposal_test.go') -Destination (Join-Path $scratch 'proposal_test.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/reconcile_test.go') -Destination (Join-Path $scratch 'reconcile_test.go') -Force
             Push-Location $donor
             try{
               & go mod download *> $log
@@ -97,17 +107,18 @@ jobs:
             Write-Output 'KTRADE_DONOR_PRODUCT_EXPOSURE_PAPER_IDENTITY_GAP=CONFIRMED'
             Push-Location $ktrade
             try{
-              & go test -mod=readonly -count=1 ./internal/paperproposal ./internal/papertrading ./internal/paperweb *> $log
+              & go test -mod=readonly -count=1 ./internal/paperproposal ./internal/paperreconcile ./internal/papertrading ./internal/paperweb *> $log
               if($LASTEXITCODE -ne 0){throw 'KTRADE_CONSOLIDATED_PAPER_BASELINE_REGRESSED'}
               & node --test tests/paper_tradeguard_reconciliation.test.cjs *> $log
               if($LASTEXITCODE -ne 0){throw 'KTRADE_PAPER_SHADOW_BOUNDARY_REGRESSED'}
             }finally{Pop-Location}
             Write-Output 'KTRADE_CONSOLIDATED_PAPER_UNMODIFIED_GO_AND_JS_GATES=PASS'
-            Write-Output 'KTRADE_PROPOSAL_AND_AUTHENTIC_DONOR_SHADOW_TESTS=PASS'
+            Write-Output 'KTRADE_CRASH_RECONCILE_AUTHENTIC_DONOR_WINDOWS_FOCUSED_TESTS=PASS'
           }finally{
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $proposalScratch -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $reconcileScratch -Recurse -Force -ErrorAction SilentlyContinue
           }
       - name: Confidential checkout cleanup without upload
         if: always()
