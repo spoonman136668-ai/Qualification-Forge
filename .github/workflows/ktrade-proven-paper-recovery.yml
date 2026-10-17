@@ -1,0 +1,150 @@
+name: KTRADE historical paper recovery Windows qualification
+
+on:
+  push:
+    branches:
+      - qualification/ktrade-full-recovery-win-20261017
+    paths:
+      - .github/workflows/ktrade-proven-paper-recovery.yml
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/ktrade-full-recovery-win-20261017'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      EXPECTED_KTRADE_SHA: 'e4e9e3428356f1371bdb46f81b6ae2099f3e2697'
+      EXPECTED_KTRADE_TREE: '75ce474754a771949dab8e410a4cda42417cf445'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Verify ephemeral Windows and private source identity
+        shell: pwsh
+        env:
+          READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'RECOVERY_WRONG_EXECUTION_ENVIRONMENT'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'RECOVERY_LIVE_OR_PROMOTION_UNSAFE'}
+          if([string]::IsNullOrWhiteSpace($env:READ_TOKEN)){throw 'RECOVERY_PRIVATE_READ_SECRET_MISSING'}
+          try{
+            $headers=@{Authorization=('Bearer '+$env:READ_TOKEN);Accept='application/vnd.github+json'}
+            $uri='https://api.github.com/repos/spoonman136668-ai/ktrade/git/commits/'+$env:EXPECTED_KTRADE_SHA
+            $commit=Invoke-RestMethod -Method Get -Uri $uri -Headers $headers -TimeoutSec 30
+            if($commit.sha -cne $env:EXPECTED_KTRADE_SHA -or $commit.tree.sha -cne $env:EXPECTED_KTRADE_TREE){throw 'identity'}
+          }catch{throw 'RECOVERY_EXPECTED_KTRADE_IDENTITY_NOT_ACCESSIBLE'}
+          Write-Output 'KTRADE_RECOVERY_EXACT_SOURCE_API=PASS'
+      - name: Checkout pinned private consolidation source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: e4e9e3428356f1371bdb46f81b6ae2099f3e2697
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Verify actual donor blobs unchanged and exclude installed application state
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $observed=(& git -C $root rev-parse HEAD).Trim()
+          $tree=(& git -C $root rev-parse 'HEAD^{tree}').Trim()
+          if($LASTEXITCODE -ne 0 -or $observed -cne $env:EXPECTED_KTRADE_SHA -or $tree -cne $env:EXPECTED_KTRADE_TREE){throw 'RECOVERY_CHECKOUT_HEAD_OR_TREE_DRIFT'}
+          $expected=[ordered]@{
+            'cmd/ktrade-paper/main.go'='a3150cb3c379863158a3c6e00717d92958718b1a'
+            'cmd/ktrade-paper-web/main.go'='5f0c5d57d97a09d7bd995b5f63477e9fbbefaf6f'
+            'internal/papertrading/README.md'='a43242e598e0af150246f8c2a5f70bbd6b2190d9'
+            'internal/papertrading/ledger.go'='d44341253e7d4b51d31b03cea26a77cbbb534f7b'
+            'internal/papertrading/ledger_test.go'='9ea5bdda2cface94e6846717b55d3ccae0f30ad3'
+            'internal/paperweb/README.md'='6f08d8be9b7f2f23e524355beebbe862a93395d3'
+            'internal/paperweb/paper.html'='1dcd2dd74c91d49c8cf385828deac27842881630'
+            'internal/paperweb/paper.css'='2af7b4dd7936074d358dc82acfc630bffdc817b5'
+            'internal/paperweb/paper.js'='12174e20db13454dca698797b5681a195e34128d'
+            'internal/paperweb/server.go'='d711948335b72d2e917304bc6b55edb59236530c'
+            'internal/paperweb/server_test.go'='1ff6d5925a7216cf012342f8678c15136d804331'
+            'windows/Launch-KTRADE-Paper.cmd'='34a5534c76d9e7c0a0aeee29f484166f1b6c7bf9'
+            'windows/Start-KTRADE-PaperWorkspace.ps1'='086c15643db3d7fb9b02e8dd4f0f1132e3d760c8'
+          }
+          foreach($p in $expected.Keys){
+            $actual=(& git -C $root rev-parse ("HEAD:"+$p)).Trim()
+            if($LASTEXITCODE -ne 0 -or $actual -cne $expected[$p]){throw 'RECOVERY_DONOR_GIT_BLOB_IDENTITY_DRIFT'}
+          }
+          if(@(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'RECOVERY_CHECKOUT_DIRTY'}
+          Write-Output ('KTRADE_SOURCE_BIRTH_PROVENANCE=PASS count='+$expected.Count)
+      - name: Execute authentic paper tests one full regression vet and two builds
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-proven-paper-private.log'
+          $out=Join-Path $env:RUNNER_TEMP 'ktrade-paper-qualified.exe'
+          $web=Join-Path $env:RUNNER_TEMP 'ktrade-paper-web-qualified.exe'
+          function RunPrivate([string]$name,[string]$program,[string[]]$arguments){
+            try{
+              & $program @arguments *> $log
+              if($LASTEXITCODE -ne 0){throw 'command returned nonzero'}
+            }catch{throw ('KTRADE_'+$name+'_FAILED_PRIVATE_OUTPUT_WITHHELD')}
+            Write-Output ('KTRADE_'+$name+'=PASS')
+          }
+          Push-Location $root
+          try{
+            RunPrivate 'GO_DEPENDENCIES' 'go' @('mod','download')
+            RunPrivate 'PAPER_OWNED_LEDGER_AND_HTTP_FOCUSED' 'go' @('test','-mod=readonly','-count=1','-timeout=240s','./internal/papertrading','./internal/paperweb','./cmd/ktrade-paper','./cmd/ktrade-paper-web')
+            RunPrivate 'ONE_FULL_REGRESSION' 'go' @('test','-mod=readonly','-count=1','-timeout=900s','./...')
+            RunPrivate 'GO_VET' 'go' @('vet','-mod=readonly','./...')
+            RunPrivate 'PAPER_CLI_WINDOWS_BUILD' 'go' @('build','-mod=readonly','-o',$out,'./cmd/ktrade-paper')
+            RunPrivate 'PAPER_BROWSER_WINDOWS_BUILD' 'go' @('build','-mod=readonly','-o',$web,'./cmd/ktrade-paper-web')
+            if(-not(Test-Path -LiteralPath $out -PathType Leaf) -or -not(Test-Path -LiteralPath $web -PathType Leaf)){throw 'RECOVERY_WINDOWS_PAPER_BINARY_MISSING'}
+            Write-Output 'KTRADE_PAPER_EXECUTABLES_EPHEMERAL=TRUE'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log,$out,$web -Force -ErrorAction SilentlyContinue
+          }
+      - name: Actual Windows temp-only browser-launch functional probe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $probeLog=Join-Path $env:RUNNER_TEMP 'ktrade-paper-browser-probe-private.log'
+          try{
+            & (Join-Path $root 'windows/Start-KTRADE-PaperWorkspace.ps1') -ProbeOnly -NoBrowser *> $probeLog
+            if($LASTEXITCODE -ne 0){throw 'probe command failed'}
+            $passText=[string](Get-Content -LiteralPath $probeLog -Raw)
+            foreach($marker in @(
+              'KTRADE_PAPER_ONE_STEP_LAUNCH_HTTP_BUY_AND_REOPEN=PASS',
+              'KTRADE_PAPER_TEMP_TEST_ACCOUNT_CLEANED=PASS',
+              'PAPER_TEST_BROWSER_NOT_OPENED=PASS'
+            )){
+              if(-not $passText.Contains($marker)){throw 'probe required marker missing'}
+            }
+            Write-Output 'KTRADE_REAL_WINDOWS_LOCAL_PAPER_HTTP_BUY_AND_REOPEN=PASS'
+            Write-Output 'KTRADE_TEMP_ACCOUNT_CLEANED=PASS'
+            Write-Output 'KTRADE_INSTALLED_USER_STATE_UNTOUCHED=TRUE'
+            Write-Output 'KTRADE_BROKER_AUTHORITY=FALSE'
+          }catch{throw 'KTRADE_PAPER_WINDOWS_PROBE_FAILED_PRIVATE_OUTPUT_WITHHELD'
+          }finally{Remove-Item -LiteralPath $probeLog -Force -ErrorAction SilentlyContinue}
+      - name: Clean private source without public artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'checked-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_PRIVATE_SOURCE_ARTIFACTS=NONE'
+          Write-Output 'KTRADE_NO_PROMOTION=TRUE'
