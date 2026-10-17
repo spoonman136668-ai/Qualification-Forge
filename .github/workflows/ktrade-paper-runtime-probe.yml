@@ -1,0 +1,87 @@
+name: KTRADE authentic restored paper browser executable probe
+
+on:
+  push:
+    branches: [qualification/ktrade-full-recovery-win-20261017]
+    paths: [.github/workflows/ktrade-paper-runtime-probe.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  paper-runtime:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 18
+    env:
+      EXPECTED_SOURCE_SHA: '60ecf34994d9c7648a39a6f0104c09ff4297d83d'
+      EXPECTED_SOURCE_TREE: 'f120e79635288111fa58ca6fb541d232ed531d79'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOPROXY: 'off'
+      GOSUMDB: 'off'
+      GOWORK: 'off'
+    steps:
+      - name: Read immutable private recovery checkout
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 60ecf34994d9c7648a39a6f0104c09ff4297d83d
+          path: private-checkout
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Run authentic temporary-only Go/browser workspace
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          $log=Join-Path $env:RUNNER_TEMP 'paper-native-probe-private.log'
+          $oldProxy=$env:GOPROXY;$oldSum=$env:GOSUMDB
+          try{
+            if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'WRONG_HOST'}
+            if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'WRONG_AUTHORITY'}
+            if((& git -C $root rev-parse HEAD).Trim() -cne $env:EXPECTED_SOURCE_SHA -or
+               (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_SOURCE_TREE){throw 'SOURCE_IDENTITY_DRIFT'}
+            # Populate only module cache, never change repo files or publish private output.
+            $env:GOPROXY='https://proxy.golang.org'
+            $env:GOSUMDB='sum.golang.org'
+            Push-Location $root
+            try {
+              & go mod download *> $log
+              if($LASTEXITCODE -ne 0){throw 'module unavailable'}
+            }finally{Pop-Location}
+            $env:GOPROXY='off'
+            $env:GOSUMDB='off'
+            & (Join-Path $root 'windows/Start-KTRADE-PaperWorkspace.ps1') -ProbeOnly -NoBrowser *> $log
+            if($LASTEXITCODE -ne 0){throw 'paper runtime process failed'}
+            $raw=[string](Get-Content -LiteralPath $log -Raw)
+            foreach($marker in @('KTRADE_PAPER_ONE_STEP_LAUNCH_HTTP_BUY_AND_REOPEN=PASS','KTRADE_PAPER_TEMP_TEST_ACCOUNT_CLEANED=PASS','PAPER_TEST_BROWSER_NOT_OPENED=PASS')){
+              if(-not $raw.Contains($marker)){throw 'real paper browser probe marker missing'}
+            }
+            Write-Output 'KTRADE_AUTHENTIC_WINDOWS_PAPER_BROWSER_EXE=PASS'
+            Write-Output 'KTRADE_ACTUAL_LOOPBACK_HTTP_SYNTHETIC_BUY=PASS'
+            Write-Output 'KTRADE_ACTUAL_PAPER_LEDGER_REOPEN=PASS'
+            Write-Output 'KTRADE_TEMP_ACCOUNT_CLEANED=PASS'
+            Write-Output 'KTRADE_INSTALLED_PROFILES_NOT_OPENED=TRUE'
+            Write-Output 'KTRADE_BROKER_DISPATCH=FALSE'
+            if(@(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'SOURCE_MUTATED'}
+          }catch{throw 'KTRADE_NATIVE_PAPER_BROWSER_PROBE_FAILED_PRIVATE_OUTPUT_WITHHELD'
+          }finally{
+            $env:GOPROXY=$oldProxy;$env:GOSUMDB=$oldSum
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Delete private source
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'private-checkout') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_PRIVATE_SOURCE_UPLOAD=NONE'
+          Write-Output 'KTRADE_LIVE_OR_PRODUCTION_CHANGE=FALSE'
