@@ -1,0 +1,78 @@
+name: KTRADE single-pass follow-up vet and Windows builds
+on:
+  push:
+    branches: [qualification/ktrade-full-recovery-win-20261017]
+    paths: [.github/workflows/ktrade-standalone-vet-build.yml]
+permissions:
+  contents: read
+jobs:
+  vet-build:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      EXPECTED_SHA: '738a21a655bb52e1977437befdf98b8b338ad9de'
+      EXPECTED_TREE: '93806ef888d380fbdaa25bab6da490dc8a326540'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Checkout exact historical consolidation candidate
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 738a21a655bb52e1977437befdf98b8b338ad9de
+          path: private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Vet and build without rerunning already documented full regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private'
+          $out=Join-Path $env:RUNNER_TEMP 'ktrade-vet-build'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-vet-build-private.log'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'WRONG_HOST'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'LIVE_NOT_DISABLED'}
+          if((& git -C $root rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA -or (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE){throw 'SOURCE_DRIFT'}
+          New-Item -ItemType Directory -Path $out -Force|Out-Null
+          Push-Location $root
+          try{
+            & go mod download *> $log
+            if($LASTEXITCODE -ne 0){throw 'DEPENDENCY_DOWNLOAD_FAILED'}
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'GO_VET_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            Write-Output 'KTRADE_SOURCE_PINNED_GO_VET=PASS'
+            foreach($name in @('ktrade-paper','ktrade-paper-web')){
+              & go build -mod=readonly -o (Join-Path $out ($name+'.exe')) ('./cmd/'+$name) *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_PAPER_WINDOWS_BUILD_FAILED'}
+            }
+            & go build -mod=readonly -tags=ktrade_full -o (Join-Path $out 'ktrade.exe') ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_HISTORICAL_WINDOWS_BUILD_FAILED'}
+            foreach($exe in @('ktrade.exe','ktrade-paper.exe','ktrade-paper-web.exe')){
+              if(!(Test-Path -LiteralPath (Join-Path $out $exe) -PathType Leaf)){throw 'MISSING_QUALIFIED_EXECUTABLE'}
+            }
+            Write-Output 'KTRADE_THREE_WINDOWS_BINARY_BUILDS=PASS'
+            Write-Output 'KTRADE_FULL_REGRESSION_NOT_REEXECUTED=TRUE'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $out -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Cleanup private checkout
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_PRODUCTION_PROMOTION=FALSE'
+          Write-Output 'KTRADE_PRIVATE_ARTIFACTS=NONE'
