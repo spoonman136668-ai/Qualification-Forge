@@ -247,6 +247,55 @@ jobs:
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
           }
 
+      - name: Package authentic Windows Electron desktop layout without publishing artifacts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $originalExe = Join-Path $env:RUNNER_TEMP 'ktrade-full-qualified.exe'
+          $stagedExe = Join-Path $root 'ktrade.exe'
+          $log = Join-Path $env:RUNNER_TEMP 'ktrade-electron-package-private.log'
+          $output = Join-Path $root 'dist'
+          try {
+            if (-not (Test-Path -LiteralPath $originalExe -PathType Leaf)) {
+              throw 'KTRADE_WINDOWS_BACKEND_BINARY_MISSING'
+            }
+            if (Test-Path -LiteralPath $stagedExe) {
+              throw 'KTRADE_UNEXPECTED_PREEXISTING_ROOT_BINARY'
+            }
+            Copy-Item -LiteralPath $originalExe -Destination $stagedExe
+            Push-Location $root
+            try {
+              & npm install --no-save --no-package-lock --no-audit --no-fund *> $log
+              if ($LASTEXITCODE -ne 0) { throw 'KTRADE_DESKTOP_NPM_INSTALL_FAILED_PRIVATE_OUTPUT_WITHHELD' }
+              Write-Output 'KTRADE_ELECTRON_DEPENDENCIES=PASS'
+              & npx --no-install electron-builder --win --dir --x64 --publish never *> $log
+              if ($LASTEXITCODE -ne 0) {
+                throw 'KTRADE_DESKTOP_WINDOWS_PACKAGING_FAILED_PRIVATE_OUTPUT_WITHHELD'
+              }
+            } finally {
+              Pop-Location
+            }
+            $resources = Join-Path $output 'win-unpacked/resources/bin'
+            foreach ($name in @('ktrade.exe','static/trading.html','static/ide.html','static/pine_engine_ckb.js','templates/chart.tmpl','strategies/kaboom_vwap_2.0.pine')) {
+              if (-not (Test-Path -LiteralPath (Join-Path $resources $name) -PathType Leaf)) {
+                throw 'KTRADE_ELECTRON_INSTALLED_RESOURCE_MISSING'
+              }
+            }
+            $packagedHash = (Get-FileHash -LiteralPath (Join-Path $resources 'ktrade.exe') -Algorithm SHA256).Hash
+            $compiledHash = (Get-FileHash -LiteralPath $originalExe -Algorithm SHA256).Hash
+            if ($packagedHash -cne $compiledHash) {
+              throw 'KTRADE_PACKAGED_BACKEND_DIGEST_MISMATCH'
+            }
+            Write-Output 'KTRADE_ELECTRON_INSTALLED_RESOURCE_PARITY=PASS'
+            Write-Output 'KTRADE_ELECTRON_WINDOWS_UNPACKED_LAYOUT=PASS'
+            Write-Output 'KTRADE_INSTALLER_NOT_RELEASED=TRUE'
+          } finally {
+            Remove-Item -LiteralPath $stagedExe,$log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $output,(Join-Path $root 'node_modules') -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath (Join-Path $root 'package-lock.json') -Force -ErrorAction SilentlyContinue
+          }
+
       - name: Remove private checkout and prevent publication
         if: always()
         shell: pwsh
