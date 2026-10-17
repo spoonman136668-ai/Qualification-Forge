@@ -33,7 +33,7 @@ jobs:
       - name: Verify isolated GitHub-hosted Windows and private source access
         shell: pwsh
         env:
-          KTRADE_READ_TOKEN: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+          KTRADE_READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
           if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {
@@ -43,30 +43,21 @@ jobs:
             throw 'KTRADE_LIVE_AUTHORITY_UNSAFE'
           }
           if ([string]::IsNullOrWhiteSpace($env:KTRADE_READ_TOKEN)) {
-            throw 'KTRADE_READ_ONLY_PRIVATE_ACCESS_TOKEN_UNAVAILABLE'
+            throw 'KTRADE_SOURCE_READ_TOKEN_SECRET_MISSING'
           }
           $h = @{
             Authorization = ('Bearer ' + $env:KTRADE_READ_TOKEN)
             Accept = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
           }
-          # Identify credential scope without printing credentials, API
-          # responses, private file names, or private source material.
-          try {
-            $legacy = Invoke-RestMethod -Method Get -Uri 'https://api.github.com/repos/spoonman136668-ai/ckb/git/commits/520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc' -Headers $h -TimeoutSec 30
-            if ($legacy.sha -ceq '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc') {
-              Write-Output 'QUALIFICATION_FORGE_EXISTING_CKB_TOKEN_ACCESS=PASS'
-            }
-          } catch {
-            Write-Output 'QUALIFICATION_FORGE_EXISTING_CKB_TOKEN_ACCESS=UNAVAILABLE'
-          }
+          # KTRADE-only read token. Do not probe unrelated private repositories.
           try {
             $uri = 'https://api.github.com/repos/spoonman136668-ai/ktrade/git/commits/' + $env:EXPECTED_SOURCE_SHA
             $v = Invoke-RestMethod -Method Get -Uri $uri -Headers $h -TimeoutSec 30
           } catch {
             throw 'QUALIFICATION_FORGE_KTRADE_REPOSITORY_READ_ACCESS_UNAVAILABLE'
           } finally {
-            Remove-Variable h,legacy -ErrorAction SilentlyContinue
+            Remove-Variable h -ErrorAction SilentlyContinue
           }
           if ($v.sha -cne $env:EXPECTED_SOURCE_SHA -or $v.tree.sha -cne $env:EXPECTED_SOURCE_TREE) {
             throw 'QUALIFICATION_FORGE_KTRADE_SOURCE_IDENTITY_MISMATCH'
@@ -83,7 +74,7 @@ jobs:
           path: checked-private
           fetch-depth: 1
           persist-credentials: false
-          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
 
       - name: Set up pinned Go toolchain
         uses: actions/setup-go@v5
