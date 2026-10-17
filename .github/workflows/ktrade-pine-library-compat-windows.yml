@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      EXPECTED_SHA: '4af5fca3cdd22864d9fcd8ada7643440552c76e4'
-      EXPECTED_TREE: '3532e6b2d25a6f4ba013b8d59123e01c8367440f'
+      EXPECTED_SHA: '4883f36adf0cca091fcf99d9f5938f6501991b7a'
+      EXPECTED_TREE: '48690b1f2de474e7eb1ad9b15034976118509514'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -26,7 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 4af5fca3cdd22864d9fcd8ada7643440552c76e4
+          ref: 4883f36adf0cca091fcf99d9f5938f6501991b7a
           path: private
           fetch-depth: 1
           persist-credentials: false
@@ -84,17 +84,110 @@ jobs:
             & node --test tests/historical_pine_editor_chart_wiring.test.cjs *> $log
             if($LASTEXITCODE -ne 0){throw 'KTRADE_PREMIGRATION_PINE_UI_BOUNDARY_REGRESSED'}
             Write-Output 'KTRADE_HISTORICAL_PINE_UI_EXISTING_WIRING_TESTS=PASS'
+            & go test -mod=readonly -count=1 -timeout=240s ./internal/papertrading ./internal/paperweb *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_ORIGINAL_PAPER_LEDGER_HTTP_SAFETY_REGRESSED'}
+            Write-Output 'KTRADE_PAPER_LEDGER_FILLS_LOCKS_AND_HTTP_SAFETY=PASS'
+            & node --test tests/paper_tradeguard_reconciliation.test.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_TRADEGUARD_PAPER_AUTHORITY_BOUNDARY_CHANGED'}
+            Write-Output 'KTRADE_TRADEGUARD_NOT_PREMATURELY_WIRED=PASS'
             if((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA){throw 'KTRADE_HEAD_MUTATED'}
             Write-Output 'KTRADE_SOURCE_HEAD_UNCHANGED=PASS'
           } finally {
             Pop-Location
-            Remove-Item -LiteralPath $log,(Join-Path $env:RUNNER_TEMP 'ktrade-full-compat.exe') -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
           }
+      - name: Actual Windows localhost Pine durable save, favorite and restart
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $checkout=Join-Path $env:GITHUB_WORKSPACE 'private'
+          $stage=Join-Path $env:RUNNER_TEMP ('ktrade-pine-qual-'+$env:GITHUB_RUN_ID)
+          $exe=Join-Path $stage 'ktrade.exe'
+          $lib=Join-Path $stage 'data/pine-library'
+          $stderr=Join-Path $env:RUNNER_TEMP 'ktrade-compat-stderr.log'
+          $stdout=Join-Path $env:RUNNER_TEMP 'ktrade-compat-stdout.log'
+          $keys=@('KTRADE_PINE_LIBRARY_ROOT','APPDATA','LOCALAPPDATA','HOME','USERPROFILE')
+          $previous=@{}
+          $proc=$null
+          foreach($k in $keys){$previous[$k]=[Environment]::GetEnvironmentVariable($k,'Process')}
+          function StartIsolated {
+            $script:proc=Start-Process -FilePath $exe -WorkingDirectory $stage -PassThru -WindowStyle Hidden -RedirectStandardError $stderr -RedirectStandardOutput $stdout
+            $addr=''
+            for($i=0;$i -lt 90;$i++){
+              if($script:proc.HasExited){throw 'KTRADE_COMPAT_BACKEND_EXITED'}
+              $body=[string](Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue)
+              if($body -match 'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:\d+)'){$addr=$Matches[1];break}
+              Start-Sleep -Milliseconds 400
+            }
+            if(!$addr){throw 'KTRADE_COMPAT_BACKEND_TIMEOUT'}
+            return ('http://'+$addr)
+          }
+          function StopIsolated {
+            if($null -ne $script:proc){
+              try{Stop-Process -Id $script:proc.Id -Force -ErrorAction SilentlyContinue}catch{}
+              try{$script:proc.WaitForExit(4000)|Out-Null}catch{}
+              $script:proc.Dispose();$script:proc=$null
+            }
+            Remove-Item -LiteralPath $stderr,$stdout -Force -ErrorAction SilentlyContinue
+          }
+          try{
+            New-Item -ItemType Directory -Path $stage -Force|Out-Null
+            Copy-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-full-compat.exe') -Destination $exe
+            foreach($folder in @('static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $checkout $folder) -Destination (Join-Path $stage $folder) -Recurse -Force
+            }
+            foreach($folder in @('appdata','localappdata','home')){
+              New-Item -ItemType Directory -Path (Join-Path $stage $folder) -Force|Out-Null
+            }
+            $env:KTRADE_PINE_LIBRARY_ROOT=$lib
+            $env:APPDATA=Join-Path $stage 'appdata'
+            $env:LOCALAPPDATA=Join-Path $stage 'localappdata'
+            $env:HOME=Join-Path $stage 'home'
+            $env:USERPROFILE=$env:HOME
+            $base=StartIsolated
+            $asset=Invoke-WebRequest -Uri ($base+'/static/pine_library_compat.js') -TimeoutSec 9
+            if($asset.StatusCode -ne 200 -or -not ($asset.Content -match 'pineSave')){throw 'CHART_LIBRARY_ASSET_NOT_SERVED'}
+            $page=Invoke-WebRequest -Uri ($base+'/chart') -TimeoutSec 9
+            if($page.StatusCode -ne 200 -or -not ($page.Content -match '/static/pine_library_compat.js')){throw 'CHART_LIBRARY_SCRIPT_NOT_WIRED'}
+            Write-Output 'KTRADE_ORIGINAL_CHART_LIBRARY_JS_SERVING=PASS'
+            $catalog=Invoke-RestMethod -Uri ($base+'/api/pine-library') -TimeoutSec 9
+            if(@($catalog.scripts).Count -lt 2){throw 'DURABLE_PINE_BUILTINS_NOT_PRESENT'}
+            $pine=@('//@version=5','indicator("Synthetic Original")','plot(close)') -join [Environment]::NewLine
+            $headers=@{Origin=$base}
+            $body=@{display_name='My existing script';kind='indicator';source=$pine}|ConvertTo-Json -Compress
+            $created=Invoke-RestMethod -Uri ($base+'/api/pine-library') -Method Post -Headers $headers -ContentType 'application/json' -Body $body -TimeoutSec 10
+            if($created.metadata.ownership -cne 'user' -or !$created.metadata.id){throw 'PINE_HTTP_SAVE_NOT_DURABLE'}
+            $id=$created.metadata.id
+            $favorite=Invoke-RestMethod -Uri ($base+'/api/pine-library/'+$id+'/favorite') -Method Post -Headers $headers -ContentType 'application/json' -Body '{"favorite":true}' -TimeoutSec 10
+            if($favorite.favorite -ne $true){throw 'PINE_HTTP_FAVORITE_NOT_SAVED'}
+            $updated=@('//@version=5','indicator("Revised Original")','plot(open)') -join [Environment]::NewLine
+            $payload=@{display_name='My existing script';kind='indicator';source=$updated}|ConvertTo-Json -Compress
+            $revised=Invoke-RestMethod -Uri ($base+'/api/pine-library/'+$id+'/save') -Method Post -Headers $headers -ContentType 'application/json' -Body $payload -TimeoutSec 10
+            if($revised.metadata.id -cne $id -or !$revised.metadata.favorite){throw 'PINE_HTTP_REVISION_LOST_ID_OR_FAVORITE'}
+            StopIsolated
+            $base=StartIsolated
+            $saved=Invoke-RestMethod -Uri ($base+'/api/pine-library/'+$id) -TimeoutSec 10
+            if($saved.source -cne $updated -or $saved.metadata.id -cne $id -or !$saved.metadata.favorite){throw 'PINE_HTTP_RESTART_LOST_SOURCE_OR_FAVORITE'}
+            $order=Invoke-WebRequest -Uri ($base+'/api/orders/place') -Method Post -ContentType 'application/json' -Body '{}' -SkipHttpErrorCheck -TimeoutSec 7
+            if([int]$order.StatusCode -lt 400){throw 'PINE_LIBRARY_CHANGED_LIVE_ORDER_AUTHORITY'}
+            if(!(Test-Path -LiteralPath (Join-Path $lib 'index.json')) -or !(Test-Path -LiteralPath (Join-Path $lib 'index.recovery.json'))){throw 'PINE_DURABLE_INDEX_MISSING'}
+            Write-Output 'KTRADE_REAL_PINE_LOCAL_HTTP_SAVE_FAVORITE_RESTART=PASS'
+            Write-Output 'KTRADE_DURABLE_PINE_INDEX_AND_RECOVERY_SNAPSHOT=PASS'
+            Write-Output 'KTRADE_BROKER_ORDER_AUTHORITY_STILL_DISABLED=PASS'
+            Write-Output 'KTRADE_REAL_USER_PROFILE_NEVER_OPENED=TRUE'
+          }finally{
+            StopIsolated
+            foreach($k in $previous.Keys){[Environment]::SetEnvironmentVariable($k,$previous[$k],'Process')}
+            Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+          }
+
       - name: Remove private source and suppress artifact uploads
         if: always()
         shell: pwsh
         run: |
           Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'private') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-full-compat.exe') -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP ('ktrade-pine-qual-' + $env:GITHUB_RUN_ID)) -Recurse -Force -ErrorAction SilentlyContinue
           Write-Output 'KTRADE_PRIVATE_ARTIFACTS_PUBLICATION=NONE'
           Write-Output 'KTRADE_PRODUCTION_PROMOTION=FALSE'
           Write-Output 'KTRADE_INSTALLED_USER_STATE_NOT_TOUCHED=TRUE'
