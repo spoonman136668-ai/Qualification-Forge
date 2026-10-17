@@ -1,0 +1,97 @@
+name: KTRADE authentic Pine library compatibility Windows qualification
+on:
+  push:
+    branches: [qualification/ktrade-full-recovery-win-20261017]
+    paths: [.github/workflows/ktrade-pine-library-compat-windows.yml]
+permissions:
+  contents: read
+jobs:
+  compat:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      EXPECTED_SHA: '06a23adbc3deb0e1929716add2ea565b387f7ace'
+      EXPECTED_TREE: 'b8877138cc1912baa342d5defb0d6e497c5164ad'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout exact private consolidated source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 06a23adbc3deb0e1929716add2ea565b387f7ace
+          path: private
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Qualify source birth and application-scope safety
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private'
+          if((& git -C $root rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA -or
+             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE){throw 'KTRADE_SOURCE_DRIFT'}
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'KTRADE_ENV_UNQUALIFIED'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'KTRADE_LIVE_BOUNDARY_VIOLATED'}
+          $expected=@{
+            'pkg/pine_library.go'='fc74a6435ef513c2e5d293eacc35732c7e809abe'
+            'pkg/pine_library_crud.go'='221d7c6494cdb0e5ab7771ba4528c7d0ccd6196b'
+            'pkg/pine_library_catalog.go'='528fa170d80cd2714d5f815a2f30692676291585'
+            'pkg/pine_library_recovery.go'='9742fed1aa821b7186588a4cf05693c5441130ed'
+          }
+          foreach($path in $expected.Keys){
+            if((& git -C $root rev-parse ('HEAD:'+$path)).Trim() -cne $expected[$path]){
+              throw 'KTRADE_DONOR_DURABLE_STORAGE_SOURCE_IDENTITY_DRIFT'
+            }
+          }
+          Write-Output 'KTRADE_FOUR_DONOR_STORAGE_BLOBS_EXACT=PASS'
+      - name: Focused original Pine library preservation and local-origin tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-private-library-tests.log'
+          Push-Location $root
+          try {
+            & go mod download *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_DEPENDENCY_DOWNLOAD_FAILED'}
+            & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=300s -run '^TestKTradePineLibrary' ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_PINE_COMPAT_FOCUSED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            Write-Output 'KTRADE_DURABLE_PINE_EXISTING_SCRIPTS_AND_FAVORITES=PASS'
+            Write-Output 'KTRADE_DURABLE_PINE_BUILTIN_IMMUTABILITY=PASS'
+            Write-Output 'KTRADE_PINE_LOCALHOST_CSRF_AND_REBINDING=PASS'
+            & go build -mod=readonly -tags=ktrade_full -o (Join-Path $env:RUNNER_TEMP 'ktrade-full-compat.exe') ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_FULL_WINDOWS_BUILD_FAILED'}
+            Write-Output 'KTRADE_ORIGINAL_GO_AND_DONOR_STORAGE_INTEGRATED_BUILD=PASS'
+            & node --check static/pine_library_compat.js *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_CHART_LIBRARY_JS_SYNTAX_FAILED'}
+            Write-Output 'KTRADE_ORIGINAL_CHART_LIBRARY_JS_SYNTAX=PASS'
+            & node --test tests/historical_pine_editor_chart_wiring.test.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_PREMIGRATION_PINE_UI_BOUNDARY_REGRESSED'}
+            Write-Output 'KTRADE_HISTORICAL_PINE_UI_EXISTING_WIRING_TESTS=PASS'
+            if((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA){throw 'KTRADE_HEAD_MUTATED'}
+            Write-Output 'KTRADE_SOURCE_HEAD_UNCHANGED=PASS'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log,(Join-Path $env:RUNNER_TEMP 'ktrade-full-compat.exe') -Force -ErrorAction SilentlyContinue
+          }
+      - name: Remove private source and suppress artifact uploads
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_PRIVATE_ARTIFACTS_PUBLICATION=NONE'
+          Write-Output 'KTRADE_PRODUCTION_PROMOTION=FALSE'
+          Write-Output 'KTRADE_INSTALLED_USER_STATE_NOT_TOUCHED=TRUE'
