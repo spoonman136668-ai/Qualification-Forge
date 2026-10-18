@@ -1,0 +1,73 @@
+{
+  "schema": "ktrade.r25c16.custody-pointer.v1",
+  "subject": "KTRADE R25-C16 compositional Windows acceptance evidence",
+  "disposition": "SOURCE_PINNED_COMPOSITIONAL_ACCEPTANCE_EVIDENCE_ONLY_NOT_RELEASE",
+  "immutable_source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "head_sha": "3d934a0f2c3bae555395ca2e09a72632af172aa7",
+    "tree_sha": "fd2e4230255e47e3dbd409480c3ea0937fe5427e",
+    "pr_number": 37,
+    "pr_merge_authorized": false
+  },
+  "runs": [
+    {
+      "role": "complete-windows-regression-vet-json-witness",
+      "run_id": 39163890705,
+      "workflow_sha": "39eda39184f3d5e2d1098af1b8b3b01b76cef8de",
+      "overall": "failure",
+      "accepted_substages": [
+        "parent_witnesses",
+        "full_regression",
+        "go_vet",
+        "full_app_tagged_interface"
+      ],
+      "failure_substage": "windows_build"
+    },
+    {
+      "role": "windows-build-chromium-portable-rollback",
+      "run_id": 39166104366,
+      "workflow_sha": "7870da9b6317adf316196f4cc53d0a5d9e02295c",
+      "overall": "failure",
+      "accepted_substages": [
+        "cached_exact_source_regression_proof",
+        "four_executable_builds",
+        "genuine_isolated_chromium",
+        "synthetic_portable_rollback"
+      ],
+      "failure_substage": "donor_shadow_compiled_against_wrong_package"
+    },
+    {
+      "role": "authentic_donor_focused_rollback",
+      "run_id": 39166747314,
+      "workflow_sha": "4dd90d725f4cddcf857c3c9cb32c2c1d137603e8",
+      "overall": "success",
+      "accepted_substages": [
+        "authentic_donor_source_identity",
+        "atomic_rollback",
+        "risk_veto_historical_migration"
+      ]
+    }
+  ],
+  "seal": {
+    "run_id": 39167825059,
+    "workflow_head_sha": "29d7c640a81f9f5d8e8aa52d51844f549288637c",
+    "job_id": 117794395306,
+    "conclusion": "success",
+    "manifest_filename": "ktrade-r25c16-seal.json",
+    "manifest_sha256": "dd7e670ac752501a3afbd51404745163a7b76555bdb78b90afdf89a000acf8fd",
+    "artifact_id": 12151143426,
+    "artifact_name": "ktrade-r25c16-source-pinned-evidence",
+    "archive_digest": "sha256:f37af6dd1347b62fea3e0492231bcfad48c98a4a5b20653be1e6ed1c69da6de4",
+    "artifact_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/39167825059/artifacts/12151143426",
+    "artifact_retention_days": 90,
+    "note": "Durable source-controlled custody pointer; artifact content has finite retention. Neither proves an independent issuer signature."
+  },
+  "safeguards": {
+    "real_user_migration_accepted": false,
+    "live_broker_access": false,
+    "production_promotion": false,
+    "merge_executed": false,
+    "independent_signature": false
+  },
+  "next_decision": "Independent acceptance review and separately authorized exact-head PR integration. No automatic merge."
+}
