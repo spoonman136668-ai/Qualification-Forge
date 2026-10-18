@@ -1,0 +1,123 @@
+name: KTRADE R25-C7 exact-parent wire and vet differential
+on:
+  push:
+    branches: [qualification/ktrade-r25c7-bounded-20261018]
+    paths: [.github/workflows/ktrade-r25c7-bounded.yml]
+permissions:
+  contents: read
+jobs:
+  qualify-parent-and-candidate:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact private KTRADE candidate and immutable parent
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 3b7cb115614cbc2ab04a929e0fcba820022054b3
+          path: source
+          persist-credentials: false
+          fetch-depth: 2
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup pinned Go version
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Check pre-remediation fingerprints, patched wire, and focused vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $original = '498a6cdce4e9336f91c1ff5778c05ea50613679e'
+          $candidate = '3b7cb115614cbc2ab04a929e0fcba820022054b3'
+          $originalTree = '1a923f03c9cc78bed884455ca304cf91627b5be3'
+          $candidateTree = 'feae39a8e236a7d1485ce416b1b1b143521fbf00'
+          $root = Join-Path $env:GITHUB_WORKSPACE 'source'
+          $testFile = Join-Path $root 'pkg/r25c7_governance_wire_compat_test.go'
+          $frozenTest = Join-Path $env:RUNNER_TEMP 'r25c7_exact_test.go'
+          $log = Join-Path $env:RUNNER_TEMP 'r25c7_focused.log'
+          try {
+            if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') { throw 'R25C7_HOST_INVALID' }
+            if ($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') { throw 'R25C7_UNSAFE_AUTHORITY' }
+            $gotHead = (& git -C $root rev-parse HEAD).Trim()
+            $gotParent = (& git -C $root rev-parse HEAD^).Trim()
+            $gotTree = (& git -C $root rev-parse 'HEAD^{tree}').Trim()
+            if ($gotHead -cne $candidate -or $gotParent -cne $original -or $gotTree -cne $candidateTree) { throw 'R25C7_SOURCE_IDENTITY_DRIFT' }
+            $expectedFiles = @(
+              'pkg/p11b_t414_explicit_new_repro_only_release_readiness_governance_closeout_reemergence_pin.go',
+              'pkg/p11b_t415_explicit_new_repro_only_release_readiness_governance_closeout_rekindling_pin.go',
+              'pkg/p11b_t416_explicit_new_repro_only_release_readiness_governance_closeout_reillumination_pin.go',
+              'pkg/p11b_t417_explicit_new_repro_only_release_readiness_governance_closeout_reappearance_pin.go',
+              'pkg/r25c7_governance_wire_compat_test.go'
+            )
+            $changed = @(& git -C $root diff --name-only HEAD^ HEAD | Sort-Object)
+            if ($LASTEXITCODE -ne 0 -or (Compare-Object $changed ($expectedFiles | Sort-Object))) { throw 'R25C7_SCOPE_DRIFT' }
+            $expectedBlobs = @('b1c888f6abcdb1f4160d466ed20c90b8e25b8c89','c9583693633fcd85a31406745da85329bdcca01a','6bf9c0681fb6fa690058b2ffbbb667ce883392f1','e8833be9d5d6b56e77335959445b0c775fc12422')
+            for ($i=0; $i -lt 4; $i++) {
+              $got = (& git -C $root rev-parse "HEAD^:$($expectedFiles[$i])").Trim()
+              if ($LASTEXITCODE -ne 0 -or $got -cne $expectedBlobs[$i]) { throw "R25C7_PARENT_BLOB_DRIFT_$i" }
+            }
+            Copy-Item -LiteralPath $testFile -Destination $frozenTest
+            Push-Location $root
+            try {
+              & go mod download *> $log
+              if ($LASTEXITCODE -ne 0) { throw 'R25C7_MODULE_DOWNLOAD_FAILED' }
+              & git checkout --detach $original *> $log
+              if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $originalTree) { throw 'R25C7_ORIGINAL_CHECKOUT_FAILED' }
+              Copy-Item -LiteralPath $frozenTest -Destination $testFile
+              $env:R25C7_ORIGINAL_MODE = '1'
+              & go test -vet=off -mod=readonly -count=1 -timeout=300s -v -run '^TestR25C7HistoricalGovernanceJSONWire$' ./pkg *> $log
+              if ($LASTEXITCODE -ne 0) {
+                Write-Output ('R25C7_PARENT_DIAGNOSTICS='+(Get-Content $log -Tail 30 | Out-String))
+                throw 'R25C7_PARENT_WIRE_BASELINE_FAILED'
+              }
+              $baseline = [string](Get-Content -LiteralPath $log -Raw)
+              foreach ($part in @('T414','T415','T416','T417')) {
+                $match = [regex]::Match($baseline, ('R25C7_WIRE_'+$part+'_SHA256=([0-9a-f]{64})'))
+                if (-not $match.Success) { throw ('R25C7_BASELINE_FINGERPRINT_MISSING_'+$part) }
+                [Environment]::SetEnvironmentVariable(('R25C7_EXPECTED_'+$part+'_SHA256'), $match.Groups[1].Value)
+                Write-Output ('R25C7_BASELINE_'+$part+'_SHA256='+$match.Groups[1].Value)
+              }
+              Remove-Item -LiteralPath $testFile -Force
+              & git checkout --detach $candidate *> $log
+              if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $candidateTree) { throw 'R25C7_RESTORE_FAILED' }
+              $env:R25C7_ORIGINAL_MODE = '0'
+              & go test -vet=off -mod=readonly -count=1 -timeout=300s -v -run '^TestR25C7HistoricalGovernanceJSONWire$' ./pkg *> $log
+              if ($LASTEXITCODE -ne 0) {
+                Write-Output ('R25C7_CANDIDATE_DIAGNOSTICS='+(Get-Content $log -Tail 30 | Out-String))
+                throw 'R25C7_CANDIDATE_WIRE_FAILED'
+              }
+              Write-Output 'R25C7_JSON_WIRE_IDENTITY_AND_INBOUND_IGNORE=PASS'
+              & go vet -mod=readonly -unsafeptr ./pkg *> $log
+              if ($LASTEXITCODE -ne 0) { throw 'R25C7_UNSAFEPTR_FAILED' }
+              Write-Output 'R25C7_UNSAFEPTR_ANALYZER=PASS'
+              & go vet -mod=readonly -structtag ./pkg *> $log
+              $vetExit = $LASTEXITCODE
+              $remaining = @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '\.go:\d+:\d+:'}).Count
+              Write-Output "R25C7_REMAINING_STRUCTTAG_DIAGNOSTICS=$remaining"
+              if ($vetExit -eq 0 -or $remaining -ne 3760) { throw 'R25C7_STRUCTTAG_DIFFERENTIAL_MISMATCH' }
+              Write-Output 'R25C7_STRUCTTAG_REDUCED_BY=156'
+              Write-Output 'R25C7_FOCUSED_WINDOWS_QUALIFICATION=PASS'
+              Write-Output 'R25C7_FULL_VET_NOT_PASSED=TRUE'
+              Write-Output 'R25C7_FINAL_REGRESSION_NOT_RUN=TRUE'
+              $global:LASTEXITCODE = 0
+            } finally { Pop-Location }
+          } finally {
+            Remove-Item -LiteralPath $frozenTest -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Delete private checkout
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'r25c7_focused.log') -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'r25c7_exact_test.go') -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C7_PRIVATE_CHECKOUT_REMOVED=TRUE'
