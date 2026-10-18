@@ -122,7 +122,21 @@ jobs:
               & go mod download *> $log
               if($LASTEXITCODE -ne 0){throw 'KTRADE_DONOR_DEPENDENCIES_FAILED'}
               & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=300s ./internal/shadowqual *> $log
-              if($LASTEXITCODE -ne 0){throw 'KTRADE_ACTUAL_DONOR_TRADEGUARD_SHADOW_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              if($LASTEXITCODE -ne 0){
+                # Only compile diagnostics and test identities are permitted.
+                # Never print private source, test payloads, credentials, or the full log.
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {
+                  $_ -match '^# ktrade/' -or
+                  $_ -match '^[^ ]+\.go:[0-9]+:[0-9]+: ' -or
+                  $_ -match '^--- FAIL: Test[A-Za-z0-9_./-]+' -or
+                  $_ -match '^FAIL[[:space:]]'
+                } | Select-Object -First 12)
+                foreach($line in $safe){
+                  $line=$line -replace [regex]::Escape($env:GITHUB_WORKSPACE),'[private]'
+                  Write-Output "KTRADE_SANITIZED_FAILURE: $line"
+                }
+                throw 'KTRADE_ACTUAL_DONOR_TRADEGUARD_SHADOW_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'
+              }
             }finally{Pop-Location}
             Write-Output 'KTRADE_AUTHENTIC_DONOR_TRADEGUARD_SHADOW_PROPOSED_BUY_RETRY=PASS'
             Write-Output 'KTRADE_SHADOW_POLICY_VETO_PAPER_STILL_FILLS_NEGATIVE=PASS'
