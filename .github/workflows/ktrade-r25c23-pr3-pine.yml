@@ -1,0 +1,158 @@
+name: KTRADE R25-C23 historical PR3 Pine exact-head qualification
+on:
+  push:
+    branches: [qualification/ktrade-r25c23-pr3-pine-20261018]
+    paths: [.github/workflows/ktrade-r25c23-pr3-pine.yml]
+permissions:
+  contents: read
+jobs:
+  pine-exact-head:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      KTRADE_SOURCE_SHA: 'c12032b52d1f8503e7dac4128a73c52757ecb5c8'
+      KTRADE_SOURCE_TREE: 'a15bf5f552259bebcb9dd3cb3140a11930bce988'
+      KTRADE_PR3_SOURCE_PARENT: '13d607a1e2a56fd6b0d442f58e61691613206f46'
+      KTRADE_PINE_BLOB: 'ff47a274e087526706bc55043358f5e1b4e8096d'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Read-only checkout exact historical KTRADE PR3
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: c12032b52d1f8503e7dac4128a73c52757ecb5c8
+          fetch-depth: 2
+          path: source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Freeze exact PR3 source, Pine blob, and broker denial
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'R25C23_NOT_GITHUB_WINDOWS'}
+          if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+             $env:KTRADE_RECOVERY_ISOLATED -cne '1'){throw 'R25C23_UNSAFE_AUTHORITY'}
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          $head=(& git -C $root rev-parse HEAD).Trim()
+          $tree=(& git -C $root rev-parse 'HEAD^{tree}').Trim()
+          $parent=(& git -C $root rev-parse HEAD^).Trim()
+          $pine=(& git -C $root hash-object (Join-Path $root 'pkg/pine_nullable_types.go')).Trim()
+          if($head -cne $env:KTRADE_SOURCE_SHA -or $tree -cne $env:KTRADE_SOURCE_TREE -or
+             $parent -cne $env:KTRADE_PR3_SOURCE_PARENT -or $pine -cne $env:KTRADE_PINE_BLOB -or
+             @(& git -C $root status --porcelain).Count -ne 0){throw 'R25C23_FROZEN_PR3_DRIFT'}
+          if(!(Test-Path -LiteralPath (Join-Path $root 'pkg/pine_v6_strict_phase_f_test.go'))){throw 'R25C23_ORIGINAL_PHASEF_TEST_MISSING'}
+          Write-Output ('R25C23_PR3_IMMUTABLE_SOURCE=PASS '+$head+' '+$tree)
+          Write-Output 'R25C23_NO_INSTALLED_SOURCE_OR_BROKER=TRUE'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Read-only locked dependency fetch
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go mod download
+          if($LASTEXITCODE -ne 0){throw 'R25C23_DEPENDENCY_FETCH_FAILED'}
+          git diff --exit-code -- go.mod go.sum
+          if($LASTEXITCODE -ne 0){throw 'R25C23_MODULE_DRIFT'}
+          Write-Output 'R25C23_MODULES_IMMUTABLE=PASS'
+      - name: Target original two failing Phase-F tests
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go test -vet=off -mod=readonly -tags=phasef -count=1 -timeout=10m -run '^(TestPineV6Strict_PhaseF_Ternary_SingleBranchExec_F1|TestPineV6Strict_PhaseF_ShortCircuit_AndOr_F1)$' ./pkg
+          if($LASTEXITCODE -ne 0){throw 'R25C23_PHASEF_ORIGINAL_TWO_FAILED'}
+          Write-Output 'R25C23_TWO_PHASEF_CASES=PASS'
+      - name: Full historical default Pine package suite
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go test -vet=off -mod=readonly -count=1 -timeout=15m ./pkg
+          if($LASTEXITCODE -ne 0){throw 'R25C23_DEFAULT_PKG_FAILED'}
+          Write-Output 'R25C23_DEFAULT_PINE_PACKAGE=PASS'
+      - name: Full historical tagged Phase-F package suite
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go test -vet=off -mod=readonly -tags=phasef -count=1 -timeout=15m ./pkg
+          if($LASTEXITCODE -ne 0){throw 'R25C23_TAGGED_PKG_FAILED'}
+          Write-Output 'R25C23_TAGGED_PINE_PACKAGE=PASS'
+      - name: Full historical Go build without executing trading app
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go build -mod=readonly ./...
+          if($LASTEXITCODE -ne 0){throw 'R25C23_FULL_BUILD_FAILED'}
+          Write-Output 'R25C23_ALL_GO_BUILD=PASS'
+      - name: Full historical Go vet as independent acceptance boundary
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go vet -mod=readonly ./...
+          if($LASTEXITCODE -ne 0){throw 'R25C23_FULL_GO_VET_FAILED'}
+          Write-Output 'R25C23_FULL_GO_VET=PASS'
+      - name: Seal exact historical Pine qualification evidence
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE_SHA -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_SOURCE_TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'R25C23_POST_QUALIFICATION_SOURCE_DRIFT'}
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          $record=[ordered]@{
+            schema='ktrade.r25c23.pr3.historical-phasef.v1'
+            status='HISTORICAL_BRANCH_QUALIFIED_NOT_CURRENT_MAIN'
+            source_sha=$env:KTRADE_SOURCE_SHA
+            source_tree=$env:KTRADE_SOURCE_TREE
+            pine_source_blob=$env:KTRADE_PINE_BLOB
+            forge_workflow_sha=$env:GITHUB_SHA
+            forge_run_id=$env:GITHUB_RUN_ID
+            original_two_phasef_tests='PASS'
+            full_historical_default_pine_package='PASS'
+            full_historical_tagged_pine_package='PASS'
+            full_build='PASS'
+            full_vet='PASS'
+            integrated_into_current_main=$false
+            live_broker_access=$false
+            real_private_data_touched=$false
+            release_authorized=$false
+            merge_authorized=$false
+          }
+          $file=Join-Path $dir 'r25c23-pr3-acceptance.json'
+          $record|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $file -Encoding utf8
+          $sha=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          ($sha+'  r25c23-pr3-acceptance.json')|Set-Content -LiteralPath (Join-Path $dir 'r25c23-pr3-acceptance.sha256') -Encoding ascii
+          Write-Output ('R25C23_PR3_RECEIPT_SHA256='+$sha)
+          Write-Output 'R25C23_PR3_HISTORICAL_QUALIFICATION=PASS_NOT_MERGE'
+      - name: Upload sanitized Pine source-only evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c23-pr3-historical-pine
+          path: |
+            evidence/r25c23-pr3-acceptance.json
+            evidence/r25c23-pr3-acceptance.sha256
+          if-no-files-found: error
+          retention-days: 90
+      - name: Erase private historical checkout
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C23_HISTORICAL_PRIVATE_CHECKOUT_CLEANUP_ATTEMPTED=TRUE'
