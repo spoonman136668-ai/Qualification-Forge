@@ -1,0 +1,84 @@
+name: KTRADE R25-C5 frozen original JSON wire baseline
+on:
+  push:
+    branches: [qualification/ktrade-r25c5-wire-baseline-20261018]
+    paths: [.github/workflows/ktrade-r25c5-wire-baseline.yml]
+permissions:
+  contents: read
+jobs:
+  historical-wire:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact preserved R25-C4 KTRADE source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: dba1ba0e07e29f79e184997120d1724870328d37
+          path: private-source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Independently capture original T408 T409 JSON wire fingerprints
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'R25C5_BAD_RUNNER'}
+          if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'R25C5_UNSAFE_AUTHORITY'}
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private-source'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c5-wire.private.log'
+          try {
+            if((& git -C $root rev-parse HEAD).Trim() -cne 'dba1ba0e07e29f79e184997120d1724870328d37' -or (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '356665612ac675e6334d822002b426ece3c5c1cd'){throw 'R25C5_BASELINE_SOURCE_DRIFT'}
+            if((& git -C $root rev-parse 'HEAD:pkg/p11b_t408_explicit_new_repro_only_release_readiness_governance_closeout_sunflush_pin.go').Trim() -cne '9f07ba401accce98e1d330e5063ba4742e5678e0'){throw 'R25C5_T408_BLOB_DRIFT'}
+            if((& git -C $root rev-parse 'HEAD:pkg/p11b_t409_explicit_new_repro_only_release_readiness_governance_closeout_brightwake_pin.go').Trim() -cne 'bf3aa09fdc599a24f0472f9a4b19222304a90521'){throw 'R25C5_T409_BLOB_DRIFT'}
+            $testFile=Join-Path $root 'pkg/r25c5_wire_baseline_ephemeral_test.go'
+            @'
+package pkg
+import ("crypto/sha256";"encoding/json";"testing")
+func TestR25C5WireBaseline(t *testing.T) {
+ cases:=[]struct{name string;build func() any}{
+ {"T408",func() any {v:=BuildPhase11P11BT408ExplicitNewReproOnlyReleaseReadinessGovernanceCloseoutSunflushPinV1();return v}},
+ {"T409",func() any {v:=BuildPhase11P11BT409ExplicitNewReproOnlyReleaseReadinessGovernanceCloseoutBrightwakePinV1();return v}},
+ }
+ for _,tc:=range cases{
+  t.Run(tc.name,func(t *testing.T){data,err:=json.Marshal(tc.build());if err!=nil{t.Fatal(err)};sum:=sha256.Sum256(data);t.Logf("R25C5_HISTORICAL_JSON_WIRE_%s_SHA256=%x",tc.name,sum)})
+ }
+}
+'@ | Set-Content -LiteralPath $testFile -Encoding utf8
+            Push-Location $root
+            try {
+              & go mod download *> $log
+              if($LASTEXITCODE -ne 0){throw 'R25C5_MODULE_DOWNLOAD_FAILED'}
+              & go test -mod=readonly -vet=off -count=1 -run '^TestR25C5WireBaseline$' -v ./pkg *> $log
+              if($LASTEXITCODE -ne 0){throw 'R25C5_BASELINE_TEST_FAILED'}
+            } finally {Pop-Location}
+            $output=[string](Get-Content -LiteralPath $log -Raw)
+            foreach($n in @('T408','T409')){
+              $match=[regex]::Match($output,('R25C5_HISTORICAL_JSON_WIRE_'+$n+'_SHA256=([0-9a-f]{64})'))
+              if(-not $match.Success){throw ('R25C5_MISSING_JSON_WIRE_DIGEST_'+$n)}
+              Write-Output ('R25C5_ORIGINAL_WIRE_'+$n+'_SHA256='+$match.Groups[1].Value)
+            }
+            Write-Output 'R25C5_PRE_REMEDIATION_HISTORICAL_WIRE_BASELINE=PASS'
+            Write-Output 'R25C5_FULL_REGRESSION=NOT_RUN'
+            Write-Output 'R25C5_FULL_VET=NOT_RUN'
+          } finally {
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath (Join-Path $root 'pkg/r25c5_wire_baseline_ephemeral_test.go') -Force -ErrorAction SilentlyContinue
+          }
+      - name: Remove private source and ephemeral tests
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'private-source') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C5_PRIVATE_USER_DATA_TOUCHED=FALSE'
