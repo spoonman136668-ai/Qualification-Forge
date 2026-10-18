@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     env:
-      EXPECTED_KTRADE: '86456611185fce71f8ed23fc248ff36864c1b08a'
-      EXPECTED_TREE: 'f4fe23844fe838af87e7acace809b2a37342629b'
+      EXPECTED_KTRADE: '0851c9a82c141557eccdc3f607b258a9b96418be'
+      EXPECTED_TREE: '25a5e14a24a67aad2fdc2ecce3ef524b64f4d63f'
       EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
       EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
@@ -58,7 +58,7 @@ jobs:
       EXPECTED_AUTH_SHADOW: 'ee856cf6c50d2f40449261e04f3532ab8d930b46'
       EXPECTED_AUTH_TEST: '90d8a3edaa568df3e853e2c50f3b1b16d6f2baea'
       EXPECTED_AUTH_DONOR_TEST: 'f78a3b176bdb57b91203a4763329e414f65ae7fe'
-      EXPECTED_AUTH_BROWSER_TEST: 'ca52bfbebd170b877f20d6219b319857556cb728'
+      EXPECTED_AUTH_BROWSER_TEST: '324f17c9da58561a3d7dd898f4aadbe0974af711'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -72,7 +72,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 86456611185fce71f8ed23fc248ff36864c1b08a
+          ref: 0851c9a82c141557eccdc3f607b258a9b96418be
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
