@@ -212,6 +212,7 @@ jobs:
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperapp/submit.go') -Destination (Join-Path $appScratch 'submit.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperapp/submit_shadow.go') -Destination (Join-Path $appScratch 'submit_shadow.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperauthority/authority.go') -Destination (Join-Path $authorityScratch 'authority.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperauthority/read_only.go') -Destination (Join-Path $authorityScratch 'read_only.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperauthority/commit_trial_shadow.go') -Destination (Join-Path $authorityScratch 'commit_trial_shadow.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/paper_sqlite_commit_test.go') -Destination (Join-Path $scratch 'paper_sqlite_commit_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/paper_sqlite_commit_windows_test.go') -Destination (Join-Path $scratch 'paper_sqlite_commit_windows_test.go') -Force
