@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      EXPECTED_KTRADE_SHA: '8967d0b4ebb845199dcd584bde194a125ae5ecbc'
-      EXPECTED_TREE: '8156335d81b00063c3d006bb009a19a9f34e10fb'
+      EXPECTED_KTRADE_SHA: '3bebb3d9523ac6b8248389fa6b5ee6c12b0b5db0'
+      EXPECTED_TREE: '6a2f6fd7b0c9da8b65db790128c5fe1b25e3348b'
       KTRADE_RECOVERY_ISOLATED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 8967d0b4ebb845199dcd584bde194a125ae5ecbc
+          ref: 3bebb3d9523ac6b8248389fa6b5ee6c12b0b5db0
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -53,7 +53,7 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'KTRADE_BROWSER_CDP_TEST_SYNTAX_ERROR'}
           }finally{Pop-Location}
           Write-Output 'KTRADE_REAL_BROWSER_TEST_SOURCE_PIN=PASS'
-          if((& git -C $root rev-parse HEAD:tests/ktrade_real_browser_chart_cdp.cjs).Trim() -cne '322bf5fc0a3ecbe924f057f0f55e11eb75166a82'){throw 'KTRADE_ORIGINAL_REAL_TRADE_BROWSER_TEST_DRIFT'}
+          if((& git -C $root rev-parse HEAD:tests/ktrade_real_browser_chart_cdp.cjs).Trim() -cne 'c3a5f896dee5aba1ac2b6af8ea94f93d12143ec7'){throw 'KTRADE_ORIGINAL_REAL_TRADE_BROWSER_TEST_DRIFT'}
           Write-Output 'KTRADE_REAL_BROWSER_CDP_JAVASCRIPT_SYNTAX=PASS'
       - name: Real isolated Chromium original Monaco Save favorite and reopen
         shell: pwsh
