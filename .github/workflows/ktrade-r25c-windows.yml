@@ -1,7 +1,7 @@
-name: KTRADE R25-C consolidated Windows acceptance
+name: KTRADE R25-C2 source-pinned consolidated Windows acceptance
 on:
   push:
-    branches: [qualification/ktrade-r25c-consolidated-20261018]
+    branches: [qualification/ktrade-r25c2-consolidated-20261018]
     paths: [.github/workflows/ktrade-r25c-windows.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 55
     env:
-      EXPECTED_KTRADE_SHA: 'e3f75c4458acfb966766ed973ab877458a892412'
-      EXPECTED_TREE: '5280f930ab321136e5fb0370a1b6242ca28108dd'
+      EXPECTED_KTRADE_SHA: '9e288a7a280416c9a8eaf660ece0aecab31efbd1'
+      EXPECTED_TREE: '1a3c0f506d4f305e798afa6f1c9319d2ad7ef9f5'
       KTRADE_RECOVERY_ISOLATED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: e3f75c4458acfb966766ed973ab877458a892412
+          ref: 9e288a7a280416c9a8eaf660ece0aecab31efbd1
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
