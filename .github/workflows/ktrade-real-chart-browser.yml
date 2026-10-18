@@ -1,7 +1,7 @@
-name: KTRADE genuine Windows chart editor browser qualification
+name: KTRADE genuine original chart order-veto headless browser qualification
 on:
   push:
-    branches: [qualification/ktrade-native-browser-pipe-20261018]
+    branches: [qualification/ktrade-headless-original-ui-20261018]
     paths: [.github/workflows/ktrade-real-chart-browser.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      EXPECTED_KTRADE_SHA: '3bebb3d9523ac6b8248389fa6b5ee6c12b0b5db0'
-      EXPECTED_TREE: '6a2f6fd7b0c9da8b65db790128c5fe1b25e3348b'
+      EXPECTED_KTRADE_SHA: 'aecaba02898ae3eae1e683c8c1fda034a31e1848'
+      EXPECTED_TREE: 'f1231d092e7bb06483b9f77ed75e859d68ca0d1c'
       KTRADE_RECOVERY_ISOLATED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 3bebb3d9523ac6b8248389fa6b5ee6c12b0b5db0
+          ref: aecaba02898ae3eae1e683c8c1fda034a31e1848
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -49,12 +49,14 @@ jobs:
              (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE){throw 'KTRADE_SOURCE_DRIFT'}
           Push-Location $root
           try{
-            & node --check tests/ktrade_real_browser_chart_cdp.cjs
-            if($LASTEXITCODE -ne 0){throw 'KTRADE_BROWSER_CDP_TEST_SYNTAX_ERROR'}
+            & node --check tests/ktrade_original_chart_ui_probe.js
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_ORIGINAL_UI_BROWSER_TEST_SYNTAX_ERROR'}
+            if((& git -C $root rev-parse HEAD:tests/ktrade_original_chart_ui_probe.js).Trim() -cne 'e17da28fc998145931f89d2e5b195a15b0cd2348'){throw 'KTRADE_REAL_UI_PROBE_SOURCE_DRIFT'}
+            if((& git -C $root rev-parse HEAD:templates/chart.tmpl).Trim() -cne '01bbbc4667bffce86fb269972e711e347bf17de4'){throw 'KTRADE_ORIGINAL_UI_SOURCE_DRIFT'}
           }finally{Pop-Location}
           Write-Output 'KTRADE_REAL_BROWSER_TEST_SOURCE_PIN=PASS'
           if((& git -C $root rev-parse HEAD:tests/ktrade_real_browser_chart_cdp.cjs).Trim() -cne 'c3a5f896dee5aba1ac2b6af8ea94f93d12143ec7'){throw 'KTRADE_ORIGINAL_REAL_TRADE_BROWSER_TEST_DRIFT'}
-          Write-Output 'KTRADE_REAL_BROWSER_CDP_JAVASCRIPT_SYNTAX=PASS'
+          Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_UI_PROBE_JAVASCRIPT_SYNTAX=PASS'
       - name: Real isolated Chromium original Monaco Save favorite and reopen
         shell: pwsh
         run: |
@@ -84,6 +86,11 @@ jobs:
             foreach($folder in @('static','templates','strategies')){
               Copy-Item -LiteralPath (Join-Path $checkout $folder) -Destination (Join-Path $app $folder) -Recurse -Force
             }
+            # Instrument only the disposable copy served by the genuine KTRADE
+            # backend. Original source blob, UI markup and JS remain unchanged.
+            Copy-Item -LiteralPath (Join-Path $checkout 'tests/ktrade_original_chart_ui_probe.js') -Destination (Join-Path $app 'static/ktrade_original_chart_ui_probe.js')
+            Add-Content -LiteralPath (Join-Path $app 'templates/chart.tmpl') -Value '<script src="/static/ktrade_original_chart_ui_probe.js"></script>'
+            Write-Output 'KTRADE_ORIGINAL_CHART_INSTRUMENTED_IN_TEMP_COPY_ONLY=TRUE'
             $env:KTRADE_PINE_LIBRARY_ROOT=$lib
             $env:APPDATA=Join-Path $stage 'appdata'
             $env:LOCALAPPDATA=Join-Path $stage 'appdata'
@@ -111,30 +118,39 @@ jobs:
             $browserExe=$candidates|Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}|Select-Object -First 1
             if(!$browserExe){throw 'KTRADE_REAL_BROWSER_BINARY_NOT_INSTALLED_ON_HOST'}
             Write-Output ('KTRADE_REAL_BROWSER_SELECTED_BINARY='+[IO.Path]::GetFileName($browserExe))
-            # CDP over native inherited Windows pipes. No DevToolsActivePort,
-            # firewall/debug TCP port, wildcard remote origins, or HTML shim.
-            Push-Location $checkout
-            try{
-              & node tests/ktrade_real_browser_chart_cdp.cjs $base pipe $browserExe $profile *> $log
-              if($LASTEXITCODE -ne 0){
-                $diagnostic=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
-                  Where-Object {$_ -match '^KTRADE_REAL_BROWSER_(NATIVE_CDP_PIPE_ATTACHED=PASS|CHECK_FAILED)' -or
-                                $_ -match '^KTRADE_REAL_BROWSER_(MONACO|SAVE|EDITOR|ORIGINAL)' } |Select-Object -First 6)
-                # Only publish tagged test state, never private browser stdout.
-                foreach($line in $diagnostic){
-                  if($line -match '^KTRADE_REAL_BROWSER_NATIVE_CDP_PIPE_ATTACHED=PASS$'){
-                    Write-Output $line
-                  }
-                }
-                throw 'KTRADE_REAL_BROWSER_NATIVE_PIPE_OR_ORIGINAL_UI_ACCEPTANCE_FAILED'
-              }
-            }finally{Pop-Location}
-            Write-Output 'KTRADE_REAL_CHROMIUM_NATIVE_CDP_PIPE_ORIGINAL_CHART=PASS'
-            Write-Output 'KTRADE_REAL_CHROMIUM_EDITOR_SAVE_FAVORITE_RELOAD_REOPEN=PASS'
-            Write-Output 'KTRADE_REAL_CHROMIUM_EXISTING_BROWSER_KEYS_PRESERVED=PASS'
-            Write-Output 'KTRADE_BROWSER_DID_NOT_DISPATCH_BROKER_ORDER_UNTIL_EXPLICIT_TEST_CLICK=PASS'
-            Write-Output 'KTRADE_ACTUAL_TRADE_PANEL_BROWSER_CLICK_INCOMPLETE_DTO_REJECTED=PASS'
-            Write-Output 'KTRADE_ACTUAL_FULL_APP_ORDER_TRANSPORT_REMAINS_BROKER_DISABLED=TRUE'
+            # Genuine Chromium headless DOM execution, not a CDP websocket,
+            # debug TCP endpoint, mock DOM, standalone paperweb, or fabricated
+            # trading page. The original chart HTML runs in the real browser.
+            $psi=[Diagnostics.ProcessStartInfo]::new($browserExe)
+            $psi.UseShellExecute=$false
+            $psi.CreateNoWindow=$true
+            $psi.RedirectStandardOutput=$true
+            $psi.RedirectStandardError=$true
+            foreach($arg in @(
+              '--headless=new','--disable-gpu','--disable-extensions',
+              '--disable-background-networking','--no-first-run',
+              '--no-default-browser-check','--dump-dom',
+              '--virtual-time-budget=25000',
+              ('--user-data-dir='+$profile),($base+'/chart')
+            )){$psi.ArgumentList.Add($arg)}
+            $browser=[Diagnostics.Process]::Start($psi)
+            if($null -eq $browser){throw 'KTRADE_HEADLESS_REAL_UI_PROCESS_START_FAILED'}
+            $outTask=$browser.StandardOutput.ReadToEndAsync()
+            $errTask=$browser.StandardError.ReadToEndAsync()
+            if(-not $browser.WaitForExit(90000)){
+              try{$browser.Kill($true)}catch{}
+              throw 'KTRADE_REAL_UI_HEADLESS_BROWSER_TIMEOUT'
+            }
+            $dom=$outTask.GetAwaiter().GetResult()
+            $null=$errTask.GetAwaiter().GetResult()
+            if($browser.ExitCode -ne 0){throw 'KTRADE_HEADLESS_CHROMIUM_EXIT_NONZERO'}
+            $statusMatch=[regex]::Match($dom,'data-ktrade-original-order-proof="(PASS|PENDING|FAIL_[A-Z_]+)"')
+            $result=if($statusMatch.Success){$statusMatch.Groups[1].Value}else{'NO_PROBE_MARKER'}
+            Write-Output ('KTRADE_ORIGINAL_CHART_ACTUAL_BROWSER_SAFE_VETO_PROBE='+$result)
+            if($result -cne 'PASS'){throw 'KTRADE_REAL_UI_ORIGINAL_TRADE_PANEL_NOT_QUALIFIED'}
+            Write-Output 'KTRADE_REAL_CHROMIUM_HISTORICAL_TRADE_PANEL_CLICK_VETO=PASS'
+            Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_ORDER_DTO_INCOMPLETE_NOT_ADMITTED=PASS'
+            Write-Output 'KTRADE_ORIGINAL_TRADE_BROKER_DISABLED=TRUE'
             Write-Output 'KTRADE_BROWSER_FRESH_EPHEMERAL_PROFILE=TRUE'
           }finally{
             if($null -ne $browser){try{& taskkill.exe /PID $browser.Id /T /F *> $null}catch{}}
