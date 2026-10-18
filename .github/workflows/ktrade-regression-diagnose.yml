@@ -1,9 +1,9 @@
-name: KTRADE read-only regression failure classification
+name: KTRADE R25-A source-contract focused Windows qualification
 
 on:
   push:
     branches:
-      - qualification/ktrade-p16-contract-reconcile-20261018
+      - qualification/ktrade-r25a-focused-20261018
     paths: [.github/workflows/ktrade-regression-diagnose.yml]
 
 permissions:
@@ -15,8 +15,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     env:
-      EXPECTED_KTRADE_SHA: '61dd5022d31f21a4d241635ddc00f64ecc309996'
-      EXPECTED_TREE: '955ee0e724c952ffbf79da9ed27f59cd57b91d53'
+      EXPECTED_KTRADE_SHA: 'ce25469b819d55f30f3e3d780a9294817460d38d'
+      EXPECTED_TREE: '59c5ffedd95836ccd8958236bf7bf19d0a915c30'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 61dd5022d31f21a4d241635ddc00f64ecc309996
+          ref: ce25469b819d55f30f3e3d780a9294817460d38d
           path: checked-private
           fetch-depth: 1
           persist-credentials: false
@@ -83,15 +83,22 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'KTRADE_GO_MODULE_DOWNLOAD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
             foreach($pin in @(
               @('cmd/ktrade/pine_codeactions_full.go','50827a5f4c60a9df32ea352ec69765ba42acbbf2'),
+              @('cmd/ktrade/main_full.go','5b21fba52ee8ab1c696c3b773819d8f32c31c653'),
               @('pkg/p16b_t05_codeactions_http_request_response_contract_test.go','4725a9bba8b48223cf947a7c0efb33dcd41ef93b'),
               @('pkg/p16b_closeout_codeactions_http_acceptance_gate_test.go','6ee7a2c39e2c036fd3d6baf86f5c6c3a829679ed')
             )){
               if((& git rev-parse "HEAD:$($pin[0])").Trim() -cne $pin[1]){throw 'KTRADE_P16_AUTHENTIC_SOURCE_OR_TEST_DRIFT'}
             }
-            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase16_P16B_Integration_T05_RequestResponseContractSurface|TestPhase16_P16B_Closeout_RequestResponseContractSurface)$' ./pkg *> $log
-            if($LASTEXITCODE -ne 0){throw 'KTRADE_P16_TWO_TARGETED_SOURCE_CONTRACT_TESTS_FAILED'}
+            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase16_P16B_|TestPhase17_P17(A|B)_).*' ./pkg *> $log
+            if($LASTEXITCODE -ne 0){
+              $all=[string](Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue)
+              $names=@([regex]::Matches($all,'(?m)^--- FAIL: (Test[A-Za-z0-9_]+)')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
+              Write-Output ('KTRADE_R25A_FOCUSED_FAILING_TEST_COUNT='+$names.Count)
+              Write-Output ('KTRADE_R25A_FOCUSED_FAILURE_TEST_NAMES='+([string]::Join(',',$names)))
+              throw 'KTRADE_R25A_FOCUSED_NEGATIVE_NOT_WAIVED'
+            }
             Write-Output 'KTRADE_P16_ORIGINAL_PINE_HANDLER_BYTE_IDENTICAL=TRUE'
-            Write-Output 'KTRADE_P16_TWO_TARGETED_CONTRACT_TESTS=PASS'
+            Write-Output 'KTRADE_R25A_P16_P17_FOCUSED_SOURCE_CONTRACTS=PASS'
             Write-Output 'KTRADE_INHERITED_FULL_REGRESSION_AND_VET_REMAIN_UNQUALIFIED=TRUE'
           }finally{
             Pop-Location
