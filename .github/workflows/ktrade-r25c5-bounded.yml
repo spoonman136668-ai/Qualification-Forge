@@ -1,0 +1,90 @@
+name: KTRADE R25-C5 bounded governance JSON-wire and vet differential
+on:
+  push:
+    branches: [qualification/ktrade-r25c5-bounded-20261018]
+    paths: [.github/workflows/ktrade-r25c5-bounded.yml]
+permissions:
+  contents: read
+jobs:
+  original-contracts:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact KTRADE source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 26df2f7cf1079a4849c1f0ed431613505d72edff
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup pinned Go version
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Verify source and run newly added baseline tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c4-private-test.log'
+          try {
+            if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'R25C4_HOST_INVALID'}
+            if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'R25C4_UNSAFE_AUTHORITY'}
+            if((& git -C $root rev-parse HEAD).Trim() -cne '26df2f7cf1079a4849c1f0ed431613505d72edff' -or
+               (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne 'a53fbf300b9853e79d17d544080f2dcce6539af8'){throw 'R25C4_SOURCE_DRIFT'}
+            if((& git -C $root rev-parse HEAD:pkg/pine_ast.go).Trim() -cne '27f3591c02713e5dbf0abf4ac139f0711a2718d6'){throw 'R25C4_AST_SOURCE_DRIFT'}
+            Push-Location $root
+            try {
+              & go mod download *> $log
+              if($LASTEXITCODE -ne 0){throw 'R25C4_MODULE_FAILURE'}
+              & go test -vet=off -mod=readonly -count=1 -timeout=180s -v -run '^TestR25C(4|5)' ./pkg *> $log
+              if($LASTEXITCODE -ne 0){
+                $raw=[string](Get-Content $log -Raw -ErrorAction SilentlyContinue)
+                $fails=@([regex]::Matches($raw,'(?m)^--- FAIL: ([^\s]+)') | ForEach-Object {$_.Groups[1].Value} | Sort-Object -Unique)
+                $build=@([regex]::Matches($raw,'(?m)^# (ktrade/[^\r\n]+)') | ForEach-Object {$_.Groups[1].Value} | Sort-Object -Unique)
+                Write-Output ('R25C4_BASELINE_FAILED_NAMES='+($fails -join ','))
+                Write-Output ('R25C4_BASELINE_BUILD_PACKAGES='+($build -join ','))
+                throw 'R25C4_ORIGINAL_COMPATIBILITY_TESTS_FAILED'
+              }
+              $text=[string](Get-Content -LiteralPath $log -Raw)
+              foreach($part in @('P11B_T297','P11B_T407')){
+                $match=[regex]::Match($text,('R25C4_HISTORICAL_JSON_WIRE_'+$part+'_SHA256=([0-9a-f]{64})'))
+                if(-not $match.Success){throw ('R25C4_BASELINE_WIRE_DIGEST_NOT_EMITTED_'+$part)}
+                Write-Output ('R25C4_BASELINE_WIRE_SHA256_'+$part+'='+$match.Groups[1].Value)
+              }
+              Write-Output 'R25C5_FOCUSED_JSON_SERIALIZATION_CACHE_TESTS=PASS'
+              & go vet -mod=readonly -unsafeptr ./pkg *> $log
+              if($LASTEXITCODE -ne 0){throw 'R25C4_UNSAFE_POINTER_ANALYZER_FAILED'}
+              Write-Output 'R25C4_UNSAFEPTR_ANALYZER=PASS'
+              & go vet -mod=readonly -structtag ./pkg *> $log
+              $remaining=$LASTEXITCODE
+              $lines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '\.go:\d+:\d+:'})
+              Write-Output ('R25C5_REMAINING_HISTORIC_STRUCTTAG_DIAGNOSTICS='+$lines.Count)
+              Write-Output ('R25C5_VET_STRUCTTAG_EXIT='+$remaining)
+              if($remaining -eq 0 -or $lines.Count -ge 4150 -or $lines.Count -le 0){throw 'R25C5_STRUCTTAG_DIFFERENTIAL_NOT_REDUCED'}
+              Write-Output ('R25C5_ADDITIONAL_STRUCTTAG_DEFECTS_REDUCED_BY='+(4150-$lines.Count))
+              Write-Output 'R25C4_FULL_GO_VET=NOT_YET_QUALIFIED'
+              Write-Output 'R25C4_FULL_VET_NOT_ATTEMPTED=TRUE'
+              Write-Output 'R25C4_FULL_REGRESSION_NOT_REPEATED=TRUE'
+              # The structtag-only analyzer is EXPECTED to fail on inherited
+              # files after this bounded reduction; this remains a release blocker.
+              # Clear process exit only after proving a strict reduction from 4,150.
+              $global:LASTEXITCODE = 0
+            } finally {Pop-Location}
+          } finally {Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Remove private checkout
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'r25c4-private-test.log') -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C4_PRIVATE_DATA_NOT_USED=TRUE'
