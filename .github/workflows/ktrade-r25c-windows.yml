@@ -1,0 +1,452 @@
+name: KTRADE R25-C consolidated Windows acceptance
+on:
+  push:
+    branches: [qualification/ktrade-r25c-consolidated-20261018]
+    paths: [.github/workflows/ktrade-real-chart-browser.yml]
+permissions:
+  contents: read
+jobs:
+  browser:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      EXPECTED_KTRADE_SHA: 'e3f75c4458acfb966766ed973ab877458a892412'
+      EXPECTED_TREE: '5280f930ab321136e5fb0370a1b6242ca28108dd'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout exact KTRADE source without persistent credential
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: e3f75c4458acfb966766ed973ab877458a892412
+          path: ktrade-private
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Setup Node with native WebSocket
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Prove historical source identity and browser test syntax
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'KTRADE_REAL_BROWSER_WRONG_RUNNER'}
+          if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'KTRADE_LIVE_AUTHORITY_NOT_DISABLED'}
+          if((& git -C $root rev-parse HEAD).Trim() -cne $env:EXPECTED_KTRADE_SHA -or
+             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE){throw 'KTRADE_SOURCE_DRIFT'}
+          Push-Location $root
+          try{
+            & node --check tests/ktrade_original_chart_ui_probe.js
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_ORIGINAL_UI_BROWSER_TEST_SYNTAX_ERROR'}
+            & node --check static/paper_proposal_preview.js
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_EXPLICIT_PAPER_PREVIEW_JAVASCRIPT_SYNTAX_FAILED'}
+            foreach($pin in @(
+              @('static/paper_proposal_preview.js','a0b34869275183d5f01c2d5fe65cb506fefb02fb'),
+              @('internal/paperapp/preview.go','2f05697e06d3cf7fcf7973dca16d7ce0af15f1ec'),
+              @('internal/paperapp/preview_test.go','c0f64c7958d0d4a87021954ba9a4609795af3775'),
+              @('internal/paperapp/server.go','4cc966c35343464c51e741eef00baa028e4514ca'),
+              @('cmd/ktrade/paper_authority_route_full.go','3da56d085beea58d75c7eabac6a1969842749206')
+            )){
+              if((& git -C $root rev-parse "HEAD:$($pin[0])").Trim() -cne $pin[1]){
+                throw 'KTRADE_FULL_PAPER_PREVIEW_SOURCE_PIN_DRIFT'
+              }
+            }
+            if((& git -C $root rev-parse HEAD:tests/ktrade_original_chart_ui_probe.js).Trim() -cne 'e17da28fc998145931f89d2e5b195a15b0cd2348'){throw 'KTRADE_REAL_UI_PROBE_SOURCE_DRIFT'}
+            if((& git -C $root rev-parse HEAD:templates/chart.tmpl).Trim() -cne '924b3315cb72ff326d4d74bf804ab55e71c0852f'){throw 'KTRADE_ORIGINAL_UI_SOURCE_DRIFT'}
+          }finally{Pop-Location}
+          Write-Output 'KTRADE_REAL_BROWSER_TEST_SOURCE_PIN=PASS'
+          if((& git -C $root rev-parse HEAD:tests/ktrade_real_browser_chart_cdp.cjs).Trim() -cne 'c3a5f896dee5aba1ac2b6af8ea94f93d12143ec7'){throw 'KTRADE_ORIGINAL_REAL_TRADE_BROWSER_TEST_DRIFT'}
+          Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_UI_PROBE_JAVASCRIPT_SYNTAX=PASS'
+      - name: One full source-pinned Windows Go regression — fail closed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c-full-regression-private.log'
+          Push-Location $root
+          try {
+            if((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_KTRADE_SHA -or
+               (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE) {
+              throw 'R25C_SOURCE_PIN_DRIFT'
+            }
+            & go mod download *> $log
+            if($LASTEXITCODE -ne 0){throw 'R25C_DEPENDENCY_PREPARATION_FAILED_LOG_WITHHELD'}
+            # Run exactly one whole-repo Go test regression. Vet is separately gated below.
+            & go test -vet=off -mod=readonly -count=1 -timeout=600s ./... *> $log
+            if($LASTEXITCODE -ne 0) {
+              $raw=[string](Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue)
+              $failures=@([regex]::Matches($raw, '(?m)^--- FAIL: (Test[A-Za-z0-9_]+)') |
+                ForEach-Object {$_.Groups[1].Value} | Sort-Object -Unique)
+              $families=@($failures | ForEach-Object {
+                if($_ -match '^TestPhase([0-9]+)') {'Phase'+$Matches[1]}
+                elseif($_ -match '^TestDIC([0-9]+)') {'DIC'+$Matches[1]}
+                elseif($_ -match '^TestKTRADE') {'KTRADE'}
+                elseif($_ -match '^TestR25') {'R25'}
+                else {'OTHER'}
+              } | Sort-Object -Unique)
+              $compilation=@([regex]::Matches($raw, '(?m)^# (ktrade/[A-Za-z0-9_./-]+)') |
+                ForEach-Object {$_.Groups[1].Value} | Sort-Object -Unique)
+              Write-Output ('R25C_FULL_REGRESSION_FAILING_TEST_COUNT='+$failures.Count)
+              Write-Output ('R25C_FULL_REGRESSION_FAILING_TESTS='+([string]::Join(',',$failures)))
+              Write-Output ('R25C_FULL_REGRESSION_FAILURE_FAMILIES='+([string]::Join(',',$families)))
+              Write-Output ('R25C_FULL_REGRESSION_COMPILATION_PACKAGES='+([string]::Join(',',$compilation)))
+              Write-Output 'R25C_FURTHER_ACCEPTANCE=BLOCKED_BY_FULL_REGRESSION'
+              throw 'R25C_FULL_REGRESSION_FAILED_NO_WAIVER'
+            }
+            Write-Output 'R25C_ONE_FULL_WINDOWS_GO_REGRESSION=PASS'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Source-pinned Go vet after full regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c-vet-private.log'
+          Push-Location $root
+          try {
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0) {
+              $raw=[string](Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue)
+              $issues=@([regex]::Matches($raw, '(?m)^[^#\r\n][^\r\n]*\.go:\d+:\d+:') )
+              Write-Output ('R25C_VET_DIAGNOSTIC_LINE_COUNT='+$issues.Count)
+              throw 'R25C_GO_VET_FAILED_NO_WAIVER'
+            }
+            & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'R25C_FULL_ENTRY_GO_VET_FAILED_NO_WAIVER'}
+            Write-Output 'R25C_WINDOWS_GO_VET=PASS'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Build available KTRADE Windows executables after vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $stage=Join-Path $env:RUNNER_TEMP 'r25c-clean-build'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c-build-private.log'
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          Push-Location $root
+          try {
+            $entries=@(
+              @('ktrade.exe','./cmd/ktrade','ktrade_full'),
+              @('ktrade-inventory.exe','./cmd/ktrade-inventory',''),
+              @('ktrade-paper.exe','./cmd/ktrade-paper',''),
+              @('ktrade-paper-web.exe','./cmd/ktrade-paper-web','')
+            )
+            foreach($entry in $entries) {
+              $args=@('build','-mod=readonly')
+              if($entry[2]){$args+=@('-tags',$entry[2])}
+              $args+=@('-o',(Join-Path $stage $entry[0]),$entry[1])
+              & go @args *> $log
+              if($LASTEXITCODE -ne 0){throw ('R25C_WINDOWS_BUILD_FAILED_'+$entry[0])}
+              if(-not(Test-Path -LiteralPath (Join-Path $stage $entry[0]))){throw ('R25C_WINDOWS_EXE_MISSING_'+$entry[0])}
+            }
+            Write-Output 'R25C_AVAILABLE_WINDOWS_EXECUTABLE_BUILDS=PASS'
+            Write-Output 'R25C_HISTORICAL_RECOVER_SCHEMA_UPGRADE_BINARIES=NOT_PRESENT_IN_THIS_REPO'
+            Write-Output 'R25C_SIGNED_NSIS_INSTALLER=NOT_QUALIFIED'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Synthetic historical profile, snapshot and rollback safety
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c-synthetic-private.log'
+          Push-Location $root
+          try {
+            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestKTRADEInstalledParityPortablePreferencesPineHistoryRollbackR1|TestReadOnlyInstalledInventoryKeepsUnknownDataVisible|TestReadOnlyInstalledInventoryNoAutoDiscoveryOrSymlinkAdmission)        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $checkout=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $stage=Join-Path $env:RUNNER_TEMP ('ktrade-browser-'+$env:GITHUB_RUN_ID)
+          $profile=Join-Path $stage 'browser-profile'
+          $app=Join-Path $stage 'app'
+          $lib=Join-Path $stage 'library'
+          $stdout=Join-Path $env:RUNNER_TEMP 'ktrade-original-browser.stdout.log'
+          $stderr=Join-Path $env:RUNNER_TEMP 'ktrade-original-browser.stderr.log'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-original-browser-results.private.log'
+          $backend=$null;$browser=$null
+          $prior=@{}
+          foreach($name in @('KTRADE_PINE_LIBRARY_ROOT','APPDATA','LOCALAPPDATA','HOME','USERPROFILE')){
+            $prior[$name]=[Environment]::GetEnvironmentVariable($name,'Process')
+          }
+          try{
+            New-Item -ItemType Directory -Path $app,$profile,(Join-Path $stage 'appdata'),(Join-Path $stage 'home') -Force|Out-Null
+            Push-Location $checkout
+            try{
+              & go mod download *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_REAL_BROWSER_GO_MODULES_UNAVAILABLE'}
+              & go test -mod=readonly -count=1 -timeout=150s ./internal/paperproposal ./internal/paperapp ./internal/durableupgrade *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
+                  Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]'} |Select-Object -First 16)
+                foreach($line in $safe){Write-Output "KTRADE_PAPER_PREVIEW_FOCUSED_SAFE_DIAGNOSTIC: $line"}
+                throw 'KTRADE_FULL_PROPOSAL_PREVIEW_FOCUSED_TEST_FAILED'
+              }
+              & go test -mod=readonly -tags=ktrade_full -count=1 -run '^TestFullApplication' ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_FULL_APP_ROUTE_PREVIEW_REGRESSION_FAILED'}
+              Write-Output 'KTRADE_EXPLICIT_COMPLETE_PAPER_PROPOSAL_FOCUSED_TESTS=PASS'
+              foreach($pair in @(
+                @('internal/durableupgrade/installed_inventory_readonly.go','d96cb0d82fc107751c9c7a47320cde0dd1627e0a'),
+                @('internal/durableupgrade/installed_inventory_readonly_test.go','c9829b059a0a0f845ccb8f72dde34c1270f14948'),
+                @('cmd/ktrade-inventory/main.go','2449b67a8daf30a6c090e4a4487d7cffa40a0558')
+              )){
+                if((& git -C $checkout rev-parse "HEAD:$($pair[0])").Trim() -cne $pair[1]){throw 'KTRADE_LOCAL_READONLY_INVENTORY_SOURCE_DRIFT'}
+              }
+              & go build -mod=readonly -o (Join-Path $app 'ktrade-inventory.exe') ./cmd/ktrade-inventory *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_READONLY_INSTALLED_INVENTORY_WINDOWS_BUILD_FAILED'}
+              Write-Output 'KTRADE_READONLY_INSTALLED_PROFILE_INVENTORY_WINDOWS_BUILD=PASS'
+              & go build -mod=readonly -tags=ktrade_full -o (Join-Path $app 'ktrade.exe') ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_REAL_BROWSER_ORIGINAL_BACKEND_BUILD_FAILED'}
+            }finally{Pop-Location}
+            foreach($folder in @('static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $checkout $folder) -Destination (Join-Path $app $folder) -Recurse -Force
+            }
+            # Instrument only the disposable copy served by the genuine KTRADE
+            # backend. Original source blob, UI markup and JS remain unchanged.
+            Copy-Item -LiteralPath (Join-Path $checkout 'tests/ktrade_original_chart_ui_probe.js') -Destination (Join-Path $app 'static/ktrade_original_chart_ui_probe.js')
+            Add-Content -LiteralPath (Join-Path $app 'templates/chart.tmpl') -Value '<script src="/static/ktrade_original_chart_ui_probe.js"></script>'
+            Write-Output 'KTRADE_ORIGINAL_CHART_INSTRUMENTED_IN_TEMP_COPY_ONLY=TRUE'
+            $env:KTRADE_PINE_LIBRARY_ROOT=$lib
+            $env:APPDATA=Join-Path $stage 'appdata'
+            $env:LOCALAPPDATA=Join-Path $stage 'appdata'
+            $env:HOME=Join-Path $stage 'home'
+            $env:USERPROFILE=$env:HOME
+            $backend=Start-Process -FilePath (Join-Path $app 'ktrade.exe') -WorkingDirectory $app -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            $address=''
+            for($i=0;$i -lt 100;$i++){
+              if($backend.HasExited){throw 'KTRADE_REAL_BROWSER_BACKEND_EXITED'}
+              $txt=[string](Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue)
+              if($txt -match 'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:\d+)'){$address=$Matches[1];break}
+              Start-Sleep -Milliseconds 400
+            }
+            if(!$address){throw 'KTRADE_REAL_BROWSER_BACKEND_NOT_READY'}
+            $base='http://'+$address
+            $page=Invoke-WebRequest -Uri ($base+'/chart') -TimeoutSec 10
+            if($page.StatusCode -ne 200 -or -not ($page.Content -match '/static/pine_library_compat.js')){throw 'KTRADE_REAL_BROWSER_CHART_PAGE_WRONG'}
+            Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_CHART_HTTP=PASS'
+            $candidates=@(
+              'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+              'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
+              'C:\Program Files\Google\Chrome\Application\chrome.exe',
+              'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
+            )
+            $browserExe=$candidates|Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}|Select-Object -First 1
+            if(!$browserExe){throw 'KTRADE_REAL_BROWSER_BINARY_NOT_INSTALLED_ON_HOST'}
+            Write-Output ('KTRADE_REAL_BROWSER_SELECTED_BINARY='+[IO.Path]::GetFileName($browserExe))
+            # Genuine Chromium headless DOM execution, not a CDP websocket,
+            # debug TCP endpoint, mock DOM, standalone paperweb, or fabricated
+            # trading page. The original chart HTML runs in the real browser.
+            $psi=[Diagnostics.ProcessStartInfo]::new($browserExe)
+            $psi.UseShellExecute=$false
+            $psi.CreateNoWindow=$true
+            $psi.RedirectStandardOutput=$true
+            $psi.RedirectStandardError=$true
+            foreach($arg in @(
+              '--headless=new','--disable-gpu','--disable-extensions',
+              '--disable-background-networking','--no-first-run',
+              '--no-default-browser-check','--dump-dom',
+              '--virtual-time-budget=25000',
+              ('--user-data-dir='+$profile),($base+'/chart')
+            )){$psi.ArgumentList.Add($arg)}
+            $browser=[Diagnostics.Process]::Start($psi)
+            if($null -eq $browser){throw 'KTRADE_HEADLESS_REAL_UI_PROCESS_START_FAILED'}
+            $outTask=$browser.StandardOutput.ReadToEndAsync()
+            $errTask=$browser.StandardError.ReadToEndAsync()
+            if(-not $browser.WaitForExit(90000)){
+              try{$browser.Kill($true)}catch{}
+              throw 'KTRADE_REAL_UI_HEADLESS_BROWSER_TIMEOUT'
+            }
+            $dom=$outTask.GetAwaiter().GetResult()
+            $null=$errTask.GetAwaiter().GetResult()
+            if($browser.ExitCode -ne 0){throw 'KTRADE_HEADLESS_CHROMIUM_EXIT_NONZERO'}
+            $statusMatch=[regex]::Match($dom,'data-ktrade-original-order-proof="(PASS|PENDING|FAIL_[A-Z_]+)"')
+            $result=if($statusMatch.Success){$statusMatch.Groups[1].Value}else{'NO_PROBE_MARKER'}
+            Write-Output ('KTRADE_ORIGINAL_CHART_ACTUAL_BROWSER_SAFE_VETO_PROBE='+$result)
+            if($result -cne 'PASS'){throw 'KTRADE_REAL_UI_ORIGINAL_TRADE_PANEL_NOT_QUALIFIED'}
+            Write-Output 'KTRADE_REAL_CHROMIUM_HISTORICAL_TRADE_PANEL_CLICK_VETO=PASS'
+            Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_ORDER_DTO_INCOMPLETE_NOT_ADMITTED=PASS'
+            Write-Output 'KTRADE_ORIGINAL_TRADE_BROKER_DISABLED=TRUE'
+            Write-Output 'KTRADE_UNVERIFIED_PRICE_AND_FEES_NEVER_ENABLE_PAPER_TRADING=TRUE'
+            Write-Output 'KTRADE_REAL_INSTALLED_USER_DIRECTORY_INVENTORIED=FALSE'
+            Write-Output 'KTRADE_SAFETY_REVIEW_REQUIRED_FOR_UNKNOWN_HISTORY=TRUE'
+            Write-Output 'KTRADE_BROWSER_FRESH_EPHEMERAL_PROFILE=TRUE'
+          }finally{
+            if($null -ne $browser){
+              try{if(-not $browser.HasExited){$browser.Kill($true)}}catch{}
+              $browser.Dispose()
+            }
+            if($null -ne $backend){try{Stop-Process -Id $backend.Id -Force -ErrorAction SilentlyContinue}catch{};$backend.Dispose()}
+            foreach($key in $prior.Keys){[Environment]::SetEnvironmentVariable($key,$prior[$key],'Process')}
+            Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $stdout,$stderr,$log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Remove private source without artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'ktrade-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_REAL_USER_BROWSER_PROFILE_UNTOUCHED=TRUE'
+          Write-Output 'KTRADE_PRODUCTION_PROMOTION=FALSE'
+ ./internal/durableupgrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'R25C_SYNTHETIC_PREFERENCES_PINE_FINANCIAL_ROLLBACK_FAILED'}
+            Write-Output 'R25C_SYNTHETIC_HISTORICAL_PROFILE_INVENTORY_ROLLBACK=PASS'
+            Write-Output 'R25C_UNKNOWN_FILES_NOT_SILENTLY_MIGRATED=TRUE'
+            Write-Output 'R25C_ACTUAL_HISTORICAL_USER_PROFILE=NOT_PRESENT'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Real isolated Chromium original Monaco Save favorite and reopen
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $checkout=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $stage=Join-Path $env:RUNNER_TEMP ('ktrade-browser-'+$env:GITHUB_RUN_ID)
+          $profile=Join-Path $stage 'browser-profile'
+          $app=Join-Path $stage 'app'
+          $lib=Join-Path $stage 'library'
+          $stdout=Join-Path $env:RUNNER_TEMP 'ktrade-original-browser.stdout.log'
+          $stderr=Join-Path $env:RUNNER_TEMP 'ktrade-original-browser.stderr.log'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-original-browser-results.private.log'
+          $backend=$null;$browser=$null
+          $prior=@{}
+          foreach($name in @('KTRADE_PINE_LIBRARY_ROOT','APPDATA','LOCALAPPDATA','HOME','USERPROFILE')){
+            $prior[$name]=[Environment]::GetEnvironmentVariable($name,'Process')
+          }
+          try{
+            New-Item -ItemType Directory -Path $app,$profile,(Join-Path $stage 'appdata'),(Join-Path $stage 'home') -Force|Out-Null
+            Push-Location $checkout
+            try{
+              & go mod download *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_REAL_BROWSER_GO_MODULES_UNAVAILABLE'}
+              & go test -mod=readonly -count=1 -timeout=150s ./internal/paperproposal ./internal/paperapp ./internal/durableupgrade *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
+                  Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]'} |Select-Object -First 16)
+                foreach($line in $safe){Write-Output "KTRADE_PAPER_PREVIEW_FOCUSED_SAFE_DIAGNOSTIC: $line"}
+                throw 'KTRADE_FULL_PROPOSAL_PREVIEW_FOCUSED_TEST_FAILED'
+              }
+              & go test -mod=readonly -tags=ktrade_full -count=1 -run '^TestFullApplication' ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_FULL_APP_ROUTE_PREVIEW_REGRESSION_FAILED'}
+              Write-Output 'KTRADE_EXPLICIT_COMPLETE_PAPER_PROPOSAL_FOCUSED_TESTS=PASS'
+              foreach($pair in @(
+                @('internal/durableupgrade/installed_inventory_readonly.go','d96cb0d82fc107751c9c7a47320cde0dd1627e0a'),
+                @('internal/durableupgrade/installed_inventory_readonly_test.go','c9829b059a0a0f845ccb8f72dde34c1270f14948'),
+                @('cmd/ktrade-inventory/main.go','2449b67a8daf30a6c090e4a4487d7cffa40a0558')
+              )){
+                if((& git -C $checkout rev-parse "HEAD:$($pair[0])").Trim() -cne $pair[1]){throw 'KTRADE_LOCAL_READONLY_INVENTORY_SOURCE_DRIFT'}
+              }
+              & go build -mod=readonly -o (Join-Path $app 'ktrade-inventory.exe') ./cmd/ktrade-inventory *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_READONLY_INSTALLED_INVENTORY_WINDOWS_BUILD_FAILED'}
+              Write-Output 'KTRADE_READONLY_INSTALLED_PROFILE_INVENTORY_WINDOWS_BUILD=PASS'
+              & go build -mod=readonly -tags=ktrade_full -o (Join-Path $app 'ktrade.exe') ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_REAL_BROWSER_ORIGINAL_BACKEND_BUILD_FAILED'}
+            }finally{Pop-Location}
+            foreach($folder in @('static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $checkout $folder) -Destination (Join-Path $app $folder) -Recurse -Force
+            }
+            # Instrument only the disposable copy served by the genuine KTRADE
+            # backend. Original source blob, UI markup and JS remain unchanged.
+            Copy-Item -LiteralPath (Join-Path $checkout 'tests/ktrade_original_chart_ui_probe.js') -Destination (Join-Path $app 'static/ktrade_original_chart_ui_probe.js')
+            Add-Content -LiteralPath (Join-Path $app 'templates/chart.tmpl') -Value '<script src="/static/ktrade_original_chart_ui_probe.js"></script>'
+            Write-Output 'KTRADE_ORIGINAL_CHART_INSTRUMENTED_IN_TEMP_COPY_ONLY=TRUE'
+            $env:KTRADE_PINE_LIBRARY_ROOT=$lib
+            $env:APPDATA=Join-Path $stage 'appdata'
+            $env:LOCALAPPDATA=Join-Path $stage 'appdata'
+            $env:HOME=Join-Path $stage 'home'
+            $env:USERPROFILE=$env:HOME
+            $backend=Start-Process -FilePath (Join-Path $app 'ktrade.exe') -WorkingDirectory $app -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            $address=''
+            for($i=0;$i -lt 100;$i++){
+              if($backend.HasExited){throw 'KTRADE_REAL_BROWSER_BACKEND_EXITED'}
+              $txt=[string](Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue)
+              if($txt -match 'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:\d+)'){$address=$Matches[1];break}
+              Start-Sleep -Milliseconds 400
+            }
+            if(!$address){throw 'KTRADE_REAL_BROWSER_BACKEND_NOT_READY'}
+            $base='http://'+$address
+            $page=Invoke-WebRequest -Uri ($base+'/chart') -TimeoutSec 10
+            if($page.StatusCode -ne 200 -or -not ($page.Content -match '/static/pine_library_compat.js')){throw 'KTRADE_REAL_BROWSER_CHART_PAGE_WRONG'}
+            Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_CHART_HTTP=PASS'
+            $candidates=@(
+              'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+              'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
+              'C:\Program Files\Google\Chrome\Application\chrome.exe',
+              'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
+            )
+            $browserExe=$candidates|Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}|Select-Object -First 1
+            if(!$browserExe){throw 'KTRADE_REAL_BROWSER_BINARY_NOT_INSTALLED_ON_HOST'}
+            Write-Output ('KTRADE_REAL_BROWSER_SELECTED_BINARY='+[IO.Path]::GetFileName($browserExe))
+            # Genuine Chromium headless DOM execution, not a CDP websocket,
+            # debug TCP endpoint, mock DOM, standalone paperweb, or fabricated
+            # trading page. The original chart HTML runs in the real browser.
+            $psi=[Diagnostics.ProcessStartInfo]::new($browserExe)
+            $psi.UseShellExecute=$false
+            $psi.CreateNoWindow=$true
+            $psi.RedirectStandardOutput=$true
+            $psi.RedirectStandardError=$true
+            foreach($arg in @(
+              '--headless=new','--disable-gpu','--disable-extensions',
+              '--disable-background-networking','--no-first-run',
+              '--no-default-browser-check','--dump-dom',
+              '--virtual-time-budget=25000',
+              ('--user-data-dir='+$profile),($base+'/chart')
+            )){$psi.ArgumentList.Add($arg)}
+            $browser=[Diagnostics.Process]::Start($psi)
+            if($null -eq $browser){throw 'KTRADE_HEADLESS_REAL_UI_PROCESS_START_FAILED'}
+            $outTask=$browser.StandardOutput.ReadToEndAsync()
+            $errTask=$browser.StandardError.ReadToEndAsync()
+            if(-not $browser.WaitForExit(90000)){
+              try{$browser.Kill($true)}catch{}
+              throw 'KTRADE_REAL_UI_HEADLESS_BROWSER_TIMEOUT'
+            }
+            $dom=$outTask.GetAwaiter().GetResult()
+            $null=$errTask.GetAwaiter().GetResult()
+            if($browser.ExitCode -ne 0){throw 'KTRADE_HEADLESS_CHROMIUM_EXIT_NONZERO'}
+            $statusMatch=[regex]::Match($dom,'data-ktrade-original-order-proof="(PASS|PENDING|FAIL_[A-Z_]+)"')
+            $result=if($statusMatch.Success){$statusMatch.Groups[1].Value}else{'NO_PROBE_MARKER'}
+            Write-Output ('KTRADE_ORIGINAL_CHART_ACTUAL_BROWSER_SAFE_VETO_PROBE='+$result)
+            if($result -cne 'PASS'){throw 'KTRADE_REAL_UI_ORIGINAL_TRADE_PANEL_NOT_QUALIFIED'}
+            Write-Output 'KTRADE_REAL_CHROMIUM_HISTORICAL_TRADE_PANEL_CLICK_VETO=PASS'
+            Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_ORDER_DTO_INCOMPLETE_NOT_ADMITTED=PASS'
+            Write-Output 'KTRADE_ORIGINAL_TRADE_BROKER_DISABLED=TRUE'
+            Write-Output 'KTRADE_UNVERIFIED_PRICE_AND_FEES_NEVER_ENABLE_PAPER_TRADING=TRUE'
+            Write-Output 'KTRADE_REAL_INSTALLED_USER_DIRECTORY_INVENTORIED=FALSE'
+            Write-Output 'KTRADE_SAFETY_REVIEW_REQUIRED_FOR_UNKNOWN_HISTORY=TRUE'
+            Write-Output 'KTRADE_BROWSER_FRESH_EPHEMERAL_PROFILE=TRUE'
+          }finally{
+            if($null -ne $browser){
+              try{if(-not $browser.HasExited){$browser.Kill($true)}}catch{}
+              $browser.Dispose()
+            }
+            if($null -ne $backend){try{Stop-Process -Id $backend.Id -Force -ErrorAction SilentlyContinue}catch{};$backend.Dispose()}
+            foreach($key in $prior.Keys){[Environment]::SetEnvironmentVariable($key,$prior[$key],'Process')}
+            Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $stdout,$stderr,$log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Remove private source without artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'ktrade-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_REAL_USER_BROWSER_PROFILE_UNTOUCHED=TRUE'
+          Write-Output 'KTRADE_PRODUCTION_PROMOTION=FALSE'
