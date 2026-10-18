@@ -1,0 +1,164 @@
+name: KTRADE R25-C15 authentic donor risk and SQLite interface qualification
+on:
+  push:
+    branches: [qualification/ktrade-r25c15-authentic-donor-20261018]
+    paths: [.github/workflows/ktrade-r25c15-authentic-donor.yml]
+permissions:
+  contents: read
+jobs:
+  authentic-donor:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 50
+    env:
+      KTRADE_SOURCE_SHA: '3d934a0f2c3bae555395ca2e09a72632af172aa7'
+      KTRADE_SOURCE_TREE: 'fd2e4230255e47e3dbd409480c3ea0937fe5427e'
+      KTRADE_DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact private KTRADE candidate
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 3d934a0f2c3bae555395ca2e09a72632af172aa7
+          path: ktrade-private
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout immutable original TradeGuard donor
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc
+          path: donor-private
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Install original qualification Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Freeze both source identities and all transplanted interface blobs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $source=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $donor=Join-Path $env:GITHUB_WORKSPACE 'donor-private'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {throw 'R25C15_WRONG_RUNNER'}
+          if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {throw 'R25C15_UNSAFE_AUTHORITY'}
+          if((& git -C $source rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE_SHA -or (& git -C $source rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_SOURCE_TREE) {throw 'R25C15_SOURCE_SHA_TREE_DRIFT'}
+          if((& git -C $donor rev-parse HEAD).Trim() -cne $env:KTRADE_DONOR_SHA) {throw 'R25C15_DONOR_SHA_DRIFT'}
+          if((& git -C $donor rev-parse HEAD:pkg/risk.go).Trim() -cne '8469df654777548266448d1bf02192e780c8ebad') {throw 'R25C15_TRADEGUARD_DONOR_BLOB_DRIFT'}
+          foreach($root in @($donor,$source)) {
+            if((& git -C $root rev-parse HEAD:internal/papertrading/ledger.go).Trim() -cne 'd44341253e7d4b51d31b03cea26a77cbbb534f7b') {throw 'R25C15_SHARED_LEDGER_IDENTITY_DRIFT'}
+          }
+          if(Test-Path -LiteralPath (Join-Path $source 'pkg/risk.go')) {throw 'R25C15_NO_TRADEGUARD_PRODUCT_ISOLATION_VIOLATED'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperproposal/proposal.go').Trim() -cne 'b0c41b3bb69a51ef1528b52aa33245a11c4d0d3e') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperreconcile/reconcile.go').Trim() -cne 'fccbbc574dd4a308e9ea2a30dc8b9237af4abced') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperreconcile/risk_replay.go').Trim() -cne '5c0b07ace7dc7789d4aa8d20f0661dd9eee92dac') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperreconcile/settlement_review.go').Trim() -cne '09de943e8a95834790bc8f7803bdf261a9dce844') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperreconcile/original_risk_custody.go').Trim() -cne 'c9d47d8024f63d3502dbb58b9ecfc4ebdb9c6036') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperreconcile/commit_protocol_shadow.go').Trim() -cne 'b3cd213be821779aac321044cd706874b2e5397c') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperreconcile/windows_fs_capability_shadow_windows.go').Trim() -cne '503f4af107eadcd1fce3abbbd7d7ac011c216b77') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperauthority/authority.go').Trim() -cne '739180ce95e6e6b761f65a341803a5c3cf7c2640') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperauthority/commit_trial_shadow.go').Trim() -cne 'cf80fb96b9911390e7278344bef9d96013c35c57') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:internal/paperauthority/read_only.go').Trim() -cne '3e9ed3f05024f77d75f6493b9ffbc812db2eef93') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:tests/donor-shadow/shadow_test.go').Trim() -cne '71948d415b4c6216496ac4f6d9c4326e31c5b3bf') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:tests/donor-shadow/reconcile_test.go').Trim() -cne '4e02b1a44a69a94bcb45f266e4952461e8b7df11') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:tests/donor-shadow/risk_replay_test.go').Trim() -cne 'b865d7963c59fa55bc8e7a23032f392f3d788a44') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:tests/donor-shadow/original_risk_custody_test.go').Trim() -cne '04314e5aa7ea2c575ade83ddc3f9e0c46e6843e4') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if ((& git -C $source rev-parse 'HEAD:tests/donor-shadow/paper_sqlite_commit_test.go').Trim() -cne '6bd49a17e600fa5ee6dff90851ba7b02beffd275') {throw 'R25C15_COPIED_BLOB_IDENTITY_DRIFT'}
+          if(@(& git -C $source status --porcelain).Count -ne 0 -or @(& git -C $donor status --porcelain).Count -ne 0) {throw 'R25C15_DIRTY_CHECKOUT'}
+          Write-Output 'R25C15_AUTHENTIC_DONOR_AND_CHANGED_INTERFACE_SOURCE_IDENTITY=PASS'
+      - name: Focused actual donor TradeGuard atomic rollback and veto qualification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $source=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $donor=Join-Path $env:GITHUB_WORKSPACE 'donor-private'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-r25c15-private-focused.log'
+          foreach($sub in @('internal/shadowqual','internal/paperproposal','internal/paperreconcile','internal/paperauthority')) {
+            New-Item -ItemType Directory -Path (Join-Path $donor $sub) -Force | Out-Null
+          }
+          try {
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperproposal/proposal.go') -Destination (Join-Path $donor 'internal/paperproposal/proposal.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperreconcile/reconcile.go') -Destination (Join-Path $donor 'internal/paperreconcile/reconcile.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperreconcile/risk_replay.go') -Destination (Join-Path $donor 'internal/paperreconcile/risk_replay.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperreconcile/settlement_review.go') -Destination (Join-Path $donor 'internal/paperreconcile/settlement_review.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperreconcile/original_risk_custody.go') -Destination (Join-Path $donor 'internal/paperreconcile/original_risk_custody.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperreconcile/commit_protocol_shadow.go') -Destination (Join-Path $donor 'internal/paperreconcile/commit_protocol_shadow.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperreconcile/windows_fs_capability_shadow_windows.go') -Destination (Join-Path $donor 'internal/paperreconcile/windows_fs_capability_shadow_windows.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperauthority/authority.go') -Destination (Join-Path $donor 'internal/paperauthority/authority.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperauthority/commit_trial_shadow.go') -Destination (Join-Path $donor 'internal/paperauthority/commit_trial_shadow.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'internal/paperauthority/read_only.go') -Destination (Join-Path $donor 'internal/paperauthority/read_only.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'tests/donor-shadow/shadow_test.go') -Destination (Join-Path $donor 'internal/shadowqual/shadow_test.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'tests/donor-shadow/reconcile_test.go') -Destination (Join-Path $donor 'internal/shadowqual/reconcile_test.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'tests/donor-shadow/risk_replay_test.go') -Destination (Join-Path $donor 'internal/shadowqual/risk_replay_test.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'tests/donor-shadow/original_risk_custody_test.go') -Destination (Join-Path $donor 'internal/shadowqual/original_risk_custody_test.go') -Force
+          Copy-Item -LiteralPath (Join-Path $source 'tests/donor-shadow/paper_sqlite_commit_test.go') -Destination (Join-Path $donor 'internal/shadowqual/paper_sqlite_commit_test.go') -Force
+            Push-Location $donor
+            try {
+              $oldGoFlags=$env:GOFLAGS
+              try {
+                $env:GOFLAGS=''
+                & go get github.com/mattn/go-sqlite3@v1.14.18 *> $log
+              } finally {$env:GOFLAGS=$oldGoFlags}
+              if($LASTEXITCODE -ne 0) {throw 'R25C15_ISOLATED_DONOR_SQLITE_MODULE_FAILED'}
+              & go mod download *> $log
+              if($LASTEXITCODE -ne 0) {throw 'R25C15_DONOR_DEPENDENCIES_FAILED'}
+              & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=15m -run '^(TestAuthenticTradeGuardAtomicCommitAndRollbackUnchangedOriginal|TestAuthenticTradeGuardRiskVetoAndHistoricalMigrationFailClosed)$' ./internal/shadowqual *> $log
+              if($LASTEXITCODE -ne 0) {
+                foreach($line in @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ' -or $_ -match '\.go:\d+:\d+:' -or $_ -match '^FAIL' -or $_ -match '^--- FAIL:'} | Select-Object -First 18)) {
+                  Write-Output ('R25C15_SANITIZED_COMPILER_OR_TEST_DIAGNOSTIC='+$line)
+                }
+                throw 'R25C15_AUTHENTIC_DONOR_FOCUSED_TEST_FAILED'
+              }
+              Write-Output 'R25C15_AUTHENTIC_TRADEGUARD_ATOMIC_ROLLBACK=PASS'
+              Write-Output 'R25C15_AUTHENTIC_TRADEGUARD_RISK_VETO_AND_MIGRATION=PASS'
+              Write-Output 'R25C15_LIVE_BROKER_AND_PRODUCTION_AUTHORITY=NONE'
+            } finally {Pop-Location}
+            if((& git -C $source rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_SOURCE_TREE -or @(& git -C $source status --porcelain).Count -ne 0) {throw 'R25C15_KTRADE_SOURCE_MUTATED'}
+            if((& git -C $donor rev-parse HEAD:pkg/risk.go).Trim() -cne '8469df654777548266448d1bf02192e780c8ebad') {throw 'R25C15_AUTHENTIC_DONOR_RISK_DRIFT'}
+            $record=[ordered]@{
+              schema='ktrade.r25c15.authentic-donor.focused.v1'
+              status='FOCUSED_PASS_REVIEW_ONLY_NOT_RELEASE'
+              source_sha=$env:KTRADE_SOURCE_SHA
+              source_tree=$env:KTRADE_SOURCE_TREE
+              donor_sha=$env:KTRADE_DONOR_SHA
+              donor_risk_blob='8469df654777548266448d1bf02192e780c8ebad'
+              toolchain='windows-2022-go1.23'
+              test_names=@('TestAuthenticTradeGuardAtomicCommitAndRollbackUnchangedOriginal','TestAuthenticTradeGuardRiskVetoAndHistoricalMigrationFailClosed')
+              run_id=$env:GITHUB_RUN_ID
+              workflow_sha=$env:GITHUB_SHA
+              live_trading=$false
+              promotion=$false
+              installed_user_data_touched=$false
+            }
+            $ev=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+            New-Item -ItemType Directory -Force -Path $ev|Out-Null
+            $file=Join-Path $ev 'r25c15-focused-receipt.json'
+            $record|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $file -Encoding utf8
+            Write-Output ('R25C15_RECEIPT_SHA256='+(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant())
+          } finally {
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Upload sanitized focused evidence only
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c15-focused-donor-evidence
+          path: evidence/r25c15-focused-receipt.json
+          retention-days: 30
+      - name: Delete temporary private checkouts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'ktrade-private') -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'donor-private') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Output 'R25C15_PRIVATE_SOURCE_CLEANUP=PASS'
