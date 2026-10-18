@@ -1,0 +1,69 @@
+name: KTRADE R25-C10 source AST diagnostic classification
+on:
+  push:
+    branches: [qualification/ktrade-r25c10-classify-20261018]
+    paths: [.github/workflows/ktrade-r25c10-classify.yml, tools/ktrade_r25c10_classify.go]
+permissions:
+  contents: read
+jobs:
+  classify:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout qualification program
+        uses: actions/checkout@v4
+        with:
+          path: qualifier
+          persist-credentials: false
+      - name: Checkout exact private KTRADE source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 3f2cb04b28b91b203164b67da0db4de98243578a
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup Go 1.23
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Exact source vet and structural AST grouping
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $src = Join-Path $env:GITHUB_WORKSPACE 'source'
+          $tool = Join-Path $env:GITHUB_WORKSPACE 'qualifier/tools/ktrade_r25c10_classify.go'
+          $log = Join-Path $env:RUNNER_TEMP 'r25c10-vet.log'
+          try {
+            if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') { throw 'HOST_DRIFT' }
+            if ($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') { throw 'UNSAFE_AUTHORITY' }
+            if ((& git -C $src rev-parse HEAD).Trim() -cne '3f2cb04b28b91b203164b67da0db4de98243578a') { throw 'SOURCE_SHA_DRIFT' }
+            if ((& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '010dd23f979bdb1a7b124b173c98c74366531469') { throw 'SOURCE_TREE_DRIFT' }
+            Push-Location $src
+            try {
+              & go mod download *> $log
+              if ($LASTEXITCODE -ne 0) { throw 'MODULE_DOWNLOAD_FAILED' }
+              & go vet -mod=readonly -structtag ./pkg *> $log
+              if ($LASTEXITCODE -eq 0) { throw 'UNEXPECTED_VET_SUCCESS_OR_DRIFT' }
+              & go run $tool -source $src -log $log -expected 2746
+              if ($LASTEXITCODE -ne 0) { throw 'AST_CLASSIFICATION_FAILED' }
+              if (@(& git status --porcelain).Count -ne 0) { throw 'SOURCE_WAS_MODIFIED' }
+              Write-Output 'R25C10_READONLY_SOURCE=PASS'
+              Write-Output 'R25C10_FINAL_REGRESSION_NOT_RUN=TRUE'
+              $global:LASTEXITCODE=0
+            } finally { Pop-Location }
+          } finally { Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue }
+      - name: Remove private checkout
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C10_PRIVATE_CHECKOUT_REMOVED=TRUE'
