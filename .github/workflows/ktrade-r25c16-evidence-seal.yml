@@ -1,0 +1,262 @@
+name: KTRADE R25-C16 independent compositional evidence seal
+on:
+  push:
+    branches: [qualification/ktrade-r25c16-evidence-seal-20261018]
+    paths: [.github/workflows/ktrade-r25c16-evidence-seal.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source-pinned-seal:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      KTRADE_SOURCE_SHA: '3d934a0f2c3bae555395ca2e09a72632af172aa7'
+      KTRADE_SOURCE_TREE: 'fd2e4230255e47e3dbd409480c3ea0937fe5427e'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+    steps:
+      - name: Checkout exact KTRADE source read-only
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 3d934a0f2c3bae555395ca2e09a72632af172aa7
+          fetch-depth: 3
+          path: source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Authenticate immutable parent run metadata and recorded executable hashes
+        shell: pwsh
+        env:
+          QUAL_TOKEN: ${{ github.token }}
+          SOURCE_READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {throw 'R25C16_NOT_GITHUB_HOSTED_WINDOWS'}
+          if ($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1') {throw 'R25C16_UNSAFE_AUTHORITY'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if ((& git -C $src rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE_SHA -or
+              (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_SOURCE_TREE -or
+              @(& git -C $src status --porcelain).Count -ne 0) {throw 'R25C16_SOURCE_IDENTITY_DRIFT'}
+          if ((& git -C $src rev-parse HEAD^).Trim() -cne '2af730f8a7bed15370d86d2ce0ced060c56beed2' -or
+              (& git -C $src rev-parse HEAD^^).Trim() -cne 'd892d5902f6c19105c4395bf6b71bfb112b22a62') {throw 'R25C16_PARENT_CHAIN_DRIFT'}
+          $qualHeaders=@{Accept='application/vnd.github+json';Authorization=('Bearer '+$env:QUAL_TOKEN)}
+          $sourceHeaders=@{Accept='application/vnd.github+json';Authorization=('Bearer '+$env:SOURCE_READ_TOKEN)}
+          $qual='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge'
+          try {
+            $pr=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/ktrade/pulls/37' -Headers $sourceHeaders -TimeoutSec 30
+          } catch {throw 'R25C16_PR_IDENTITY_QUERY_UNAVAILABLE'}
+          if ($pr.state -cne 'open' -or !$pr.draft -or $null -ne $pr.merged_at -or
+              $pr.head.sha -cne $env:KTRADE_SOURCE_SHA -or
+              $pr.base.sha -cne 'd892d5902f6c19105c4395bf6b71bfb112b22a62' -or
+              $pr.head.repo.full_name -cne 'spoonman136668-ai/ktrade') {throw 'R25C16_PR_HEAD_OR_AUTHORITY_DRIFT'}
+          $expected=@(
+            @{
+              id=39163890705
+              sha='39eda39184f3d5e2d1098af1b8b3b01b76cef8de'
+              workflow='.github/workflows/ktrade-r25c13-consolidated.yml'
+              blob='fd227c7a75b2706ee86530c087e75b6a990b0f8b'
+              branch='qualification/ktrade-r25c13-witness-recheck-20261018'
+              job='consolidated-windows'
+              overall='failure'
+              success=@(
+                'Freeze source and protected authority boundary',
+                'Download locked dependencies without source mutation',
+                'Reconstruct pinned parent-wire evidence before full regression',
+                'One complete Windows Go regression',
+                'Complete Windows Go vet after regression',
+                'Qualify authentic full-tagged KTRADE command interface'
+              )
+              failure='Build four original Windows commands without fallback or launch'
+            },
+            @{
+              id=39166104366
+              sha='7870da9b6317adf316196f4cc53d0a5d9e02295c'
+              workflow='.github/workflows/ktrade-r25c14-compositional.yml'
+              blob='52e54136716c28442bb973199afaa177f5dae7fd'
+              branch='qualification/ktrade-r25c14-compositional-20261018'
+              job='consolidated-windows'
+              overall='failure'
+              success=@(
+                'Freeze source and protected authority boundary',
+                'Download locked dependencies without source mutation',
+                'Authenticate exact-source full regression and vet from R25-C13',
+                'Build four original Windows commands without fallback or launch',
+                'Genuine isolated Chromium original chart and order-denial acceptance'
+              )
+              failure='Synthetic historical portable migration, clean install and rollback'
+            },
+            @{
+              id=39166747314
+              sha='4dd90d725f4cddcf857c3c9cb32c2c1d137603e8'
+              workflow='.github/workflows/ktrade-r25c15-authentic-donor.yml'
+              blob='81507203c7ebe384a8c3c305f2c4aa86e3a0e083'
+              branch='qualification/ktrade-r25c15-authentic-donor-20261018'
+              job='authentic-donor'
+              overall='success'
+              success=@(
+                'Freeze both source identities and all transplanted interface blobs',
+                'Focused actual donor TradeGuard atomic rollback and veto qualification',
+                'Upload sanitized focused evidence only'
+              )
+              failure=''
+            }
+          )
+          $provenance=@()
+          foreach($e in $expected){
+            try {
+              $r=Invoke-RestMethod -Uri ($qual+'/actions/runs/'+$e.id) -Headers $qualHeaders -TimeoutSec 30
+              $js=Invoke-RestMethod -Uri ($qual+'/actions/runs/'+$e.id+'/jobs?per_page=100') -Headers $qualHeaders -TimeoutSec 30
+              $wf=Invoke-RestMethod -Uri ($qual+'/contents/'+$e.workflow+'?ref='+$e.sha) -Headers $qualHeaders -TimeoutSec 30
+            } catch {throw ('R25C16_RUN_OR_WORKFLOW_PROVENANCE_FETCH_FAILED_'+$e.id)}
+            if ($r.id -ne $e.id -or $r.head_sha -cne $e.sha -or $r.path -cne $e.workflow -or
+                $r.head_branch -cne $e.branch -or $r.event -cne 'push' -or $r.run_attempt -ne 1 -or
+                $r.status -cne 'completed' -or $r.conclusion -cne $e.overall -or
+                $wf.sha -cne $e.blob -or $js.total_count -ne 1) {throw ('R25C16_UPSTREAM_IDENTITY_MISMATCH_'+$e.id)}
+            $job=@($js.jobs)[0]
+            if ($job.name -cne $e.job -or $job.conclusion -cne $e.overall -or
+                $job.status -cne 'completed') {throw ('R25C16_UPSTREAM_JOB_MISMATCH_'+$e.id)}
+            foreach ($name in $e.success){
+              $steps=@($job.steps | Where-Object {$_.name -ceq $name})
+              if ($steps.Count -ne 1 -or $steps[0].conclusion -cne 'success') {throw ('R25C16_REQUIRED_STEP_NOT_PROVEN_'+$e.id)}
+            }
+            if ($e.failure -ne ''){
+              $failed=@($job.steps | Where-Object {$_.name -ceq $e.failure})
+              if ($failed.Count -ne 1 -or $failed[0].conclusion -cne 'failure') {throw ('R25C16_UPSTREAM_FAILURE_NOT_PRESERVED_'+$e.id)}
+            } elseif (@($job.steps | Where-Object {$_.conclusion -eq 'failure'}).Count -ne 0) {throw 'R25C16_DONOR_UNEXPECTED_FAILURE'}
+            $provenance+=@{
+              run_id=$e.id
+              job_id=$job.id
+              workflow_commit=$e.sha
+              workflow_blob=$e.blob
+              workflow_path=$e.workflow
+              run_overall=$e.overall
+              verified_passed_steps=@($e.success)
+              verified_failed_step=$e.failure
+              source_sha=$env:KTRADE_SOURCE_SHA
+            }
+          }
+          $buildJob=($provenance | Where-Object {$_.run_id -eq 39166104366}).job_id
+          $logPath=Join-Path $env:RUNNER_TEMP 'r25c16-parent-private-log.txt'
+          try {
+            Invoke-WebRequest -Uri ($qual+'/actions/jobs/'+$buildJob+'/logs') -Headers $qualHeaders -OutFile $logPath -MaximumRedirection 5 -TimeoutSec 90
+            $log=Get-Content -LiteralPath $logPath -Raw
+            if([string]::IsNullOrEmpty($log)) {throw 'R25C16_BUILD_LOG_EMPTY'}
+            foreach($marker in @('R25C13_FOUR_AUTHENTIC_WINDOWS_BUILDS=PASS',
+                                'R25C13_CHROMIUM_ORIGINAL_UI_AND_BROKER_DENIAL=PASS',
+                                'R25C13_SYNTHETIC_PORTABLE_UPGRADE_ROLLBACK=PASS')){
+              if(!$log.Contains($marker)) {throw 'R25C16_REQUIRED_PRIOR_SUCCESS_MARKER_MISSING'}
+            }
+            $expectedHashes=[ordered]@{
+              'ktrade.exe'='cd225911969428e9d7edcd18fd813b5cf24c1e77d023f0f9fa2c0494adc4f25b'
+              'ktrade-paper.exe'='19daeefc59a62b85b5c33886ae05525df825a29aa44610fd7040dd8c3509479a'
+              'ktrade-paper-web.exe'='67da7ef2230b679bfee5b12912808e6da620dfc12f51434f2f51828cface7856'
+              'ktrade-inventory.exe'='b4bcc3f1ff972b129760d42d4785b3d91a2d8d09167cc28e6b31d81ed91fa481'
+            }
+            foreach($n in $expectedHashes.Keys){
+              $pat='R25C13_BUILD_SHA256_'+[regex]::Escape($n)+'=([0-9a-f]{64})'
+              $matched=[regex]::Matches($log,$pat)
+              if($matched.Count -ne 1 -or $matched[0].Groups[1].Value -cne $expectedHashes[$n]){
+                throw ('R25C16_BUILD_HASH_NOT_IN_VERIFIED_RUN_'+$n)
+              }
+            }
+            Write-Output 'R25C16_FOUR_ORIGINAL_WINDOWS_EXECUTABLE_HASHES_VERIFIED_FROM_RUN_LOG=PASS'
+          } catch {throw 'R25C16_BUILD_PROVENANCE_VALIDATION_FAILED'} finally {
+            Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+          }
+          try {
+            $artifacts=Invoke-RestMethod -Uri ($qual+'/actions/runs/39166747314/artifacts?per_page=100') -Headers $qualHeaders -TimeoutSec 30
+          } catch {throw 'R25C16_DONOR_ARTIFACT_LIST_UNAVAILABLE'}
+          $donor=@($artifacts.artifacts | Where-Object {$_.name -ceq 'ktrade-r25c15-focused-donor-evidence'})
+          if($donor.Count -ne 1 -or $donor[0].id -ne 12150912707 -or $donor[0].expired -or
+             $donor[0].digest -cne 'sha256:794df01bdcb9c36fca27b9446288b6e4bca2eb47132b913ffb6812e4be1a60b9') {throw 'R25C16_DONOR_ARTIFACT_IDENTITY_DRIFT'}
+          $ctx=[ordered]@{
+            schema='ktrade.r25c16.consolidated-evidence.v1'
+            disposition='COMPOSITIONAL_WINDOWS_ACCEPTANCE_EVIDENCE_ONLY_NOT_RELEASE'
+            assembled_utc=(Get-Date).ToUniversalTime().ToString('o')
+            ktrade_source_sha=$env:KTRADE_SOURCE_SHA
+            ktrade_source_tree=$env:KTRADE_SOURCE_TREE
+            ktrade_pr_number=37
+            ktrade_pr_state='draft_unmerged'
+            qualification_run_id=$env:GITHUB_RUN_ID
+            qualification_workflow_sha=$env:GITHUB_SHA
+            source_contract='immutable source plus exact historical parents'
+            upstream_runs=$provenance
+            executable_sha256=$expectedHashes
+            donor_artifact_id=12150912707
+            donor_artifact_zip_digest='sha256:794df01bdcb9c36fca27b9446288b6e4bca2eb47132b913ffb6812e4be1a60b9'
+            prior_total_regressions_repeated=0
+            actual_installed_user_migration_accepted=$false
+            binaries_archived_as_release=$false
+            independent_signature_present=$false
+            production_promotion_authorized=$false
+            live_broker_authorized=$false
+          }
+          $evidence=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Force -Path $evidence|Out-Null
+          $ctx|ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $evidence 'context.json') -Encoding utf8
+          Write-Output 'R25C16_THREE_SOURCE_PINNED_RUNS_AND_STAGE_CONCLUSIONS=PASS'
+          Write-Output 'R25C16_PR_37_DRAFT_EXACT_HEAD=PASS'
+          Write-Output 'R25C16_DONOR_ARTIFACT_PINNED_METADATA=PASS'
+      - name: Download independently qualified donor receipt
+        uses: actions/download-artifact@v4
+        with:
+          name: ktrade-r25c15-focused-donor-evidence
+          repository: spoonman136668-ai/Qualification-Forge
+          run-id: '39166747314'
+          github-token: ${{ github.token }}
+          path: donor-evidence
+      - name: Inspect donor receipt, seal manifest and SHA-256
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $ctx=Join-Path $env:GITHUB_WORKSPACE 'evidence/context.json'
+          $receipt=Join-Path $env:GITHUB_WORKSPACE 'donor-evidence/r25c15-focused-receipt.json'
+          if(!(Test-Path -LiteralPath $ctx -PathType Leaf) -or !(Test-Path -LiteralPath $receipt -PathType Leaf)){throw 'R25C16_REQUIRED_RECEIPT_NOT_DOWNLOADED'}
+          $r=Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
+          $c=Get-Content -LiteralPath $ctx -Raw | ConvertFrom-Json
+          if($r.schema -cne 'ktrade.r25c15.authentic-donor.focused.v1' -or
+             $r.status -cne 'FOCUSED_PASS_REVIEW_ONLY_NOT_RELEASE' -or
+             $r.source_sha -cne $env:KTRADE_SOURCE_SHA -or
+             $r.source_tree -cne $env:KTRADE_SOURCE_TREE -or
+             $r.donor_sha -cne '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc' -or
+             $r.donor_risk_blob -cne '8469df654777548266448d1bf02192e780c8ebad' -or
+             [string]$r.run_id -cne '39166747314' -or
+             $r.workflow_sha -cne '4dd90d725f4cddcf857c3c9cb32c2c1d137603e8' -or
+             $r.live_trading -ne $false -or $r.promotion -ne $false -or
+             $r.installed_user_data_touched -ne $false) {throw 'R25C16_DONOR_RECEIPT_CONTENT_DRIFT'}
+          $tests=@($r.test_names)
+          $required=@('TestAuthenticTradeGuardAtomicCommitAndRollbackUnchangedOriginal','TestAuthenticTradeGuardRiskVetoAndHistoricalMigrationFailClosed')
+          if($tests.Count -ne 2 -or @(Compare-Object $tests $required).Count -ne 0) {throw 'R25C16_AUTHENTIC_DONOR_TEST_INVENTORY_DRIFT'}
+          $seal=Join-Path $env:GITHUB_WORKSPACE 'evidence/ktrade-r25c16-seal.json'
+          $c | Add-Member -NotePropertyName donor_receipt_sha256 -NotePropertyValue ((Get-FileHash -LiteralPath $receipt -Algorithm SHA256).Hash.ToLowerInvariant())
+          $c | Add-Member -NotePropertyName donor_accepted_test_names -NotePropertyValue $required
+          $c | ConvertTo-Json -Depth 16 | Set-Content -LiteralPath $seal -Encoding utf8
+          $hash=(Get-FileHash -LiteralPath $seal -Algorithm SHA256).Hash.ToLowerInvariant()
+          ($hash+'  ktrade-r25c16-seal.json') | Set-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'evidence/ktrade-r25c16-seal.sha256') -Encoding ascii
+          if((Get-FileHash -LiteralPath $seal -Algorithm SHA256).Hash.ToLowerInvariant() -cne $hash){throw 'R25C16_SEAL_SELF_HASH_DRIFT'}
+          Remove-Item -LiteralPath $ctx -Force
+          Write-Output 'R25C16_AUTHENTIC_DONOR_RECEIPT_CONTENT_VERIFIED=PASS'
+          Write-Output 'R25C16_SOURCE_PINNED_COMPOSITIONAL_EVIDENCE_SEAL=PASS'
+          Write-Output ('R25C16_SEAL_SHA256='+$hash)
+          Write-Output 'R25C16_NO_INDEPENDENT_SIGNATURE_AND_NO_RELEASE_AUTHORITY=TRUE'
+      - name: Upload sealed machine-readable acceptance evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c16-source-pinned-evidence
+          path: |
+            evidence/ktrade-r25c16-seal.json
+            evidence/ktrade-r25c16-seal.sha256
+          if-no-files-found: error
+          retention-days: 90
+      - name: Erase private source and temporary downloaded evidence
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'donor-evidence') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Output 'R25C16_PRIVATE_SOURCE_AND_TEMP_DONOR_RECEIPT_REMOVED=PASS'
