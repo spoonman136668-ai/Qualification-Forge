@@ -1,7 +1,7 @@
 name: KTRADE donor TradeGuard isolated paper shadow
 on:
   push:
-    branches: [qualification/ktrade-exclusive-paper-owner-20261018]
+    branches: [qualification/ktrade-full-app-readonly-bridge-20261018]
     paths: [.github/workflows/ktrade-tradeguard-paper-shadow.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     env:
-      EXPECTED_KTRADE: 'b78a7e0936c4bb68e55fd161221c9a74aceb5be4'
-      EXPECTED_TREE: 'aae7d25cf767666c1d01cc211cd36c509abb2d28'
+      EXPECTED_KTRADE: 'fcc3462cf98e9b6487374cf07c5112f08d72fc3d'
+      EXPECTED_TREE: 'e4fe00e1b7a79c874290086bdae4bb1e5336a4b7'
       EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
       EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
@@ -47,6 +47,13 @@ jobs:
       EXPECTED_LEGACY_WEB_BLOCK: 'dd0d52621f7267db487527024cda91530a09ab5e'
       EXPECTED_LEGACY_WEB_TEST: '70a389fcc45f866e0d6774b65bac3c1c4d797b0c'
       EXPECTED_EXCLUSIVE_DONOR_TEST: '1501ce66cb0f854dd9655cf385f4255973e3f59d'
+      EXPECTED_APP_MAIN_FULL: '5b21fba52ee8ab1c696c3b773819d8f32c31c653'
+      EXPECTED_APP_BRIDGE: '6bfba2e789764c01eb51c0281a9d39cc36ddd615'
+      EXPECTED_APP_BRIDGE_TEST: '74ab6ba3402f3e0c166cc97dbb9b87bb4c8c95aa'
+      EXPECTED_APP_STATUS: 'd771882efdbf4b6ff1c33d8c012dda3dd5c797ec'
+      EXPECTED_APP_STATUS_TEST: 'c26130dc5903e7c17223a8b0e87caefd84f9ad59'
+      EXPECTED_READONLY_SQLITE: '3e9ed3f05024f77d75f6493b9ffbc812db2eef93'
+      EXPECTED_READONLY_SQLITE_TEST: 'a073f3e52d07fb928acde4db38baf1441dbcdb57'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -60,7 +67,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: b78a7e0936c4bb68e55fd161221c9a74aceb5be4
+          ref: fcc3462cf98e9b6487374cf07c5112f08d72fc3d
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -123,6 +130,18 @@ jobs:
           if((& git -C $ktrade rev-parse HEAD:internal/paperweb/server.go).Trim() -cne $env:EXPECTED_LEGACY_WEB_BLOCK){throw 'KTRADE_LEGACY_WEB_BYPASS_SOURCE_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:internal/paperweb/server_exclusive_owner_test.go).Trim() -cne $env:EXPECTED_LEGACY_WEB_TEST){throw 'KTRADE_LEGACY_WEB_BYPASS_TEST_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/paper_exclusive_owner_test.go).Trim() -cne $env:EXPECTED_EXCLUSIVE_DONOR_TEST){throw 'KTRADE_EXCLUSIVE_SQLITE_DONOR_TEST_DRIFT'}
+          foreach($pair in @(
+            @('cmd/ktrade/main_full.go',$env:EXPECTED_APP_MAIN_FULL),
+            @('cmd/ktrade/paper_authority_route_full.go',$env:EXPECTED_APP_BRIDGE),
+            @('cmd/ktrade/paper_authority_route_full_test.go',$env:EXPECTED_APP_BRIDGE_TEST),
+            @('internal/paperapp/server.go',$env:EXPECTED_APP_STATUS),
+            @('internal/paperapp/server_test.go',$env:EXPECTED_APP_STATUS_TEST),
+            @('internal/paperauthority/read_only.go',$env:EXPECTED_READONLY_SQLITE),
+            @('internal/paperauthority/read_only_test.go',$env:EXPECTED_READONLY_SQLITE_TEST)
+          )){
+            if((& git -C $ktrade rev-parse "HEAD:$($pair[0])").Trim() -cne $pair[1]){throw 'KTRADE_FULL_APP_READONLY_BRIDGE_SOURCE_DRIFT'}
+          }
+          Write-Output 'KTRADE_FULL_APP_ORIGINAL_ORDER_ROUTE_READONLY_BRIDGE_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_EXCLUSIVE_SQLITE_OWNER_AND_LEGACY_WEB_BYPASS_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_HISTORIC_PORTABLE_SNAPSHOT_SQLITE_IDENTITY=PASS'
           Write-Output 'KTRADE_ORIGINAL_PAPER_AUTHENTIC_DONOR_SINGLE_SQLITE_COMMIT_SOURCE_IDENTITY=PASS'
@@ -238,6 +257,19 @@ jobs:
                 foreach($line in $safe){Write-Output "KTRADE_SQLITE_SAFE_DIAGNOSTIC: $line"}
                 throw 'KTRADE_SQLITE_ORIGINAL_RISK_PAPER_AUTHORITY_REJECTED'
               }
+              & go test -mod=readonly -count=1 -timeout=240s ./internal/paperapp *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]' -or $_ -match '^.*server_test\.go:[0-9]+: '} | Select-Object -First 14)
+                foreach($line in $safe){Write-Output "KTRADE_APP_STATUS_SAFE_DIAGNOSTIC: $line"}
+                throw 'KTRADE_READONLY_APP_STATUS_REJECTED'
+              }
+              & go test -mod=readonly -tags=ktrade_full -run '^TestFullApplication' -count=1 -timeout=180s ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]' -or $_ -match '^.*paper_authority_route_full_test\.go:[0-9]+: '} | Select-Object -First 14)
+                foreach($line in $safe){Write-Output "KTRADE_FULL_APP_SAFE_DIAGNOSTIC: $line"}
+                throw 'KTRADE_FULL_APP_ACTUAL_KTRADE_FULL_BRIDGE_REJECTED'
+              }
+              Write-Output 'KTRADE_FULL_APP_REAL_KTRADE_FULL_ORDER_ROUTE_PAPER_CUSTODY_READONLY=PASS'
               & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=240s ./internal/paperauthority *> $log
               if($LASTEXITCODE -ne 0){
                 $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]' -or $_ -match '^.*portable_migration_shadow_test\.go:[0-9]+: '} | Select-Object -First 16)
@@ -282,6 +314,9 @@ jobs:
             Write-Output 'KTRADE_HISTORIC_INSTALL_LAYOUT_SQLITE_MIGRATION_SYNTHETIC_ONLY=PASS'
             Write-Output 'KTRADE_EXCLUSIVE_SQLITE_ADMISSION_BEFORE_AUTHENTIC_DONOR_RISK=PASS'
             Write-Output 'KTRADE_LEGACY_PAPERWEB_CONSOLIDATED_PARTITION_HTTP_BYPASS_REFUSED=PASS'
+            Write-Output 'KTRADE_FULL_APP_PAPER_AUTHORITY_GET_ONLY_READONLY_STOPPED=PASS'
+            Write-Output 'KTRADE_FULL_APP_ORDER_POST_REMAINS_BROKER_DISABLED=TRUE'
+            Write-Output 'KTRADE_INSTALLED_PROFILE_OPENED_OR_MUTATED=FALSE'
             Write-Output 'KTRADE_INSTALLED_USER_DATA_MIGRATED=FALSE'
           }finally{
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
