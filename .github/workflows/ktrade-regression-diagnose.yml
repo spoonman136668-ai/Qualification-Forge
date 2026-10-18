@@ -3,7 +3,7 @@ name: KTRADE read-only regression failure classification
 on:
   push:
     branches:
-      - qualification/ktrade-full-recovery-win-20261017
+      - qualification/ktrade-p16-contract-reconcile-20261018
     paths: [.github/workflows/ktrade-regression-diagnose.yml]
 
 permissions:
@@ -15,8 +15,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     env:
-      EXPECTED_KTRADE_SHA: '60ecf34994d9c7648a39a6f0104c09ff4297d83d'
-      EXPECTED_TREE: 'f120e79635288111fa58ca6fb541d232ed531d79'
+      EXPECTED_KTRADE_SHA: '61dd5022d31f21a4d241635ddc00f64ecc309996'
+      EXPECTED_TREE: '955ee0e724c952ffbf79da9ed27f59cd57b91d53'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 60ecf34994d9c7648a39a6f0104c09ff4297d83d
+          ref: 61dd5022d31f21a4d241635ddc00f64ecc309996
           path: checked-private
           fetch-depth: 1
           persist-credentials: false
@@ -81,11 +81,34 @@ jobs:
             }
             & go mod download *> $log
             if($LASTEXITCODE -ne 0){throw 'KTRADE_GO_MODULE_DOWNLOAD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
-            TestPrivate 'PKG_ROOT' @('./pkg')
-            TestPrivate 'PINE_COMPILER' @('./pkg/compiler_service')
-            TestPrivate 'RECOVERY_INTERNAL' @('./internal/...')
-            TestPrivate 'COMMANDS' @('./cmd/...')
-            Write-Output 'KTRADE_SEGMENTED_REGRESSION=PASS'
+            foreach($pin in @(
+              @('cmd/ktrade/pine_codeactions_full.go','50827a5f4c60a9df32ea352ec69765ba42acbbf2'),
+              @('pkg/p16b_t05_codeactions_http_request_response_contract_test.go','4725a9bba8b48223cf947a7c0efb33dcd41ef93b'),
+              @('pkg/p16b_closeout_codeactions_http_acceptance_gate_test.go','6ee7a2c39e2c036fd3d6baf86f5c6c3a829679ed')
+            )){
+              if((& git rev-parse "HEAD:$($pin[0])").Trim() -cne $pin[1]){throw 'KTRADE_P16_AUTHENTIC_SOURCE_OR_TEST_DRIFT'}
+            }
+            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase16_P16B_Integration_T05_RequestResponseContractSurface|TestPhase16_P16B_Closeout_RequestResponseContractSurface)
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Wipe private checkout
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'checked-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'KTRADE_PRIVATE_DIAGNOSTIC_OUTPUT=WITHHELD'
+ ./pkg *> $log
+            if($LASTEXITCODE -ne 0){
+              $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
+                Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test'}|Select-Object -First 8)
+              foreach($line in $safe){Write-Output "KTRADE_P16_SAFE_FAILURE: $line"}
+              throw 'KTRADE_P16_TWO_TARGETED_SOURCE_CONTRACT_TESTS_FAILED'
+            }
+            Write-Output 'KTRADE_P16_ORIGINAL_PINE_HANDLER_BYTE_IDENTICAL=TRUE'
+            Write-Output 'KTRADE_P16_TWO_TARGETED_CONTRACT_TESTS=PASS'
+            Write-Output 'KTRADE_INHERITED_FULL_REGRESSION_AND_VET_REMAIN_UNQUALIFIED=TRUE'
           }finally{
             Pop-Location
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
