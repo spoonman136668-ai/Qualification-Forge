@@ -193,7 +193,7 @@ jobs:
             Write-Output 'KTRADE_DONOR_PRODUCT_EXPOSURE_PAPER_IDENTITY_GAP=CONFIRMED'
             Push-Location $ktrade
             try{
-              if($env:CGO_ENABLED -cne '1'){throw 'KTRADE_SQLITE_NATIVE_WINDOWS_CGO_DRIVER_UNAVAILABLE'}
+              if((& go env CGO_ENABLED).Trim() -cne '1'){throw 'KTRADE_SQLITE_NATIVE_WINDOWS_CGO_DRIVER_UNAVAILABLE'}
               & go test -mod=readonly -count=1 -timeout=240s ./internal/paperauthority *> $log
               if($LASTEXITCODE -ne 0){
                 $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]' -or $_ -match '^.*authority.*\.go:[0-9]+:[0-9]+:'} | Select-Object -First 18)
