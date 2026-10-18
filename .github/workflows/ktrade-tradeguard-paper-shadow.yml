@@ -169,6 +169,110 @@ jobs:
                 }
                 throw 'KTRADE_ACTUAL_DONOR_TRADEGUARD_SHADOW_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'
               }
+              & go test -mod=readonly -tags=ktrade_donor_shadow -run '^TestNativeWindowsWriteThroughAndDirectoryFlushCapabilities
+            Write-Output 'KTRADE_AUTHENTIC_DONOR_TRADEGUARD_SHADOW_PROPOSED_BUY_RETRY=PASS'
+            Write-Output 'KTRADE_SHADOW_POLICY_VETO_PAPER_STILL_FILLS_NEGATIVE=PASS'
+            Write-Output 'KTRADE_SHADOW_KILL_RESTART_DISAGREEMENT_NEGATIVE=PASS'
+            Write-Output 'KTRADE_DONOR_PRODUCT_EXPOSURE_PAPER_IDENTITY_GAP=CONFIRMED'
+            Push-Location $ktrade
+            try{
+              & go test -mod=readonly -count=1 ./internal/paperproposal ./internal/paperreconcile ./internal/papertrading ./internal/paperweb *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {
+                  $_ -match '^# ktrade/' -or
+                  $_ -match '^--- FAIL: Test[A-Za-z0-9_./-]+' -or
+                  $_ -match '^FAIL[[:space:]]' -or
+                  $_ -match '^.*(?:reconcile|proposal|papertrading).*_test\\.go:[0-9]+: '
+                } | Select-Object -First 16)
+                foreach($line in $safe){
+                  $line=$line -replace [regex]::Escape($env:GITHUB_WORKSPACE),'[private]'
+                  Write-Output "KTRADE_NATIVE_GO_SAFE_DIAGNOSTIC: $line"
+                }
+                throw 'KTRADE_CONSOLIDATED_PAPER_BASELINE_REGRESSED'
+              }
+              & node --test tests/paper_tradeguard_reconciliation.test.cjs *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_PAPER_SHADOW_BOUNDARY_REGRESSED'}
+            }finally{Pop-Location}
+            Write-Output 'KTRADE_CONSOLIDATED_PAPER_UNMODIFIED_GO_AND_JS_GATES=PASS'
+            Write-Output 'KTRADE_AUTHENTIC_DONOR_RATE_PNL_EQUITY_EXPOSURE_AND_KILL_CUSTODY_WINDOWS=PASS'
+            Write-Output 'KTRADE_WRITE_ORDER_CRASH_WINDOW_FAIL_CLOSED_WINDOWS=PASS'
+            Write-Output 'KTRADE_IMMUTABLE_WAL_AUTHENTIC_DONOR_10_PHASE_MATRIX=PASS'
+            Write-Output 'KTRADE_WINDOWS_ACTUAL_TERMINATEPROCESS_AND_NEW_PROCESS_REOPEN=PASS'
+            Write-Output 'KTRADE_WINDOWS_ACTUAL_TERMINATEPROCESS_PARTIAL_WRITE_DONOR_RENAME_DURABILITY_PROBE=PASS'
+            Write-Output 'KTRADE_WINDOWS_NATIVE_WT_RENAME_DIR_FLUSH_CAPABILITY_AUTO_ADMISSION_DENIED=PASS'
+          }finally{
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $proposalScratch -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $reconcileScratch -Recurse -Force -ErrorAction SilentlyContinue
+          }
+      - name: Confidential checkout cleanup without upload
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('ktrade-private','donor-private')){
+            Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE $name) -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          Write-Output 'KTRADE_PRIVATE_SOURCE_PUBLISHED=FALSE'
+          Write-Output 'KTRADE_REAL_USER_DATA_TOUCHED=FALSE'
+          Write-Output 'KTRADE_PRODUCTION_OR_LIVE_TRADE=FALSE'
+ -v -count=1 ./internal/shadowqual *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_WINDOWS_NATIVE_FS_PROBE_DETAILED_VERDICT_FAILED'}
+              $cap=@(Get-Content -LiteralPath $log -ErrorAction Stop | Where-Object {$_ -match 'WINDOWS_NATIVE_STORAGE_WITNESS file_sync='})
+              if($cap.Count -ne 1){throw 'KTRADE_WINDOWS_NATIVE_FS_PROBE_TELEMETRY_MISSING'}
+              $line=$cap[0].Substring($cap[0].IndexOf('WINDOWS_NATIVE_STORAGE_WITNESS'))
+              if($line -notmatch '^WINDOWS_NATIVE_STORAGE_WITNESS file_sync=(true|false) write_through_rename=(true|false) reopen_match=(true|false) directory_flush_attempted=(true|false) directory_flush_succeeded=(true|false)
+            Write-Output 'KTRADE_AUTHENTIC_DONOR_TRADEGUARD_SHADOW_PROPOSED_BUY_RETRY=PASS'
+            Write-Output 'KTRADE_SHADOW_POLICY_VETO_PAPER_STILL_FILLS_NEGATIVE=PASS'
+            Write-Output 'KTRADE_SHADOW_KILL_RESTART_DISAGREEMENT_NEGATIVE=PASS'
+            Write-Output 'KTRADE_DONOR_PRODUCT_EXPOSURE_PAPER_IDENTITY_GAP=CONFIRMED'
+            Push-Location $ktrade
+            try{
+              & go test -mod=readonly -count=1 ./internal/paperproposal ./internal/paperreconcile ./internal/papertrading ./internal/paperweb *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {
+                  $_ -match '^# ktrade/' -or
+                  $_ -match '^--- FAIL: Test[A-Za-z0-9_./-]+' -or
+                  $_ -match '^FAIL[[:space:]]' -or
+                  $_ -match '^.*(?:reconcile|proposal|papertrading).*_test\\.go:[0-9]+: '
+                } | Select-Object -First 16)
+                foreach($line in $safe){
+                  $line=$line -replace [regex]::Escape($env:GITHUB_WORKSPACE),'[private]'
+                  Write-Output "KTRADE_NATIVE_GO_SAFE_DIAGNOSTIC: $line"
+                }
+                throw 'KTRADE_CONSOLIDATED_PAPER_BASELINE_REGRESSED'
+              }
+              & node --test tests/paper_tradeguard_reconciliation.test.cjs *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_PAPER_SHADOW_BOUNDARY_REGRESSED'}
+            }finally{Pop-Location}
+            Write-Output 'KTRADE_CONSOLIDATED_PAPER_UNMODIFIED_GO_AND_JS_GATES=PASS'
+            Write-Output 'KTRADE_AUTHENTIC_DONOR_RATE_PNL_EQUITY_EXPOSURE_AND_KILL_CUSTODY_WINDOWS=PASS'
+            Write-Output 'KTRADE_WRITE_ORDER_CRASH_WINDOW_FAIL_CLOSED_WINDOWS=PASS'
+            Write-Output 'KTRADE_IMMUTABLE_WAL_AUTHENTIC_DONOR_10_PHASE_MATRIX=PASS'
+            Write-Output 'KTRADE_WINDOWS_ACTUAL_TERMINATEPROCESS_AND_NEW_PROCESS_REOPEN=PASS'
+            Write-Output 'KTRADE_WINDOWS_ACTUAL_TERMINATEPROCESS_PARTIAL_WRITE_DONOR_RENAME_DURABILITY_PROBE=PASS'
+            Write-Output 'KTRADE_WINDOWS_NATIVE_WT_RENAME_DIR_FLUSH_CAPABILITY_AUTO_ADMISSION_DENIED=PASS'
+          }finally{
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $proposalScratch -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $reconcileScratch -Recurse -Force -ErrorAction SilentlyContinue
+          }
+      - name: Confidential checkout cleanup without upload
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('ktrade-private','donor-private')){
+            Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE $name) -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          Write-Output 'KTRADE_PRIVATE_SOURCE_PUBLISHED=FALSE'
+          Write-Output 'KTRADE_REAL_USER_DATA_TOUCHED=FALSE'
+          Write-Output 'KTRADE_PRODUCTION_OR_LIVE_TRADE=FALSE'
+){
+                throw 'KTRADE_WINDOWS_NATIVE_FS_PROBE_TELEMETRY_INVALID'
+              }
+              Write-Output "KTRADE_$line"
+              Write-Output 'KTRADE_ORIGINAL_LEDGER_RISK_JOURNAL_PHYSICAL_POWERLOSS_DURABILITY=NOT_PROVEN'
             }finally{Pop-Location}
             Write-Output 'KTRADE_AUTHENTIC_DONOR_TRADEGUARD_SHADOW_PROPOSED_BUY_RETRY=PASS'
             Write-Output 'KTRADE_SHADOW_POLICY_VETO_PAPER_STILL_FILLS_NEGATIVE=PASS'
