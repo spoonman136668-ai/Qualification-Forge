@@ -104,9 +104,9 @@ jobs:
             Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_CHART_HTTP=PASS'
             $candidates=@(
               'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
-              'C:\Program Files\Microsoft\Edge\Application\msedge.exe'
+              'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
               'C:\Program Files\Google\Chrome\Application\chrome.exe',
-              'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe',
+              'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
             )
             $browserExe=$candidates|Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}|Select-Object -First 1
             if(!$browserExe){throw 'KTRADE_REAL_BROWSER_BINARY_NOT_INSTALLED_ON_HOST'}
