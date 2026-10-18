@@ -1,7 +1,7 @@
-name: KTRADE R25-C4 pre-remediation compatibility baseline
+name: KTRADE R25-C4 bounded compatibility and vet analyzer qualification
 on:
   push:
-    branches: [qualification/ktrade-r25c4-compat-baseline-20261018]
+    branches: [qualification/ktrade-r25c4-bounded-20261018]
     paths: [.github/workflows/ktrade-r25c4-compat.yml]
 permissions:
   contents: read
@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 4aefd8eeea9d0a9fe4007cf80e4fa7d0ea583d24
+          ref: dba1ba0e07e29f79e184997120d1724870328d37
           path: source
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -39,9 +39,9 @@ jobs:
           try {
             if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'R25C4_HOST_INVALID'}
             if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'R25C4_UNSAFE_AUTHORITY'}
-            if((& git -C $root rev-parse HEAD).Trim() -cne '4aefd8eeea9d0a9fe4007cf80e4fa7d0ea583d24' -or
-               (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '92801b1068e63c2d2a752dada9c16c9e760a140f'){throw 'R25C4_SOURCE_DRIFT'}
-            if((& git -C $root rev-parse HEAD:pkg/pine_phasef_f4_perf.go).Trim() -cne 'a41a6ee516d5fe5eeb7762f2a7e35ac4d7fcfdd0'){throw 'R25C4_PERF_SOURCE_DRIFT'}
+            if((& git -C $root rev-parse HEAD).Trim() -cne 'dba1ba0e07e29f79e184997120d1724870328d37' -or
+               (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '356665612ac675e6334d822002b426ece3c5c1cd'){throw 'R25C4_SOURCE_DRIFT'}
+            if((& git -C $root rev-parse HEAD:pkg/pine_ast.go).Trim() -cne 'c49ed04d06ec09f90a6f5013279e616321d121bf'){throw 'R25C4_AST_SOURCE_DRIFT'}
             Push-Location $root
             try {
               & go mod download *> $log
@@ -62,6 +62,17 @@ jobs:
                 Write-Output ('R25C4_BASELINE_WIRE_SHA256_'+$part+'='+$match.Groups[1].Value)
               }
               Write-Output 'R25C4_ORIGINAL_SERIALIZATION_AND_CACHE_TESTS=PASS'
+              & go vet -mod=readonly -unsafeptr ./pkg *> $log
+              if($LASTEXITCODE -ne 0){throw 'R25C4_UNSAFE_POINTER_ANALYZER_FAILED'}
+              Write-Output 'R25C4_UNSAFEPTR_ANALYZER=PASS'
+              & go vet -mod=readonly -structtag ./pkg *> $log
+              $remaining=$LASTEXITCODE
+              $lines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '\.go:\d+:\d+:'})
+              Write-Output ('R25C4_REMAINING_HISTORIC_STRUCTTAG_DIAGNOSTICS='+$lines.Count)
+              Write-Output ('R25C4_VET_STRUCTTAG_EXIT='+$remaining)
+              if($remaining -eq 0 -or $lines.Count -ne 4150){throw 'R25C4_STRUCTTAG_DIFFERENTIAL_NOT_EXPECTED'}
+              Write-Output 'R25C4_ORIGINAL_STRUCTTAG_DEFECTS_REDUCED_BY=40'
+              Write-Output 'R25C4_FULL_GO_VET=NOT_YET_QUALIFIED'
               Write-Output 'R25C4_FULL_VET_NOT_ATTEMPTED=TRUE'
               Write-Output 'R25C4_FULL_REGRESSION_NOT_REPEATED=TRUE'
             } finally {Pop-Location}
