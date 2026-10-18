@@ -1,0 +1,194 @@
+name: KTRADE R25-C11 dual-group frozen JSON-wire compatibility
+on:
+  push:
+    branches: [qualification/ktrade-r25c11-dual-20261018]
+    paths: [.github/workflows/ktrade-r25c11-dual.yml]
+permissions:
+  contents: read
+jobs:
+  historic-wire:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout immutable private KTRADE candidate with two parents
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: d892d5902f6c19105c4395bf6b71bfb112b22a62
+          path: source
+          persist-credentials: false
+          fetch-depth: 3
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Install Go 1.23
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Re-run original JSON wire then candidate and verify vet differential
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parent='3f2cb04b28b91b203164b67da0db4de98243578a'
+          $step='956d3a48c067dfa0a025d7912a13ea1dd5d91ff5'
+          $head='d892d5902f6c19105c4395bf6b71bfb112b22a62'
+          $parentTree='010dd23f979bdb1a7b124b173c98c74366531469'
+          $stepTree='ea7bef46b66b75bfda391bb52f336dd65f38fbff'
+          $headTree='95846811b88a0cb538dd6d494bb771ef3cd8102b'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c11-focused.log'
+          $testA=Join-Path $root 'pkg/r25c11a_governance_wire_compat_test.go'
+          $testB=Join-Path $root 'pkg/r25c11b_governance_wire_compat_test.go'
+          $frozenA=Join-Path $env:RUNNER_TEMP 'r25c11a_frozen.go'
+          $frozenB=Join-Path $env:RUNNER_TEMP 'r25c11b_frozen.go'
+          try {
+            if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {throw 'R25C11_UNEXPECTED_HOST'}
+            if ($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {throw 'R25C11_UNSAFE_AUTHORITY'}
+            if ((& git -C $root rev-parse HEAD).Trim() -cne $head -or
+                (& git -C $root rev-parse HEAD^).Trim() -cne $step -or
+                (& git -C $root rev-parse HEAD^^).Trim() -cne $parent -or
+                (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $headTree -or
+                (& git -C $root rev-parse 'HEAD^^{tree}').Trim() -cne $parentTree) {throw 'R25C11_SOURCE_IDENTITY_DRIFT'}
+            $expectedFiles=@(
+              'pkg/p11b_t333_explicit_new_repro_only_release_readiness_governance_closeout_sunrise_pin.go',
+              'pkg/p11b_t334_explicit_new_repro_only_release_readiness_governance_closeout_daylight_pin.go',
+              'pkg/p11b_t335_explicit_new_repro_only_release_readiness_governance_closeout_morning_pin.go',
+              'pkg/p11b_t336_explicit_new_repro_only_release_readiness_governance_closeout_forenoon_pin.go',
+              'pkg/p11b_t337_explicit_new_repro_only_release_readiness_governance_closeout_noontide_pin.go',
+              'pkg/p11b_t338_explicit_new_repro_only_release_readiness_governance_closeout_meridian_pin.go',
+              'pkg/p11b_t339_explicit_new_repro_only_release_readiness_governance_closeout_zenith_pin.go',
+              'pkg/p11b_t340_explicit_new_repro_only_release_readiness_governance_closeout_radiance_pin.go',
+              'pkg/p11b_t341_explicit_new_repro_only_release_readiness_governance_closeout_brilliance_pin.go',
+              'pkg/p11b_t342_explicit_new_repro_only_release_readiness_governance_closeout_gleam_pin.go',
+              'pkg/p11b_t343_explicit_new_repro_only_release_readiness_governance_closeout_glimmer_pin.go',
+              'pkg/p11b_t344_explicit_new_repro_only_release_readiness_governance_closeout_shimmer_pin.go',
+              'pkg/p11b_t345_explicit_new_repro_only_release_readiness_governance_closeout_luster_pin.go',
+              'pkg/p11b_t346_explicit_new_repro_only_release_readiness_governance_closeout_clarity_pin.go',
+              'pkg/p11b_t347_explicit_new_repro_only_release_readiness_governance_closeout_lucidity_pin.go',
+              'pkg/p11b_t348_explicit_new_repro_only_release_readiness_governance_closeout_brightness_pin.go',
+              'pkg/p11b_t349_explicit_new_repro_only_release_readiness_governance_closeout_flare_pin.go',
+              'pkg/p11b_t350_explicit_new_repro_only_release_readiness_governance_closeout_beacon_pin.go',
+              'pkg/p11b_t351_explicit_new_repro_only_release_readiness_governance_closeout_skyline_pin.go',
+              'pkg/p11b_t352_explicit_new_repro_only_release_readiness_governance_closeout_horizon_pin.go',
+              'pkg/p11b_t353_explicit_new_repro_only_release_readiness_governance_closeout_highnoon_pin.go',
+              'pkg/p11b_t374_explicit_new_repro_only_release_readiness_governance_closeout_nightrise_pin.go',
+              'pkg/p11b_t375_explicit_new_repro_only_release_readiness_governance_closeout_afterdark_pin.go',
+              'pkg/p11b_t376_explicit_new_repro_only_release_readiness_governance_closeout_nightwatch_pin.go',
+              'pkg/p11b_t377_explicit_new_repro_only_release_readiness_governance_closeout_moonwatch_pin.go',
+              'pkg/p11b_t378_explicit_new_repro_only_release_readiness_governance_closeout_starwatch_pin.go',
+              'pkg/p11b_t379_explicit_new_repro_only_release_readiness_governance_closeout_nightscape_pin.go',
+              'pkg/p11b_t380_explicit_new_repro_only_release_readiness_governance_closeout_moonshadow_pin.go',
+              'pkg/p11b_t381_explicit_new_repro_only_release_readiness_governance_closeout_startrail_pin.go',
+              'pkg/p11b_t382_explicit_new_repro_only_release_readiness_governance_closeout_nightcurrent_pin.go',
+              'pkg/p11b_t383_explicit_new_repro_only_release_readiness_governance_closeout_darktide_pin.go',
+              'pkg/p11b_t384_explicit_new_repro_only_release_readiness_governance_closeout_nightbreeze_pin.go',
+              'pkg/p11b_t385_explicit_new_repro_only_release_readiness_governance_closeout_moonbeam_pin.go',
+              'pkg/p11b_t386_explicit_new_repro_only_release_readiness_governance_closeout_starglow_pin.go',
+              'pkg/p11b_t387_explicit_new_repro_only_release_readiness_governance_closeout_nightsignal_pin.go',
+              'pkg/p11b_t388_explicit_new_repro_only_release_readiness_governance_closeout_lowlight_pin.go',
+              'pkg/p11b_t389_explicit_new_repro_only_release_readiness_governance_closeout_restphase_pin.go',
+              'pkg/p11b_t390_explicit_new_repro_only_release_readiness_governance_closeout_quietphase_pin.go',
+              'pkg/p11b_t391_explicit_new_repro_only_release_readiness_governance_closeout_stillphase_pin.go',
+              'pkg/p11b_t392_explicit_new_repro_only_release_readiness_governance_closeout_pausepoint_pin.go',
+              'pkg/p11b_t393_explicit_new_repro_only_release_readiness_governance_closeout_cooldown_pin.go',
+              'pkg/p11b_t394_explicit_new_repro_only_release_readiness_governance_closeout_settling_pin.go',
+              'pkg/p11b_t395_explicit_new_repro_only_release_readiness_governance_closeout_standstill_pin.go',
+              'pkg/p11b_t396_explicit_new_repro_only_release_readiness_governance_closeout_lightsout_pin.go',
+              'pkg/p11b_t397_explicit_new_repro_only_release_readiness_governance_closeout_blackout_pin.go',
+              'pkg/p11b_t398_explicit_new_repro_only_release_readiness_governance_closeout_darkness_pin.go',
+              'pkg/p11b_t399_explicit_new_repro_only_release_readiness_governance_closeout_midwatch_pin.go',
+              'pkg/p11b_t400_explicit_new_repro_only_release_readiness_governance_closeout_deadnight_pin.go',
+              'pkg/p11b_t401_explicit_new_repro_only_release_readiness_governance_closeout_graveyard_pin.go',
+              'pkg/p11b_t402_explicit_new_repro_only_release_readiness_governance_closeout_cockcrow_pin.go',
+              'pkg/p11b_t403_explicit_new_repro_only_release_readiness_governance_closeout_prebreak_pin.go',
+              'pkg/p11b_t404_explicit_new_repro_only_release_readiness_governance_closeout_blushlight_pin.go',
+              'pkg/p11b_t405_explicit_new_repro_only_release_readiness_governance_closeout_aurora_pin.go',
+              'pkg/p11b_t406_explicit_new_repro_only_release_readiness_governance_closeout_roselight_pin.go',
+              'pkg/r25c11a_governance_wire_compat_test.go',
+              'pkg/r25c11b_governance_wire_compat_test.go'
+            )
+            $changed=@(& git -C $root diff --name-only $parent $head | Sort-Object)
+            if ($LASTEXITCODE -ne 0 -or @($changed).Count -ne 56 -or @(Compare-Object $changed ($expectedFiles | Sort-Object)).Count -ne 0) {throw 'R25C11_CHANGED_PATH_DRIFT'}
+            $groupB=@(& git -C $root diff --name-only $parent $step)
+            $groupA=@(& git -C $root diff --name-only $step $head)
+            if (@($groupB).Count -ne 22 -or @($groupA).Count -ne 34) {throw 'R25C11_GROUP_BOUNDARY_DRIFT'}
+            if ((& git -C $root rev-parse $step':{tree}').Trim() -cne $stepTree) {throw 'R25C11_GROUP_B_TREE_DRIFT'}
+            Copy-Item -LiteralPath $testA -Destination $frozenA
+            Copy-Item -LiteralPath $testB -Destination $frozenB
+            Push-Location $root
+            try {
+              & go mod download *> $log
+              if ($LASTEXITCODE -ne 0) {throw 'R25C11_MODULE_DOWNLOAD_FAILED'}
+              & git checkout --detach $parent *> $log
+              if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $parentTree) {throw 'R25C11_PARENT_CHECKOUT_FAILED'}
+              Copy-Item $frozenA $testA
+              Copy-Item $frozenB $testB
+              $env:R25C11A_ORIGINAL_MODE='1'
+              $env:R25C11B_ORIGINAL_MODE='1'
+              & go test -vet=off -mod=readonly -count=1 -timeout=600s -v -run '^TestR25C11(A|B)HistoricalGovernanceJSONWire$' ./pkg *> $log
+              if ($LASTEXITCODE -ne 0) {
+                Write-Output ('R25C11_PARENT_TEST_DIAGNOSTICS='+(Get-Content $log -Tail 24 | Out-String))
+                throw 'R25C11_PARENT_WIRE_TEST_FAILED'
+              }
+              $parentOutput=[string](Get-Content -LiteralPath $log -Raw)
+              $count=0
+              foreach ($n in 333..353) {
+                $key='T'+$n
+                $m=[regex]::Match($parentOutput,('R25C11B_WIRE_'+$key+'_SHA256=([0-9a-f]{64})'))
+                if (-not $m.Success) {throw ('R25C11_MISSING_PARENT_DIGEST_'+$key)}
+                [Environment]::SetEnvironmentVariable(('R25C11B_EXPECTED_'+$key+'_SHA256'),$m.Groups[1].Value)
+                Write-Output ('R25C11_PARENT_B_'+$key+'_SHA256='+$m.Groups[1].Value)
+                $count++
+              }
+              foreach ($n in 374..406) {
+                $key='T'+$n
+                $m=[regex]::Match($parentOutput,('R25C11A_WIRE_'+$key+'_SHA256=([0-9a-f]{64})'))
+                if (-not $m.Success) {throw ('R25C11_MISSING_PARENT_DIGEST_'+$key)}
+                [Environment]::SetEnvironmentVariable(('R25C11A_EXPECTED_'+$key+'_SHA256'),$m.Groups[1].Value)
+                Write-Output ('R25C11_PARENT_A_'+$key+'_SHA256='+$m.Groups[1].Value)
+                $count++
+              }
+              if ($count -ne 54) {throw 'R25C11_PARENT_DIGEST_COUNT_DRIFT'}
+              Write-Output 'R25C11_ALL_54_ORIGINAL_WIRE_FINGERPRINTS=PASS'
+              Remove-Item -LiteralPath $testA,$testB -Force
+              & git checkout --detach $head *> $log
+              if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $headTree) {throw 'R25C11_RESTORE_CANDIDATE_FAILED'}
+              $env:R25C11A_ORIGINAL_MODE='0'
+              $env:R25C11B_ORIGINAL_MODE='0'
+              & go test -vet=off -mod=readonly -count=1 -timeout=600s -v -run '^TestR25C11(A|B)HistoricalGovernanceJSONWire$' ./pkg *> $log
+              if ($LASTEXITCODE -ne 0) {
+                Write-Output ('R25C11_CANDIDATE_TEST_DIAGNOSTICS='+(Get-Content $log -Tail 24 | Out-String))
+                throw 'R25C11_CANDIDATE_WIRE_TEST_FAILED'
+              }
+              Write-Output 'R25C11_54_RECORD_ORIGINAL_JSON_WIRE_AND_DECODE=PASS'
+              & go vet -mod=readonly -unsafeptr ./pkg *> $log
+              if ($LASTEXITCODE -ne 0) {throw 'R25C11_UNSAFEPTR_FAILED'}
+              Write-Output 'R25C11_UNSAFEPTR=PASS'
+              & go vet -mod=readonly -structtag ./pkg *> $log
+              $exit=$LASTEXITCODE
+              $diagnostics=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '\.go:\d+:\d+:'}).Count
+              Write-Output "R25C11_REMAINING_STRUCTTAG_DIAGNOSTICS=$diagnostics"
+              if ($exit -eq 0 -or $diagnostics -ne 1081) {throw 'R25C11_STRUCTTAG_DIFFERENTIAL_MISMATCH'}
+              Write-Output 'R25C11_GROUP_B_VET_DIAGNOSTICS_REMOVED=378'
+              Write-Output 'R25C11_GROUP_A_VET_DIAGNOSTICS_REMOVED=1287'
+              Write-Output 'R25C11_STRUCTTAG_DIAGNOSTICS_REDUCED_BY=1665'
+              Write-Output 'R25C11_FOCUSED_WINDOWS_QUALIFICATION=PASS'
+              Write-Output 'R25C11_FULL_VET=NOT_PASSED'
+              Write-Output 'R25C11_FINAL_REGRESSION=NOT_RUN'
+              $global:LASTEXITCODE=0
+            } finally { Pop-Location }
+          } finally {
+            Remove-Item -LiteralPath $log,$frozenA,$frozenB -Force -ErrorAction SilentlyContinue
+          }
+      - name: Cleanup private source
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Output 'R25C11_PRIVATE_CHECKOUT_CLEANUP=PASS'
