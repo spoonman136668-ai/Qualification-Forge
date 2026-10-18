@@ -1,0 +1,202 @@
+name: KTRADE R25-C20 exact-source compositional Windows build completion
+on:
+  push:
+    branches: [qualification/ktrade-r25c20-pr39-20261018]
+    paths: [.github/workflows/ktrade-r25c20-build-completion.yml]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  verified-final-build:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      KTRADE_SOURCE_SHA: '96a8947f58cd9f206cc098de522eabc0dcd5f518'
+      KTRADE_SOURCE_TREE: '7a7700df71ad9af513cdfaaafb761f73a58f3a73'
+      KTRADE_SOURCE_PARENT: 'a3b2e1a53a8b714bbdca1b33a6db71e128f32fa1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Authenticate R25-C20 exact-source focused full-regression and vet evidence
+        shell: pwsh
+        env:
+          QUAL_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'R25C20_NOT_QUALIFIED_WINDOWS'}
+          if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1'){throw 'R25C20_UNSAFE_AUTHORITY'}
+          $api='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge'
+          $h=@{Authorization=('Bearer '+$env:QUAL_TOKEN);Accept='application/vnd.github+json'}
+          $run=Invoke-RestMethod -Uri ($api+'/actions/runs/39172648634') -Headers $h -TimeoutSec 30
+          $jobs=Invoke-RestMethod -Uri ($api+'/actions/runs/39172648634/jobs?per_page=100') -Headers $h -TimeoutSec 30
+          $wf=Invoke-RestMethod -Uri ($api+'/contents/.github/workflows/ktrade-r25c20-pr39-windows.yml?ref=aaa9b16744c8891617e34a552888d5ad0f563b5d') -Headers $h -TimeoutSec 30
+          if($run.head_sha -cne 'aaa9b16744c8891617e34a552888d5ad0f563b5d' -or
+             $run.event -cne 'push' -or $run.run_attempt -ne 1 -or
+             $run.path -cne '.github/workflows/ktrade-r25c20-pr39-windows.yml' -or
+             $run.status -cne 'completed' -or $run.conclusion -cne 'failure' -or
+             $jobs.total_count -ne 1 -or $wf.sha -cne 'ea1201163ade9b18e853093bd92585ef70318f9f'){throw 'R25C20_PARENT_QUALIFICATION_IDENTITY_DRIFT'}
+          $job=@($jobs.jobs)[0]
+          if($job.id -ne 117808753328 -or $job.conclusion -cne 'failure' -or
+             $job.name -cne 'exact-source-windows'){throw 'R25C20_PARENT_JOB_IDENTITY_DRIFT'}
+          $passed=@(
+            'Checkout KTRADE PR39 exact private commit read-only',
+            'Freeze source and verify exact five-file delta',
+            'Install qualified Go toolchain',
+            'Fetch locked dependencies without source mutation',
+            'Focused content-digest and affected-interface tests',
+            'Reconstruct original R25-C12 wire witnesses on exact immutable foundations',
+            'One complete Windows Go regression',
+            'Vet all unchanged and affected Go packages'
+          )
+          foreach($name in $passed){
+            $item=@($job.steps | Where-Object {$_.name -ceq $name})
+            if($item.Count -ne 1 -or $item[0].conclusion -cne 'success'){throw ('R25C20_PARENT_STEP_NOT_PROVEN_'+$name)}
+          }
+          $failed=@($job.steps|Where-Object {$_.name -ceq 'Build authentic full-tagged KTRADE plus four offline commands'})
+          if($failed.Count -ne 1 -or $failed[0].conclusion -cne 'failure'){throw 'R25C20_UNEXPECTED_PARENT_FAILURE_BOUNDARY'}
+          $log=Join-Path $env:RUNNER_TEMP 'r25c20-upstream-log.txt'
+          try {
+            Invoke-WebRequest -Uri ($api+'/actions/jobs/117808753328/logs') -Headers $h -OutFile $log -MaximumRedirection 5 -TimeoutSec 90
+            $raw=Get-Content -LiteralPath $log -Raw
+            foreach($marker in @(
+              'R25C20_EXACT_HEAD_AND_TREE=PASS 96a8947f58cd9f206cc098de522eabc0dcd5f518 7a7700df71ad9af513cdfaaafb761f73a58f3a73',
+              'R25C20_FOCUSED=PASS',
+              'R25C13_55_GOVERNANCE_PARENT_WITNESSES=PASS',
+              'R25C13_17_MIXED_PARENT_WITNESSES=PASS',
+              'R25C20_FULL_REGRESSION=PASS',
+              'R25C20_FULL_VET=PASS',
+              'package ktrade_full is not in std',
+              'malformed import path'
+            )){
+              if(!$raw.Contains($marker)){throw ('R25C20_MISSING_AUTHENTIC_SOURCE_MARKER_'+$marker)}
+            }
+          } finally {Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+          Write-Output 'R25C20_EXACT_SHA_FULL_WINDOWS_REGRESSION_REUSED=PASS'
+          Write-Output 'R25C20_EXACT_SHA_GO_VET_REUSED=PASS'
+          Write-Output 'R25C20_PREVIOUS_FAILURE_LIMITED_TO_BUILD_COMMAND=PASS'
+          Write-Output 'R25C20_NO_REDUNDANT_FULL_REGRESSION=TRUE'
+      - name: Checkout identical private KTRADE source without persistent credentials
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 96a8947f58cd9f206cc098de522eabc0dcd5f518
+          path: source
+          fetch-depth: 2
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Reverify immutable source and unchanged test contract
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if((& git -C $root rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE_SHA -or
+             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_SOURCE_TREE -or
+             (& git -C $root rev-parse HEAD^).Trim() -cne $env:KTRADE_SOURCE_PARENT -or
+             (& git -C $root hash-object (Join-Path $root 'pkg/r25c12_governance_wire_compat_test.go')).Trim() -cne '8813b0db1c5591db5b136dc32b568d8773cbc4e6' -or
+             (& git -C $root hash-object (Join-Path $root 'pkg/r25c12_mixed_phase9_wire_compat_test.go')).Trim() -cne '00d8cabd7077f84e8b9d39d36cd5f8eb9b658206' -or
+             @(& git -C $root status --porcelain).Count -ne 0){throw 'R25C20_BUILD_SOURCE_OR_TEST_IDENTITY_DRIFT'}
+          Write-Output 'R25C20_BUILD_EXACT_SOURCE_AND_TEST_BLOBS=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Build five original or read-only Windows commands with corrected tag syntax
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          go mod download
+          if($LASTEXITCODE -ne 0){throw 'R25C20_DEPENDENCIES_UNAVAILABLE'}
+          git diff --exit-code -- go.mod go.sum
+          if($LASTEXITCODE -ne 0){throw 'R25C20_MODULE_DRIFT'}
+          $dest=Join-Path $env:RUNNER_TEMP 'ktrade-r25c20-authentic-builds'
+          if(Test-Path -LiteralPath $dest){throw 'R25C20_BUILD_STAGE_NOT_CLEAN'}
+          New-Item -ItemType Directory -Path $dest|Out-Null
+          $commands=@(
+            @{name='ktrade.exe';path='./cmd/ktrade';full=$true},
+            @{name='ktrade-paper.exe';path='./cmd/ktrade-paper';full=$false},
+            @{name='ktrade-paper-web.exe';path='./cmd/ktrade-paper-web';full=$false},
+            @{name='ktrade-inventory.exe';path='./cmd/ktrade-inventory';full=$false},
+            @{name='ktrade-inventory-hash.exe';path='./cmd/ktrade-inventory-hash';full=$false}
+          )
+          foreach($item in $commands){
+            $output=Join-Path $dest $item.name
+            if($item.full) { & go build -mod=readonly -tags=ktrade_full -o $output $item.path }
+            else { & go build -mod=readonly -o $output $item.path }
+            if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $output -PathType Leaf)){
+              throw ('R25C20_AUTHENTIC_BUILD_FAILED_'+$item.name)
+            }
+            Write-Output ('R25C20_BUILD_SHA256_'+$item.name+'='+(Get-FileHash -LiteralPath $output -Algorithm SHA256).Hash.ToLowerInvariant())
+          }
+          Write-Output 'R25C20_FIVE_AUTHENTIC_WINDOWS_BUILDS=PASS'
+          Write-Output 'R25C20_NO_BINARY_EXECUTED_OR_RELEASED=TRUE'
+      - name: Seal complete source-and-upstream-provenance receipt
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE_SHA -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_SOURCE_TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'R25C20_SOURCE_DRIFT_AT_SEAL'}
+          $bin=Join-Path $env:RUNNER_TEMP 'ktrade-r25c20-authentic-builds'
+          $hashes=[ordered]@{}
+          foreach($name in @('ktrade.exe','ktrade-paper.exe','ktrade-paper-web.exe','ktrade-inventory.exe','ktrade-inventory-hash.exe')){
+            $hashes[$name]=(Get-FileHash -LiteralPath (Join-Path $bin $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+          }
+          $receipt=[ordered]@{
+            schema='ktrade.r25c20.pr39.compositional-windows.v1'
+            disposition='EXACT_SHA_FOCUSED_FULL_REGRESSION_VET_AND_FIVE_BUILDS_PASS_NOT_RELEASE'
+            source_sha=$env:KTRADE_SOURCE_SHA
+            source_tree=$env:KTRADE_SOURCE_TREE
+            source_parent=$env:KTRADE_SOURCE_PARENT
+            upstream_evidence_run=39172648634
+            upstream_evidence_job=117808753328
+            upstream_workflow_sha='aaa9b16744c8891617e34a552888d5ad0f563b5d'
+            upstream_workflow_blob='ea1201163ade9b18e853093bd92585ef70318f9f'
+            own_qualification_workflow_sha=$env:GITHUB_SHA
+            own_run_id=$env:GITHUB_RUN_ID
+            os='windows-2022'
+            go_toolchain='1.23.x'
+            focused_tests='PASS_IN_AUTHENTICATED_UPSTREAM'
+            original_wire_witnesses='PASS_IN_AUTHENTICATED_UPSTREAM'
+            full_regression='PASS_IN_AUTHENTICATED_UPSTREAM'
+            full_vet='PASS_IN_AUTHENTICATED_UPSTREAM'
+            executable_sha256=$hashes
+            real_private_profile_touched=$false
+            live_broker_access=$false
+            production_promotion=$false
+            merge_authorized=$false
+          }
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $dir -Force|Out-Null
+          $p=Join-Path $dir 'ktrade-r25c20-acceptance.json'
+          $receipt|ConvertTo-Json -Depth 10|Set-Content -LiteralPath $p -Encoding utf8
+          $sha=(Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant()
+          ($sha+'  ktrade-r25c20-acceptance.json')|Set-Content -LiteralPath (Join-Path $dir 'ktrade-r25c20-acceptance.sha256') -Encoding ascii
+          Write-Output ('R25C20_SEALED_EVIDENCE_SHA256='+$sha)
+          Write-Output 'R25C20_QUALIFIED_SOURCE_ONLY=PASS; RELEASE_AND_LIVE_TRADING=FALSE'
+      - name: Publish sanitized proof only
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c20-pr39-source-acceptance
+          path: |
+            evidence/ktrade-r25c20-acceptance.json
+            evidence/ktrade-r25c20-acceptance.sha256
+          if-no-files-found: error
+          retention-days: 90
+      - name: Erase private checkout and executable scratch
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-r25c20-authentic-builds') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C20_SOURCE_AND_EXE_STAGING_CLEANUP_ATTEMPTED=TRUE'
