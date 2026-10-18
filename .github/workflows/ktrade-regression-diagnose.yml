@@ -3,7 +3,7 @@ name: KTRADE read-only regression failure classification
 on:
   push:
     branches:
-      - qualification/ktrade-full-recovery-win-20261017
+      - qualification/ktrade-regression-rootcause-20261018
     paths: [.github/workflows/ktrade-regression-diagnose.yml]
 
 permissions:
@@ -15,8 +15,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     env:
-      EXPECTED_KTRADE_SHA: '60ecf34994d9c7648a39a6f0104c09ff4297d83d'
-      EXPECTED_TREE: 'f120e79635288111fa58ca6fb541d232ed531d79'
+      EXPECTED_KTRADE_SHA: '8967d0b4ebb845199dcd584bde194a125ae5ecbc'
+      EXPECTED_TREE: '8156335d81b00063c3d006bb009a19a9f34e10fb'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 60ecf34994d9c7648a39a6f0104c09ff4297d83d
+          ref: 8967d0b4ebb845199dcd584bde194a125ae5ecbc
           path: checked-private
           fetch-depth: 1
           persist-credentials: false
@@ -76,6 +76,8 @@ jobs:
               Write-Output ('KTRADE_FAILING_AREA='+$area)
               Write-Output ('KTRADE_FAILURE_KIND='+$kind)
               Write-Output ('KTRADE_FAILURE_TEST_COUNT='+$tests.Count)
+              $safeNames=@($tests|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique|Select-Object -First 15)
+              Write-Output ('KTRADE_FAILURE_SAMPLED_TEST_NAMES='+[string]::Join(',',$safeNames))
               Write-Output ('KTRADE_FAILURE_FAMILIES='+([string]::Join(',',$family)))
               throw ('KTRADE_FOCUSED_REGRESSION_'+$area+'_FAILED_PRIVATE_OUTPUT_WITHHELD')
             }
