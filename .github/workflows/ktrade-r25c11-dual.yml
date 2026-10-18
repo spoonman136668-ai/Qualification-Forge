@@ -54,7 +54,7 @@ jobs:
                 (& git -C $root rev-parse HEAD^).Trim() -cne $step -or
                 (& git -C $root rev-parse HEAD^^).Trim() -cne $parent -or
                 (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $headTree -or
-                (& git -C $root rev-parse 'HEAD^^{tree}').Trim() -cne $parentTree) {throw 'R25C11_SOURCE_IDENTITY_DRIFT'}
+                (& git -C $root rev-parse ($parent+'^{tree}')).Trim() -cne $parentTree) {throw 'R25C11_SOURCE_IDENTITY_DRIFT'}
             $expectedFiles=@(
               'pkg/p11b_t333_explicit_new_repro_only_release_readiness_governance_closeout_sunrise_pin.go',
               'pkg/p11b_t334_explicit_new_repro_only_release_readiness_governance_closeout_daylight_pin.go',
@@ -118,7 +118,7 @@ jobs:
             $groupB=@(& git -C $root diff --name-only $parent $step)
             $groupA=@(& git -C $root diff --name-only $step $head)
             if (@($groupB).Count -ne 22 -or @($groupA).Count -ne 34) {throw 'R25C11_GROUP_BOUNDARY_DRIFT'}
-            if ((& git -C $root rev-parse $step':{tree}').Trim() -cne $stepTree) {throw 'R25C11_GROUP_B_TREE_DRIFT'}
+            if ((& git -C $root rev-parse ($step+'^{tree}')).Trim() -cne $stepTree) {throw 'R25C11_GROUP_B_TREE_DRIFT'}
             Copy-Item -LiteralPath $testA -Destination $frozenA
             Copy-Item -LiteralPath $testB -Destination $frozenB
             Push-Location $root
