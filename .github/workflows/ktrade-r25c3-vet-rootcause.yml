@@ -1,0 +1,76 @@
+name: KTRADE R25-C3 inherited vet root-cause sample
+on:
+  push:
+    branches: [qualification/ktrade-r25c3-vet-rootcause-20261018]
+    paths: [.github/workflows/ktrade-r25c3-vet-rootcause.yml]
+permissions:
+  contents: read
+jobs:
+  vet-sample:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout unchanged historical source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 6d9bf14e39f2df87743ac7dc9decb4d8a082efa1
+          path: original
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup original-version-compatible Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Classify original package vet messages without source changes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'original'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c3-vet-root-private.log'
+          try {
+            if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'HOST_NOT_SUPPORTED'}
+            if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'AUTHORITY_NOT_DISABLED'}
+            if((& git -C $root rev-parse HEAD).Trim() -cne '6d9bf14e39f2df87743ac7dc9decb4d8a082efa1' -or
+               (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '0d54e849c7c7a32e0b5876e2d694852b076be074'){throw 'HISTORICAL_SHA_MISMATCH'}
+            Push-Location $root
+            try {
+              & go vet -mod=readonly ./pkg *> $log
+              $code=$LASTEXITCODE
+              $records=@()
+              foreach($line in @(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue)){
+                if($line -match '(?i)^(?:.+[/\\])?([A-Za-z0-9_.-]+\.go):([0-9]+):([0-9]+):\s*(.+)$'){
+                  $records+=@{file=$Matches[1];message=$Matches[4]}
+                }
+              }
+              $groups=@($records|Group-Object -Property file|Sort-Object -Property Count -Descending|Select-Object -First 10)
+              Write-Output ('R25C3_HISTORICAL_PKG_VET_EXIT='+$code)
+              Write-Output ('R25C3_HISTORICAL_PKG_VET_DIAGNOSTIC_COUNT='+$records.Count)
+              foreach($g in $groups){Write-Output ('R25C3_HISTORICAL_VET_TOP_FILE='+$g.Name+';COUNT='+$g.Count)}
+              $samples=@($records|Select-Object -First 8)
+              foreach($rec in $samples){
+                $scrub=[string]$rec.message
+                $scrub=[regex]::Replace($scrub, '"[^"]*"|''[^'']*''','<quoted>')
+                $scrub=[regex]::Replace($scrub, '[0-9a-fA-F]{24,}','<hex>')
+                if($scrub.Length -gt 155){$scrub=$scrub.Substring(0,155)}
+                Write-Output ('R25C3_HISTORICAL_VET_EXAMPLE_FILE='+$rec.file+';MESSAGE='+$scrub)
+              }
+              Write-Output 'R25C3_NO_RECOVERY_SOURCE_MUTATION=TRUE'
+              Write-Output 'R25C3_FULL_REGRESSION_RERUN=FALSE'
+              if($code -ne 0){throw 'R25C3_HISTORICAL_GO_VET_NEGATIVE_KEPT_OPEN'}
+            } finally {Pop-Location}
+          } finally {Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Remove original source
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'original') -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'r25c3-vet-root-private.log') -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C3_PRIVATE_SOURCE_RETAINED=FALSE'
