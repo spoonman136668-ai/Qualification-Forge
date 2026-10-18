@@ -1,0 +1,131 @@
+name: G32-C1 KTRADE exact-head Windows qualification
+on:
+  push:
+    branches: [qualification/g32c1-ktrade-forge-20261018]
+    paths: [.github/workflows/g32c1-ktrade.yml]
+permissions:
+  contents: read
+concurrency:
+  group: g32c1-ktrade-exact-head
+  cancel-in-progress: false
+jobs:
+  qualify:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      SOURCE_SHA: '3761034e2ea04e10c77b714b474b4adae3b20fa2'
+      SOURCE_TREE: 'f0412653b8a034803d6aee8ed28f50a305d92111'
+      FOUNDATION: '56c6e6aa867d4956ad6ab5dcbb234817480061a2'
+      G31_BASE: 'a3b2e1a53a8b714bbdca1b33a6db71e128f32fa1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout pinned private KTRADE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: 3761034e2ea04e10c77b714b474b4adae3b20fa2
+          path: source
+          fetch-depth: 0
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Exact immutable head and two-file qualification scope
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1'){
+            throw 'G32C1_PLATFORM_OR_AUTHORITY_DRIFT'
+          }
+          $s=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if((git -C $s rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+             (git -C $s rev-parse 'HEAD^{tree}').Trim() -cne $env:SOURCE_TREE){throw 'G32C1_SOURCE_IDENTITY_DRIFT'}
+          & git -C $s merge-base --is-ancestor $env:FOUNDATION $env:SOURCE_SHA
+          if($LASTEXITCODE -ne 0){throw 'G32C1_SOURCE_ANCESTRY_DRIFT'}
+          $want=@('tools/graphify/g32_delta/main.go','tools/graphify/g32_delta/main_test.go')|Sort-Object
+          $got=@(git -C $s diff --name-only $env:FOUNDATION $env:SOURCE_SHA)|Sort-Object
+          if(@($got).Count -ne 2 -or @((Compare-Object $want $got)).Count -ne 0){
+            throw ('G32C1_SCOPE_CHANGED '+($got -join ','))
+          }
+          if(@(git -C $s status --porcelain).Count -ne 0){throw 'G32C1_DIRTY_CHECKOUT'}
+          Write-Host 'G32C1_EXACT_HEAD_TREE_AND_TOOL_ONLY_SCOPE=PASS'
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Fetch locked dependencies without editing Go source
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go mod download
+          if($LASTEXITCODE -ne 0){throw 'G32C1_DEPENDENCIES_FAILED'}
+          git diff --exit-code -- go.mod go.sum
+          if($LASTEXITCODE -ne 0){throw 'G32C1_MODULES_CHANGED'}
+          Write-Host 'G32C1_MODULE_IDENTITY=PASS'
+      - name: Three focused G32 tests
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go test -mod=readonly -count=1 -v ./tools/graphify/g32_delta
+          if($LASTEXITCODE -ne 0){throw 'G32C1_FOCUSED_FAILED'}
+          Write-Host 'G32C1_FOCUSED_THREE=PASS'
+      - name: Validate affected imports from G31 baseline
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=& go run -mod=readonly ./tools/graphify/g32_delta --repo=. --base=$env:G31_BASE --target=$env:SOURCE_SHA
+          if($LASTEXITCODE -ne 0){throw 'G32C1_IMPACT_RUN_FAILED'}
+          $o=($raw|Out-String|ConvertFrom-Json)
+          if($o.schema -cne 'g32.go-package-impact.v1' -or
+             $o.base_commit -cne $env:G31_BASE -or $o.target_commit -cne $env:SOURCE_SHA -or
+             $o.authority -cne 'advisory-no-mutation' -or $o.exact_blob_reuse_count -le 0 -or
+             @($o.changed_packages|Where-Object {$_ -ceq 'ktrade/internal/durableupgrade'}).Count -ne 1 -or
+             @($o.changed_packages|Where-Object {$_ -ceq 'ktrade/cmd/ktrade-inventory-hash'}).Count -ne 1){
+            throw 'G32C1_IMPACT_BOUNDARY_INCORRECT'
+          }
+          Write-Host ('G32C1_BLOB_REUSED='+$o.exact_blob_reuse_count)
+          Write-Host ('G32C1_PACKAGES_CHANGED='+@($o.changed_packages).Count)
+          Write-Host ('G32C1_REVERSE_AFFECTED='+@($o.reverse_affected_packages).Count)
+          Write-Host 'G32C1_AFFECTED_IMPORTS=PASS'
+      - name: One final integration regression
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go test -mod=readonly -count=1 -timeout=25m ./...
+          if($LASTEXITCODE -ne 0){throw 'G32C1_FULL_REGRESSION_FAILED'}
+          Write-Host 'G32C1_FULL_REGRESSION=PASS'
+      - name: Build and vet G32 analyzer, no application launch
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go vet -mod=readonly ./tools/graphify/g32_delta
+          if($LASTEXITCODE -ne 0){throw 'G32C1_ANALYZER_VET_FAILED'}
+          go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g32-analyzer.exe') ./tools/graphify/g32_delta
+          if($LASTEXITCODE -ne 0){throw 'G32C1_ANALYZER_BUILD_FAILED'}
+          if((git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or @(git status --porcelain).Count -ne 0){
+            throw 'G32C1_SOURCE_DIRTY_AFTER_REGRESSION'
+          }
+          Write-Host 'G32C1_VET_BUILD_CLEAN=PASS; BROKER_CONTACT=FALSE; RELEASE=FALSE'
+      - name: Remove private checkout and temporary binary
+        shell: pwsh
+        if: always()
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          Remove-Item -LiteralPath $src -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g32-analyzer.exe') -Force -ErrorAction SilentlyContinue
+          if(Test-Path -LiteralPath $src){throw 'G32C1_PRIVATE_SOURCE_CLEANUP_FAILED'}
+          Write-Host 'G32C1_PRIVATE_CHECKOUT_CLEANED=PASS'
