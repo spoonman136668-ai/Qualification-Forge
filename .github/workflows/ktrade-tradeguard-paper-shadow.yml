@@ -1,7 +1,7 @@
 name: KTRADE donor TradeGuard isolated paper shadow
 on:
   push:
-    branches: [qualification/ktrade-full-app-readonly-bridge-20261018]
+    branches: [qualification/ktrade-authenticated-browser-paper-20261018]
     paths: [.github/workflows/ktrade-tradeguard-paper-shadow.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     env:
-      EXPECTED_KTRADE: 'fcc3462cf98e9b6487374cf07c5112f08d72fc3d'
-      EXPECTED_TREE: 'e4fe00e1b7a79c874290086bdae4bb1e5336a4b7'
+      EXPECTED_KTRADE: '53dcc8fde3cd33610237ad7f4d42f1a916fd18b6'
+      EXPECTED_TREE: '35ada908bcf5c0abc5dae4e9961539caa8798e90'
       EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
       EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
@@ -48,12 +48,17 @@ jobs:
       EXPECTED_LEGACY_WEB_TEST: '70a389fcc45f866e0d6774b65bac3c1c4d797b0c'
       EXPECTED_EXCLUSIVE_DONOR_TEST: '1501ce66cb0f854dd9655cf385f4255973e3f59d'
       EXPECTED_APP_MAIN_FULL: '5b21fba52ee8ab1c696c3b773819d8f32c31c653'
-      EXPECTED_APP_BRIDGE: '6bfba2e789764c01eb51c0281a9d39cc36ddd615'
-      EXPECTED_APP_BRIDGE_TEST: '74ab6ba3402f3e0c166cc97dbb9b87bb4c8c95aa'
+      EXPECTED_APP_BRIDGE: '911b6eab1bf2084bac873575e7694d521a859250'
+      EXPECTED_APP_BRIDGE_TEST: 'b5d9a7c8ebdada7b17e9154585ee4ea49ee3c7c0'
       EXPECTED_APP_STATUS: 'd771882efdbf4b6ff1c33d8c012dda3dd5c797ec'
       EXPECTED_APP_STATUS_TEST: 'c26130dc5903e7c17223a8b0e87caefd84f9ad59'
       EXPECTED_READONLY_SQLITE: '3e9ed3f05024f77d75f6493b9ffbc812db2eef93'
       EXPECTED_READONLY_SQLITE_TEST: 'a073f3e52d07fb928acde4db38baf1441dbcdb57'
+      EXPECTED_AUTH_SUBMISSION: '70d3f53dc90d45b84a5a82416022a7055a3467a6'
+      EXPECTED_AUTH_SHADOW: 'ee856cf6c50d2f40449261e04f3532ab8d930b46'
+      EXPECTED_AUTH_TEST: '4e50122e063db25ff17b371079ef86995cdf38ab'
+      EXPECTED_AUTH_DONOR_TEST: 'f78a3b176bdb57b91203a4763329e414f65ae7fe'
+      EXPECTED_AUTH_BROWSER_TEST: 'ca52bfbebd170b877f20d6219b319857556cb728'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -67,7 +72,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: fcc3462cf98e9b6487374cf07c5112f08d72fc3d
+          ref: 53dcc8fde3cd33610237ad7f4d42f1a916fd18b6
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -141,6 +146,10 @@ jobs:
           )){
             if((& git -C $ktrade rev-parse "HEAD:$($pair[0])").Trim() -cne $pair[1]){throw 'KTRADE_FULL_APP_READONLY_BRIDGE_SOURCE_DRIFT'}
           }
+          foreach($item in @(@('internal/paperapp/submit.go',$env:EXPECTED_AUTH_SUBMISSION),@('internal/paperapp/submit_shadow.go',$env:EXPECTED_AUTH_SHADOW),@('internal/paperapp/submit_shadow_test.go',$env:EXPECTED_AUTH_TEST),@('tests/donor-shadow/paper_authenticated_browser_test.go',$env:EXPECTED_AUTH_DONOR_TEST),@('tests/donor-shadow/paper_browser_windows_test.go',$env:EXPECTED_AUTH_BROWSER_TEST))){
+            if((& git -C $ktrade rev-parse "HEAD:$($item[0])").Trim() -cne $item[1]){throw 'KTRADE_AUTHENTICATED_BROWSER_SOURCE_DRIFT'}
+          }
+          Write-Output 'KTRADE_COMPLETE_PROPOSAL_AUTHENTICATED_ORIGIN_AND_DONOR_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_FULL_APP_ORIGINAL_ORDER_ROUTE_READONLY_BRIDGE_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_EXCLUSIVE_SQLITE_OWNER_AND_LEGACY_WEB_BYPASS_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_HISTORIC_PORTABLE_SNAPSHOT_SQLITE_IDENTITY=PASS'
@@ -169,12 +178,14 @@ jobs:
           $proposalScratch=Join-Path $donor 'internal/paperproposal'
           $reconcileScratch=Join-Path $donor 'internal/paperreconcile'
           $authorityScratch=Join-Path $donor 'internal/paperauthority'
+          $appScratch=Join-Path $donor 'internal/paperapp'
           $log=Join-Path $env:RUNNER_TEMP 'ktrade-shadow-private-tests.log'
           try{
             New-Item -ItemType Directory -Path $scratch -Force|Out-Null
             New-Item -ItemType Directory -Path $proposalScratch -Force|Out-Null
             New-Item -ItemType Directory -Path $reconcileScratch -Force|Out-Null
             New-Item -ItemType Directory -Path $authorityScratch -Force|Out-Null
+            New-Item -ItemType Directory -Path $appScratch -Force|Out-Null
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperreconcile/reconcile.go') -Destination (Join-Path $reconcileScratch 'reconcile.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperreconcile/reconcile_test.go') -Destination (Join-Path $reconcileScratch 'reconcile_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperreconcile/risk_replay.go') -Destination (Join-Path $reconcileScratch 'risk_replay.go') -Force
@@ -197,11 +208,16 @@ jobs:
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/real_process_kill_test.go') -Destination (Join-Path $scratch 'real_process_kill_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/midwrite_process_kill_test.go') -Destination (Join-Path $scratch 'midwrite_process_kill_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/windows_fs_capability_test.go') -Destination (Join-Path $scratch 'windows_fs_capability_test.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperapp/server.go') -Destination (Join-Path $appScratch 'server.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperapp/submit.go') -Destination (Join-Path $appScratch 'submit.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperapp/submit_shadow.go') -Destination (Join-Path $appScratch 'submit_shadow.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperauthority/authority.go') -Destination (Join-Path $authorityScratch 'authority.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperauthority/commit_trial_shadow.go') -Destination (Join-Path $authorityScratch 'commit_trial_shadow.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/paper_sqlite_commit_test.go') -Destination (Join-Path $scratch 'paper_sqlite_commit_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/paper_sqlite_commit_windows_test.go') -Destination (Join-Path $scratch 'paper_sqlite_commit_windows_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/paper_exclusive_owner_test.go') -Destination (Join-Path $scratch 'paper_exclusive_owner_test.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/paper_authenticated_browser_test.go') -Destination (Join-Path $scratch 'paper_authenticated_browser_test.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/paper_browser_windows_test.go') -Destination (Join-Path $scratch 'paper_browser_windows_test.go') -Force
             Push-Location $donor
             try{
               $priorGoFlags=$env:GOFLAGS
@@ -256,6 +272,12 @@ jobs:
                 $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]' -or $_ -match '^.*authority.*\.go:[0-9]+:[0-9]+:'} | Select-Object -First 18)
                 foreach($line in $safe){Write-Output "KTRADE_SQLITE_SAFE_DIAGNOSTIC: $line"}
                 throw 'KTRADE_SQLITE_ORIGINAL_RISK_PAPER_AUTHORITY_REJECTED'
+              }
+              & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=240s ./internal/paperapp *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]' -or $_ -match '^.*submit_shadow_test\.go:[0-9]+: '} | Select-Object -First 14)
+                foreach($line in $safe){Write-Output "KTRADE_AUTH_BROWSER_SAFE_DIAGNOSTIC: $line"}
+                throw 'KTRADE_AUTH_BROWSER_TRANSPORT_TEST_FAILED'
               }
               & go test -mod=readonly -count=1 -timeout=240s ./internal/paperapp *> $log
               if($LASTEXITCODE -ne 0){
@@ -315,6 +337,9 @@ jobs:
             Write-Output 'KTRADE_EXCLUSIVE_SQLITE_ADMISSION_BEFORE_AUTHENTIC_DONOR_RISK=PASS'
             Write-Output 'KTRADE_LEGACY_PAPERWEB_CONSOLIDATED_PARTITION_HTTP_BYPASS_REFUSED=PASS'
             Write-Output 'KTRADE_FULL_APP_PAPER_AUTHORITY_GET_ONLY_READONLY_STOPPED=PASS'
+            Write-Output 'KTRADE_AUTHENTICATED_COMPLETE_PAPER_PROPOSAL_ISOLATED_DONOR_COMMIT=PASS'
+            Write-Output 'KTRADE_REAL_WINDOWS_BROWSER_HEADLESS_ORIGIN_CSRF_DEDUP_TEST=PASS'
+            Write-Output 'KTRADE_FULL_APP_SUBMISSION_REMAINS_LOCKED=TRUE'
             Write-Output 'KTRADE_FULL_APP_ORDER_POST_REMAINS_BROKER_DISABLED=TRUE'
             Write-Output 'KTRADE_INSTALLED_PROFILE_OPENED_OR_MUTATED=FALSE'
             Write-Output 'KTRADE_INSTALLED_USER_DATA_MIGRATED=FALSE'
@@ -324,6 +349,7 @@ jobs:
             Remove-Item -LiteralPath $proposalScratch -Recurse -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $reconcileScratch -Recurse -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $authorityScratch -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $appScratch -Recurse -Force -ErrorAction SilentlyContinue
           }
       - name: Confidential checkout cleanup without upload
         if: always()
