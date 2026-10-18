@@ -153,7 +153,10 @@ jobs:
             Write-Output 'KTRADE_ORIGINAL_TRADE_BROKER_DISABLED=TRUE'
             Write-Output 'KTRADE_BROWSER_FRESH_EPHEMERAL_PROFILE=TRUE'
           }finally{
-            if($null -ne $browser){try{& taskkill.exe /PID $browser.Id /T /F *> $null}catch{}}
+            if($null -ne $browser){
+              try{if(-not $browser.HasExited){$browser.Kill($true)}}catch{}
+              $browser.Dispose()
+            }
             if($null -ne $backend){try{Stop-Process -Id $backend.Id -Force -ErrorAction SilentlyContinue}catch{};$backend.Dispose()}
             foreach($key in $prior.Keys){[Environment]::SetEnvironmentVariable($key,$prior[$key],'Process')}
             Remove-Item -LiteralPath $stage -Recurse -Force -ErrorAction SilentlyContinue
