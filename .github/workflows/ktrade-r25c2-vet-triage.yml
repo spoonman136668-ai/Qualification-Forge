@@ -1,0 +1,89 @@
+name: KTRADE R25-C2 vet-failure categorization
+on:
+  push:
+    branches: [qualification/ktrade-r25c2-vet-triage-20261018]
+    paths: [.github/workflows/ktrade-r25c2-vet-triage.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  vet-readonly:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      EXPECTED_KTRADE_SHA: '9e288a7a280416c9a8eaf660ece0aecab31efbd1'
+      EXPECTED_TREE: '1a3c0f506d4f305e798afa6f1c9319d2ad7ef9f5'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact KTRADE source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9e288a7a280416c9a8eaf660ece0aecab31efbd1
+          path: ktrade-private
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Classify Go vet without re-running full regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c2-vet-diagnostics-private.log'
+          try {
+            if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'R25C2_WRONG_HOST'}
+            if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'R25C2_UNSAFE_AUTHORITY'}
+            if((& git -C $root rev-parse HEAD).Trim() -cne $env:EXPECTED_KTRADE_SHA -or
+               (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:EXPECTED_TREE){throw 'R25C2_SOURCE_DRIFT'}
+            Push-Location $root
+            try {
+              & go mod download *> $log
+              if($LASTEXITCODE -ne 0){throw 'R25C2_MODULE_PREPARATION_FAILED'}
+              & go vet -mod=readonly ./... *> $log
+              $vetExit=$LASTEXITCODE
+              $lines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue)
+              $diagnostics=@($lines | Where-Object {$_ -match '(?i)\.go:[0-9]+(?::[0-9]+)?:'})
+              $packages=@($lines | Where-Object {$_ -match '^# ktrade(/[A-Za-z0-9_.-]+)*' } | ForEach-Object {([regex]::Match($_,'^# ktrade(/[A-Za-z0-9_.-]+)*')).Value.Substring(2)} | Sort-Object -Unique)
+              $sourceDiag=@($diagnostics | Where-Object {$_ -notmatch '_test\.go:[0-9]+'})
+              $testDiag=@($diagnostics | Where-Object {$_ -match '_test\.go:[0-9]+'})
+              $formatDiag=@($diagnostics | Where-Object {$_ -match '(?i)format|printf|Println|non-constant' })
+              $structDiag=@($diagnostics | Where-Object {$_ -match '(?i)struct.?tag|tag key|reflect.StructTag' })
+              $lockDiag=@($diagnostics | Where-Object {$_ -match '(?i)lock|mutex|copylocks' })
+              $others=$diagnostics.Count-$formatDiag.Count-$structDiag.Count-$lockDiag.Count
+              Write-Output ('R25C2_VET_EXIT_CODE='+$vetExit)
+              Write-Output ('R25C2_VET_MATCHED_DIAGNOSTIC_LINES='+$diagnostics.Count)
+              Write-Output ('R25C2_VET_TEST_FILE_LINES='+$testDiag.Count)
+              Write-Output ('R25C2_VET_OTHER_GO_FILE_LINES='+$sourceDiag.Count)
+              Write-Output ('R25C2_VET_FORMAT_RELATED_LINES='+$formatDiag.Count)
+              Write-Output ('R25C2_VET_STRUCTTAG_RELATED_LINES='+$structDiag.Count)
+              Write-Output ('R25C2_VET_LOCK_RELATED_LINES='+$lockDiag.Count)
+              Write-Output ('R25C2_VET_INVOLVED_PACKAGES='+($packages -join ','))
+              Write-Output ('R25C2_VET_OTHER_RULE_LINES_UNADJUDICATED='+$others)
+              Write-Output 'R25C2_VET_RAW_DIAGNOSTICS_NOT_EXPORTED=TRUE'
+              Write-Output 'R25C2_FULL_REGRESSION_RERUN=FALSE'
+              if($vetExit -ne 0){throw 'R25C2_GO_VET_REMAINS_BLOCKED_NO_WAIVER'}
+              Write-Output 'R25C2_GO_VET=PASS'
+            } finally {
+              Pop-Location
+            }
+          } finally {
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Remove private checkout and any diagnostics
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'ktrade-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'r25c2-vet-diagnostics-private.log') -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C2_NO_USER_DATA_TOUCHED=TRUE'
+          Write-Output 'R25C2_PRODUCTION_PROMOTION=FALSE'
