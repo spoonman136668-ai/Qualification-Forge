@@ -1,0 +1,134 @@
+name: KTRADE R25-C3 independent historical vet comparison
+on:
+  push:
+    branches: [qualification/ktrade-r25c3-vet-differential-20261018]
+    paths: [.github/workflows/ktrade-r25c3-vet-differential.yml]
+permissions:
+  contents: read
+jobs:
+  vet-differential:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 32
+    env:
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout immutable pre-migration KTRADE
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 6d9bf14e39f2df87743ac7dc9decb4d8a082efa1
+          path: source-historical
+          persist-credentials: false
+          token: \${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout frozen R25-C2 recovery
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9e288a7a280416c9a8eaf660ece0aecab31efbd1
+          path: source-recovery
+          persist-credentials: false
+          token: \${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup identical Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Vet both sources in independent read-only Windows checkouts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $before = Join-Path $env:GITHUB_WORKSPACE 'source-historical'
+          $after = Join-Path $env:GITHUB_WORKSPACE 'source-recovery'
+          $historical = Join-Path $env:RUNNER_TEMP 'r25c3-historical-private.log'
+          $recovered = Join-Path $env:RUNNER_TEMP 'r25c3-recovered-private.log'
+          $prep = Join-Path $env:RUNNER_TEMP 'r25c3-go-mod-private.log'
+          try {
+            if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'R25C3_HOST_DRIFT'}
+            if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'R25C3_BROKER_AUTHORITY_DRIFT'}
+            if((& git -C $before rev-parse HEAD).Trim() -cne '6d9bf14e39f2df87743ac7dc9decb4d8a082efa1' -or
+               (& git -C $before rev-parse 'HEAD^{tree}').Trim() -cne '0d54e849c7c7a32e0b5876e2d694852b076be074'){throw 'R25C3_HISTORIC_DRIFT'}
+            if((& git -C $after rev-parse HEAD).Trim() -cne '9e288a7a280416c9a8eaf660ece0aecab31efbd1' -or
+               (& git -C $after rev-parse 'HEAD^{tree}').Trim() -cne '1a3c0f506d4f305e798afa6f1c9319d2ad7ef9f5'){throw 'R25C3_RECOVERY_DRIFT'}
+            Write-Output 'R25C3_FROZEN_SOURCE_PAIR=PASS'
+            $outputs = @()
+            foreach($source in @(@{label='HISTORIC';root=$before;log=$historical},@{label='RECOVERY';root=$after;log=$recovered})){
+              Push-Location $source.root
+              try {
+                & go mod download *> $prep
+                if($LASTEXITCODE -ne 0){throw ('R25C3_MODULES_FAILED_'+$source.label)}
+                & go vet -mod=readonly ./... *> $source.log
+                $exitCode=$LASTEXITCODE
+                $lines=@(Get-Content -LiteralPath $source.log -ErrorAction SilentlyContinue)
+                $d=@()
+                foreach($line in $lines){
+                  if($line -match '(?i)^(?:.+[/\\])?([A-Za-z0-9_.-]+\.go):([0-9]+):([0-9]+):\s*(.*)$'){
+                    $file=$Matches[1]
+                    $msg=$Matches[4].Trim()
+                    $d+=($file+'|'+$msg)
+                  }
+                }
+                $counts=@{}
+                foreach($v in $d){if(!$counts.ContainsKey($v)){$counts[$v]=0};$counts[$v]++}
+                $groups=@($lines | Where-Object {$_ -match '^# ktrade(?:/[A-Za-z0-9_.-]+)*' } | ForEach-Object {([regex]::Match($_,'^# ktrade(?:/[A-Za-z0-9_.-]+)*')).Value.Substring(2)}|Sort-Object -Unique)
+                $outputs+=@{label=$source.label;exit=$exitCode;diag=$d;counts=$counts;groups=$groups}
+                Write-Output ('R25C3_'+$source.label+'_VET_EXIT='+$exitCode)
+                Write-Output ('R25C3_'+$source.label+'_VET_DIAGNOSTIC_LINES='+$d.Count)
+                Write-Output ('R25C3_'+$source.label+'_VET_UNIQUE_SIGNATURES='+$counts.Count)
+                Write-Output ('R25C3_'+$source.label+'_VET_PACKAGES='+($groups -join ','))
+              } finally {Pop-Location}
+            }
+            $old=$outputs[0]; $new=$outputs[1]
+            $added=@();$removed=@()
+            foreach($key in $new.counts.Keys){
+              $n=$new.counts[$key]-$(if($old.counts.ContainsKey($key)){$old.counts[$key]}else{0})
+              if($n -gt 0){$added+=@{sig=$key;count=$n}}
+            }
+            foreach($key in $old.counts.Keys){
+              $n=$old.counts[$key]-$(if($new.counts.ContainsKey($key)){$new.counts[$key]}else{0})
+              if($n -gt 0){$removed+=@{sig=$key;count=$n}}
+            }
+            Write-Output ('R25C3_NEW_DIAGNOSTIC_LINES='+(@($added|Measure-Object -Property count -Sum)[0].Sum))
+            Write-Output ('R25C3_RESOLVED_DIAGNOSTIC_LINES='+(@($removed|Measure-Object -Property count -Sum)[0].Sum))
+            Write-Output ('R25C3_NEW_DISTINCT_DIAGNOSTICS='+$added.Count)
+            Write-Output ('R25C3_RESOLVED_DISTINCT_DIAGNOSTICS='+$removed.Count)
+            $cause=@{}
+            foreach($e in $new.diag){
+              $message=($e -split '\|',2)[1]
+              $kind=if($message -match '(?i)undefined:|undeclared name|unresolved'){'undefined_symbol'}
+                elseif($message -match '(?i)struct tag|structtag|reflect.StructTag'){'struct_tags'}
+                elseif($message -match '(?i)fmt|printf|format|formatting'){'format'}
+                elseif($message -match '(?i)copylocks|lock value|mutex|sync.Mutex'){'locks'}
+                elseif($message -match '(?i)possible misuse|unsafe'){'unsafe'}
+                elseif($message -match '(?i)non-constant|unreachable|lostcancel|unused'){'control_flow'}
+                elseif($message -match '(?i)duplicate|redeclared|ambiguous'){'duplicate'}
+                else{'other'}
+              if(!$cause.ContainsKey($kind)){$cause[$kind]=0};$cause[$kind]++
+            }
+            foreach($key in @($cause.Keys|Sort-Object)){Write-Output ('R25C3_RECOVERY_VET_CATEGORY_'+$key+'='+$cause[$key])}
+            $newBrief=@($added | Sort-Object -Property count -Descending | Select-Object -First 8)
+            foreach($entry in $newBrief){
+              $parts=$entry.sig -split '\|',2
+              $kind=if($parts[1] -match '(?i)undefined'){'undefined'}elseif($parts[1] -match '(?i)format|printf'){'format'}elseif($parts[1] -match '(?i)struct.tag'){'struct_tag'}else{'other'}
+              Write-Output ('R25C3_NEW_DIAGNOSTIC_FILE='+$parts[0]+';FAMILY='+$kind+';OCCURRENCES='+$entry.count)
+            }
+            Write-Output 'R25C3_RAW_DIAGNOSTICS_PRESERVED_IN_CLEANED_TEMP_ONLY=TRUE'
+            Write-Output 'R25C3_FULL_REGRESSION_RERUN=FALSE'
+            if($new.exit -ne 0){throw 'R25C3_VET_NOT_YET_QUALIFIED_NO_WAIVER'}
+            Write-Output 'R25C3_VET=PASS'
+          } finally {
+            Remove-Item -LiteralPath $historical,$recovered,$prep -Force -ErrorAction SilentlyContinue
+          }
+      - name: Delete source and diagnostic state
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source-historical') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source-recovery') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'r25c3-historical-private.log'),(Join-Path $env:RUNNER_TEMP 'r25c3-recovered-private.log'),(Join-Path $env:RUNNER_TEMP 'r25c3-go-mod-private.log') -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C3_REAL_USER_DATA_TOUCHED=FALSE'
+          Write-Output 'R25C3_PRODUCTION_PROMOTION=FALSE'
