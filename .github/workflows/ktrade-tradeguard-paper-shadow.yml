@@ -1,7 +1,7 @@
 name: KTRADE donor TradeGuard isolated paper shadow
 on:
   push:
-    branches: [qualification/ktrade-portable-sqlite-migration-20261018]
+    branches: [qualification/ktrade-exclusive-private-inventory-20261018]
     paths: [.github/workflows/ktrade-tradeguard-paper-shadow.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     env:
-      EXPECTED_KTRADE: '85ef867e83e5dd76ffff86b8873e9cb3d26a6f08'
-      EXPECTED_TREE: '9e24d9396ce26d47612ebeab41d0f0a5dddf9865'
+      EXPECTED_KTRADE: '4f3c123f0a3c31f2b4c59f843b07e019fa88c601'
+      EXPECTED_TREE: '53fc1275a2b1baa1263b28e176dbbd03e3079ce0'
       EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
       EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
@@ -38,12 +38,19 @@ jobs:
       EXPECTED_UNIFIED_AUTHORITY: 'aea49b7fef985dcdd17073933a5c1a17f707e246'
       EXPECTED_UNIFIED_AUTHORITY_TEST: 'a14b85dc1c9d87614f02c0c0c5538527a7c2431a'
       EXPECTED_UNIFIED_AUTHORITY_WINDOWS: '1ec36d6599e9a9112961fe4eae5570aef2c1f098'
-      EXPECTED_TRIAL_SOURCE: 'a6d01794daec29dcd36f77412f5be37c67e48b57'
+      EXPECTED_TRIAL_SOURCE: 'abe2773c69a8c6eeffb7c6e1bd77ee3bc3048b21'
       EXPECTED_TRIAL_DONOR_TEST: '6bd49a17e600fa5ee6dff90851ba7b02beffd275'
       EXPECTED_TRIAL_WINDOWS_TEST: '826a66246fc1f81f4b8cb8f459d1a83f0f0b1aa2'
       EXPECTED_HISTORIC_UPGRADE_SOURCE: '0b5d77438af932cee56082aab320ef8d1378d0b5'
       EXPECTED_PORTABLE_SQLITE_BRIDGE: '3d5a26358acbfe6d14e01ba9e41fc5847264e0bc'
       EXPECTED_PORTABLE_SQLITE_TEST: 'a55340d19813ea2d80f72d11fecba51f765a8833'
+      EXPECTED_EXCLUSIVE_OWNER: '92d3ecfc071400d89bd287b57444a53e05bedc72'
+      EXPECTED_EXCLUSIVE_DONOR_TEST: '2008d7d6824b98053da650ddb0375e412b0d8c9a'
+      EXPECTED_PRIVATE_INVENTORY_SOURCE: '0c46cfa09cebe43a3bd95de42d4eb4d18893e926'
+      EXPECTED_PRIVATE_INVENTORY_TEST: '5fae3df92e40c6a55be2cf497a24402f24192e9f'
+      EXPECTED_INVENTORY_CLI: '91e41eab13c290af55cd07c1300b9be09eac86a1'
+      EXPECTED_WEB_SRC: '5626dba8eb4e30e058ac876bd5c3781177f73d52'
+      EXPECTED_WEB_EXCLUSIVE_TEST: '511508b9c0a062e377ff6fa18cd7f2623aff3b52'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -57,7 +64,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 85ef867e83e5dd76ffff86b8873e9cb3d26a6f08
+          ref: 4f3c123f0a3c31f2b4c59f843b07e019fa88c601
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -117,6 +124,14 @@ jobs:
           if((& git -C $ktrade rev-parse HEAD:internal/durableupgrade/durable_upgrade.go).Trim() -cne $env:EXPECTED_HISTORIC_UPGRADE_SOURCE){throw 'KTRADE_HISTORIC_UPGRADE_BLOB_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:internal/paperauthority/portable_migration_shadow.go).Trim() -cne $env:EXPECTED_PORTABLE_SQLITE_BRIDGE){throw 'KTRADE_PORTABLE_SQLITE_BRIDGE_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:internal/paperauthority/portable_migration_shadow_test.go).Trim() -cne $env:EXPECTED_PORTABLE_SQLITE_TEST){throw 'KTRADE_PORTABLE_SQLITE_TEST_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/paperauthority/exclusive_owner_shadow.go).Trim() -cne $env:EXPECTED_EXCLUSIVE_OWNER){throw 'KTRADE_SQLITE_EXCLUSIVE_OWNER_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/exclusive_owner_test.go).Trim() -cne $env:EXPECTED_EXCLUSIVE_DONOR_TEST){throw 'KTRADE_SQLITE_EXCLUSIVE_TEST_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/durableupgrade/private_inventory.go).Trim() -cne $env:EXPECTED_PRIVATE_INVENTORY_SOURCE){throw 'KTRADE_PRIVATE_INVENTORY_SOURCE_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/durableupgrade/private_inventory_test.go).Trim() -cne $env:EXPECTED_PRIVATE_INVENTORY_TEST){throw 'KTRADE_PRIVATE_INVENTORY_TEST_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:cmd/ktrade-inventory/main.go).Trim() -cne $env:EXPECTED_INVENTORY_CLI){throw 'KTRADE_LOCAL_PRIVATE_INVENTORY_CLI_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/paperweb/server.go).Trim() -cne $env:EXPECTED_WEB_SRC){throw 'KTRADE_PAPER_WEB_EXCLUSIVE_DENY_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/paperweb/exclusive_guard_test.go).Trim() -cne $env:EXPECTED_WEB_EXCLUSIVE_TEST){throw 'KTRADE_PAPER_WEB_EXCLUSIVE_TEST_DRIFT'}
+          Write-Output 'KTRADE_EXCLUSIVE_SQLITE_AND_PRIVATE_INVENTORY_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_HISTORIC_PORTABLE_SNAPSHOT_SQLITE_IDENTITY=PASS'
           Write-Output 'KTRADE_ORIGINAL_PAPER_AUTHENTIC_DONOR_SINGLE_SQLITE_COMMIT_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_ORIGINAL_RISK_LEDGER_JOURNAL_SQLITE_SOURCE_IDENTITY=PASS'
@@ -173,8 +188,10 @@ jobs:
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/windows_fs_capability_test.go') -Destination (Join-Path $scratch 'windows_fs_capability_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperauthority/authority.go') -Destination (Join-Path $authorityScratch 'authority.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperauthority/commit_trial_shadow.go') -Destination (Join-Path $authorityScratch 'commit_trial_shadow.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperauthority/exclusive_owner_shadow.go') -Destination (Join-Path $authorityScratch 'exclusive_owner_shadow.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/paper_sqlite_commit_test.go') -Destination (Join-Path $scratch 'paper_sqlite_commit_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/paper_sqlite_commit_windows_test.go') -Destination (Join-Path $scratch 'paper_sqlite_commit_windows_test.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/exclusive_owner_test.go') -Destination (Join-Path $scratch 'exclusive_owner_test.go') -Force
             Push-Location $donor
             try{
               $priorGoFlags=$env:GOFLAGS
@@ -236,12 +253,16 @@ jobs:
                 foreach($line in $safe){Write-Output "KTRADE_PORTABLE_MIGRATION_SAFE_DIAGNOSTIC: $line"}
                 throw 'KTRADE_HISTORIC_PORTABLE_MIGRATION_SQLITE_TEST_FAILED'
               }
-              & go test -mod=readonly -count=1 -timeout=240s ./internal/durableupgrade *> $log
+              & go test -mod=readonly -count=1 -timeout=240s ./internal/durableupgrade ./internal/paperweb *> $log
               if($LASTEXITCODE -ne 0){
                 $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]'} | Select-Object -First 12)
                 foreach($line in $safe){Write-Output "KTRADE_HISTORIC_UPGRADE_SAFE_DIAGNOSTIC: $line"}
                 throw 'KTRADE_HISTORIC_DURABLE_UPGRADE_REGRESSED'
               }
+              & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'ktrade-private-inventory-probe.exe') ./cmd/ktrade-inventory *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_OFFLINE_PRIVATE_INVENTORY_COMMAND_BUILD_FAILED'}
+              Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-private-inventory-probe.exe') -Force -ErrorAction SilentlyContinue
+              Write-Output 'KTRADE_EXCLUSIVE_SQLITE_LOCAL_PRIVATE_SCAN_SYNTHETIC_REJECTION=PASS'
               Write-Output 'KTRADE_SQLITE_HISTORIC_PORTABLE_PINE_PNL_ROLLBACK_INTEGRATION=PASS'
               Write-Output 'KTRADE_SQLITE_ONE_COMMIT_ACCOUNT_RISK_STOP_ATOMIC_REVIEW_AND_OS_PROCESS_KILL=PASS'
               & go test -mod=readonly -count=1 ./internal/paperproposal ./internal/paperreconcile ./internal/papertrading ./internal/paperweb *> $log
@@ -273,6 +294,8 @@ jobs:
             Write-Output 'KTRADE_SYNTHETIC_ORIGINAL_FIFO_AUTHENTIC_TRADEGUARD_SINGLE_COMMIT_NO_ORDER_ROUTE=PASS'
             Write-Output 'KTRADE_HISTORIC_INSTALL_LAYOUT_SQLITE_MIGRATION_SYNTHETIC_ONLY=PASS'
             Write-Output 'KTRADE_INSTALLED_USER_DATA_MIGRATED=FALSE'
+            Write-Output 'KTRADE_PRIVATE_FILES_SCANNED=FALSE'
+            Write-Output 'KTRADE_FULL_APP_ORDER_AUTHORITY_ACTIVATED=FALSE'
           }finally{
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
