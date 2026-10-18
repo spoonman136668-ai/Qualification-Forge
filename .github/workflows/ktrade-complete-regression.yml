@@ -1,7 +1,7 @@
 name: KTRADE source-pinned complete regression and builds
 on:
   push:
-    branches: [qualification/ktrade-full-recovery-win-20261017]
+    branches: [qualification/ktrade-real-ui-inventory-20261018]
     paths: [.github/workflows/ktrade-complete-regression.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 48
     env:
-      EXPECTED_SHA: '738a21a655bb52e1977437befdf98b8b338ad9de'
-      EXPECTED_TREE: '93806ef888d380fbdaa25bab6da490dc8a326540'
+      EXPECTED_SHA: 'f9dee34b5c4d414478e64cd46ad2a9cd3ea58a0d'
+      EXPECTED_TREE: 'dfe8808291f41cc3ebcdbf2f54587054eca42ca8'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 738a21a655bb52e1977437befdf98b8b338ad9de
+          ref: f9dee34b5c4d414478e64cd46ad2a9cd3ea58a0d
           path: private
           fetch-depth: 1
           persist-credentials: false
@@ -57,6 +57,16 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'MODULE_DOWNLOAD_FAILED'}
             & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=300s -run '^TestKTradePineLibrary' ./cmd/ktrade *> $log
             if($LASTEXITCODE -ne 0){throw 'PINE_LIBRARY_FOCUSED_FAILED'}
+            if((& git -C $root rev-parse HEAD:internal/durableupgrade/installed_inventory_review.go).Trim() -cne 'ee91b19a810c248376628489f6b398107806f339'){throw 'INSTALLED_INVENTORY_PROBE_SOURCE_DRIFT'}
+            if((& git -C $root rev-parse HEAD:internal/durableupgrade/installed_inventory_review_test.go).Trim() -cne '908e06b9eee11db92ec0e374888f78c1f1a68af1'){throw 'INSTALLED_INVENTORY_TEST_SOURCE_DRIFT'}
+            & go test -mod=readonly -count=1 -timeout=240s -run '^TestInstalledDataSyntheticInventory' ./internal/durableupgrade *> $log
+            if($LASTEXITCODE -ne 0){
+              $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]'}|Select-Object -First 12)
+              foreach($line in $safe){Write-Output "KTRADE_SYNTHETIC_INVENTORY_SAFE_DIAGNOSTIC: $line"}
+              throw 'KTRADE_SYNTHETIC_PORTABLE_INVENTORY_INCOMPLETE'
+            }
+            Write-Output 'KTRADE_SOURCE_BACKED_PORTABLE_AND_EXCLUDED_USER_DATA_INVENTORY=PASS'
+            Write-Output 'KTRADE_ACTUAL_INSTALLED_PRIVATE_DATA_INVENTORIED=FALSE'
             & go test -mod=readonly -count=1 -timeout=300s ./internal/papertrading ./internal/paperweb *> $log
             if($LASTEXITCODE -ne 0){throw 'PAPER_FOCUSED_FAILED'}
             & node --test tests/historical_pine_editor_chart_wiring.test.cjs tests/pine_library_compat_browser.test.cjs tests/paper_tradeguard_reconciliation.test.cjs *> $log
