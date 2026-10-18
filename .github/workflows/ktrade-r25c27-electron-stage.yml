@@ -171,7 +171,8 @@ jobs:
           $desktop=Join-Path $path 'KTRADE.exe'
           $backend=Join-Path $path 'resources/bin/ktrade.exe'
           if(!(Test-Path -LiteralPath $desktop) -or !(Test-Path -LiteralPath $backend)){throw 'R25C27_DESKTOP_MISSING'}
-          $rules=@('R25C27-Desktop-'+$env:GITHUB_RUN_ID,'R25C27-Backend-'+$env:GITHUB_RUN_ID)
+          $rules=@("R25C27-Desktop-$($env:GITHUB_RUN_ID)","R25C27-Backend-$($env:GITHUB_RUN_ID)")
+          if($rules.Count -ne 2 -or [string]::IsNullOrWhiteSpace($rules[0]) -or [string]::IsNullOrWhiteSpace($rules[1])){throw 'R25C27_FIREWALL_RULE_IDENTITY_ERROR'}
           $env:APPDATA=Join-Path $env:RUNNER_TEMP 'r25c27-appdata'
           $env:LOCALAPPDATA=Join-Path $env:RUNNER_TEMP 'r25c27-localappdata'
           New-Item -ItemType Directory -Path $env:APPDATA,$env:LOCALAPPDATA -Force|Out-Null
