@@ -41,7 +41,7 @@ jobs:
             if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'R25C4_UNSAFE_AUTHORITY'}
             if((& git -C $root rev-parse HEAD).Trim() -cne 'dba1ba0e07e29f79e184997120d1724870328d37' -or
                (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '356665612ac675e6334d822002b426ece3c5c1cd'){throw 'R25C4_SOURCE_DRIFT'}
-            if((& git -C $root rev-parse HEAD:pkg/pine_ast.go).Trim() -cne 'c49ed04d06ec09f90a6f5013279e616321d121bf'){throw 'R25C4_AST_SOURCE_DRIFT'}
+            if((& git -C $root rev-parse HEAD:pkg/pine_ast.go).Trim() -cne '27f3591c02713e5dbf0abf4ac139f0711a2718d6'){throw 'R25C4_AST_SOURCE_DRIFT'}
             Push-Location $root
             try {
               & go mod download *> $log
