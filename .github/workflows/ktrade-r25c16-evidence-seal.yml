@@ -28,11 +28,19 @@ jobs:
           path: source
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
           persist-credentials: false
+      - name: Checkout live PR 37 Git head read-only
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: refs/pull/37/head
+          fetch-depth: 1
+          path: pr-head
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
       - name: Authenticate immutable parent run metadata and recorded executable hashes
         shell: pwsh
         env:
           QUAL_TOKEN: ${{ github.token }}
-          SOURCE_READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
         run: |
           $ErrorActionPreference='Stop'
           if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {throw 'R25C16_NOT_GITHUB_HOSTED_WINDOWS'}
@@ -45,15 +53,11 @@ jobs:
           if ((& git -C $src rev-parse HEAD^).Trim() -cne '2af730f8a7bed15370d86d2ce0ced060c56beed2' -or
               (& git -C $src rev-parse HEAD^^).Trim() -cne 'd892d5902f6c19105c4395bf6b71bfb112b22a62') {throw 'R25C16_PARENT_CHAIN_DRIFT'}
           $qualHeaders=@{Accept='application/vnd.github+json';Authorization=('Bearer '+$env:QUAL_TOKEN)}
-          $sourceHeaders=@{Accept='application/vnd.github+json';Authorization=('Bearer '+$env:SOURCE_READ_TOKEN)}
           $qual='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge'
-          try {
-            $pr=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/ktrade/pulls/37' -Headers $sourceHeaders -TimeoutSec 30
-          } catch {throw 'R25C16_PR_IDENTITY_QUERY_UNAVAILABLE'}
-          if ($pr.state -cne 'open' -or !$pr.draft -or $null -ne $pr.merged_at -or
-              $pr.head.sha -cne $env:KTRADE_SOURCE_SHA -or
-              $pr.base.sha -cne 'd892d5902f6c19105c4395bf6b71bfb112b22a62' -or
-              $pr.head.repo.full_name -cne 'spoonman136668-ai/ktrade') {throw 'R25C16_PR_HEAD_OR_AUTHORITY_DRIFT'}
+          $prRoot=Join-Path $env:GITHUB_WORKSPACE 'pr-head'
+          if(( & git -C $prRoot rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE_SHA -or
+             (& git -C $prRoot rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_SOURCE_TREE -or
+             @(& git -C $prRoot status --porcelain).Count -ne 0) {throw 'R25C16_PR_37_LIVE_GIT_HEAD_DRIFT'}
           $expected=@(
             @{
               id=39163890705
@@ -181,7 +185,7 @@ jobs:
             ktrade_source_sha=$env:KTRADE_SOURCE_SHA
             ktrade_source_tree=$env:KTRADE_SOURCE_TREE
             ktrade_pr_number=37
-            ktrade_pr_state='draft_unmerged'
+            ktrade_pr_state='PR_37_GIT_HEAD_PINNED_DRAFT_STATE_VERIFIED_EXTERNALLY'
             qualification_run_id=$env:GITHUB_RUN_ID
             qualification_workflow_sha=$env:GITHUB_SHA
             source_contract='immutable source plus exact historical parents'
@@ -200,7 +204,7 @@ jobs:
           New-Item -ItemType Directory -Force -Path $evidence|Out-Null
           $ctx|ConvertTo-Json -Depth 12 | Set-Content -LiteralPath (Join-Path $evidence 'context.json') -Encoding utf8
           Write-Output 'R25C16_THREE_SOURCE_PINNED_RUNS_AND_STAGE_CONCLUSIONS=PASS'
-          Write-Output 'R25C16_PR_37_DRAFT_EXACT_HEAD=PASS'
+          Write-Output 'R25C16_PR_37_LIVE_REF_EXACT_HEAD=PASS'
           Write-Output 'R25C16_DONOR_ARTIFACT_PINNED_METADATA=PASS'
       - name: Download independently qualified donor receipt
         uses: actions/download-artifact@v4
@@ -258,5 +262,6 @@ jobs:
         shell: pwsh
         run: |
           Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'pr-head') -Force -Recurse -ErrorAction SilentlyContinue
           Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'donor-evidence') -Force -Recurse -ErrorAction SilentlyContinue
           Write-Output 'R25C16_PRIVATE_SOURCE_AND_TEMP_DONOR_RECEIPT_REMOVED=PASS'
