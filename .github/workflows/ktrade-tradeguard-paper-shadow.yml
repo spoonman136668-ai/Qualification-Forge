@@ -164,7 +164,19 @@ jobs:
             Push-Location $ktrade
             try{
               & go test -mod=readonly -count=1 ./internal/paperproposal ./internal/paperreconcile ./internal/papertrading ./internal/paperweb *> $log
-              if($LASTEXITCODE -ne 0){throw 'KTRADE_CONSOLIDATED_PAPER_BASELINE_REGRESSED'}
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {
+                  $_ -match '^# ktrade/' -or
+                  $_ -match '^--- FAIL: Test[A-Za-z0-9_./-]+' -or
+                  $_ -match '^FAIL[[:space:]]' -or
+                  $_ -match '^.*(?:reconcile|proposal|papertrading).*_test\\.go:[0-9]+: '
+                } | Select-Object -First 16)
+                foreach($line in $safe){
+                  $line=$line -replace [regex]::Escape($env:GITHUB_WORKSPACE),'[private]'
+                  Write-Output "KTRADE_NATIVE_GO_SAFE_DIAGNOSTIC: $line"
+                }
+                throw 'KTRADE_CONSOLIDATED_PAPER_BASELINE_REGRESSED'
+              }
               & node --test tests/paper_tradeguard_reconciliation.test.cjs *> $log
               if($LASTEXITCODE -ne 0){throw 'KTRADE_PAPER_SHADOW_BOUNDARY_REGRESSED'}
             }finally{Pop-Location}
