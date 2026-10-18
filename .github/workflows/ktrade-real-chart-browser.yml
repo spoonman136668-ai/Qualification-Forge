@@ -111,32 +111,40 @@ jobs:
             $browserExe=$candidates|Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}|Select-Object -First 1
             if(!$browserExe){throw 'KTRADE_REAL_BROWSER_BINARY_NOT_INSTALLED_ON_HOST'}
             Write-Output ('KTRADE_REAL_BROWSER_SELECTED_BINARY='+[IO.Path]::GetFileName($browserExe))
-            # Let Chromium select its own loopback CDP port. The chosen port
-            # is written to the *fresh temporary* user-data directory.
-            $arguments=@('--headless=new','--disable-gpu','--disable-extensions','--disable-background-networking','--no-first-run','--no-default-browser-check',
-              '--remote-allow-origins=*','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0',
-              '--user-data-dir="'+$profile+'"',$base+'/chart')
-            $browser=Start-Process -FilePath $browserExe -ArgumentList $arguments -PassThru -WindowStyle Hidden
-            $portFile=Join-Path $profile 'DevToolsActivePort'
-            $ready=$false;$debug=0;$observedCDP=$false;$observedPage=''
+            # Native ProcessStartInfo.ArgumentList avoids Start-Process
+            # quoting ambiguities, and an explicitly reserved local port
+            # avoids dependence on Chromium's DevToolsActivePort file.
+            $socket=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0)
+            $socket.Start()
+            try{$debug=[int]([Net.IPEndPoint]$socket.LocalEndpoint).Port}
+            finally{$socket.Stop()}
+            if($debug -lt 1024){throw 'KTRADE_REAL_BROWSER_INVALID_DEBUG_PORT'}
+            $psi=[Diagnostics.ProcessStartInfo]::new($browserExe)
+            $psi.UseShellExecute=$false
+            $psi.CreateNoWindow=$true
+            foreach($argument in @(
+              '--headless=new','--disable-gpu','--disable-extensions',
+              '--disable-background-networking','--no-first-run',
+              '--no-default-browser-check','--remote-allow-origins=*',
+              '--remote-debugging-address=127.0.0.1',
+              ('--remote-debugging-port='+$debug),
+              ('--user-data-dir='+$profile),($base+'/chart')
+            )){$psi.ArgumentList.Add($argument)}
+            $browser=[Diagnostics.Process]::Start($psi)
+            if($null -eq $browser){throw 'KTRADE_REAL_BROWSER_PROCESS_NOT_STARTED'}
+            $ready=$false;$observedCDP=$false;$observedPage=''
             for($i=0;$i -lt 100;$i++){
               if($browser.HasExited){throw 'KTRADE_REAL_CHROMIUM_PROCESS_EXITED_BEFORE_DEBUGGER_READY'}
-              if(Test-Path -LiteralPath $portFile -PathType Leaf){
-                $portText=(Get-Content -LiteralPath $portFile -TotalCount 1 -ErrorAction SilentlyContinue).Trim()
-                if($portText -match '^[0-9]{2,5}$'){$debug=[int]$portText}
-              }
-              if($debug -gt 0){
-                try{
-                  $target=@(Invoke-RestMethod -Uri ('http://127.0.0.1:'+$debug+'/json/list') -TimeoutSec 2)
-                  $observedCDP=$true
-                  if($target.Count -gt 0){$observedPage=[string]$target[0].type}
-                  if(@($target|Where-Object {$_.url -like ($base+'/chart*')}).Count -ge 1){$ready=$true;break}
-                }catch{}
-              }
+              try{
+                $target=@(Invoke-RestMethod -Uri ('http://127.0.0.1:'+$debug+'/json/list') -TimeoutSec 2)
+                $observedCDP=$true
+                if($target.Count -gt 0){$observedPage=[string]$target[0].type}
+                if(@($target|Where-Object {$_.url -like ($base+'/chart*')}).Count -ge 1){$ready=$true;break}
+              }catch{}
               Start-Sleep -Milliseconds 300
             }
             if(!$ready){
-              Write-Output ('KTRADE_CHROMIUM_CDP_PORT_FILE_PRESENT='+(Test-Path -LiteralPath $portFile).ToString().ToUpperInvariant())
+              Write-Output ('KTRADE_CHROMIUM_EXPLICIT_LOOPBACK_DEBUG_PORT='+$debug)
               Write-Output ('KTRADE_CHROMIUM_CDP_API_RESPONDED='+$observedCDP.ToString().ToUpperInvariant())
               Write-Output ('KTRADE_CHROMIUM_CDP_PAGE_TYPE='+$observedPage)
               throw 'KTRADE_REAL_BROWSER_CHROMIUM_CDP_TARGET_MISSING'
