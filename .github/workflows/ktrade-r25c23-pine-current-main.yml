@@ -1,0 +1,258 @@
+name: KTRADE R25-C23 current-main Pine exact-head Windows acceptance
+on:
+  push:
+    branches: [qualification/ktrade-r25c23-pine-current-main-20261018]
+    paths: [.github/workflows/ktrade-r25c23-pine-current-main.yml]
+permissions:
+  contents: read
+jobs:
+  exact-source-windows:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 95
+    env:
+      KTRADE_SOURCE_SHA: 'c20d4b6db912611552a5a291594c818498acc038'
+      KTRADE_SOURCE_TREE: 'c4fd194f48ef4ea331929c1123a7e0fa99de9c0d'
+      KTRADE_SOURCE_PARENT: '56c6e6aa867d4956ad6ab5dcbb234817480061a2'
+      KTRADE_PARENT_TREE: '7a7700df71ad9af513cdfaaafb761f73a58f3a73'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout exact private KTRADE Pine candidate
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: c20d4b6db912611552a5a291594c818498acc038
+          path: source
+          fetch-depth: 0
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Freeze exact one-file Pine transplant and safety boundaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'R25C23_WRONG_RUNNER'}
+          if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1'){throw 'R25C23_UNSAFE_AUTHORITY'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if((& git -C $src rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE_SHA -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_SOURCE_TREE -or
+             (& git -C $src rev-parse HEAD^).Trim() -cne $env:KTRADE_SOURCE_PARENT -or
+             (& git -C $src rev-parse 'HEAD^^{tree}').Trim() -cne $env:KTRADE_PARENT_TREE -or
+             (& git -C $src hash-object (Join-Path $src 'pkg/pine_nullable_types.go')).Trim() -cne 'ff47a274e087526706bc55043358f5e1b4e8096d'){
+            throw 'R25C23_IMMUTABLE_PINE_SOURCE_DRIFT'
+          }
+          $paths=@(git -C $src diff --name-only HEAD^ HEAD)
+          if($LASTEXITCODE -ne 0 -or $paths.Count -ne 1 -or $paths[0] -cne 'pkg/pine_nullable_types.go' -or
+             @(& git -C $src status --porcelain).Count -ne 0){throw 'R25C23_PINE_ONE_FILE_SCOPE_DRIFT'}
+          Write-Output ('R25C23_PINE_ONE_FILE_SOURCE=PASS '+$env:KTRADE_SOURCE_SHA+' '+$env:KTRADE_SOURCE_TREE)
+          Write-Output 'R25C23_PINE_BLOB_IDENTICAL_TO_ORIGINAL_PR3=PASS'
+          Write-Output 'R25C23_BROKER_AND_INSTALLED_PROFILE_DISABLED=PASS'
+      - name: Install qualified Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Fetch locked dependencies without source mutation
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go mod download
+          if($LASTEXITCODE -ne 0){throw 'R25C23_DEPENDENCY_FETCH_FAILED'}
+          git diff --exit-code -- go.mod go.sum
+          if($LASTEXITCODE -ne 0){throw 'R25C23_DEPENDENCY_IDENTITY_DRIFT'}
+          Write-Output 'R25C23_LOCKED_DEPENDENCIES=PASS'
+      - name: Focus original two Phase-F regressions on consolidated source
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go test -vet=off -mod=readonly -tags=phasef -count=1 -timeout=10m -run '^(TestPineV6Strict_PhaseF_Ternary_SingleBranchExec_F1|TestPineV6Strict_PhaseF_ShortCircuit_AndOr_F1)$' ./pkg
+          if($LASTEXITCODE -ne 0){throw 'R25C23_ORIGINAL_PHASEF_FOCUSED_FAILED'}
+          Write-Output 'R25C23_ORIGINAL_PHASEF_FOCUSED=PASS'
+      - name: Reconstruct original R25-C12 wire witnesses on exact immutable foundations
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $head='c20d4b6db912611552a5a291594c818498acc038'
+          $headTree='c4fd194f48ef4ea331929c1123a7e0fa99de9c0d'
+          $s1='2af730f8a7bed15370d86d2ce0ced060c56beed2'
+          $s1Tree='89cc720ff3d6da6cec12d583a23682584f473ac6'
+          $s0='d892d5902f6c19105c4395bf6b71bfb112b22a62'
+          $s0Tree='95846811b88a0cb538dd6d494bb771ef3cd8102b'
+          $root=(Get-Location).Path
+          $gov=Join-Path $root 'pkg/r25c12_governance_wire_compat_test.go'
+          $mixed=Join-Path $root 'pkg/r25c12_mixed_phase9_wire_compat_test.go'
+          $fg=Join-Path $env:RUNNER_TEMP 'r25c13-gov-frozen.go'
+          $fm=Join-Path $env:RUNNER_TEMP 'r25c13-mixed-frozen.go'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c13-private-witness.log'
+          $values=[ordered]@{}
+          try {
+            if ((& git rev-parse HEAD).Trim() -cne $head -or
+                (& git rev-parse 'HEAD^{tree}').Trim() -cne $headTree -or
+                (& git rev-parse ($s1+'^{tree}')).Trim() -cne $s1Tree -or
+                (& git rev-parse ($s0+'^{tree}')).Trim() -cne $s0Tree -or
+                (& git hash-object $gov).Trim() -cne '8813b0db1c5591db5b136dc32b568d8773cbc4e6' -or
+                (& git hash-object $mixed).Trim() -cne '00d8cabd7077f84e8b9d39d36cd5f8eb9b658206') {throw 'R25C23_HISTORICAL_WITNESS_IDENTITY_DRIFT'}
+            & git merge-base --is-ancestor $s0 $head
+            if($LASTEXITCODE -ne 0){throw 'R25C23_ORIGINAL_PARENT_NOT_ANCESTOR'}
+            & git merge-base --is-ancestor $s1 $head
+            if($LASTEXITCODE -ne 0){throw 'R25C23_MIXED_PARENT_NOT_ANCESTOR'}
+            Copy-Item -LiteralPath $gov -Destination $fg
+            Copy-Item -LiteralPath $mixed -Destination $fm
+            & git checkout --detach $s0 *> $log
+            if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $s0Tree) {throw 'R25C13_FIRST_PARENT_CHECKOUT_FAILED'}
+            Copy-Item -LiteralPath $fg -Destination $gov
+            $env:R25C12_ORIGINAL_MODE='1'
+            & go test -vet=off -mod=readonly -count=1 -timeout=10m -v -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_55_PARENT_WITNESS_TESTS_FAILED'}
+            $out=Get-Content -LiteralPath $log -Raw
+            foreach ($n in @(298..332)+@(354..373)) {
+              $k='T'+$n
+              $a=[regex]::Match($out,('R25C12_PARENT_'+$k+'_COLLISIONS_B64=([A-Za-z0-9+/=]+)'))
+              $b=[regex]::Match($out,('R25C12_PARENT_'+$k+'_SHA256=([a-f0-9]{64})'))
+              if (!$a.Success -or !$b.Success) {throw ('R25C13_GOVERNANCE_PARENT_PROVENANCE_MISSING_'+$k)}
+              $values['R25C12_'+$k+'_COLLISIONS_B64']=$a.Groups[1].Value
+              $values['R25C12_'+$k+'_SHA256']=$b.Groups[1].Value
+            }
+            if ($values.Count -ne 110) {throw 'R25C13_GOVERNANCE_PARENT_COUNT_DRIFT'}
+            Remove-Item -LiteralPath $gov -Force
+            & git checkout --detach $s1 *> $log
+            if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $s1Tree) {throw 'R25C13_SECOND_PARENT_CHECKOUT_FAILED'}
+            Copy-Item -LiteralPath $fm -Destination $mixed
+            $env:R25C12_ORIGINAL_MODE='0'
+            $env:R25C12_MIXED_PARENT_MODE='1'
+            & go test -vet=off -mod=readonly -count=1 -timeout=10m -v -run '^TestR25C12MixedPhase9HistoricalJSONWire$' ./pkg *> $log
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_17_PARENT_WITNESS_TESTS_FAILED'}
+            $out=Get-Content -LiteralPath $log -Raw
+            foreach ($n in 24..40) {
+              $k='T'+$n
+              $a=[regex]::Match($out,('R25C12_MIXED_PARENT_'+$k+'_FIELDS_B64=([A-Za-z0-9+/=]+)'))
+              $b=[regex]::Match($out,('R25C12_MIXED_PARENT_'+$k+'_SHA256=([a-f0-9]{64})'))
+              if (!$a.Success -or !$b.Success) {throw ('R25C13_MIXED_PARENT_PROVENANCE_MISSING_'+$k)}
+              $values['R25C12_MIXED_'+$k+'_FIELDS_B64']=$a.Groups[1].Value
+              $values['R25C12_MIXED_'+$k+'_SHA256']=$b.Groups[1].Value
+            }
+            if ($values.Count -ne 144) {throw 'R25C13_TOTAL_PARENT_WITNESS_COUNT_DRIFT'}
+            Remove-Item -LiteralPath $mixed -Force
+            & git checkout --detach $head *> $log
+            if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $headTree -or
+                @(& git status --porcelain).Count -ne 0) {throw 'R25C13_CANDIDATE_RESTORE_DRIFT'}
+            $env:R25C12_MIXED_PARENT_MODE='0'
+            foreach ($key in $values.Keys) {
+              [Environment]::SetEnvironmentVariable($key,$values[$key])
+            }
+            & go test -vet=off -mod=readonly -count=1 -timeout=10m -run '^(TestR25C12HistoricalGovernanceJSONWire|TestR25C12MixedPhase9HistoricalJSONWire)$' ./pkg *> $log
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_FOCUSED_HISTORICAL_PARITY_FAILED'}
+            foreach ($key in $values.Keys) {
+              Add-Content -LiteralPath $env:GITHUB_ENV -Value ($key+'='+$values[$key]) -Encoding utf8
+            }
+            Write-Output 'R25C13_55_GOVERNANCE_PARENT_WITNESSES=PASS'
+            Write-Output 'R25C13_17_MIXED_PARENT_WITNESSES=PASS'
+            Write-Output 'R25C13_FOCUSED_HISTORICAL_PARITY=PASS'
+          } finally {
+            Remove-Item -LiteralPath $log,$fg,$fm -Force -ErrorAction SilentlyContinue
+          }
+      - name: One complete Windows Go regression
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go test -mod=readonly -count=1 -timeout=20m ./...
+          if($LASTEXITCODE -ne 0){throw 'R25C23_FULL_REGRESSION_FAILED'}
+          Write-Output 'R25C23_FULL_REGRESSION=PASS'
+      - name: Complete tagged Phase-F Pine package regression
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go test -vet=off -mod=readonly -tags=phasef -count=1 -timeout=25m ./pkg
+          if($LASTEXITCODE -ne 0){throw 'R25C23_PHASEF_TAGGED_PACKAGE_FAILED'}
+          Write-Output 'R25C23_PHASEF_TAGGED_PACKAGE=PASS'
+      - name: Vet all unchanged and affected Go packages
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go vet -mod=readonly ./...
+          if($LASTEXITCODE -ne 0){throw 'R25C23_VET_FAILED'}
+          Write-Output 'R25C23_FULL_VET=PASS'
+      - name: Build authentic full-tagged KTRADE plus four offline commands
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $bin=Join-Path $env:RUNNER_TEMP 'ktrade-r25c23-binaries'
+          New-Item -ItemType Directory -Path $bin -Force|Out-Null
+          $builds=@(
+            @{name='ktrade.exe'; path='./cmd/ktrade'; tags='ktrade_full'},
+            @{name='ktrade-paper.exe'; path='./cmd/ktrade-paper'; tags=''},
+            @{name='ktrade-paper-web.exe'; path='./cmd/ktrade-paper-web'; tags=''},
+            @{name='ktrade-inventory.exe'; path='./cmd/ktrade-inventory'; tags=''},
+            @{name='ktrade-inventory-hash.exe'; path='./cmd/ktrade-inventory-hash'; tags=''}
+          )
+          foreach($b in $builds){
+            $out=Join-Path $bin $b.name
+            if($b.tags -ne ''){& go build -mod=readonly -tags=ktrade_full -o $out $b.path}
+            else{& go build -mod=readonly -o $out $b.path}
+            if($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $out -PathType Leaf)){throw ('R25C23_BUILD_FAILED_'+$b.name)}
+            $digest=(Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash.ToLowerInvariant()
+            Write-Output ('R25C23_BUILD_SHA256_'+$b.name+'='+$digest)
+          }
+          Write-Output 'R25C23_FIVE_WINDOWS_BUILDS=PASS'
+          Write-Output 'R25C23_BINARIES_NOT_EXECUTED=TRUE'
+      - name: Seal sanitized qualification receipt
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if(@(git status --porcelain).Count -ne 0){throw 'R25C23_POST_RUN_SOURCE_DRIFT'}
+          $e=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $e -Force|Out-Null
+          $receipt=[ordered]@{
+            schema='ktrade.r25c23.current-main.pine-windows-qualification.v1'
+            status='SOURCE_PINNED_PINE_PHASEF_WINDOWS_ACCEPTANCE_ONLY_NOT_RELEASE'
+            ktrade_source_sha=$env:KTRADE_SOURCE_SHA
+            ktrade_source_tree=$env:KTRADE_SOURCE_TREE
+            ktrade_source_parent=$env:KTRADE_SOURCE_PARENT
+            qualification_workflow_sha=$env:GITHUB_SHA
+            qualification_run_id=$env:GITHUB_RUN_ID
+            platform='github-hosted/windows-2022'
+            focused_tests='PASS'
+            complete_regression='PASS'
+            complete_vet='PASS'
+            authentic_windows_executables=5
+            private_user_data_touched=$false
+            live_broker_access=$false
+            merge_authorized=$false
+            production_promotion_authorized=$false
+          }
+          $path=Join-Path $e 'r25c23-receipt.json'
+          $receipt|ConvertTo-Json -Depth 4|Set-Content -LiteralPath $path -Encoding utf8
+          $digest=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+          ($digest+'  r25c23-receipt.json')|Set-Content -LiteralPath (Join-Path $e 'r25c23-receipt.sha256') -Encoding ascii
+          Write-Output ('R25C23_RECEIPT_SHA256='+$digest)
+          Write-Output 'R25C23_PASS_SOURCE_ONLY_NOT_RELEASE=TRUE'
+      - name: Upload sanitized acceptance evidence (no private source)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c23-pr39-windows-evidence
+          path: |
+            evidence/r25c23-receipt.json
+            evidence/r25c23-receipt.sha256
+          if-no-files-found: error
+          retention-days: 90
+      - name: Erase private source checkout
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Output 'R25C23_PRIVATE_SOURCE_CLEANUP_ATTEMPTED=TRUE'
