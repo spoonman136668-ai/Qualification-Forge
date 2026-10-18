@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     env:
-      EXPECTED_KTRADE: '53dcc8fde3cd33610237ad7f4d42f1a916fd18b6'
-      EXPECTED_TREE: '35ada908bcf5c0abc5dae4e9961539caa8798e90'
+      EXPECTED_KTRADE: '86456611185fce71f8ed23fc248ff36864c1b08a'
+      EXPECTED_TREE: 'f4fe23844fe838af87e7acace809b2a37342629b'
       EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
       EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
@@ -54,9 +54,9 @@ jobs:
       EXPECTED_APP_STATUS_TEST: 'c26130dc5903e7c17223a8b0e87caefd84f9ad59'
       EXPECTED_READONLY_SQLITE: '3e9ed3f05024f77d75f6493b9ffbc812db2eef93'
       EXPECTED_READONLY_SQLITE_TEST: 'a073f3e52d07fb928acde4db38baf1441dbcdb57'
-      EXPECTED_AUTH_SUBMISSION: '70d3f53dc90d45b84a5a82416022a7055a3467a6'
+      EXPECTED_AUTH_SUBMISSION: '0a8a0d45cd1fdf483d819747cd6fbd48cd43455b'
       EXPECTED_AUTH_SHADOW: 'ee856cf6c50d2f40449261e04f3532ab8d930b46'
-      EXPECTED_AUTH_TEST: '4e50122e063db25ff17b371079ef86995cdf38ab'
+      EXPECTED_AUTH_TEST: '90d8a3edaa568df3e853e2c50f3b1b16d6f2baea'
       EXPECTED_AUTH_DONOR_TEST: 'f78a3b176bdb57b91203a4763329e414f65ae7fe'
       EXPECTED_AUTH_BROWSER_TEST: 'ca52bfbebd170b877f20d6219b319857556cb728'
       KTRADE_CI_PAPER_ONLY: '1'
@@ -72,7 +72,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 53dcc8fde3cd33610237ad7f4d42f1a916fd18b6
+          ref: 86456611185fce71f8ed23fc248ff36864c1b08a
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
