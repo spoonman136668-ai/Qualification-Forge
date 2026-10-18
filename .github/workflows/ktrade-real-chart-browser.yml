@@ -1,7 +1,7 @@
 name: KTRADE genuine original chart order-veto headless browser qualification
 on:
   push:
-    branches: [qualification/ktrade-headless-original-ui-20261018]
+    branches: [qualification/ktrade-full-proposal-preview-20261018]
     paths: [.github/workflows/ktrade-real-chart-browser.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      EXPECTED_KTRADE_SHA: 'aecaba02898ae3eae1e683c8c1fda034a31e1848'
-      EXPECTED_TREE: 'f1231d092e7bb06483b9f77ed75e859d68ca0d1c'
+      EXPECTED_KTRADE_SHA: '00d76b4cb967cb529c4c307441bd66b229181651'
+      EXPECTED_TREE: '25b946316ca0c96de5d98d43e92b77a946b33945'
       KTRADE_RECOVERY_ISOLATED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: aecaba02898ae3eae1e683c8c1fda034a31e1848
+          ref: 00d76b4cb967cb529c4c307441bd66b229181651
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -51,8 +51,21 @@ jobs:
           try{
             & node --check tests/ktrade_original_chart_ui_probe.js
             if($LASTEXITCODE -ne 0){throw 'KTRADE_ORIGINAL_UI_BROWSER_TEST_SYNTAX_ERROR'}
+            & node --check static/paper_proposal_preview.js
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_EXPLICIT_PAPER_PREVIEW_JAVASCRIPT_SYNTAX_FAILED'}
+            foreach($pin in @(
+              @('static/paper_proposal_preview.js','a0b34869275183d5f01c2d5fe65cb506fefb02fb'),
+              @('internal/paperapp/preview.go','2f05697e06d3cf7fcf7973dca16d7ce0af15f1ec'),
+              @('internal/paperapp/preview_test.go','c0f64c7958d0d4a87021954ba9a4609795af3775'),
+              @('internal/paperapp/server.go','4cc966c35343464c51e741eef00baa028e4514ca'),
+              @('cmd/ktrade/paper_authority_route_full.go','3da56d085beea58d75c7eabac6a1969842749206')
+            )){
+              if((& git -C $root rev-parse "HEAD:$($pin[0])").Trim() -cne $pin[1]){
+                throw 'KTRADE_FULL_PAPER_PREVIEW_SOURCE_PIN_DRIFT'
+              }
+            }
             if((& git -C $root rev-parse HEAD:tests/ktrade_original_chart_ui_probe.js).Trim() -cne 'e17da28fc998145931f89d2e5b195a15b0cd2348'){throw 'KTRADE_REAL_UI_PROBE_SOURCE_DRIFT'}
-            if((& git -C $root rev-parse HEAD:templates/chart.tmpl).Trim() -cne '01bbbc4667bffce86fb269972e711e347bf17de4'){throw 'KTRADE_ORIGINAL_UI_SOURCE_DRIFT'}
+            if((& git -C $root rev-parse HEAD:templates/chart.tmpl).Trim() -cne '924b3315cb72ff326d4d74bf804ab55e71c0852f'){throw 'KTRADE_ORIGINAL_UI_SOURCE_DRIFT'}
           }finally{Pop-Location}
           Write-Output 'KTRADE_REAL_BROWSER_TEST_SOURCE_PIN=PASS'
           if((& git -C $root rev-parse HEAD:tests/ktrade_real_browser_chart_cdp.cjs).Trim() -cne 'c3a5f896dee5aba1ac2b6af8ea94f93d12143ec7'){throw 'KTRADE_ORIGINAL_REAL_TRADE_BROWSER_TEST_DRIFT'}
@@ -80,6 +93,16 @@ jobs:
             try{
               & go mod download *> $log
               if($LASTEXITCODE -ne 0){throw 'KTRADE_REAL_BROWSER_GO_MODULES_UNAVAILABLE'}
+              & go test -mod=readonly -count=1 -timeout=150s ./internal/paperproposal ./internal/paperapp ./internal/durableupgrade *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
+                  Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]'} |Select-Object -First 16)
+                foreach($line in $safe){Write-Output "KTRADE_PAPER_PREVIEW_FOCUSED_SAFE_DIAGNOSTIC: $line"}
+                throw 'KTRADE_FULL_PROPOSAL_PREVIEW_FOCUSED_TEST_FAILED'
+              }
+              & go test -mod=readonly -tags=ktrade_full -count=1 -run '^TestFullApplication' ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_FULL_APP_ROUTE_PREVIEW_REGRESSION_FAILED'}
+              Write-Output 'KTRADE_EXPLICIT_COMPLETE_PAPER_PROPOSAL_FOCUSED_TESTS=PASS'
               & go build -mod=readonly -tags=ktrade_full -o (Join-Path $app 'ktrade.exe') ./cmd/ktrade *> $log
               if($LASTEXITCODE -ne 0){throw 'KTRADE_REAL_BROWSER_ORIGINAL_BACKEND_BUILD_FAILED'}
             }finally{Pop-Location}
@@ -151,6 +174,7 @@ jobs:
             Write-Output 'KTRADE_REAL_CHROMIUM_HISTORICAL_TRADE_PANEL_CLICK_VETO=PASS'
             Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_ORDER_DTO_INCOMPLETE_NOT_ADMITTED=PASS'
             Write-Output 'KTRADE_ORIGINAL_TRADE_BROKER_DISABLED=TRUE'
+            Write-Output 'KTRADE_UNVERIFIED_PRICE_AND_FEES_NEVER_ENABLE_PAPER_TRADING=TRUE'
             Write-Output 'KTRADE_BROWSER_FRESH_EPHEMERAL_PROFILE=TRUE'
           }finally{
             if($null -ne $browser){
