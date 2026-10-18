@@ -1,7 +1,7 @@
 name: KTRADE genuine Windows chart editor browser qualification
 on:
   push:
-    branches: [qualification/ktrade-full-recovery-win-20261017]
+    branches: [qualification/ktrade-real-ui-inventory-20261018]
     paths: [.github/workflows/ktrade-real-chart-browser.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      EXPECTED_KTRADE_SHA: '738a21a655bb52e1977437befdf98b8b338ad9de'
-      EXPECTED_TREE: '93806ef888d380fbdaa25bab6da490dc8a326540'
+      EXPECTED_KTRADE_SHA: 'f9dee34b5c4d414478e64cd46ad2a9cd3ea58a0d'
+      EXPECTED_TREE: 'dfe8808291f41cc3ebcdbf2f54587054eca42ca8'
       KTRADE_RECOVERY_ISOLATED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 738a21a655bb52e1977437befdf98b8b338ad9de
+          ref: f9dee34b5c4d414478e64cd46ad2a9cd3ea58a0d
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -53,6 +53,7 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'KTRADE_BROWSER_CDP_TEST_SYNTAX_ERROR'}
           }finally{Pop-Location}
           Write-Output 'KTRADE_REAL_BROWSER_TEST_SOURCE_PIN=PASS'
+          if((& git -C $root rev-parse HEAD:tests/ktrade_real_browser_chart_cdp.cjs).Trim() -cne '07ad35e7abe8a7e3a21f31d7afd6eb817fa39d4b'){throw 'KTRADE_ORIGINAL_REAL_TRADE_BROWSER_TEST_DRIFT'}
           Write-Output 'KTRADE_REAL_BROWSER_CDP_JAVASCRIPT_SYNTAX=PASS'
       - name: Real isolated Chromium original Monaco Save favorite and reopen
         shell: pwsh
@@ -148,7 +149,9 @@ jobs:
             }finally{Pop-Location}
             Write-Output 'KTRADE_REAL_CHROMIUM_EDITOR_SAVE_FAVORITE_RELOAD_REOPEN=PASS'
             Write-Output 'KTRADE_REAL_CHROMIUM_EXISTING_BROWSER_KEYS_PRESERVED=PASS'
-            Write-Output 'KTRADE_BROWSER_DID_NOT_DISPATCH_BROKER_ORDER=PASS'
+            Write-Output 'KTRADE_BROWSER_DID_NOT_DISPATCH_BROKER_ORDER_UNTIL_EXPLICIT_TEST_CLICK=PASS'
+            Write-Output 'KTRADE_ACTUAL_TRADE_PANEL_BROWSER_CLICK_INCOMPLETE_DTO_REJECTED=PASS'
+            Write-Output 'KTRADE_ACTUAL_FULL_APP_ORDER_TRANSPORT_REMAINS_BROKER_DISABLED=TRUE'
             Write-Output 'KTRADE_BROWSER_FRESH_EPHEMERAL_PROFILE=TRUE'
           }finally{
             if($null -ne $browser){try{& taskkill.exe /PID $browser.Id /T /F *> $null}catch{}}
