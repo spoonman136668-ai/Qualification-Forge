@@ -1,7 +1,7 @@
 name: KTRADE single-pass follow-up vet and Windows builds
 on:
   push:
-    branches: [qualification/ktrade-full-recovery-win-20261017]
+    branches: [qualification/ktrade-real-ui-inventory-20261018]
     paths: [.github/workflows/ktrade-standalone-vet-build.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     env:
-      EXPECTED_SHA: '738a21a655bb52e1977437befdf98b8b338ad9de'
-      EXPECTED_TREE: '93806ef888d380fbdaa25bab6da490dc8a326540'
+      EXPECTED_SHA: 'f9dee34b5c4d414478e64cd46ad2a9cd3ea58a0d'
+      EXPECTED_TREE: 'dfe8808291f41cc3ebcdbf2f54587054eca42ca8'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_COINBASE_ALLOWED: '0'
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 738a21a655bb52e1977437befdf98b8b338ad9de
+          ref: f9dee34b5c4d414478e64cd46ad2a9cd3ea58a0d
           path: private
           fetch-depth: 1
           persist-credentials: false
