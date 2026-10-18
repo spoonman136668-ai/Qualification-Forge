@@ -1,7 +1,7 @@
 name: KTRADE genuine original chart order-veto headless browser qualification
 on:
   push:
-    branches: [qualification/ktrade-full-proposal-preview-20261018]
+    branches: [qualification/ktrade-readonly-installed-inventory-20261018]
     paths: [.github/workflows/ktrade-real-chart-browser.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      EXPECTED_KTRADE_SHA: '00d76b4cb967cb529c4c307441bd66b229181651'
-      EXPECTED_TREE: '25b946316ca0c96de5d98d43e92b77a946b33945'
+      EXPECTED_KTRADE_SHA: '38679bdbf2da8fb9cd70d0b8983ad6fda24dc9d8'
+      EXPECTED_TREE: 'ebc5855ab66991c1ae5ea56ba7fd4eb10db237f5'
       KTRADE_RECOVERY_ISOLATED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 00d76b4cb967cb529c4c307441bd66b229181651
+          ref: 38679bdbf2da8fb9cd70d0b8983ad6fda24dc9d8
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -103,6 +103,16 @@ jobs:
               & go test -mod=readonly -tags=ktrade_full -count=1 -run '^TestFullApplication' ./cmd/ktrade *> $log
               if($LASTEXITCODE -ne 0){throw 'KTRADE_FULL_APP_ROUTE_PREVIEW_REGRESSION_FAILED'}
               Write-Output 'KTRADE_EXPLICIT_COMPLETE_PAPER_PROPOSAL_FOCUSED_TESTS=PASS'
+              foreach($pair in @(
+                @('internal/durableupgrade/installed_inventory_readonly.go','d96cb0d82fc107751c9c7a47320cde0dd1627e0a'),
+                @('internal/durableupgrade/installed_inventory_readonly_test.go','c9829b059a0a0f845ccb8f72dde34c1270f14948'),
+                @('cmd/ktrade-inventory/main.go','2449b67a8daf30a6c090e4a4487d7cffa40a0558')
+              )){
+                if((& git -C $checkout rev-parse "HEAD:$($pair[0])").Trim() -cne $pair[1]){throw 'KTRADE_LOCAL_READONLY_INVENTORY_SOURCE_DRIFT'}
+              }
+              & go build -mod=readonly -o (Join-Path $app 'ktrade-inventory.exe') ./cmd/ktrade-inventory *> $log
+              if($LASTEXITCODE -ne 0){throw 'KTRADE_READONLY_INSTALLED_INVENTORY_WINDOWS_BUILD_FAILED'}
+              Write-Output 'KTRADE_READONLY_INSTALLED_PROFILE_INVENTORY_WINDOWS_BUILD=PASS'
               & go build -mod=readonly -tags=ktrade_full -o (Join-Path $app 'ktrade.exe') ./cmd/ktrade *> $log
               if($LASTEXITCODE -ne 0){throw 'KTRADE_REAL_BROWSER_ORIGINAL_BACKEND_BUILD_FAILED'}
             }finally{Pop-Location}
@@ -175,6 +185,8 @@ jobs:
             Write-Output 'KTRADE_REAL_BROWSER_ORIGINAL_ORDER_DTO_INCOMPLETE_NOT_ADMITTED=PASS'
             Write-Output 'KTRADE_ORIGINAL_TRADE_BROKER_DISABLED=TRUE'
             Write-Output 'KTRADE_UNVERIFIED_PRICE_AND_FEES_NEVER_ENABLE_PAPER_TRADING=TRUE'
+            Write-Output 'KTRADE_REAL_INSTALLED_USER_DIRECTORY_INVENTORIED=FALSE'
+            Write-Output 'KTRADE_SAFETY_REVIEW_REQUIRED_FOR_UNKNOWN_HISTORY=TRUE'
             Write-Output 'KTRADE_BROWSER_FRESH_EPHEMERAL_PROFILE=TRUE'
           }finally{
             if($null -ne $browser){
