@@ -1,9 +1,9 @@
-name: KTRADE R25-A desktop report inherited regression classification
+name: KTRADE R25-B desktop report source-contract qualification
 
 on:
   push:
     branches:
-      - qualification/ktrade-r25a-desktop-report-classify-20261018
+      - qualification/ktrade-r25b-desktop-20261018
     paths: [.github/workflows/ktrade-regression-diagnose.yml]
 
 permissions:
@@ -15,8 +15,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     env:
-      EXPECTED_KTRADE_SHA: 'ceb670aaee31a95f8c154d9856ed54bc949517b6'
-      EXPECTED_TREE: 'ce7352d4657fd12a9e94bb515108993c7aebe47f'
+      EXPECTED_KTRADE_SHA: '54bb839da1739aa5c5554f75e93a62df200fb633'
+      EXPECTED_TREE: 'da386677cb21def93e74be10042e82a3a15f8df7'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: ceb670aaee31a95f8c154d9856ed54bc949517b6
+          ref: 54bb839da1739aa5c5554f75e93a62df200fb633
           path: checked-private
           fetch-depth: 1
           persist-credentials: false
@@ -90,7 +90,7 @@ jobs:
             )){
               if((& git rev-parse "HEAD:$($pin[0])").Trim() -cne $pin[1]){throw 'KTRADE_P16_AUTHENTIC_SOURCE_OR_TEST_DRIFT'}
             }
-            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase(25|26|27|28|29)_).*' ./pkg *> $log
+            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase(25|26|27|28|29)_|TestR25B).*' ./pkg *> $log
             if($LASTEXITCODE -ne 0){
               $all=[string](Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue)
               $names=@([regex]::Matches($all,'(?m)^--- FAIL: (Test[A-Za-z0-9_]+)')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
@@ -99,7 +99,7 @@ jobs:
               throw 'KTRADE_R25A_FOCUSED_NEGATIVE_NOT_WAIVED'
             }
             Write-Output 'KTRADE_P16_ORIGINAL_PINE_HANDLER_BYTE_IDENTICAL=TRUE'
-            Write-Output 'KTRADE_R25A_DESKTOP_REPORT_PHASES_WINDOWS=PASS'
+            Write-Output 'KTRADE_R25B_DESKTOP_REPORT_FOCUSED_WINDOWS=PASS'
             Write-Output 'KTRADE_INHERITED_FULL_REGRESSION_AND_VET_REMAIN_UNQUALIFIED=TRUE'
           }finally{
             Pop-Location
