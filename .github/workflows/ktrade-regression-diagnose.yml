@@ -1,4 +1,4 @@
-name: KTRADE R25-A source-contract focused Windows qualification
+name: KTRADE R25-A remaining inherited contract classification
 
 on:
   push:
@@ -89,7 +89,7 @@ jobs:
             )){
               if((& git rev-parse "HEAD:$($pin[0])").Trim() -cne $pin[1]){throw 'KTRADE_P16_AUTHENTIC_SOURCE_OR_TEST_DRIFT'}
             }
-            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase16_P16B_|TestPhase17_P17(A|B)_).*' ./pkg *> $log
+            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase(19|21|25|26|27|28|29)_).*' ./pkg *> $log
             if($LASTEXITCODE -ne 0){
               $all=[string](Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue)
               $names=@([regex]::Matches($all,'(?m)^--- FAIL: (Test[A-Za-z0-9_]+)')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
@@ -98,7 +98,7 @@ jobs:
               throw 'KTRADE_R25A_FOCUSED_NEGATIVE_NOT_WAIVED'
             }
             Write-Output 'KTRADE_P16_ORIGINAL_PINE_HANDLER_BYTE_IDENTICAL=TRUE'
-            Write-Output 'KTRADE_R25A_P16_P17_FOCUSED_SOURCE_CONTRACTS=PASS'
+            Write-Output 'KTRADE_R25A_OTHER_HISTORICAL_CONTRACTS=PASS'
             Write-Output 'KTRADE_INHERITED_FULL_REGRESSION_AND_VET_REMAIN_UNQUALIFIED=TRUE'
           }finally{
             Pop-Location
