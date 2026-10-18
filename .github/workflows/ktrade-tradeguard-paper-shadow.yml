@@ -1,7 +1,7 @@
 name: KTRADE donor TradeGuard isolated paper shadow
 on:
   push:
-    branches: [qualification/ktrade-windows-fs-capability-20261017]
+    branches: [qualification/ktrade-sqlite-unified-custody-20261017]
     paths: [.github/workflows/ktrade-tradeguard-paper-shadow.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     env:
-      EXPECTED_KTRADE: '55d18bee4d948cca55fb0891c5713738cc2849b9'
-      EXPECTED_TREE: '28dff9803fc9afb8e028dece267ea79f29bc37f8'
+      EXPECTED_KTRADE: 'af18954804982abb1635082e8b215869121a758e'
+      EXPECTED_TREE: '7222792efda8f536237aa40b895bd3d7301cdcd4'
       EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
       EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
@@ -35,6 +35,9 @@ jobs:
       EXPECTED_ATOMICFILE_DONOR_BLOB: 'ad47c114881702072613544cfe2142b64d6157a6'
       EXPECTED_NATIVE_FS_PROBE: '503f4af107eadcd1fce3abbbd7d7ac011c216b77'
       EXPECTED_NATIVE_FS_TEST: '3d890ca8a26422e1359bd8bc1281f615d62dc851'
+      EXPECTED_UNIFIED_AUTHORITY: 'aea49b7fef985dcdd17073933a5c1a17f707e246'
+      EXPECTED_UNIFIED_AUTHORITY_TEST: 'a14b85dc1c9d87614f02c0c0c5538527a7c2431a'
+      EXPECTED_UNIFIED_AUTHORITY_WINDOWS: '1ec36d6599e9a9112961fe4eae5570aef2c1f098'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -48,7 +51,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 55d18bee4d948cca55fb0891c5713738cc2849b9
+          ref: af18954804982abb1635082e8b215869121a758e
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -99,6 +102,10 @@ jobs:
           if((& git -C $donor rev-parse HEAD:pkg/atomicfile.go).Trim() -cne $env:EXPECTED_ATOMICFILE_DONOR_BLOB){throw 'KTRADE_AUTHENTIC_DONOR_CHECKPOINT_ATOMICFILE_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:internal/paperreconcile/windows_fs_capability_shadow_windows.go).Trim() -cne $env:EXPECTED_NATIVE_FS_PROBE){throw 'KTRADE_NATIVE_FS_PROBE_BLOB_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/windows_fs_capability_test.go).Trim() -cne $env:EXPECTED_NATIVE_FS_TEST){throw 'KTRADE_NATIVE_FS_PROBE_TEST_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/paperauthority/authority.go).Trim() -cne $env:EXPECTED_UNIFIED_AUTHORITY){throw 'KTRADE_SQLITE_AUTHORITY_SOURCE_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/paperauthority/authority_test.go).Trim() -cne $env:EXPECTED_UNIFIED_AUTHORITY_TEST){throw 'KTRADE_SQLITE_AUTHORITY_TEST_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/paperauthority/authority_windows_test.go).Trim() -cne $env:EXPECTED_UNIFIED_AUTHORITY_WINDOWS){throw 'KTRADE_SQLITE_AUTHORITY_WINDOWS_TEST_DRIFT'}
+          Write-Output 'KTRADE_ORIGINAL_RISK_LEDGER_JOURNAL_SQLITE_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_WINDOWS_NATIVE_FILESYSTEM_PROBE_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_MIDWRITE_DURABILITY_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_NATIVE_WIN_KILL_TEST_SOURCE=PASS'
@@ -186,6 +193,14 @@ jobs:
             Write-Output 'KTRADE_DONOR_PRODUCT_EXPOSURE_PAPER_IDENTITY_GAP=CONFIRMED'
             Push-Location $ktrade
             try{
+              if($env:CGO_ENABLED -cne '1'){throw 'KTRADE_SQLITE_NATIVE_WINDOWS_CGO_DRIVER_UNAVAILABLE'}
+              & go test -mod=readonly -count=1 -timeout=240s ./internal/paperauthority *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or $_ -match '^FAIL[[:space:]]' -or $_ -match '^.*authority.*\.go:[0-9]+:[0-9]+:'} | Select-Object -First 18)
+                foreach($line in $safe){Write-Output "KTRADE_SQLITE_SAFE_DIAGNOSTIC: $line"}
+                throw 'KTRADE_SQLITE_ORIGINAL_RISK_PAPER_AUTHORITY_REJECTED'
+              }
+              Write-Output 'KTRADE_SQLITE_ONE_COMMIT_ACCOUNT_RISK_STOP_ATOMIC_REVIEW_AND_OS_PROCESS_KILL=PASS'
               & go test -mod=readonly -count=1 ./internal/paperproposal ./internal/paperreconcile ./internal/papertrading ./internal/paperweb *> $log
               if($LASTEXITCODE -ne 0){
                 $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {
@@ -210,6 +225,8 @@ jobs:
             Write-Output 'KTRADE_WINDOWS_ACTUAL_TERMINATEPROCESS_AND_NEW_PROCESS_REOPEN=PASS'
             Write-Output 'KTRADE_WINDOWS_ACTUAL_TERMINATEPROCESS_PARTIAL_WRITE_DONOR_RENAME_DURABILITY_PROBE=PASS'
             Write-Output 'KTRADE_WINDOWS_NATIVE_WT_RENAME_DIR_FLUSH_CAPABILITY_AUTO_ADMISSION_DENIED=PASS'
+            Write-Output 'KTRADE_ORIGINAL_USER_FILES_WRITTEN=FALSE'
+            Write-Output 'KTRADE_SQLITE_CUSTODY_NOT_RUNTIME_ORDER_AUTHORITY=TRUE'
           }finally{
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
