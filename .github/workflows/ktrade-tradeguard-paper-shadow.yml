@@ -1,7 +1,7 @@
 name: KTRADE donor TradeGuard isolated paper shadow
 on:
   push:
-    branches: [qualification/ktrade-write-order-faults-20261017]
+    branches: [qualification/ktrade-wal-phases-20261017]
     paths: [.github/workflows/ktrade-tradeguard-paper-shadow.yml]
 permissions:
   contents: read
@@ -11,14 +11,14 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     env:
-      EXPECTED_KTRADE: 'd0ef696f9c6345f17be693009e937c8f3b3316e9'
-      EXPECTED_TREE: '796ee9ddba159564014aacad56386a3aec41e638'
+      EXPECTED_KTRADE: '48561da5027e1f53db73796b6ce78e63d8e0ad63'
+      EXPECTED_TREE: 'fccf89d2e16b8e24238e24b03a59e00bba4e5364'
       EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
       EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
       EXPECTED_PROPOSAL_BLOB: 'b0c41b3bb69a51ef1528b52aa33245a11c4d0d3e'
       EXPECTED_PROPOSAL_TEST_BLOB: '12d2a8004e46cb3922314a1eb8eff265999d4d0f'
-      EXPECTED_RECONCILE_BLOB: 'a9a33f929bf245daaaf169d0a5b15a4915896597'
+      EXPECTED_RECONCILE_BLOB: 'fccbbc574dd4a308e9ea2a30dc8b9237af4abced'
       EXPECTED_RECONCILE_TEST_BLOB: '4e02b1a44a69a94bcb45f266e4952461e8b7df11'
       EXPECTED_REPLAY_SOURCE: '5c0b07ace7dc7789d4aa8d20f0661dd9eee92dac'
       EXPECTED_REPLAY_DONOR_TEST: 'b865d7963c59fa55bc8e7a23032f392f3d788a44'
@@ -28,6 +28,8 @@ jobs:
       EXPECTED_CUSTODY_DONOR_TEST: '04314e5aa7ea2c575ade83ddc3f9e0c46e6843e4'
       EXPECTED_WRITE_CUT_GO_TEST: '24e527d1bd286a2455554380abfad10e07d8d903'
       EXPECTED_WRITE_CUT_DONOR_TEST: '002c2dbe211aa023b7b966b9ae10f8b928ab9bd5'
+      EXPECTED_COMMIT_WAL_SOURCE: 'edb455f3e65ce367e20c7f6d223f50bbef23b460'
+      EXPECTED_COMMIT_WAL_DONOR_TEST: '58aed2c1503fec34edee28ad134e10c5e1800ebc'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -41,7 +43,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: d0ef696f9c6345f17be693009e937c8f3b3316e9
+          ref: 48561da5027e1f53db73796b6ce78e63d8e0ad63
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -85,6 +87,9 @@ jobs:
           if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/original_risk_custody_test.go).Trim() -cne $env:EXPECTED_CUSTODY_DONOR_TEST){throw 'KTRADE_CUSTODY_DONOR_TEST_BLOB_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:internal/paperreconcile/commit_order_test.go).Trim() -cne $env:EXPECTED_WRITE_CUT_GO_TEST){throw 'KTRADE_WRITE_CUT_TEST_BLOB_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/commit_order_fault_test.go).Trim() -cne $env:EXPECTED_WRITE_CUT_DONOR_TEST){throw 'KTRADE_WRITE_CUT_DONOR_BLOB_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:internal/paperreconcile/commit_protocol_shadow.go).Trim() -cne $env:EXPECTED_COMMIT_WAL_SOURCE){throw 'KTRADE_COMMIT_WAL_SOURCE_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/commit_protocol_test.go).Trim() -cne $env:EXPECTED_COMMIT_WAL_DONOR_TEST){throw 'KTRADE_COMMIT_WAL_DONOR_TEST_DRIFT'}
+          Write-Output 'KTRADE_COMMIT_WAL_EXACT_SOURCE=PASS'
           Write-Output 'KTRADE_WRITE_ORDER_SOURCE_PINS=PASS'
           Write-Output 'KTRADE_AUTHENTIC_RISK_CUSTODY_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_SETTLEMENT_EXACT_SOURCE=PASS'
@@ -116,6 +121,7 @@ jobs:
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperreconcile/settlement_review_test.go') -Destination (Join-Path $reconcileScratch 'settlement_review_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperreconcile/original_risk_custody.go') -Destination (Join-Path $reconcileScratch 'original_risk_custody.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperreconcile/commit_order_test.go') -Destination (Join-Path $reconcileScratch 'commit_order_test.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperreconcile/commit_protocol_shadow.go') -Destination (Join-Path $reconcileScratch 'commit_protocol_shadow.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'internal/paperproposal/proposal.go') -Destination (Join-Path $proposalScratch 'proposal.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/shadow_test.go') -Destination (Join-Path $scratch 'shadow_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/proposal_test.go') -Destination (Join-Path $scratch 'proposal_test.go') -Force
@@ -124,6 +130,7 @@ jobs:
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/settlement_review_test.go') -Destination (Join-Path $scratch 'settlement_review_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/original_risk_custody_test.go') -Destination (Join-Path $scratch 'original_risk_custody_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/commit_order_fault_test.go') -Destination (Join-Path $scratch 'commit_order_fault_test.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/commit_protocol_test.go') -Destination (Join-Path $scratch 'commit_protocol_test.go') -Force
             Push-Location $donor
             try{
               & go mod download *> $log
@@ -160,6 +167,7 @@ jobs:
             Write-Output 'KTRADE_CONSOLIDATED_PAPER_UNMODIFIED_GO_AND_JS_GATES=PASS'
             Write-Output 'KTRADE_AUTHENTIC_DONOR_RATE_PNL_EQUITY_EXPOSURE_AND_KILL_CUSTODY_WINDOWS=PASS'
             Write-Output 'KTRADE_WRITE_ORDER_CRASH_WINDOW_FAIL_CLOSED_WINDOWS=PASS'
+            Write-Output 'KTRADE_IMMUTABLE_WAL_AUTHENTIC_DONOR_10_PHASE_MATRIX=PASS'
           }finally{
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
