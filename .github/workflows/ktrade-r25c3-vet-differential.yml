@@ -24,7 +24,7 @@ jobs:
           ref: 6d9bf14e39f2df87743ac7dc9decb4d8a082efa1
           path: source-historical
           persist-credentials: false
-          token: \${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Checkout frozen R25-C2 recovery
         uses: actions/checkout@v4
         with:
@@ -32,7 +32,7 @@ jobs:
           ref: 9e288a7a280416c9a8eaf660ece0aecab31efbd1
           path: source-recovery
           persist-credentials: false
-          token: \${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Setup identical Go toolchain
         uses: actions/setup-go@v5
         with:
