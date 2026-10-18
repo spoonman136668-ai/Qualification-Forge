@@ -88,24 +88,8 @@ jobs:
             )){
               if((& git rev-parse "HEAD:$($pin[0])").Trim() -cne $pin[1]){throw 'KTRADE_P16_AUTHENTIC_SOURCE_OR_TEST_DRIFT'}
             }
-            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase16_P16B_Integration_T05_RequestResponseContractSurface|TestPhase16_P16B_Closeout_RequestResponseContractSurface)
-          }finally{
-            Pop-Location
-            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
-          }
-      - name: Wipe private checkout
-        if: always()
-        shell: pwsh
-        run: |
-          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'checked-private') -Recurse -Force -ErrorAction SilentlyContinue
-          Write-Output 'KTRADE_PRIVATE_DIAGNOSTIC_OUTPUT=WITHHELD'
- ./pkg *> $log
-            if($LASTEXITCODE -ne 0){
-              $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
-                Where-Object {$_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test'}|Select-Object -First 8)
-              foreach($line in $safe){Write-Output "KTRADE_P16_SAFE_FAILURE: $line"}
-              throw 'KTRADE_P16_TWO_TARGETED_SOURCE_CONTRACT_TESTS_FAILED'
-            }
+            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase16_P16B_Integration_T05_RequestResponseContractSurface|TestPhase16_P16B_Closeout_RequestResponseContractSurface)$' ./pkg *> $log
+            if($LASTEXITCODE -ne 0){throw 'KTRADE_P16_TWO_TARGETED_SOURCE_CONTRACT_TESTS_FAILED'}
             Write-Output 'KTRADE_P16_ORIGINAL_PINE_HANDLER_BYTE_IDENTICAL=TRUE'
             Write-Output 'KTRADE_P16_TWO_TARGETED_CONTRACT_TESTS=PASS'
             Write-Output 'KTRADE_INHERITED_FULL_REGRESSION_AND_VET_REMAIN_UNQUALIFIED=TRUE'
