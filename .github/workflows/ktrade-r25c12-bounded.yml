@@ -1,0 +1,139 @@
+name: KTRADE R25-C12 historical governance JSON-wire qualification
+on:
+  push:
+    branches: [qualification/ktrade-r25c12-bounded-20261018]
+    paths: [.github/workflows/ktrade-r25c12-bounded.yml]
+permissions:
+  contents: read
+jobs:
+  frozen-governance:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact immutable private KTRADE candidate
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2af730f8a7bed15370d86d2ce0ced060c56beed2
+          path: source
+          persist-credentials: false
+          fetch-depth: 2
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Install Go 1.23
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Authenticate diff then run original-parent and candidate JSON-wire qualification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $parent='d892d5902f6c19105c4395bf6b71bfb112b22a62'
+          $parentTree='95846811b88a0cb538dd6d494bb771ef3cd8102b'
+          $head='2af730f8a7bed15370d86d2ce0ced060c56beed2'
+          $headTree='89cc720ff3d6da6cec12d583a23682584f473ac6'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c12-wire.log'
+          $vetLog=Join-Path $env:RUNNER_TEMP 'r25c12-vet.log'
+          $test=Join-Path $root 'pkg/r25c12_governance_wire_compat_test.go'
+          $frozenTest=Join-Path $env:RUNNER_TEMP 'r25c12_frozen_test.go'
+          try {
+            if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {throw 'R25C12_UNEXPECTED_HOST'}
+            if ($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {throw 'R25C12_UNSAFE_AUTHORITY'}
+            if ((& git -C $root rev-parse HEAD).Trim() -cne $head -or (& git -C $root rev-parse HEAD^).Trim() -cne $parent -or
+                (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $headTree -or
+                (& git -C $root rev-parse ($parent+'^{tree}')).Trim() -cne $parentTree) {throw 'R25C12_SOURCE_IDENTITY_DRIFT'}
+            $paths=@(& git -C $root diff --name-only $parent $head)
+            if ($LASTEXITCODE -ne 0 -or @($paths).Count -ne 56) {throw 'R25C12_CHANGED_PATH_COUNT_DRIFT'}
+            $sourcePaths=@($paths | Where-Object {$_ -ne 'pkg/r25c12_governance_wire_compat_test.go'})
+            if (@($sourcePaths).Count -ne 55) {throw 'R25C12_SOURCE_PATH_COUNT_DRIFT'}
+            $count=0
+            $totalLines=0
+            foreach ($path in $sourcePaths) {
+              if ($path -notmatch '^pkg/p11b_t(\d+)_explicit_new_repro_only_release_readiness_governance_closeout_[a-z0-9_]+_pin\.go$') {throw ('R25C12_UNEXPECTED_PATH='+$path)}
+              $n=[int]$matches[1]
+              if (!(($n -ge 298 -and $n -le 332) -or ($n -ge 354 -and $n -le 373))) {throw ('R25C12_OUTSIDE_BOUNDED_RECORD='+$n)}
+              $before=@(& git -C $root show "$($parent):$path")
+              $after=@(& git -C $root show "$($head):$path")
+              if (@($before).Count -ne @($after).Count) {throw ('R25C12_NON_TAG_LINE_DRIFT='+$path)}
+              $local=0
+              for ($i=0; $i -lt @($before).Count; $i++) {
+                if ($before[$i] -cne $after[$i]) {
+                  if ($before[$i] -cnotmatch '\bbool\s+`json:"([^"]+)"`') {throw ('R25C12_NONBOOL_CHANGE='+$path+':'+$i)}
+                  $expected=[regex]::Replace($before[$i],'`json:"[^"]+"`','`json:"-"`')
+                  if ($expected -cne $after[$i]) {throw ('R25C12_NON_TAG_SUBSTITUTION='+$path+':'+$i)}
+                  $local++
+                }
+              }
+              $nExpected=19
+              if ($n -le 332) {
+                $nExpected=$n-295
+                if ($nExpected -gt 19) {$nExpected=19}
+              } else {$nExpected=$n-333}
+              if ($local -ne $nExpected) {throw ("R25C12_CHANGED_TAG_COUNT_DRIFT_T$n=$local expected $nExpected")}
+              $totalLines+=$local
+              $count++
+            }
+            if ($count -ne 55 -or $totalLines -ne 1139) {throw "R25C12_CHANGED_FIELDS_DRIFT=$totalLines"}
+            Write-Output 'R25C12_TAG_ONLY_SOURCE_DIFF=PASS'
+            Write-Output 'R25C12_DUPLICATE_FIELD_REPLACEMENTS=1139'
+            Copy-Item -LiteralPath $test -Destination $frozenTest
+            Push-Location $root
+            try {
+              & go mod download *> $log
+              if ($LASTEXITCODE -ne 0) {Get-Content $log -Tail 20;throw 'R25C12_MODULE_DOWNLOAD_FAILED'}
+              & git checkout --detach $parent *> $log
+              if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $parentTree) {throw 'R25C12_PARENT_CHECKOUT_FAILED'}
+              Copy-Item -LiteralPath $frozenTest -Destination $test
+              $env:R25C12_ORIGINAL_MODE='1'
+              & go test -vet=off -mod=readonly -count=1 -timeout=600s -v -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
+              if ($LASTEXITCODE -ne 0) {Get-Content $log -Tail 60;throw 'R25C12_PARENT_TEST_FAILED'}
+              $output=[string](Get-Content -LiteralPath $log -Raw)
+              $checked=0
+              foreach ($n in @(298..332)+@(354..373)) {
+                $key='T'+$n
+                $inv=[regex]::Match($output,('R25C12_PARENT_'+$key+'_COLLISIONS_B64=([A-Za-z0-9+/=]+)'))
+                $sha=[regex]::Match($output,('R25C12_PARENT_'+$key+'_SHA256=([a-f0-9]{64})'))
+                if (!$inv.Success -or !$sha.Success) {throw ('R25C12_MISSING_PARENT_EVIDENCE_'+$key)}
+                [Environment]::SetEnvironmentVariable(('R25C12_'+$key+'_COLLISIONS_B64'),$inv.Groups[1].Value)
+                [Environment]::SetEnvironmentVariable(('R25C12_'+$key+'_SHA256'),$sha.Groups[1].Value)
+                $checked++
+              }
+              if ($checked -ne 55) {throw 'R25C12_PARENT_COUNT_DRIFT'}
+              Write-Output 'R25C12_55_ORIGINAL_PARENT_WIRE_FINGERPRINTS=PASS'
+              Remove-Item -LiteralPath $test -Force
+              & git checkout --detach $head *> $log
+              if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $headTree) {throw 'R25C12_CANDIDATE_RESTORE_FAILED'}
+              $env:R25C12_ORIGINAL_MODE='0'
+              & go test -vet=off -mod=readonly -count=1 -timeout=600s -v -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
+              if ($LASTEXITCODE -ne 0) {Get-Content $log -Tail 60;throw 'R25C12_CANDIDATE_TEST_FAILED'}
+              Write-Output 'R25C12_ORIGINAL_JSON_WIRE_BYTE_IDENTICAL=PASS'
+              Write-Output 'R25C12_HISTORIC_INBOUND_COLLISION_IGNORED=PASS'
+              & go vet -mod=readonly -unsafeptr ./pkg *> $log
+              if ($LASTEXITCODE -ne 0) {Get-Content $log -Tail 30;throw 'R25C12_UNSAFEPTR_FAILED'}
+              Write-Output 'R25C12_UNSAFEPTR=PASS'
+              & go vet -mod=readonly -structtag ./pkg *> $vetLog
+              $status=$LASTEXITCODE
+              $diagnostics=@(Get-Content -LiteralPath $vetLog -ErrorAction SilentlyContinue | Where-Object {$_ -match '\.go:\d+:\d+:'})
+              Write-Output ('R25C12_REMAINING_STRUCTTAG_DIAGNOSTICS='+$diagnostics.Count)
+              foreach ($line in $diagnostics) {Write-Output ('R25C12_UNRESOLVED='+$line)}
+              if ($status -eq 0 -or $diagnostics.Count -ne 17) {throw 'R25C12_VET_DIFFERENTIAL_DRIFT'}
+              Write-Output 'R25C12_55_STRUCTURES_FOCUSED_WINDOWS_QUALIFICATION=PASS'
+              Write-Output 'R25C12_FULL_VET=NOT_PASSED'
+              Write-Output 'R25C12_FINAL_FULL_REGRESSION=NOT_RUN'
+              $global:LASTEXITCODE=0
+            } finally {Pop-Location}
+          } finally {Remove-Item -LiteralPath $log,$vetLog,$frozenTest -Force -ErrorAction SilentlyContinue}
+      - name: Cleanup private source
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Force -Recurse -ErrorAction SilentlyContinue
+          Write-Output 'R25C12_PRIVATE_CHECKOUT_CLEANUP=PASS'
