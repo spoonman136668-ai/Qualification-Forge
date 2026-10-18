@@ -1,0 +1,78 @@
+name: KTRADE R25-C3 vet-analyzer isolation (non-acceptance)
+on:
+  push:
+    branches: [qualification/ktrade-r25c3-vet-analyzer-isolation-20261018]
+    paths: [.github/workflows/ktrade-r25c3-vet-isolation.yml]
+permissions:
+  contents: read
+jobs:
+  isolate:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout immutable recovery source
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9e288a7a280416c9a8eaf660ece0aecab31efbd1
+          path: ktrade-private
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup same Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Isolate original structtag and unsafe pointer findings without qualifying full vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'ktrade-private'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c3-vet-analyzer-private.log'
+          try {
+            if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'WRONG_RUNNER'}
+            if($env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){throw 'AUTHORITY_REJECTED'}
+            if((& git -C $root rev-parse HEAD).Trim() -cne '9e288a7a280416c9a8eaf660ece0aecab31efbd1' -or
+               (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '1a3c0f506d4f305e798afa6f1c9319d2ad7ef9f5'){throw 'SOURCE_DRIFT'}
+            Push-Location $root
+            try {
+              & go vet -mod=readonly -structtag=false ./pkg *> $log
+              $withoutTags=$LASTEXITCODE
+              $msgs=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '(?i)\.go:[0-9]+:[0-9]+:'})
+              Write-Output ('R25C3_VET_WITHOUT_STRUCTTAG_EXIT='+$withoutTags)
+              Write-Output ('R25C3_VET_WITHOUT_STRUCTTAG_DIAGNOSTICS='+$msgs.Count)
+              foreach($v in @($msgs|Select-Object -First 4)){
+                if($v -match '(?i)^(?:.*[/\\])?([A-Za-z0-9_.-]+\.go):[0-9]+:[0-9]+:\s*(.+)$'){
+                  $detail=$Matches[2]
+                  $detail=[regex]::Replace($detail, '"[^"]*"|''[^'']*''','<quoted>')
+                  if($detail.Length -gt 145){$detail=$detail.Substring(0,145)}
+                  Write-Output ('R25C3_VET_NON_STRUCTTAG_EXAMPLE='+$Matches[1]+';'+$detail)
+                }
+              }
+              & go vet -mod=readonly -structtag=false -unsafeptr=false ./... *> $log
+              $otherAnalyzers=$LASTEXITCODE
+              Write-Output ('R25C3_OTHER_VET_ANALYZERS_EXIT='+$otherAnalyzers)
+              if($otherAnalyzers -ne 0){
+                $res=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue|Where-Object{$_ -match '\.go:[0-9]+:[0-9]+:'})
+                Write-Output ('R25C3_OTHER_VET_ANALYZER_DIAGNOSTIC_COUNT='+$res.Count)
+              }
+              Write-Output 'R25C3_FULL_VET_QUALIFIED=FALSE'
+              Write-Output 'R25C3_FULL_REGRESSION_RERUN=FALSE'
+              if($withoutTags -eq 0 -or $otherAnalyzers -ne 0){throw 'R25C3_ANALYZER_ISOLATION_NEEDS_REVIEW'}
+            } finally {Pop-Location}
+          } finally {
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Delete all private files
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'ktrade-private') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'r25c3-vet-analyzer-private.log') -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C3_PRIVATE_DATA_NOT_RETAINED=TRUE'
