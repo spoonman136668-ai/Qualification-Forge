@@ -173,7 +173,7 @@ jobs:
               $priorGoFlags=$env:GOFLAGS
               try{
                 $env:GOFLAGS=''
-                & go mod edit '-require=github.com/mattn/go-sqlite3@v1.14.18' *> $log
+                & go get github.com/mattn/go-sqlite3@v1.14.18 *> $log
               }finally{$env:GOFLAGS=$priorGoFlags}
               if($LASTEXITCODE -ne 0){
                 $safe=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue | Where-Object {$_ -match '^go: ' -or $_ -match '^usage:' -or $_ -match '^flag provided'} | Select-Object -First 8)
