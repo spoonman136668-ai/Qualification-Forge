@@ -1,9 +1,9 @@
-name: KTRADE R25-A remaining inherited contract classification
+name: KTRADE R25-A Phase19/21 Electron Windows qualification
 
 on:
   push:
     branches:
-      - qualification/ktrade-r25a-focused-20261018
+      - qualification/ktrade-r25a-electron-20261018
     paths: [.github/workflows/ktrade-regression-diagnose.yml]
 
 permissions:
@@ -15,8 +15,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     env:
-      EXPECTED_KTRADE_SHA: 'ce25469b819d55f30f3e3d780a9294817460d38d'
-      EXPECTED_TREE: '59c5ffedd95836ccd8958236bf7bf19d0a915c30'
+      EXPECTED_KTRADE_SHA: 'ceb670aaee31a95f8c154d9856ed54bc949517b6'
+      EXPECTED_TREE: 'ce7352d4657fd12a9e94bb515108993c7aebe47f'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: ce25469b819d55f30f3e3d780a9294817460d38d
+          ref: ceb670aaee31a95f8c154d9856ed54bc949517b6
           path: checked-private
           fetch-depth: 1
           persist-credentials: false
@@ -84,12 +84,13 @@ jobs:
             foreach($pin in @(
               @('cmd/ktrade/pine_codeactions_full.go','50827a5f4c60a9df32ea352ec69765ba42acbbf2'),
               @('cmd/ktrade/main_full.go','5b21fba52ee8ab1c696c3b773819d8f32c31c653'),
+              @('electron/main.js','900899a66ffb71e31714c0a1862d33d41ecd12ae'),
               @('pkg/p16b_t05_codeactions_http_request_response_contract_test.go','4725a9bba8b48223cf947a7c0efb33dcd41ef93b'),
               @('pkg/p16b_closeout_codeactions_http_acceptance_gate_test.go','6ee7a2c39e2c036fd3d6baf86f5c6c3a829679ed')
             )){
               if((& git rev-parse "HEAD:$($pin[0])").Trim() -cne $pin[1]){throw 'KTRADE_P16_AUTHENTIC_SOURCE_OR_TEST_DRIFT'}
             }
-            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase(19|21|25|26|27|28|29)_).*' ./pkg *> $log
+            & go test -vet=off -mod=readonly -count=1 -timeout=180s -run '^(TestPhase(19|21)_).*' ./pkg *> $log
             if($LASTEXITCODE -ne 0){
               $all=[string](Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue)
               $names=@([regex]::Matches($all,'(?m)^--- FAIL: (Test[A-Za-z0-9_]+)')|ForEach-Object{$_.Groups[1].Value}|Sort-Object -Unique)
@@ -98,7 +99,7 @@ jobs:
               throw 'KTRADE_R25A_FOCUSED_NEGATIVE_NOT_WAIVED'
             }
             Write-Output 'KTRADE_P16_ORIGINAL_PINE_HANDLER_BYTE_IDENTICAL=TRUE'
-            Write-Output 'KTRADE_R25A_OTHER_HISTORICAL_CONTRACTS=PASS'
+            Write-Output 'KTRADE_R25A_PHASE19_PHASE21_WINDOWS=PASS'
             Write-Output 'KTRADE_INHERITED_FULL_REGRESSION_AND_VET_REMAIN_UNQUALIFIED=TRUE'
           }finally{
             Pop-Location
