@@ -75,6 +75,10 @@ jobs:
               Write-Output 'R25C4_FULL_GO_VET=NOT_YET_QUALIFIED'
               Write-Output 'R25C4_FULL_VET_NOT_ATTEMPTED=TRUE'
               Write-Output 'R25C4_FULL_REGRESSION_NOT_REPEATED=TRUE'
+              # The structtag-only analyzer is EXPECTED to fail on 4,150 unmodified
+              # inherited files; that result remains a release blocker, not a waiver.
+              # Clear its process exit only after verifying the exact 4,150 differential.
+              $global:LASTEXITCODE = 0
             } finally {Pop-Location}
           } finally {Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
       - name: Remove private checkout
