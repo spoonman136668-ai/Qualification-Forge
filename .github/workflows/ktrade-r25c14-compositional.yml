@@ -177,6 +177,7 @@ jobs:
               if ($proc.HasExited) {throw 'R25C13_ACTUAL_BACKEND_EXITED'}
               if (Test-Path -LiteralPath $stderr) {
                 $content=Get-Content -LiteralPath $stderr -Raw
+                if ([string]::IsNullOrEmpty($content)) { Start-Sleep -Milliseconds 250; continue }
                 $m=[regex]::Match($content,'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:\d+)')
                 if($m.Success){$base='http://'+$m.Groups[1].Value;break}
               }
