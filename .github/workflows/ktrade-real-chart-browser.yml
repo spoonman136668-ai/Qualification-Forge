@@ -1,7 +1,7 @@
 name: KTRADE genuine Windows chart editor browser qualification
 on:
   push:
-    branches: [qualification/ktrade-real-ui-inventory-20261018]
+    branches: [qualification/ktrade-native-browser-pipe-20261018]
     paths: [.github/workflows/ktrade-real-chart-browser.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      EXPECTED_KTRADE_SHA: 'f9dee34b5c4d414478e64cd46ad2a9cd3ea58a0d'
-      EXPECTED_TREE: 'dfe8808291f41cc3ebcdbf2f54587054eca42ca8'
+      EXPECTED_KTRADE_SHA: '8967d0b4ebb845199dcd584bde194a125ae5ecbc'
+      EXPECTED_TREE: '8156335d81b00063c3d006bb009a19a9f34e10fb'
       KTRADE_RECOVERY_ISOLATED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: f9dee34b5c4d414478e64cd46ad2a9cd3ea58a0d
+          ref: 8967d0b4ebb845199dcd584bde194a125ae5ecbc
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -53,7 +53,7 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'KTRADE_BROWSER_CDP_TEST_SYNTAX_ERROR'}
           }finally{Pop-Location}
           Write-Output 'KTRADE_REAL_BROWSER_TEST_SOURCE_PIN=PASS'
-          if((& git -C $root rev-parse HEAD:tests/ktrade_real_browser_chart_cdp.cjs).Trim() -cne '07ad35e7abe8a7e3a21f31d7afd6eb817fa39d4b'){throw 'KTRADE_ORIGINAL_REAL_TRADE_BROWSER_TEST_DRIFT'}
+          if((& git -C $root rev-parse HEAD:tests/ktrade_real_browser_chart_cdp.cjs).Trim() -cne '322bf5fc0a3ecbe924f057f0f55e11eb75166a82'){throw 'KTRADE_ORIGINAL_REAL_TRADE_BROWSER_TEST_DRIFT'}
           Write-Output 'KTRADE_REAL_BROWSER_CDP_JAVASCRIPT_SYNTAX=PASS'
       - name: Real isolated Chromium original Monaco Save favorite and reopen
         shell: pwsh
@@ -111,50 +111,25 @@ jobs:
             $browserExe=$candidates|Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}|Select-Object -First 1
             if(!$browserExe){throw 'KTRADE_REAL_BROWSER_BINARY_NOT_INSTALLED_ON_HOST'}
             Write-Output ('KTRADE_REAL_BROWSER_SELECTED_BINARY='+[IO.Path]::GetFileName($browserExe))
-            # Native ProcessStartInfo.ArgumentList avoids Start-Process
-            # quoting ambiguities, and an explicitly reserved local port
-            # avoids dependence on Chromium's DevToolsActivePort file.
-            $socket=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0)
-            $socket.Start()
-            try{$debug=[int]([Net.IPEndPoint]$socket.LocalEndpoint).Port}
-            finally{$socket.Stop()}
-            if($debug -lt 1024){throw 'KTRADE_REAL_BROWSER_INVALID_DEBUG_PORT'}
-            $psi=[Diagnostics.ProcessStartInfo]::new($browserExe)
-            $psi.UseShellExecute=$false
-            $psi.CreateNoWindow=$true
-            foreach($argument in @(
-              '--headless=new','--disable-gpu','--disable-extensions',
-              '--disable-background-networking','--no-first-run',
-              '--no-default-browser-check','--remote-allow-origins=*',
-              '--remote-debugging-address=127.0.0.1',
-              ('--remote-debugging-port='+$debug),
-              ('--user-data-dir='+$profile),($base+'/chart')
-            )){$psi.ArgumentList.Add($argument)}
-            $browser=[Diagnostics.Process]::Start($psi)
-            if($null -eq $browser){throw 'KTRADE_REAL_BROWSER_PROCESS_NOT_STARTED'}
-            $ready=$false;$observedCDP=$false;$observedPage=''
-            for($i=0;$i -lt 100;$i++){
-              if($browser.HasExited){throw 'KTRADE_REAL_CHROMIUM_PROCESS_EXITED_BEFORE_DEBUGGER_READY'}
-              try{
-                $target=@(Invoke-RestMethod -Uri ('http://127.0.0.1:'+$debug+'/json/list') -TimeoutSec 2)
-                $observedCDP=$true
-                if($target.Count -gt 0){$observedPage=[string]$target[0].type}
-                if(@($target|Where-Object {$_.url -like ($base+'/chart*')}).Count -ge 1){$ready=$true;break}
-              }catch{}
-              Start-Sleep -Milliseconds 300
-            }
-            if(!$ready){
-              Write-Output ('KTRADE_CHROMIUM_EXPLICIT_LOOPBACK_DEBUG_PORT='+$debug)
-              Write-Output ('KTRADE_CHROMIUM_CDP_API_RESPONDED='+$observedCDP.ToString().ToUpperInvariant())
-              Write-Output ('KTRADE_CHROMIUM_CDP_PAGE_TYPE='+$observedPage)
-              throw 'KTRADE_REAL_BROWSER_CHROMIUM_CDP_TARGET_MISSING'
-            }
-            Write-Output 'KTRADE_REAL_CHROMIUM_CDP_LOOPBACK_AND_CHART_TAB=PASS'
+            # CDP over native inherited Windows pipes. No DevToolsActivePort,
+            # firewall/debug TCP port, wildcard remote origins, or HTML shim.
             Push-Location $checkout
             try{
-              & node tests/ktrade_real_browser_chart_cdp.cjs $base ([string]$debug) *> $log
-              if($LASTEXITCODE -ne 0){throw 'KTRADE_REAL_BROWSER_EDITOR_GESTURES_FAILED_PRIVATE_LOG_WITHHELD'}
+              & node tests/ktrade_real_browser_chart_cdp.cjs $base pipe $browserExe $profile *> $log
+              if($LASTEXITCODE -ne 0){
+                $diagnostic=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
+                  Where-Object {$_ -match '^KTRADE_REAL_BROWSER_(NATIVE_CDP_PIPE_ATTACHED=PASS|CHECK_FAILED)' -or
+                                $_ -match '^KTRADE_REAL_BROWSER_(MONACO|SAVE|EDITOR|ORIGINAL)' } |Select-Object -First 6)
+                # Only publish tagged test state, never private browser stdout.
+                foreach($line in $diagnostic){
+                  if($line -match '^KTRADE_REAL_BROWSER_NATIVE_CDP_PIPE_ATTACHED=PASS$'){
+                    Write-Output $line
+                  }
+                }
+                throw 'KTRADE_REAL_BROWSER_NATIVE_PIPE_OR_ORIGINAL_UI_ACCEPTANCE_FAILED'
+              }
             }finally{Pop-Location}
+            Write-Output 'KTRADE_REAL_CHROMIUM_NATIVE_CDP_PIPE_ORIGINAL_CHART=PASS'
             Write-Output 'KTRADE_REAL_CHROMIUM_EDITOR_SAVE_FAVORITE_RELOAD_REOPEN=PASS'
             Write-Output 'KTRADE_REAL_CHROMIUM_EXISTING_BROWSER_KEYS_PRESERVED=PASS'
             Write-Output 'KTRADE_BROWSER_DID_NOT_DISPATCH_BROKER_ORDER_UNTIL_EXPLICIT_TEST_CLICK=PASS'
