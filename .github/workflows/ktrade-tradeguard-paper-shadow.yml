@@ -1,7 +1,7 @@
 name: KTRADE donor TradeGuard isolated paper shadow
 on:
   push:
-    branches: [qualification/ktrade-real-process-kill-20261017]
+    branches: [qualification/ktrade-midwrite-durability-20261017]
     paths: [.github/workflows/ktrade-tradeguard-paper-shadow.yml]
 permissions:
   contents: read
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 40
     env:
-      EXPECTED_KTRADE: 'efe69ee3a0a635ca8263a07ab8637b50a5ff7429'
-      EXPECTED_TREE: '29925785dcf9b953e8f397ed79fd2aaa6b6c4932'
+      EXPECTED_KTRADE: '2c4bd697bfa56a78e3aa09ce40d4def7c80e7abd'
+      EXPECTED_TREE: '5b6436f4d9055a5055b8a70d6d55e0c83cf46373'
       EXPECTED_DONOR: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       EXPECTED_RISK_BLOB: '8469df654777548266448d1bf02192e780c8ebad'
       EXPECTED_PAPER_BLOB: 'd44341253e7d4b51d31b03cea26a77cbbb534f7b'
@@ -28,9 +28,11 @@ jobs:
       EXPECTED_CUSTODY_DONOR_TEST: '04314e5aa7ea2c575ade83ddc3f9e0c46e6843e4'
       EXPECTED_WRITE_CUT_GO_TEST: '24e527d1bd286a2455554380abfad10e07d8d903'
       EXPECTED_WRITE_CUT_DONOR_TEST: '002c2dbe211aa023b7b966b9ae10f8b928ab9bd5'
-      EXPECTED_COMMIT_WAL_SOURCE: 'be94654a85cbbd22537ed7620fbe05d3ca8d36bc'
+      EXPECTED_COMMIT_WAL_SOURCE: 'b3cd213be821779aac321044cd706874b2e5397c'
       EXPECTED_COMMIT_WAL_DONOR_TEST: '58aed2c1503fec34edee28ad134e10c5e1800ebc'
       EXPECTED_NATIVE_KILL_TEST: '6d121252ae5d6a7e383117f9d3001da9c4985ecf'
+      EXPECTED_MIDWRITE_TEST: '429019594ddd6fa5e42bbdf37f6fb84d3787bc3f'
+      EXPECTED_ATOMICFILE_DONOR_BLOB: 'ad47c114881702072613544cfe2142b64d6157a6'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -44,7 +46,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: efe69ee3a0a635ca8263a07ab8637b50a5ff7429
+          ref: 2c4bd697bfa56a78e3aa09ce40d4def7c80e7abd
           path: ktrade-private
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -91,6 +93,9 @@ jobs:
           if((& git -C $ktrade rev-parse HEAD:internal/paperreconcile/commit_protocol_shadow.go).Trim() -cne $env:EXPECTED_COMMIT_WAL_SOURCE){throw 'KTRADE_COMMIT_WAL_SOURCE_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/commit_protocol_test.go).Trim() -cne $env:EXPECTED_COMMIT_WAL_DONOR_TEST){throw 'KTRADE_COMMIT_WAL_DONOR_TEST_DRIFT'}
           if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/real_process_kill_test.go).Trim() -cne $env:EXPECTED_NATIVE_KILL_TEST){throw 'KTRADE_NATIVE_KILL_TEST_BLOB_DRIFT'}
+          if((& git -C $ktrade rev-parse HEAD:tests/donor-shadow/midwrite_process_kill_test.go).Trim() -cne $env:EXPECTED_MIDWRITE_TEST){throw 'KTRADE_MIDWRITE_WINDOWS_TEST_BLOB_DRIFT'}
+          if((& git -C $donor rev-parse HEAD:pkg/atomicfile.go).Trim() -cne $env:EXPECTED_ATOMICFILE_DONOR_BLOB){throw 'KTRADE_AUTHENTIC_DONOR_CHECKPOINT_ATOMICFILE_DRIFT'}
+          Write-Output 'KTRADE_MIDWRITE_DURABILITY_SOURCE_IDENTITY=PASS'
           Write-Output 'KTRADE_NATIVE_WIN_KILL_TEST_SOURCE=PASS'
           Write-Output 'KTRADE_COMMIT_WAL_EXACT_SOURCE=PASS'
           Write-Output 'KTRADE_WRITE_ORDER_SOURCE_PINS=PASS'
@@ -135,6 +140,7 @@ jobs:
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/commit_order_fault_test.go') -Destination (Join-Path $scratch 'commit_order_fault_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/commit_protocol_test.go') -Destination (Join-Path $scratch 'commit_protocol_test.go') -Force
             Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/real_process_kill_test.go') -Destination (Join-Path $scratch 'real_process_kill_test.go') -Force
+            Copy-Item -LiteralPath (Join-Path $ktrade 'tests/donor-shadow/midwrite_process_kill_test.go') -Destination (Join-Path $scratch 'midwrite_process_kill_test.go') -Force
             Push-Location $donor
             try{
               & go mod download *> $log
@@ -185,6 +191,7 @@ jobs:
             Write-Output 'KTRADE_WRITE_ORDER_CRASH_WINDOW_FAIL_CLOSED_WINDOWS=PASS'
             Write-Output 'KTRADE_IMMUTABLE_WAL_AUTHENTIC_DONOR_10_PHASE_MATRIX=PASS'
             Write-Output 'KTRADE_WINDOWS_ACTUAL_TERMINATEPROCESS_AND_NEW_PROCESS_REOPEN=PASS'
+            Write-Output 'KTRADE_WINDOWS_ACTUAL_TERMINATEPROCESS_PARTIAL_WRITE_DONOR_RENAME_DURABILITY_PROBE=PASS'
           }finally{
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $scratch -Recurse -Force -ErrorAction SilentlyContinue
