@@ -1,7 +1,7 @@
 name: KTRADE R25-C13 frozen-source Windows consolidated acceptance
 on:
   push:
-    branches: [qualification/ktrade-r25c13-consolidated-20261018]
+    branches: [qualification/ktrade-r25c13-witness-recheck-20261018]
     paths: [.github/workflows/ktrade-r25c13-consolidated.yml]
 permissions:
   contents: read
@@ -29,7 +29,7 @@ jobs:
           ref: 3d934a0f2c3bae555395ca2e09a72632af172aa7
           path: source
           persist-credentials: false
-          fetch-depth: 1
+          fetch-depth: 3
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Install Go 1.23
         uses: actions/setup-go@v5
@@ -69,6 +69,569 @@ jobs:
           & git diff --exit-code -- go.mod go.sum
           if ($LASTEXITCODE -ne 0) {throw 'R25C13_MODULE_DRIFT'}
           Write-Output 'R25C13_DEPENDENCIES_READONLY=PASS'
+      - name: Reconstruct pinned parent-wire evidence before full regression
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $head='3d934a0f2c3bae555395ca2e09a72632af172aa7'
+          $headTree='fd2e4230255e47e3dbd409480c3ea0937fe5427e'
+          $s1='2af730f8a7bed15370d86d2ce0ced060c56beed2'
+          $s1Tree='89cc720ff3d6da6cec12d583a23682584f473ac6'
+          $s0='d892d5902f6c19105c4395bf6b71bfb112b22a62'
+          $s0Tree='95846811b88a0cb538dd6d494bb771ef3cd8102b'
+          $root=(Get-Location).Path
+          $gov=Join-Path $root 'pkg/r25c12_governance_wire_compat_test.go'
+          $mixed=Join-Path $root 'pkg/r25c12_mixed_phase9_wire_compat_test.go'
+          $fg=Join-Path $env:RUNNER_TEMP 'r25c13-gov-frozen.go'
+          $fm=Join-Path $env:RUNNER_TEMP 'r25c13-mixed-frozen.go'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c13-private-witness.log'
+          $values=[ordered]@{}
+          try {
+            if ((& git rev-parse HEAD).Trim() -cne $head -or
+                (& git rev-parse 'HEAD^{tree}').Trim() -cne $headTree -or
+                (& git rev-parse HEAD^).Trim() -cne $s1 -or
+                (& git rev-parse HEAD^^).Trim() -cne $s0 -or
+                (& git rev-parse ($s1+'^{tree}')).Trim() -cne $s1Tree -or
+                (& git rev-parse ($s0+'^{tree}')).Trim() -cne $s0Tree) {throw 'R25C13_PARENT_CHAIN_IDENTITY_DRIFT'}
+            Copy-Item -LiteralPath $gov -Destination $fg
+            Copy-Item -LiteralPath $mixed -Destination $fm
+            & git checkout --detach $s0 *> $log
+            if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $s0Tree) {throw 'R25C13_FIRST_PARENT_CHECKOUT_FAILED'}
+            Copy-Item -LiteralPath $fg -Destination $gov
+            $env:R25C12_ORIGINAL_MODE='1'
+            & go test -vet=off -mod=readonly -count=1 -timeout=10m -v -run '^TestR25C12HistoricalGovernanceJSONWire        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -timeout=65m ./...
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_FULL_WINDOWS_REGRESSION_FAILED'}
+          Write-Output 'R25C13_FULL_WINDOWS_REGRESSION=PASS'
+      - name: Complete Windows Go vet after regression
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly ./...
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_COMPLETE_VET_FAILED'}
+          Write-Output 'R25C13_COMPLETE_WINDOWS_VET=PASS'
+      - name: Qualify authentic full-tagged KTRADE command interface
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=10m ./cmd/ktrade
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_FULL_APP_TAGGED_TEST_FAILED'}
+          Write-Output 'R25C13_FULL_APP_TAGGED_INTERFACE_TEST=PASS'
+      - name: Build four original Windows commands without fallback or launch
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage'
+          if (Test-Path -LiteralPath $root) {throw 'R25C13_CLEAN_STAGE_ALREADY_EXISTS'}
+          New-Item -ItemType Directory -Path $root | Out-Null
+          $commands=@(
+            @{Name='ktrade.exe'; Path='./cmd/ktrade'; Tags='ktrade_full'},
+            @{Name='ktrade-paper.exe'; Path='./cmd/ktrade-paper'; Tags=''},
+            @{Name='ktrade-paper-web.exe'; Path='./cmd/ktrade-paper-web'; Tags=''},
+            @{Name='ktrade-inventory.exe'; Path='./cmd/ktrade-inventory'; Tags=''}
+          )
+          foreach ($cmd in $commands) {
+            $out=Join-Path $root $cmd.Name
+            if ($cmd.Tags -ne '') {
+              & go build -mod=readonly -tags=$($cmd.Tags) -o $out $cmd.Path
+            } else {
+              & go build -mod=readonly -o $out $cmd.Path
+            }
+            if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $out -PathType Leaf)) {throw ('R25C13_BUILD_FAILED_'+$cmd.Name)}
+            $hash=(Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash.ToLowerInvariant()
+            Write-Output ('R25C13_BUILD_SHA256_'+$cmd.Name+'='+$hash)
+          }
+          foreach ($dir in @('static','templates','strategies')) {
+            Copy-Item -LiteralPath (Join-Path (Get-Location).Path $dir) -Destination $root -Recurse -Force
+            if (!(Test-Path -LiteralPath (Join-Path $root $dir))) {throw ('R25C13_ASSET_STAGE_FAILED_'+$dir)}
+          }
+          Write-Output 'R25C13_FOUR_AUTHENTIC_WINDOWS_BUILDS=PASS'
+          Write-Output 'R25C13_SYNTHETIC_CLEAN_APP_STAGE=PASS'
+      - name: Genuine isolated Chromium original chart and order-denial acceptance
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $stage=Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage'
+          $env:KTRADE_PINE_LIBRARY_ROOT=Join-Path $env:RUNNER_TEMP ('ktrade-r25c13-pine-'+$env:GITHUB_RUN_ID)
+          if (Test-Path -LiteralPath $env:KTRADE_PINE_LIBRARY_ROOT) {throw 'R25C13_PINE_PROFILE_NOT_FRESH'}
+          $edgeRoots=@([Environment]::GetEnvironmentVariable('ProgramFiles(x86)'),$env:ProgramFiles,$env:LOCALAPPDATA) | Where-Object {$_}
+          $candidates=@()
+          foreach ($root in $edgeRoots) {
+            foreach ($relative in @('Microsoft\Edge\Application\msedge.exe','Google\Chrome\Application\chrome.exe','BraveSoftware\Brave-Browser\Application\brave.exe')) {
+              $candidates+=Join-Path $root $relative
+            }
+          }
+          $browser=@($candidates | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+          if (!$browser.Count) {throw 'R25C13_REAL_CHROMIUM_ENVIRONMENT_BLOCKED'}
+          if ((& node -v) -notmatch '^v24\.') {throw 'R25C13_NODE24_REQUIRED'}
+          $profile=Join-Path $env:RUNNER_TEMP ('ktrade-r25c13-chromium-'+$env:GITHUB_RUN_ID)
+          if (Test-Path -LiteralPath $profile) {throw 'R25C13_BROWSER_PROFILE_NOT_FRESH'}
+          $stderr=Join-Path $stage 'backend.err'
+          $stdout=Join-Path $stage 'backend.out'
+          $proc=$null
+          try {
+            $proc=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru -WindowStyle Hidden -RedirectStandardError $stderr -RedirectStandardOutput $stdout
+            $base=$null
+            for($i=0;$i -lt 180;$i++){
+              if ($proc.HasExited) {throw 'R25C13_ACTUAL_BACKEND_EXITED'}
+              if (Test-Path -LiteralPath $stderr) {
+                $content=Get-Content -LiteralPath $stderr -Raw
+                $m=[regex]::Match($content,'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:\d+)')
+                if($m.Success){$base='http://'+$m.Groups[1].Value;break}
+              }
+              Start-Sleep -Milliseconds 250
+            }
+            if (!$base) {throw 'R25C13_BACKEND_READY_TIMEOUT'}
+            $page=Invoke-WebRequest -Uri ($base+'/chart') -UseBasicParsing -TimeoutSec 20
+            if ($page.StatusCode -ne 200 -or $page.Content -notmatch 'pineSave') {throw 'R25C13_ORIGINAL_CHART_NOT_SERVED'}
+            Write-Output 'R25C13_ACTUAL_KTRADE_ISOLATED_START=PASS'
+            & node ./tests/ktrade_real_browser_chart_cdp.cjs $base pipe $browser[0] $profile
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_GENUINE_CHROMIUM_UI_ACCEPTANCE_FAILED'}
+            Write-Output 'R25C13_CHROMIUM_ORIGINAL_UI_AND_BROKER_DENIAL=PASS'
+          } finally {
+            if ($proc -and !$proc.HasExited) {Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue}
+            Remove-Item -LiteralPath $env:KTRADE_PINE_LIBRARY_ROOT,$profile -Recurse -Force -ErrorAction SilentlyContinue
+          }
+      - name: Synthetic historical portable migration, clean install and rollback
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -timeout=15m -run '^(TestKTRADEInstalledParityPortablePreferencesPineHistoryRollbackR1|TestPineLibrarySyntheticUpgradeRollbackR12C|TestInstalledDataSyntheticInventoryRetainsFinancialPineAndPreferences|TestInstalledDataSyntheticInventoryDoesNotClaimInstalledUserCompleteness|TestInstalledDataSyntheticInventoryRejectsLinks)$' ./internal/durableupgrade
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_SYNTHETIC_UPGRADE_ROLLBACK_FAILED'}
+          Write-Output 'R25C13_SYNTHETIC_PORTABLE_UPGRADE_ROLLBACK=PASS'
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=12m -run '^(TestAuthenticTradeGuardAtomicCommitAndRollbackUnchangedOriginal|TestAuthenticTradeGuardRiskVetoAndHistoricalMigrationFailClosed)$' ./tests/donor-shadow
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_STOPPED_PAPER_MIGRATION_INTEGRATION_FAILED'}
+          Write-Output 'R25C13_STOPPED_DONOR_ROLLBACK_FAIL_CLOSED=PASS'
+      - name: Seal consolidated evidence and enforce unchanged source
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $head=(& git rev-parse HEAD).Trim()
+          $tree=(& git rev-parse 'HEAD^{tree}').Trim()
+          if ($head -cne $env:KTRADE_R25C13_SOURCE_SHA -or $tree -cne $env:KTRADE_R25C13_SOURCE_TREE) {throw 'R25C13_FINAL_SOURCE_IDENTITY_DRIFT'}
+          if (@(& git status --porcelain).Count -ne 0) {throw 'R25C13_SOURCE_DIRTY_AFTER_ACCEPTANCE'}
+          $stage=Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage'
+          $bins=@('ktrade.exe','ktrade-paper.exe','ktrade-paper-web.exe','ktrade-inventory.exe')
+          $hashes=[ordered]@{}
+          foreach($file in $bins){$hashes[$file]=(Get-FileHash -LiteralPath (Join-Path $stage $file) -Algorithm SHA256).Hash.ToLowerInvariant()}
+          $receipt=[ordered]@{
+            schema='ktrade.r25c13.consolidated-windows.v1'
+            result='FOCUSED_ACCEPTANCE_PASS_NOT_RELEASE'
+            source_sha=$head
+            source_tree=$tree
+            workflow_source=$env:GITHUB_SHA
+            run_id=$env:GITHUB_RUN_ID
+            runner='windows-2022'
+            tests='one full Windows Go regression; full vet; tagged app focused tests; real isolated Chromium; synthetic portable rollback; stopped donor rollback'
+            executable_sha256=$hashes
+            production_promotion=$false
+            trading_live_authority=$false
+            authentic_installed_profile_accepted=$false
+            electron_installer_signed=$false
+          }
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          $receiptPath=Join-Path $dir 'r25c13-receipt.json'
+          $receipt|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $receiptPath -Encoding utf8
+          $receiptHash=(Get-FileHash -LiteralPath $receiptPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Output ('R25C13_ACCEPTANCE_RECEIPT_SHA256='+$receiptHash)
+          Write-Output 'R25C13_CONSOLIDATED_WINDOWS_ACCEPTANCE=PASS'
+          Write-Output 'R25C13_SIGNED_INSTALLER_AND_REAL_PROFILE=NOT_QUALIFIED'
+      - name: Upload bounded acceptance receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c13-consolidated-receipt
+          path: evidence/r25c13-receipt.json
+          retention-days: 30
+      - name: Erase private source and isolated temporary app
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C13_PRIVATE_SOURCE_AND_APP_STAGE_CLEANUP=PASS'
+ ./pkg *> $log
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_55_PARENT_WITNESS_TESTS_FAILED'}
+            $out=Get-Content -LiteralPath $log -Raw
+            foreach ($n in @(298..332)+@(354..373)) {
+              $k='T'+$n
+              $a=[regex]::Match($out,('R25C12_PARENT_'+$k+'_COLLISIONS_B64=([A-Za-z0-9+/=]+)'))
+              $b=[regex]::Match($out,('R25C12_PARENT_'+$k+'_SHA256=([a-f0-9]{64})'))
+              if (!$a.Success -or !$b.Success) {throw ('R25C13_GOVERNANCE_PARENT_PROVENANCE_MISSING_'+$k)}
+              $values['R25C12_'+$k+'_COLLISIONS_B64']=$a.Groups[1].Value
+              $values['R25C12_'+$k+'_SHA256']=$b.Groups[1].Value
+            }
+            if ($values.Count -ne 110) {throw 'R25C13_GOVERNANCE_PARENT_COUNT_DRIFT'}
+            Remove-Item -LiteralPath $gov -Force
+            & git checkout --detach $s1 *> $log
+            if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $s1Tree) {throw 'R25C13_SECOND_PARENT_CHECKOUT_FAILED'}
+            Copy-Item -LiteralPath $fm -Destination $mixed
+            $env:R25C12_ORIGINAL_MODE='0'
+            $env:R25C12_MIXED_PARENT_MODE='1'
+            & go test -vet=off -mod=readonly -count=1 -timeout=10m -v -run '^TestR25C12MixedPhase9HistoricalJSONWire        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -timeout=65m ./...
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_FULL_WINDOWS_REGRESSION_FAILED'}
+          Write-Output 'R25C13_FULL_WINDOWS_REGRESSION=PASS'
+      - name: Complete Windows Go vet after regression
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly ./...
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_COMPLETE_VET_FAILED'}
+          Write-Output 'R25C13_COMPLETE_WINDOWS_VET=PASS'
+      - name: Qualify authentic full-tagged KTRADE command interface
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=10m ./cmd/ktrade
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_FULL_APP_TAGGED_TEST_FAILED'}
+          Write-Output 'R25C13_FULL_APP_TAGGED_INTERFACE_TEST=PASS'
+      - name: Build four original Windows commands without fallback or launch
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage'
+          if (Test-Path -LiteralPath $root) {throw 'R25C13_CLEAN_STAGE_ALREADY_EXISTS'}
+          New-Item -ItemType Directory -Path $root | Out-Null
+          $commands=@(
+            @{Name='ktrade.exe'; Path='./cmd/ktrade'; Tags='ktrade_full'},
+            @{Name='ktrade-paper.exe'; Path='./cmd/ktrade-paper'; Tags=''},
+            @{Name='ktrade-paper-web.exe'; Path='./cmd/ktrade-paper-web'; Tags=''},
+            @{Name='ktrade-inventory.exe'; Path='./cmd/ktrade-inventory'; Tags=''}
+          )
+          foreach ($cmd in $commands) {
+            $out=Join-Path $root $cmd.Name
+            if ($cmd.Tags -ne '') {
+              & go build -mod=readonly -tags=$($cmd.Tags) -o $out $cmd.Path
+            } else {
+              & go build -mod=readonly -o $out $cmd.Path
+            }
+            if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $out -PathType Leaf)) {throw ('R25C13_BUILD_FAILED_'+$cmd.Name)}
+            $hash=(Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash.ToLowerInvariant()
+            Write-Output ('R25C13_BUILD_SHA256_'+$cmd.Name+'='+$hash)
+          }
+          foreach ($dir in @('static','templates','strategies')) {
+            Copy-Item -LiteralPath (Join-Path (Get-Location).Path $dir) -Destination $root -Recurse -Force
+            if (!(Test-Path -LiteralPath (Join-Path $root $dir))) {throw ('R25C13_ASSET_STAGE_FAILED_'+$dir)}
+          }
+          Write-Output 'R25C13_FOUR_AUTHENTIC_WINDOWS_BUILDS=PASS'
+          Write-Output 'R25C13_SYNTHETIC_CLEAN_APP_STAGE=PASS'
+      - name: Genuine isolated Chromium original chart and order-denial acceptance
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $stage=Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage'
+          $env:KTRADE_PINE_LIBRARY_ROOT=Join-Path $env:RUNNER_TEMP ('ktrade-r25c13-pine-'+$env:GITHUB_RUN_ID)
+          if (Test-Path -LiteralPath $env:KTRADE_PINE_LIBRARY_ROOT) {throw 'R25C13_PINE_PROFILE_NOT_FRESH'}
+          $edgeRoots=@([Environment]::GetEnvironmentVariable('ProgramFiles(x86)'),$env:ProgramFiles,$env:LOCALAPPDATA) | Where-Object {$_}
+          $candidates=@()
+          foreach ($root in $edgeRoots) {
+            foreach ($relative in @('Microsoft\Edge\Application\msedge.exe','Google\Chrome\Application\chrome.exe','BraveSoftware\Brave-Browser\Application\brave.exe')) {
+              $candidates+=Join-Path $root $relative
+            }
+          }
+          $browser=@($candidates | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+          if (!$browser.Count) {throw 'R25C13_REAL_CHROMIUM_ENVIRONMENT_BLOCKED'}
+          if ((& node -v) -notmatch '^v24\.') {throw 'R25C13_NODE24_REQUIRED'}
+          $profile=Join-Path $env:RUNNER_TEMP ('ktrade-r25c13-chromium-'+$env:GITHUB_RUN_ID)
+          if (Test-Path -LiteralPath $profile) {throw 'R25C13_BROWSER_PROFILE_NOT_FRESH'}
+          $stderr=Join-Path $stage 'backend.err'
+          $stdout=Join-Path $stage 'backend.out'
+          $proc=$null
+          try {
+            $proc=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru -WindowStyle Hidden -RedirectStandardError $stderr -RedirectStandardOutput $stdout
+            $base=$null
+            for($i=0;$i -lt 180;$i++){
+              if ($proc.HasExited) {throw 'R25C13_ACTUAL_BACKEND_EXITED'}
+              if (Test-Path -LiteralPath $stderr) {
+                $content=Get-Content -LiteralPath $stderr -Raw
+                $m=[regex]::Match($content,'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:\d+)')
+                if($m.Success){$base='http://'+$m.Groups[1].Value;break}
+              }
+              Start-Sleep -Milliseconds 250
+            }
+            if (!$base) {throw 'R25C13_BACKEND_READY_TIMEOUT'}
+            $page=Invoke-WebRequest -Uri ($base+'/chart') -UseBasicParsing -TimeoutSec 20
+            if ($page.StatusCode -ne 200 -or $page.Content -notmatch 'pineSave') {throw 'R25C13_ORIGINAL_CHART_NOT_SERVED'}
+            Write-Output 'R25C13_ACTUAL_KTRADE_ISOLATED_START=PASS'
+            & node ./tests/ktrade_real_browser_chart_cdp.cjs $base pipe $browser[0] $profile
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_GENUINE_CHROMIUM_UI_ACCEPTANCE_FAILED'}
+            Write-Output 'R25C13_CHROMIUM_ORIGINAL_UI_AND_BROKER_DENIAL=PASS'
+          } finally {
+            if ($proc -and !$proc.HasExited) {Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue}
+            Remove-Item -LiteralPath $env:KTRADE_PINE_LIBRARY_ROOT,$profile -Recurse -Force -ErrorAction SilentlyContinue
+          }
+      - name: Synthetic historical portable migration, clean install and rollback
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -timeout=15m -run '^(TestKTRADEInstalledParityPortablePreferencesPineHistoryRollbackR1|TestPineLibrarySyntheticUpgradeRollbackR12C|TestInstalledDataSyntheticInventoryRetainsFinancialPineAndPreferences|TestInstalledDataSyntheticInventoryDoesNotClaimInstalledUserCompleteness|TestInstalledDataSyntheticInventoryRejectsLinks)$' ./internal/durableupgrade
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_SYNTHETIC_UPGRADE_ROLLBACK_FAILED'}
+          Write-Output 'R25C13_SYNTHETIC_PORTABLE_UPGRADE_ROLLBACK=PASS'
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=12m -run '^(TestAuthenticTradeGuardAtomicCommitAndRollbackUnchangedOriginal|TestAuthenticTradeGuardRiskVetoAndHistoricalMigrationFailClosed)$' ./tests/donor-shadow
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_STOPPED_PAPER_MIGRATION_INTEGRATION_FAILED'}
+          Write-Output 'R25C13_STOPPED_DONOR_ROLLBACK_FAIL_CLOSED=PASS'
+      - name: Seal consolidated evidence and enforce unchanged source
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $head=(& git rev-parse HEAD).Trim()
+          $tree=(& git rev-parse 'HEAD^{tree}').Trim()
+          if ($head -cne $env:KTRADE_R25C13_SOURCE_SHA -or $tree -cne $env:KTRADE_R25C13_SOURCE_TREE) {throw 'R25C13_FINAL_SOURCE_IDENTITY_DRIFT'}
+          if (@(& git status --porcelain).Count -ne 0) {throw 'R25C13_SOURCE_DIRTY_AFTER_ACCEPTANCE'}
+          $stage=Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage'
+          $bins=@('ktrade.exe','ktrade-paper.exe','ktrade-paper-web.exe','ktrade-inventory.exe')
+          $hashes=[ordered]@{}
+          foreach($file in $bins){$hashes[$file]=(Get-FileHash -LiteralPath (Join-Path $stage $file) -Algorithm SHA256).Hash.ToLowerInvariant()}
+          $receipt=[ordered]@{
+            schema='ktrade.r25c13.consolidated-windows.v1'
+            result='FOCUSED_ACCEPTANCE_PASS_NOT_RELEASE'
+            source_sha=$head
+            source_tree=$tree
+            workflow_source=$env:GITHUB_SHA
+            run_id=$env:GITHUB_RUN_ID
+            runner='windows-2022'
+            tests='one full Windows Go regression; full vet; tagged app focused tests; real isolated Chromium; synthetic portable rollback; stopped donor rollback'
+            executable_sha256=$hashes
+            production_promotion=$false
+            trading_live_authority=$false
+            authentic_installed_profile_accepted=$false
+            electron_installer_signed=$false
+          }
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          $receiptPath=Join-Path $dir 'r25c13-receipt.json'
+          $receipt|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $receiptPath -Encoding utf8
+          $receiptHash=(Get-FileHash -LiteralPath $receiptPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Output ('R25C13_ACCEPTANCE_RECEIPT_SHA256='+$receiptHash)
+          Write-Output 'R25C13_CONSOLIDATED_WINDOWS_ACCEPTANCE=PASS'
+          Write-Output 'R25C13_SIGNED_INSTALLER_AND_REAL_PROFILE=NOT_QUALIFIED'
+      - name: Upload bounded acceptance receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c13-consolidated-receipt
+          path: evidence/r25c13-receipt.json
+          retention-days: 30
+      - name: Erase private source and isolated temporary app
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C13_PRIVATE_SOURCE_AND_APP_STAGE_CLEANUP=PASS'
+ ./pkg *> $log
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_17_PARENT_WITNESS_TESTS_FAILED'}
+            $out=Get-Content -LiteralPath $log -Raw
+            foreach ($n in 24..40) {
+              $k='T'+$n
+              $a=[regex]::Match($out,('R25C12_MIXED_PARENT_'+$k+'_FIELDS_B64=([A-Za-z0-9+/=]+)'))
+              $b=[regex]::Match($out,('R25C12_MIXED_PARENT_'+$k+'_SHA256=([a-f0-9]{64})'))
+              if (!$a.Success -or !$b.Success) {throw ('R25C13_MIXED_PARENT_PROVENANCE_MISSING_'+$k)}
+              $values['R25C12_MIXED_'+$k+'_FIELDS_B64']=$a.Groups[1].Value
+              $values['R25C12_MIXED_'+$k+'_SHA256']=$b.Groups[1].Value
+            }
+            if ($values.Count -ne 144) {throw 'R25C13_TOTAL_PARENT_WITNESS_COUNT_DRIFT'}
+            Remove-Item -LiteralPath $mixed -Force
+            & git checkout --detach $head *> $log
+            if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $headTree -or
+                @(& git status --porcelain).Count -ne 0) {throw 'R25C13_CANDIDATE_RESTORE_DRIFT'}
+            $env:R25C12_MIXED_PARENT_MODE='0'
+            foreach ($key in $values.Keys) {
+              [Environment]::SetEnvironmentVariable($key,$values[$key])
+            }
+            & go test -vet=off -mod=readonly -count=1 -timeout=10m -run '^(TestR25C12HistoricalGovernanceJSONWire|TestR25C12MixedPhase9HistoricalJSONWire)        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -timeout=65m ./...
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_FULL_WINDOWS_REGRESSION_FAILED'}
+          Write-Output 'R25C13_FULL_WINDOWS_REGRESSION=PASS'
+      - name: Complete Windows Go vet after regression
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly ./...
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_COMPLETE_VET_FAILED'}
+          Write-Output 'R25C13_COMPLETE_WINDOWS_VET=PASS'
+      - name: Qualify authentic full-tagged KTRADE command interface
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=10m ./cmd/ktrade
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_FULL_APP_TAGGED_TEST_FAILED'}
+          Write-Output 'R25C13_FULL_APP_TAGGED_INTERFACE_TEST=PASS'
+      - name: Build four original Windows commands without fallback or launch
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage'
+          if (Test-Path -LiteralPath $root) {throw 'R25C13_CLEAN_STAGE_ALREADY_EXISTS'}
+          New-Item -ItemType Directory -Path $root | Out-Null
+          $commands=@(
+            @{Name='ktrade.exe'; Path='./cmd/ktrade'; Tags='ktrade_full'},
+            @{Name='ktrade-paper.exe'; Path='./cmd/ktrade-paper'; Tags=''},
+            @{Name='ktrade-paper-web.exe'; Path='./cmd/ktrade-paper-web'; Tags=''},
+            @{Name='ktrade-inventory.exe'; Path='./cmd/ktrade-inventory'; Tags=''}
+          )
+          foreach ($cmd in $commands) {
+            $out=Join-Path $root $cmd.Name
+            if ($cmd.Tags -ne '') {
+              & go build -mod=readonly -tags=$($cmd.Tags) -o $out $cmd.Path
+            } else {
+              & go build -mod=readonly -o $out $cmd.Path
+            }
+            if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $out -PathType Leaf)) {throw ('R25C13_BUILD_FAILED_'+$cmd.Name)}
+            $hash=(Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash.ToLowerInvariant()
+            Write-Output ('R25C13_BUILD_SHA256_'+$cmd.Name+'='+$hash)
+          }
+          foreach ($dir in @('static','templates','strategies')) {
+            Copy-Item -LiteralPath (Join-Path (Get-Location).Path $dir) -Destination $root -Recurse -Force
+            if (!(Test-Path -LiteralPath (Join-Path $root $dir))) {throw ('R25C13_ASSET_STAGE_FAILED_'+$dir)}
+          }
+          Write-Output 'R25C13_FOUR_AUTHENTIC_WINDOWS_BUILDS=PASS'
+          Write-Output 'R25C13_SYNTHETIC_CLEAN_APP_STAGE=PASS'
+      - name: Genuine isolated Chromium original chart and order-denial acceptance
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $stage=Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage'
+          $env:KTRADE_PINE_LIBRARY_ROOT=Join-Path $env:RUNNER_TEMP ('ktrade-r25c13-pine-'+$env:GITHUB_RUN_ID)
+          if (Test-Path -LiteralPath $env:KTRADE_PINE_LIBRARY_ROOT) {throw 'R25C13_PINE_PROFILE_NOT_FRESH'}
+          $edgeRoots=@([Environment]::GetEnvironmentVariable('ProgramFiles(x86)'),$env:ProgramFiles,$env:LOCALAPPDATA) | Where-Object {$_}
+          $candidates=@()
+          foreach ($root in $edgeRoots) {
+            foreach ($relative in @('Microsoft\Edge\Application\msedge.exe','Google\Chrome\Application\chrome.exe','BraveSoftware\Brave-Browser\Application\brave.exe')) {
+              $candidates+=Join-Path $root $relative
+            }
+          }
+          $browser=@($candidates | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+          if (!$browser.Count) {throw 'R25C13_REAL_CHROMIUM_ENVIRONMENT_BLOCKED'}
+          if ((& node -v) -notmatch '^v24\.') {throw 'R25C13_NODE24_REQUIRED'}
+          $profile=Join-Path $env:RUNNER_TEMP ('ktrade-r25c13-chromium-'+$env:GITHUB_RUN_ID)
+          if (Test-Path -LiteralPath $profile) {throw 'R25C13_BROWSER_PROFILE_NOT_FRESH'}
+          $stderr=Join-Path $stage 'backend.err'
+          $stdout=Join-Path $stage 'backend.out'
+          $proc=$null
+          try {
+            $proc=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru -WindowStyle Hidden -RedirectStandardError $stderr -RedirectStandardOutput $stdout
+            $base=$null
+            for($i=0;$i -lt 180;$i++){
+              if ($proc.HasExited) {throw 'R25C13_ACTUAL_BACKEND_EXITED'}
+              if (Test-Path -LiteralPath $stderr) {
+                $content=Get-Content -LiteralPath $stderr -Raw
+                $m=[regex]::Match($content,'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:\d+)')
+                if($m.Success){$base='http://'+$m.Groups[1].Value;break}
+              }
+              Start-Sleep -Milliseconds 250
+            }
+            if (!$base) {throw 'R25C13_BACKEND_READY_TIMEOUT'}
+            $page=Invoke-WebRequest -Uri ($base+'/chart') -UseBasicParsing -TimeoutSec 20
+            if ($page.StatusCode -ne 200 -or $page.Content -notmatch 'pineSave') {throw 'R25C13_ORIGINAL_CHART_NOT_SERVED'}
+            Write-Output 'R25C13_ACTUAL_KTRADE_ISOLATED_START=PASS'
+            & node ./tests/ktrade_real_browser_chart_cdp.cjs $base pipe $browser[0] $profile
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_GENUINE_CHROMIUM_UI_ACCEPTANCE_FAILED'}
+            Write-Output 'R25C13_CHROMIUM_ORIGINAL_UI_AND_BROKER_DENIAL=PASS'
+          } finally {
+            if ($proc -and !$proc.HasExited) {Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue}
+            Remove-Item -LiteralPath $env:KTRADE_PINE_LIBRARY_ROOT,$profile -Recurse -Force -ErrorAction SilentlyContinue
+          }
+      - name: Synthetic historical portable migration, clean install and rollback
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -timeout=15m -run '^(TestKTRADEInstalledParityPortablePreferencesPineHistoryRollbackR1|TestPineLibrarySyntheticUpgradeRollbackR12C|TestInstalledDataSyntheticInventoryRetainsFinancialPineAndPreferences|TestInstalledDataSyntheticInventoryDoesNotClaimInstalledUserCompleteness|TestInstalledDataSyntheticInventoryRejectsLinks)$' ./internal/durableupgrade
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_SYNTHETIC_UPGRADE_ROLLBACK_FAILED'}
+          Write-Output 'R25C13_SYNTHETIC_PORTABLE_UPGRADE_ROLLBACK=PASS'
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=12m -run '^(TestAuthenticTradeGuardAtomicCommitAndRollbackUnchangedOriginal|TestAuthenticTradeGuardRiskVetoAndHistoricalMigrationFailClosed)$' ./tests/donor-shadow
+          if ($LASTEXITCODE -ne 0) {throw 'R25C13_STOPPED_PAPER_MIGRATION_INTEGRATION_FAILED'}
+          Write-Output 'R25C13_STOPPED_DONOR_ROLLBACK_FAIL_CLOSED=PASS'
+      - name: Seal consolidated evidence and enforce unchanged source
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $head=(& git rev-parse HEAD).Trim()
+          $tree=(& git rev-parse 'HEAD^{tree}').Trim()
+          if ($head -cne $env:KTRADE_R25C13_SOURCE_SHA -or $tree -cne $env:KTRADE_R25C13_SOURCE_TREE) {throw 'R25C13_FINAL_SOURCE_IDENTITY_DRIFT'}
+          if (@(& git status --porcelain).Count -ne 0) {throw 'R25C13_SOURCE_DIRTY_AFTER_ACCEPTANCE'}
+          $stage=Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage'
+          $bins=@('ktrade.exe','ktrade-paper.exe','ktrade-paper-web.exe','ktrade-inventory.exe')
+          $hashes=[ordered]@{}
+          foreach($file in $bins){$hashes[$file]=(Get-FileHash -LiteralPath (Join-Path $stage $file) -Algorithm SHA256).Hash.ToLowerInvariant()}
+          $receipt=[ordered]@{
+            schema='ktrade.r25c13.consolidated-windows.v1'
+            result='FOCUSED_ACCEPTANCE_PASS_NOT_RELEASE'
+            source_sha=$head
+            source_tree=$tree
+            workflow_source=$env:GITHUB_SHA
+            run_id=$env:GITHUB_RUN_ID
+            runner='windows-2022'
+            tests='one full Windows Go regression; full vet; tagged app focused tests; real isolated Chromium; synthetic portable rollback; stopped donor rollback'
+            executable_sha256=$hashes
+            production_promotion=$false
+            trading_live_authority=$false
+            authentic_installed_profile_accepted=$false
+            electron_installer_signed=$false
+          }
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $dir -Force | Out-Null
+          $receiptPath=Join-Path $dir 'r25c13-receipt.json'
+          $receipt|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $receiptPath -Encoding utf8
+          $receiptHash=(Get-FileHash -LiteralPath $receiptPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Output ('R25C13_ACCEPTANCE_RECEIPT_SHA256='+$receiptHash)
+          Write-Output 'R25C13_CONSOLIDATED_WINDOWS_ACCEPTANCE=PASS'
+          Write-Output 'R25C13_SIGNED_INSTALLER_AND_REAL_PROFILE=NOT_QUALIFIED'
+      - name: Upload bounded acceptance receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c13-consolidated-receipt
+          path: evidence/r25c13-receipt.json
+          retention-days: 30
+      - name: Erase private source and isolated temporary app
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'ktrade-r25c13-cleanstage') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C13_PRIVATE_SOURCE_AND_APP_STAGE_CLEANUP=PASS'
+ ./pkg *> $log
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_FOCUSED_HISTORICAL_PARITY_FAILED'}
+            foreach ($key in $values.Keys) {
+              Add-Content -LiteralPath $env:GITHUB_ENV -Value ($key+'='+$values[$key]) -Encoding utf8
+            }
+            Write-Output 'R25C13_55_GOVERNANCE_PARENT_WITNESSES=PASS'
+            Write-Output 'R25C13_17_MIXED_PARENT_WITNESSES=PASS'
+            Write-Output 'R25C13_FOCUSED_HISTORICAL_PARITY=PASS'
+          } finally {
+            Remove-Item -LiteralPath $log,$fg,$fm -Force -ErrorAction SilentlyContinue
+          }
       - name: One complete Windows Go regression
         working-directory: source
         shell: pwsh
