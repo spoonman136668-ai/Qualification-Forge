@@ -2,7 +2,7 @@ name: R25-C74F KTRADE authentic isolated operator browser qualification
 on:
   push:
     branches: [qualification/r25-c74f-pine-20261019]
-    paths: [.github/workflows/r25-c74f-pine.yml]
+    paths: [.github/workflows/r25-c74f-native-pine.yml]
 permissions:
   contents: read
 concurrency:
