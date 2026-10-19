@@ -90,9 +90,20 @@ jobs:
           $sw=[System.Diagnostics.Stopwatch]::StartNew()
           $proc=[System.Diagnostics.Process]::Start($psi)
           if($null -eq $proc){throw 'G34_PROCESS_START_FAILED'}
-          $output=$proc.StandardOutput.ReadToEnd()
-          $errText=$proc.StandardError.ReadToEnd()
+          $outTask=$proc.StandardOutput.ReadToEndAsync()
+          $errTask=$proc.StandardError.ReadToEndAsync()
+          $peakObserved=[long]0
+          while(-not $proc.HasExited){
+            try {
+              $sample=[long]$proc.PeakWorkingSet64
+              if($sample -le 0){$sample=[long]$proc.WorkingSet64}
+              if($sample -gt $peakObserved){$peakObserved=$sample}
+            }catch{}
+            Start-Sleep -Milliseconds 50
+          }
           $proc.WaitForExit()
+          $output=$outTask.GetAwaiter().GetResult()
+          $errText=$errTask.GetAwaiter().GetResult()
           $sw.Stop()
           if($proc.ExitCode -ne 0){
             if($errText){Write-Host $errText}
@@ -102,7 +113,7 @@ jobs:
           [System.IO.File]::WriteAllText($err,$errText)
           if($output){Write-Host $output}
           if(-not(Test-Path -LiteralPath $raw)){throw 'G34_TYPED_REPORT_MISSING'}
-          $peak=[long]$proc.PeakWorkingSet64
+          $peak=$peakObserved
           if($peak -le 0 -or $peak -gt 536870912){throw ('G34_UNVERIFIED_OR_OVER_512MB_RSS_'+$peak)}
           if($sw.Elapsed.TotalSeconds -gt 120){throw 'G34_120_SECOND_BUDGET_EXCEEDED'}
           Get-Content -LiteralPath $std
