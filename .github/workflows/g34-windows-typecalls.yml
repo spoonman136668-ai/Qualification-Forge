@@ -81,10 +81,12 @@ jobs:
           $psi.UseShellExecute=$false
           $psi.RedirectStandardOutput=$true
           $psi.RedirectStandardError=$true
-          foreach($x in @('--repo=.','--base='+$env:G34_BASE,'--source='+$env:G34_SOURCE,'--packages=tools/graphify/g33_atlas,tools/graphify/g32_delta','--out='+$raw)){
-            [void]$psi.ArgumentList.Add([string]$x)
-          }
-          if($psi.ArgumentList.Count -ne 5){throw 'G34_ARGUMENT_VECTOR_INCOMPLETE'}
+          [void]$psi.ArgumentList.Add('--repo=.')
+          [void]$psi.ArgumentList.Add(('--base='+$env:G34_BASE))
+          [void]$psi.ArgumentList.Add(('--source='+$env:G34_SOURCE))
+          [void]$psi.ArgumentList.Add('--packages=tools/graphify/g33_atlas,tools/graphify/g32_delta')
+          [void]$psi.ArgumentList.Add(('--out='+$raw))
+          if($psi.ArgumentList.Count -ne 5){throw ('G34_ARGUMENT_VECTOR_INCOMPLETE_COUNT='+$psi.ArgumentList.Count)}
           $sw=[System.Diagnostics.Stopwatch]::StartNew()
           $proc=[System.Diagnostics.Process]::Start($psi)
           if($null -eq $proc){throw 'G34_PROCESS_START_FAILED'}
