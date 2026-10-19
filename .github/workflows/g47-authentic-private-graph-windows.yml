@@ -1,0 +1,390 @@
+name: G47 authentic bounded Go graph to private offline HTML integration
+on:
+  push:
+    branches: [qualification/g47-authentic-private-graph-20261019]
+    paths: [.github/workflows/g47-authentic-private-graph-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: g47-authentic-private-graph-20261019
+  cancel-in-progress: false
+jobs:
+  qualification:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      SOURCE: 'cb447e93cf8a291c87ad0379e6257aafe89a64bc'
+      TREE: '7951b17a3c3f168b6d94ddb90c3ffa0e18d72ebb'
+      BASE: '4c767e79fedb60a38862ba98917d97bc70dd0984'
+      GOFLAGS: '-p=1'
+      GOMAXPROCS: '1'
+      CGO_ENABLED: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact private source without retained credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: cb447e93cf8a291c87ad0379e6257aafe89a64bc
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact integrated navigator source and three-file delta
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'G47_UNSAFE_PLATFORM_OR_AUTHORITY'
+          }
+          if((git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G47_SOURCE_DRIFT'}
+          $expected=@(
+            'tools/graphify/g47_browser/main.go',
+            'tools/graphify/g47_browser/main_test.go',
+            'tools/graphify/g47_browser/README.md'
+          )|Sort-Object
+          $actual=@(git diff --name-only $env:BASE $env:SOURCE)|Sort-Object
+          if($actual.Count -ne 3 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G47_SCOPE_DRIFT'}
+          $srcMod=(git rev-parse ($env:SOURCE+':go.mod')).Trim()
+          $baseMod=(git rev-parse ($env:BASE+':go.mod')).Trim()
+          if($srcMod -cne $baseMod){throw 'G47_GO_MOD_DRIFT'}
+          if((git rev-parse ($env:SOURCE+':go.sum')).Trim() -cne '69585a34b570b18b077a232985e0bd116adaecd3'){
+            throw 'G47_GO_SUM_DRIFT'
+          }
+          $g35files=@(
+            'tools/graphify/g35_typecalls/main.go',
+            'tools/graphify/g35_typecalls/main_test.go',
+            'tools/graphify/g35_typecalls/sqlite_external.go',
+            'tools/graphify/g35_typecalls/sqlite_external_test.go',
+            'tools/graphify/g35_typecalls/g39_closure_test.go',
+            'tools/graphify/g35_typecalls/g41_initializers_test.go',
+            'tools/graphify/g35_typecalls/g43_method_receiver_test.go',
+            'tools/graphify/g35_typecalls/G43.md'
+          )
+          foreach($f in $g35files){
+            if((git rev-parse ($env:BASE+':'+$f)).Trim() -cne (git rev-parse ($env:SOURCE+':'+$f)).Trim()){
+              throw 'G47_UNCHANGED_G35_FOUNDATION_DRIFT'
+            }
+          }
+          Write-Host 'G47_EXACT_THREE_NAVIGATOR_FILES_ONLY=PASS'
+      - name: Use frozen Go 1.23 Windows toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Authenticate pinned SQLite module in disposable Go cache
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=& go mod download -json github.com/mattn/go-sqlite3@v1.14.18 | ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $p.Path -cne 'github.com/mattn/go-sqlite3' -or
+             $p.Version -cne 'v1.14.18' -or
+             $p.Sum -cne 'h1:JL0eqdCOq6DJVNPSvArO/bIV9/P7fbGrV00LZHc+5aI=' -or
+             $p.GoModSum -cne 'h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg='){
+            throw 'G47_SQLITE_GO_MODULE_AUTH_FAILURE'
+          }
+          & go mod verify
+          if($LASTEXITCODE -ne 0){throw 'G47_DEPENDENCY_CACHE_VERIFY_FAILED'}
+          Write-Host 'G47_SQLITE_EXACT_MODULE_SOURCE_VERIFIED=PASS'
+      - name: Qualify bounded new compiler concurrency and affected tool interfaces
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $v=(& go version)
+          if($LASTEXITCODE -ne 0 -or $v -cne 'go version go1.23.12 windows/amd64'){
+            throw 'G47_TOOLCHAIN_DRIFT'
+          }
+          # Source changed at SQLite compiler-concurrency boundary; never reuse
+          # focused evidence from the previous, different SHA.
+          & go test -mod=readonly -count=1 ./tools/graphify/g47_browser
+          if($LASTEXITCODE -ne 0){throw 'G47_FOCUSED_TEST_FAILURE'}
+          & go vet -mod=readonly ./tools/graphify/g47_browser
+          if($LASTEXITCODE -ne 0){throw 'G47_VET_FAILURE'}
+          # G43 generator was independently qualified at exact unchanged blob.
+          # Do not repeat its 512 MiB-bounded private graph computation here.
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g47-browser.exe') ./tools/graphify/g47_browser
+          if($LASTEXITCODE -ne 0){throw 'G47_BROWSER_BUILD_FAILURE'}
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g47-generator.exe') ./tools/graphify/g35_typecalls
+          if($LASTEXITCODE -ne 0){throw 'G47_GENERATOR_BUILD_FAILURE'}
+          Write-Host 'G47_UNCHANGED_SOURCE_GENERATOR_AND_BROWSER_FOCUSED_BUILD=PASS'
+      - name: Generate authentic bounded paper dependency graph and render private HTML
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=Join-Path $env:RUNNER_TEMP ('g47-private-'+$env:GITHUB_RUN_ID+'.json')
+          $privateHTML=Join-Path $env:RUNNER_TEMP ('g47-private-'+$env:GITHUB_RUN_ID+'.html')
+          if((Test-Path -LiteralPath $raw) -or (Test-Path -LiteralPath $privateHTML)){
+            throw 'G47_PRIVATE_INPUT_OR_OUTPUT_COLLISION'
+          }
+          $generatorBlob=(git rev-parse ($env:SOURCE+':tools/graphify/g35_typecalls/main.go')).Trim()
+          $browserBlob=(git rev-parse ($env:SOURCE+':tools/graphify/g45_browser/main.go')).Trim()
+          foreach($path in @('tools/graphify/g35_typecalls/main.go','tools/graphify/g45_browser/main.go')){
+            $sourceBlob=(git rev-parse ($env:SOURCE+':'+$path)).Trim()
+            $baseBlob=(git rev-parse ($env:BASE+':'+$path)).Trim()
+            if($sourceBlob -cne $baseBlob){throw ('G47_UNQUALIFIED_GENERATOR_OR_BROWSER_DRIFT_'+$path)}
+          }
+          # Independently authenticated REAL source packages, not synthetic data.
+          # paperproposal -> papertrading; paperreconcile -> paperproposal.
+          # No SQLite importer is needed for these local package selections.
+          $roots='internal/paperproposal,internal/paperreconcile'
+          $generator=Join-Path $env:RUNNER_TEMP 'g47-generator.exe'
+          $generatorInfo=[System.Diagnostics.ProcessStartInfo]::new($generator)
+          $generatorInfo.WorkingDirectory=(Get-Location).Path
+          $generatorInfo.UseShellExecute=$false
+          $generatorInfo.RedirectStandardOutput=$true
+          $generatorInfo.RedirectStandardError=$true
+          foreach($arg in @('--repo=.',('--base='+$env:BASE),('--source='+$env:SOURCE),
+                           ('--packages='+$roots),('--out='+$raw))){
+            [void]$generatorInfo.ArgumentList.Add($arg)
+          }
+          $jobCSharp=@'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class G47ProcessTreeBudget {
+            [StructLayout(LayoutKind.Sequential)] public struct BasicLimit {
+              public long PerProcessUserTimeLimit, PerJobUserTimeLimit;
+              public uint LimitFlags;
+              public UIntPtr MinimumWorkingSetSize, MaximumWorkingSetSize;
+              public uint ActiveProcessLimit;
+              public UIntPtr Affinity;
+              public uint PriorityClass, SchedulingClass;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct IoCounters {
+              public ulong ReadOperations, WriteOperations, OtherOperations;
+              public ulong ReadBytes, WriteBytes, OtherBytes;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct ExtendedLimit {
+              public BasicLimit BasicLimitInformation;
+              public IoCounters IoInfo;
+              public UIntPtr ProcessMemoryLimit, JobMemoryLimit;
+              public UIntPtr PeakProcessMemoryUsed, PeakJobMemoryUsed;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct Accounting {
+              public long TotalUserTime, TotalKernelTime;
+              public long ThisPeriodTotalUserTime, ThisPeriodTotalKernelTime;
+              public uint TotalPageFaultCount, TotalProcesses;
+              public uint ActiveProcesses, TotalTerminatedProcesses;
+            }
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern IntPtr CreateJobObject(IntPtr attributes, string name);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool SetInformationJobObject(IntPtr job,int kind,ref ExtendedLimit data,uint size);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool QueryInformationJobObject(IntPtr job,int kind,out ExtendedLimit data,uint size,out uint result);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool QueryInformationJobObject(IntPtr job,int kind,out Accounting data,uint size,out uint result);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool AssignProcessToJobObject(IntPtr job,IntPtr process);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool CloseHandle(IntPtr handle);
+            static Exception Fail(string s){return new InvalidOperationException(s+": "+Marshal.GetLastWin32Error());}
+            public static IntPtr Create(ulong limit){
+              IntPtr job=CreateJobObject(IntPtr.Zero,null);
+              if(job==IntPtr.Zero)throw Fail("G47_JOB_CREATE");
+              var x=new ExtendedLimit();
+              x.BasicLimitInformation.LimitFlags=0x00000200|0x00002000;
+              x.JobMemoryLimit=new UIntPtr(limit);
+              if(!SetInformationJobObject(job,9,ref x,(uint)Marshal.SizeOf<ExtendedLimit>())){
+                CloseHandle(job);throw Fail("G47_JOB_SET_LIMIT");
+              }
+              return job;
+            }
+            public static void Attach(IntPtr job,IntPtr process){
+              if(!AssignProcessToJobObject(job,process))throw Fail("G47_JOB_ATTACH");
+            }
+            public static double[] Read(IntPtr job){
+              ExtendedLimit x;
+              Accounting a;
+              uint returned;
+              if(!QueryInformationJobObject(job,9,out x,(uint)Marshal.SizeOf<ExtendedLimit>(),out returned))
+                throw Fail("G47_JOB_MEMORY_READ");
+              if(!QueryInformationJobObject(job,1,out a,(uint)Marshal.SizeOf<Accounting>(),out returned))
+                throw Fail("G47_JOB_CPU_READ");
+              return new double[]{(a.TotalUserTime+a.TotalKernelTime)/10000.0,
+                  x.PeakJobMemoryUsed.ToUInt64(),a.TotalProcesses};
+            }
+            public static void Close(IntPtr job){if(job!=IntPtr.Zero)CloseHandle(job);}
+          }
+          '@
+
+          Add-Type -TypeDefinition $jobCSharp -ErrorAction Stop
+          $j1=[G47ProcessTreeBudget]::Create([ulong]536870912)
+          $w1=[System.Diagnostics.Stopwatch]::StartNew()
+          $p1=[System.Diagnostics.Process]::Start($generatorInfo)
+          if($null -eq $p1){[G47ProcessTreeBudget]::Close($j1);throw 'G47_GENERATOR_START_FAILED'}
+          [G47ProcessTreeBudget]::Attach($j1,$p1.Handle)
+          $o1=$p1.StandardOutput.ReadToEndAsync()
+          $e1=$p1.StandardError.ReadToEndAsync()
+          while(-not $p1.HasExited){
+            if($w1.Elapsed.TotalSeconds -gt 120){$p1.Kill();throw 'G47_GENERATOR_120_SEC_WALL_CAP'}
+            Start-Sleep -Milliseconds 50
+          }
+          $p1.WaitForExit()
+          $a1=[G47ProcessTreeBudget]::Read($j1)
+          [G47ProcessTreeBudget]::Close($j1)
+          $w1.Stop()
+          $cpu1=[long][Math]::Ceiling($a1[0])
+          $mem1=[long]$a1[1]
+          $proc1=[long]$a1[2]
+          if($p1.ExitCode -ne 0){throw ('G47_AUTHENTIC_GENERATOR_FAILED_'+$p1.ExitCode+': '+$e1.GetAwaiter().GetResult())}
+          if($cpu1 -gt 120000 -or $cpu1 -lt 0 -or $mem1 -le 0 -or $mem1 -gt 536870912){
+            throw 'G47_AUTHENTIC_GENERATOR_JOB_RESOURCE_CAP'
+          }
+          if(!(Test-Path -LiteralPath $raw)){throw 'G47_AUTHENTIC_PRIVATE_REPORT_MISSING'}
+          $d=Get-Content -LiteralPath $raw -Raw|ConvertFrom-Json
+          if($d.Schema -cne 'graphify.g43.receiver-qualified-static-methods.v1' -or
+             $d.SourceCommit -cne $env:SOURCE -or $d.SourceTree -cne $env:TREE -or
+             $d.BaseCommit -cne $env:BASE -or $d.GeneratorBlob -cne $generatorBlob -or
+             $d.GOOS -cne 'windows' -or $d.SourceFileCount -le 0 -or $d.SourceFileCount -gt 36 -or
+             $d.SelectedSourceBytes -gt 3145728 -or $d.CallSites -le 0 -or $d.CallSites -gt 20000 -or
+             $d.Unresolved -lt 0 -or $d.ResolvedConcreteMethods -ne $d.ReceiverQualifiedMethodEdges -or
+             @($d.TypeCheckedEdges).Count -ne ($d.CallSites-$d.Unresolved) -or
+             @($d.SelectedPackages).Count -ne 2 -or
+             $d.SelectedPackages[0] -cne 'internal/paperproposal' -or
+             $d.SelectedPackages[1] -cne 'internal/paperreconcile'){
+             throw 'G47_AUTHENTIC_G43_SOURCE_AND_CONSERVATION_FAILED'
+          }
+          $want=@('ktrade/internal/paperproposal','ktrade/internal/paperreconcile','ktrade/internal/papertrading')
+          foreach($pkg in $want){
+            if(@($d.Packages|Where-Object {$_.Package -ceq $pkg}).Count -ne 1){
+              throw ('G47_AUTHENTIC_PACKAGE_PROVENANCE_ABSENT_'+$pkg)
+            }
+          }
+          $cross=@($d.TypeCheckedEdges|Where-Object {
+            $_.CalleePackage -like 'ktrade/internal/*' -and
+            $_.Caller.Split('::')[0] -cne $_.CalleePackage
+          })
+          if(@($cross).Count -lt 1 -or $d.CrossPackageStaticEdges -lt 1){
+            throw 'G47_REAL_SOURCE_CROSS_PACKAGE_EDGE_ABSENT'
+          }
+          foreach($edge in $d.TypeCheckedEdges){
+            if($edge.Confidence -cne 'go_types_static_object' -or
+               [string]::IsNullOrWhiteSpace($edge.CalleePackage)){
+              throw 'G47_UNQUALIFIED_AUTHENTIC_EDGE'
+            }
+          }
+          $rawSHA=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          $browser=Join-Path $env:RUNNER_TEMP 'g47-browser.exe'
+          $browserInfo=[System.Diagnostics.ProcessStartInfo]::new($browser)
+          $browserInfo.WorkingDirectory=(Get-Location).Path
+          $browserInfo.UseShellExecute=$false
+          $browserInfo.RedirectStandardOutput=$true
+          $browserInfo.RedirectStandardError=$true
+          foreach($arg in @('--repo=.',('--in='+$raw),('--out='+$privateHTML),
+              ('--source='+$env:SOURCE),('--tree='+$env:TREE),
+              ('--base='+$env:BASE),('--input-sha256='+$rawSHA))){
+            [void]$browserInfo.ArgumentList.Add($arg)
+          }
+          $j2=[G47ProcessTreeBudget]::Create([ulong]536870912)
+          $w2=[System.Diagnostics.Stopwatch]::StartNew()
+          $p2=[System.Diagnostics.Process]::Start($browserInfo)
+          if($null -eq $p2){[G47ProcessTreeBudget]::Close($j2);throw 'G47_BROWSER_START_FAILED'}
+          [G47ProcessTreeBudget]::Attach($j2,$p2.Handle)
+          $o2=$p2.StandardOutput.ReadToEndAsync()
+          $e2=$p2.StandardError.ReadToEndAsync()
+          while(-not $p2.HasExited){
+            if(($w1.Elapsed+$w2.Elapsed).TotalSeconds -gt 120){$p2.Kill();throw 'G47_COMPLETE_120_SEC_WALL_CAP'}
+            Start-Sleep -Milliseconds 50
+          }
+          $p2.WaitForExit()
+          $a2=[G47ProcessTreeBudget]::Read($j2)
+          [G47ProcessTreeBudget]::Close($j2)
+          $w2.Stop()
+          $cpu2=[long][Math]::Ceiling($a2[0])
+          $mem2=[long]$a2[1]
+          if($p2.ExitCode -ne 0){throw ('G47_PRIVATE_BROWSER_FAILED_'+$p2.ExitCode+': '+$e2.GetAwaiter().GetResult())}
+          $totalCPU=$cpu1+$cpu2
+          $peak=[Math]::Max($mem1,$mem2)
+          if($totalCPU -gt 120000 -or $cpu2 -lt 0 -or $mem2 -le 0 -or
+             $mem2 -gt 536870912 -or ($w1.Elapsed+$w2.Elapsed).TotalSeconds -gt 120){
+            throw 'G47_COMPLETE_CPU_MEMORY_WALL_CAP'
+          }
+          if(!(Test-Path -LiteralPath $privateHTML)){throw 'G47_AUTHENTIC_PRIVATE_HTML_MISSING'}
+          $htmlBytes=[long](Get-Item -LiteralPath $privateHTML).Length
+          if($htmlBytes -le 2048 -or $htmlBytes -gt 25165824){throw 'G47_AUTHENTIC_PRIVATE_HTML_BYTES_BOUND'}
+          $html=Get-Content -LiteralPath $privateHTML -Raw
+          if(-not $html.Contains('Content-Security-Policy') -or
+             -not $html.Contains("connect-src 'none'") -or
+             -not $html.Contains('ktrade/internal/paperproposal') -or
+             -not $html.Contains('ktrade/internal/paperreconcile') -or
+             -not $html.Contains('go_types_static_object')){
+            # Confidence is in each data-filter (not a visible target label).
+            throw 'G47_AUTHENTIC_PRIVATE_NAVIGATION_MISSING_OR_UNSAFE'
+          }
+          $htmlSHA=(Get-FileHash -LiteralPath $privateHTML -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host 'G47_AUTHENTIC_G43_GRAPH_TO_PRIVATE_HTML=PASS'
+          Write-Host 'G47_FIXTURE_KIND=AUTHENTIC_IMMUTABLE_KTRADE_SOURCE'
+          Write-Host ('G47_ACTUAL_SOURCE_FILES='+$d.SourceFileCount)
+          Write-Host ('G47_ACTUAL_TYPED_CALL_SITES='+$d.CallSites)
+          Write-Host ('G47_ACTUAL_STATIC_EDGES='+@($d.TypeCheckedEdges).Count)
+          Write-Host ('G47_ACTUAL_CROSS_PACKAGE_EDGES='+$d.CrossPackageStaticEdges)
+          Write-Host ('G47_ACTUAL_UNRESOLVED_CALLS='+$d.Unresolved)
+          Write-Host ('G47_ACTUAL_RECEIVER_QUALIFIED_EDGES='+$d.ReceiverQualifiedMethodEdges)
+          Write-Host ('G47_PRIVATE_REPORT_SHA256='+$rawSHA)
+          Write-Host ('G47_PRIVATE_HTML_SHA256='+$htmlSHA)
+          Write-Host ('G47_PRIVATE_HTML_BYTES='+$htmlBytes)
+          Write-Host ('G47_PROCESS_TREE_CPU_MS='+$totalCPU)
+          Write-Host ('G47_PROCESS_TREE_PEAK_COMMITTED_BYTES='+$peak)
+          Write-Host ('G47_GENERATOR_DESCENDANT_PROCESSES='+$proc1)
+          Write-Host 'G47_PRIVATE_HTML_AND_RAW_GRAPH_UPLOADED=FALSE'
+          $receipt=[ordered]@{
+            schema='graphify.g47.authentic-source-private-navigation.v1'
+            authentic_real_source=$true; synthetic_fixture=$false
+            selected_roots=@('internal/paperproposal','internal/paperreconcile')
+            full_g43_11_file_acceptance=$false
+            source_sha=$env:SOURCE; source_tree=$env:TREE; source_parent=$env:BASE
+            runner_workflow_sha=$env:GITHUB_SHA; run_id=$env:GITHUB_RUN_ID
+            generator_blob=$generatorBlob; browser_blob=$browserBlob
+            real_source_files=$d.SourceFileCount; real_call_sites=$d.CallSites
+            real_static_edges=@($d.TypeCheckedEdges).Count
+            real_cross_package_edges=$d.CrossPackageStaticEdges
+            real_unresolved_calls=$d.Unresolved
+            real_receiver_qualified_edges=$d.ReceiverQualifiedMethodEdges
+            private_report_sha256=$rawSHA; private_html_sha256=$htmlSHA; private_html_bytes=$htmlBytes
+            complete_job_cpu_ms=$totalCPU; peak_job_committed_bytes=$peak
+            job_memory_cap_bytes=536870912; complete_process_wall_ms=[long]($w1.Elapsed+$w2.Elapsed).TotalMilliseconds
+            private_html_uploaded=$false; private_graph_uploaded=$false
+            trading_or_release_authorized=$false
+          }
+          $folder=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $folder -Force|Out-Null
+          $receipt|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $folder 'g47-sanitized.json') -Encoding utf8
+          Write-Host ('G47_SANITIZED_SHA256='+(Get-FileHash -LiteralPath (Join-Path $folder 'g47-sanitized.json') -Algorithm SHA256).Hash.ToLowerInvariant())
+      - name: Check immutable source and upload sanitized receipt only
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G47_POST_QUAL_SOURCE_MUTATION'}
+          Write-Host 'G47_SOURCE_IMMUTABLE=PASS'
+      - name: Upload sanitized qualification
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g47-sqlite-qualified-sanitized
+          path: evidence/g47-sanitized.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Remove private source and generated reports
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -LiteralPath $env:RUNNER_TEMP -File -Filter 'g47-*' -ErrorAction SilentlyContinue|Remove-Item -Force
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g47.exe') -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g47-browser.exe') -Force -ErrorAction SilentlyContinue
+          if(Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source')){throw 'G47_CLEANUP_FAILED'}
+          Write-Host 'G47_PRIVATE_CLEANUP=PASS'
