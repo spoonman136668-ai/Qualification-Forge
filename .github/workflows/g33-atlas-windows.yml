@@ -1,0 +1,185 @@
+name: G33 exact-head Go semantic syntax atlas Windows qualification
+on:
+  push:
+    branches: [qualification/g33-exact-go-atlas-20261018]
+    paths: [.github/workflows/g33-atlas-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: g33-frozen-atlas-20261018
+  cancel-in-progress: false
+jobs:
+  atlas:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      G33_SOURCE: '7dbb1ecd86e97c15282bdea57b8a45aff567f9d8'
+      G33_TREE: 'e2d62f40002396e1d2c031545e1dff373a06934c'
+      G33_BASE: '20a39cc874f2c83713f5096d48ada82a9c9445c8'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout exact candidate from private KTRADE
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: 7dbb1ecd86e97c15282bdea57b8a45aff567f9d8
+          path: source
+          fetch-depth: 0
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Validate exact head, three-file boundary and paper-only authority
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1'){
+            throw 'G33_UNQUALIFIED_RUNNER_OR_AUTHORITY'
+          }
+          if((git rev-parse HEAD).Trim() -cne $env:G33_SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:G33_TREE){
+            throw 'G33_SOURCE_AND_TREE_DRIFT'
+          }
+          & git merge-base --is-ancestor $env:G33_BASE $env:G33_SOURCE
+          if($LASTEXITCODE -ne 0){throw 'G33_BASE_NOT_ANCESTOR'}
+          $expect=@(
+            'tools/graphify/g33_atlas/main.go',
+            'tools/graphify/g33_atlas/main_test.go',
+            'tools/graphify/g33_atlas/README.md'
+          )|Sort-Object
+          $got=@(git diff --name-only $env:G33_BASE $env:G33_SOURCE)|Sort-Object
+          if($got.Count -ne 3 -or @(Compare-Object $expect $got).Count -ne 0){
+            throw ('G33_SOURCE_SCOPE_DRIFT '+($got -join ','))
+          }
+          if(@(git status --porcelain).Count -ne 0){throw 'G33_WORKTREE_DIRTY'}
+          Write-Output 'G33_EXACT_SOURCE_TREE_AND_THREE_FILE_DELTA=PASS'
+          Write-Output 'G33_PRODUCT_AND_DEPENDENCY_FILES_UNCHANGED=PASS'
+      - name: Pin existing Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Qualify focused synthetic and negative cases
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -v ./tools/graphify/g33_atlas
+          if($LASTEXITCODE -ne 0){throw 'G33_SYNTHETIC_OR_NEGATIVE_TESTS_FAILED'}
+          & go vet -mod=readonly ./tools/graphify/g33_atlas
+          if($LASTEXITCODE -ne 0){throw 'G33_TOOL_VET_FAILED'}
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g33-atlas.exe') ./tools/graphify/g33_atlas
+          if($LASTEXITCODE -ne 0){throw 'G33_TOOL_BUILD_FAILED'}
+          Write-Output 'G33_FOUR_FOCUSED_TESTS_VET_BUILD=PASS'
+      - name: Generate all three exact-source versioned full-tree atlas outputs outside checkout
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $scratch=Join-Path $env:RUNNER_TEMP ('g33-private-'+$env:GITHUB_RUN_ID)
+          if(Test-Path -LiteralPath $scratch){throw 'G33_PRIVATE_SCRATCH_NOT_EMPTY'}
+          & (Join-Path $env:RUNNER_TEMP 'g33-atlas.exe') --repo=. --base=$env:G33_BASE --source=$env:G33_SOURCE --out=$scratch
+          if($LASTEXITCODE -ne 0){throw 'G33_FULL_REPOSITORY_SYNTAX_ATLAS_FAILED'}
+          if(@(Get-ChildItem -LiteralPath $scratch -File).Count -ne 3){
+            throw 'G33_EXPECTED_THREE_VERSIONED_OUTPUTS'
+          }
+          Write-Output 'G33_FULL_REPOSITORY_VERSIONED_OUTPUTS_GENERATED=PASS'
+      - name: Seal privacy-safe hashes and counts without private source disclosure
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $scratch=Join-Path $env:RUNNER_TEMP ('g33-private-'+$env:GITHUB_RUN_ID)
+          $out=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $out -Force|Out-Null
+          $script=@'
+          import hashlib,json,pathlib,sys
+          scratch=pathlib.Path(sys.argv[1]); dest=pathlib.Path(sys.argv[2])
+          source=sys.argv[3]; base=sys.argv[4]; runid=int(sys.argv[5]); workflow=sys.argv[6]
+          stem="g33-"+source[:12]
+          files={ext:scratch/(stem+"."+ext) for ext in ("json","html","ice")}
+          if any(not f.is_file() for f in files.values()):raise SystemExit("G33_MISSING_VERSIONED_FORMAT")
+          with files["json"].open(encoding="utf-8") as f: data=json.load(f)
+          assert data["schema"]=="graphify.g33.syntax-atlas.v1"
+          assert data["source_commit"]==source and data["base_commit"]==base
+          assert data["authority"].startswith("advisory")
+          assert data["file_count"]>=6000 and data["symbol_count"]>0
+          assert data["symbol_count"]==len(data["symbols"])
+          assert data["candidate_edge_count"]==len(data["candidate_edges"])
+          assert data["reused_go_blobs"]>=6000
+          assert all(x["confidence"]=="syntactic_candidate" for x in data["candidate_edges"])
+          assert all(len(x["declaration_sha256"])==64 and len(x["blob"])==40 for x in data["symbols"])
+          assert files["html"].open("rb").read(200).startswith(b"<!doctype html>")
+          assert files["ice"].open("rb").read(10).startswith(b"ICE-G33\t1\n")
+          hashes={k:hashlib.sha256(p.read_bytes()).hexdigest() for k,p in files.items()}
+          receipt={
+           "schema":"graphify.g33.qualification-receipt.v1",
+           "source_commit":source,
+           "base_commit":base,
+           "workflow_head":workflow,
+           "qualification_run_id":runid,
+           "output_files":sorted(p.name for p in files.values()),
+           "output_sha256":hashes,
+           "go_file_count":data["file_count"],
+           "symbol_count":data["symbol_count"],
+           "syntactic_candidate_edge_count":data["candidate_edge_count"],
+           "unresolved_site_count":sum(x["count"] for x in data["unresolved_call_sites"]),
+           "reused_git_go_blob_count":data["reused_go_blobs"],
+           "scope":"advisory AST-only; no type-checked or runtime claim",
+           "raw_private_atlas_uploaded":False,
+           "full_regression_replayed":False,
+           "broker_contact":False,
+           "production_promotion":False
+          }
+          payload=(json.dumps(receipt,sort_keys=True,indent=2)+"\n").encode()
+          (dest/"g33-sanitized-receipt.json").write_bytes(payload)
+          digest=hashlib.sha256(payload).hexdigest()
+          (dest/"g33-sanitized-receipt.sha256").write_text(digest+"  g33-sanitized-receipt.json\n")
+          print("G33_SANITIZED_RECEIPT_SHA256="+digest)
+          print("G33_VERSIONED_JSON_HTML_ICE_HASHES_AND_COUNTS=PASS")
+          '@
+          $scriptPath=Join-Path $env:RUNNER_TEMP 'g33-seal.py'
+          $script|Set-Content -LiteralPath $scriptPath -Encoding utf8
+          & python $scriptPath $scratch $out $env:G33_SOURCE $env:G33_BASE $env:GITHUB_RUN_ID $env:GITHUB_SHA
+          if($LASTEXITCODE -ne 0){throw 'G33_SANITIZED_RECEIPT_FAILED'}
+      - name: Reconfirm clean exact checkout
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:G33_SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:G33_TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G33_POST_TEST_SOURCE_CHANGED'}
+          Write-Output 'G33_EXACT_SOURCE_UNTOUCHED=PASS'
+          Write-Output 'G33_INSTALLED_DATA_TOUCHED=FALSE; BROKER=FALSE; PROMOTION=FALSE'
+      - name: Upload sanitized receipt only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g33-sanitized-source-atlas-qualification
+          path: |
+            evidence/g33-sanitized-receipt.json
+            evidence/g33-sanitized-receipt.sha256
+          retention-days: 90
+          if-no-files-found: error
+      - name: Remove private checkout and all raw atlas outputs
+        shell: pwsh
+        if: always()
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          $scratch=Join-Path $env:RUNNER_TEMP ('g33-private-'+$env:GITHUB_RUN_ID)
+          Remove-Item -LiteralPath $src,$scratch -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g33-atlas.exe') -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g33-seal.py') -Force -ErrorAction SilentlyContinue
+          if((Test-Path -LiteralPath $src) -or (Test-Path -LiteralPath $scratch)){
+            throw 'G33_PRIVATE_SOURCE_OR_ATLAS_NOT_ERASED'
+          }
+          Write-Output 'G33_PRIVATE_SOURCE_AND_ATLAS_DISPOSED=PASS'
