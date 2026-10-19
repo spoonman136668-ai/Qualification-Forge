@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      SOURCE_SHA: '800940cebffe3d6143006a31e57baa2dafe4342b'
-      SOURCE_TREE: 'd55ceefbb8bb8ac1c17376fb55d223c5d014a129'
+      SOURCE_SHA: '9bd72d0987b33ce9d4d29c5a9fb9f80b33be77e0'
+      SOURCE_TREE: 'd2f73e6fd2edcdfc5b23598e385c6c1480b57042'
       BASE_SHA: 'efd9c95149f1a6abde2fb3dd20a94c1a6916f83f'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 800940cebffe3d6143006a31e57baa2dafe4342b
+          ref: 9bd72d0987b33ce9d4d29c5a9fb9f80b33be77e0
           fetch-depth: 0
           path: source
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -59,6 +59,7 @@ jobs:
             'internal/durableupgrade/historical_readonly_view_test.go',
             'cmd/ktrade/historical_recovery_full.go',
             'cmd/ktrade/historical_recovery_full_test.go',
+            'cmd/ktrade/historical_recovery_e2e_full_test.go',
             'cmd/ktrade/main_full.go',
             'templates/chart.tmpl',
             'static/recovery_history.html',
@@ -81,7 +82,7 @@ jobs:
               throw 'R25_C72_EXISTING_LEDGER_AND_BROKER_BOUNDARY_CHANGED'
             }
           }
-          Write-Host 'R25_C72_SOURCE_TEN_FILE_DELTA=PASS'
+          Write-Host 'R25_C72_SOURCE_ELEVEN_FILE_DELTA=PASS'
           Write-Host 'R25_C72_BROKER_AND_ACCOUNTING_SOURCE_UNCHANGED=PASS'
       - name: Frozen Go
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
@@ -131,6 +132,50 @@ jobs:
           Write-Host 'R25_C72_AUTHENTIC_FULL_KTRADE_BUILD=PASS'
           Write-Host 'R25_C72_HISTORICAL_VIEW_PACKAGED_WITH_CHART=PASS'
           Write-Host 'R25_C72_PRODUCTION_INSTALLED_OR_RESTARTED=FALSE'
+      - name: Launch the actual isolated ktrade.exe and verify historical PnL from synthetic custody
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:KTRADE_R25C72_APP_EXE=Join-Path (Join-Path $env:RUNNER_TEMP 'r25c72-full-app') 'ktrade.exe'
+          if(!(Test-Path -LiteralPath $env:KTRADE_R25C72_APP_EXE -PathType Leaf)){
+            throw 'R25_C72_PACKAGED_EXE_MISSING'
+          }
+          $log=Join-Path $env:RUNNER_TEMP 'r25c72-e2e-private.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=2m -run '^TestR25C72PackagedFullApplicationStartupAndHistoricalPnL
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if(Test-Path -LiteralPath $root -PathType Container){
+            Push-Location $root
+            try{
+              if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+                 @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+                throw 'R25_C72_SOURCE_MUTATED'
+              }
+            }finally{Pop-Location}
+          }
+          foreach($file in @('r25c72-focused-private.log','r25c72-build-private.log','r25c72-e2e-private.log')){
+            $path=Join-Path $env:RUNNER_TEMP $file
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force}
+          }
+          Write-Host 'R25_C72_TRACKED_SOURCE_UNCHANGED=PASS'
+          Write-Host 'R25_C72_REAL_OWNER_FINANCIAL_DATA_READ=FALSE'
+          Write-Host 'R25_C72_PRIVATE_ARTIFACT_UPLOAD=FALSE'
+          Write-Host 'R25_C72_APP_AUTORESTART_ORDER_OR_BROKER_ACCESS=FALSE'
+          Write-Host 'R25_C72_MIGRATION_AND_RELEASE_AUTHORIZED=FALSE'
+ ./cmd/ktrade *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log -TotalCount 65 | ForEach-Object {Write-Host $_}
+            throw 'R25_C72_PACKAGED_REAL_PROCESS_HTTP_INTEGRATION_FAILED'
+          }
+          Write-Host 'R25_C72_REAL_KTRADE_EXE_ISOLATED_STARTUP=PASS'
+          Write-Host 'R25_C72_PACKAGED_CHART_AND_HISTORY_HTML=PASS'
+          Write-Host 'R25_C72_REAL_HTTP_HISTORICAL_PNL_VALUES=PASS'
+          Write-Host 'R25_C72_SYNTHETIC_ACCOUNT_STATE_UNCHANGED=PASS'
+          Write-Host 'R25_C72_REAL_OWNER_DATA_USED=FALSE'
       - name: Verify tracked files remain immutable and discard test logs
         if: always()
         shell: pwsh
