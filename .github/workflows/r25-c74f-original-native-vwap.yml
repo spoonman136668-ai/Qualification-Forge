@@ -1,0 +1,152 @@
+name: R25-C74F original native VWAP donor replay qualification
+on:
+  push:
+    branches: [qualification/r25-c74f-original-native-vwap-20261019]
+    paths: [.github/workflows/r25-c74f-original-native-vwap.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c74f-original-native-vwap
+  cancel-in-progress: false
+jobs:
+  native-vwap:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
+      DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
+      KTRADE_SHA: '44dd97177609a63f664291030e34f629a3cce248'
+      KTRADE_TREE: 'c2cb102b8137803158b521dcd320f04e6000edda'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Enforce hosted nonresearch and paper-only isolation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+             throw 'C74F_ISOLATION_AUTHORITY_NOT_QUALIFIED'
+          }
+          Write-Host 'C74F_HOSTED_WINDOWS_PAPER_ONLY=PASS'
+      - name: Checkout exact original native strategy donor
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc
+          fetch-depth: 0
+          path: donor
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Checkout exact KTRADE review-only test source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 44dd97177609a63f664291030e34f629a3cce248
+          fetch-depth: 0
+          path: source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Check exact native and recovering source identities
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($item in @(
+            @{Path='donor';Sha=$env:DONOR_SHA;Tree=$env:DONOR_TREE},
+            @{Path='source';Sha=$env:KTRADE_SHA;Tree=$env:KTRADE_TREE}
+          )){
+            Push-Location (Join-Path $env:GITHUB_WORKSPACE $item.Path)
+            try{
+              if((& git rev-parse HEAD).Trim() -cne $item.Sha -or
+                 (& git rev-parse 'HEAD^{tree}').Trim() -cne $item.Tree -or
+                 @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+                 throw ('C74F_SOURCE_IDENTITY_DRIFT_'+$item.Path)
+              }
+            }finally{Pop-Location}
+          }
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'donor')
+          try {
+            $immutable = @{
+              'pkg/strategy_engine.go'='13c3282ed13564bbd57b6bfed859956f2e9c4fd0'
+              'pkg/strategy_types.go'='e2c52b3cd05e30e4b8a2b893b53e37a6aa5f03f2'
+              'pkg/strategy_manager.go'='072ee18e6db5d51e86d44fd4b2ce86dcfca8bf40'
+              'pkg/strategy_api.go'='8f92f6f5533444ac30d49374c963fce314a92400'
+              'pkg/backtest.go'='4e1e242801252e4124d502ef1d609d0dcd0974e5'
+              'pkg/risk.go'='8469df654777548266448d1bf02192e780c8ebad'
+            }
+            foreach($key in $immutable.Keys){
+              if((& git rev-parse ('HEAD:'+ $key)).Trim() -cne $immutable[$key]){
+                throw ('C74F_NATIVE_DONOR_BLOB_DRIFT_'+$key)
+              }
+            }
+          }finally{Pop-Location}
+          Write-Host 'C74F_SOURCE_TREE_AND_NATIVE_BLOBS=PASS'
+      - name: Install Go for authentic native donor
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Stage one test-only source into isolated donor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $inputFile=Join-Path $env:GITHUB_WORKSPACE 'source/tests/donor-native-vwap/strategy_vwap_c74f_donor_test.go'
+          $target=Join-Path $env:GITHUB_WORKSPACE 'donor/pkg/strategy_vwap_c74f_donor_test.go'
+          if(!(Test-Path -LiteralPath $inputFile -PathType Leaf) -or
+             (Test-Path -LiteralPath $target)){
+            throw 'C74F_TEST_SOURCE_MISSING_OR_COLLISION'
+          }
+          Copy-Item -LiteralPath $inputFile -Destination $target -ErrorAction Stop
+          if((Get-FileHash -LiteralPath $inputFile -Algorithm SHA256).Hash -cne
+             (Get-FileHash -LiteralPath $target -Algorithm SHA256).Hash){
+             throw 'C74F_DONOR_TEST_TRANSFER_DRIFT'
+          }
+          Write-Host 'C74F_EXACT_TEST_ONLY_DONOR_STAGING=PASS'
+      - name: Focused actual native VWAP evaluation and gap negatives
+        shell: pwsh
+        working-directory: donor
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'c74f-native.log'
+          & go test -mod=readonly -tags=ktrade_c74f_donor -count=1 -timeout=8m -v -run '^TestC74F' ./pkg *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log -TotalCount 95 | ForEach-Object {Write-Host $_}
+            throw 'C74F_ORIGINAL_NATIVE_VWAP_REPLAY_FAILED'
+          }
+          Select-String -LiteralPath $log -Pattern 'C74F_.*=PASS' | ForEach-Object {Write-Host $_.Line}
+          Write-Host 'C74F_NATIVE_VWAP_HISTORICAL_EVALUATION=PASS'
+      - name: Verify protected paper and source boundaries remain unchanged
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $donor=Join-Path $env:GITHUB_WORKSPACE 'donor'
+          $source=Join-Path $env:GITHUB_WORKSPACE 'source'
+          Push-Location $donor
+          try{
+            $delta=@(& git status --porcelain=v1 --untracked-files=all)
+            if($delta.Count -ne 1 -or $delta[0] -cne '?? pkg/strategy_vwap_c74f_donor_test.go' -or
+               (& git rev-parse HEAD).Trim() -cne $env:DONOR_SHA){
+              throw 'C74F_ORIGINAL_DONOR_MUTATION'
+            }
+          }finally{Pop-Location}
+          Push-Location $source
+          try{
+            if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_SHA -or
+               @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){
+              throw 'C74F_RECOVERY_SOURCE_MUTATION'
+            }
+          }finally{Pop-Location}
+          $log=Join-Path $env:RUNNER_TEMP 'c74f-native.log'
+          if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
+          Write-Host 'C74F_DONOR_AND_KTRADE_SOURCE_UNCHANGED=PASS'
+          Write-Host 'C74F_INSTALLED_OWNER_DATA_ACCESSED=FALSE'
+          Write-Host 'C74F_PAPER_ORDER_ADMISSION=FALSE'
+          Write-Host 'C74F_BROKER_ACCESS_OR_RELEASE=FALSE'
