@@ -76,14 +76,27 @@ jobs:
           $raw=Join-Path $env:RUNNER_TEMP ('g34-private-'+$env:GITHUB_RUN_ID+'.json')
           $std=Join-Path $env:RUNNER_TEMP 'g34-stdout.txt'
           $err=Join-Path $env:RUNNER_TEMP 'g34-stderr.txt'
-          $argsList=@('--repo=.','--base='+$env:G34_BASE,'--source='+$env:G34_SOURCE,'--packages=tools/graphify/g33_atlas,tools/graphify/g32_delta','--out='+$raw)
+          $psi=[System.Diagnostics.ProcessStartInfo]::new((Join-Path $env:RUNNER_TEMP 'g34.exe'))
+          $psi.WorkingDirectory=(Get-Location).Path
+          $psi.UseShellExecute=$false
+          $psi.RedirectStandardOutput=$true
+          $psi.RedirectStandardError=$true
+          foreach($x in @('--repo=.','--base='+$env:G34_BASE,'--source='+$env:G34_SOURCE,'--packages=tools/graphify/g33_atlas,tools/graphify/g32_delta','--out='+$raw)){
+            [void]$psi.ArgumentList.Add([string]$x)
+          }
+          if($psi.ArgumentList.Count -ne 5){throw 'G34_ARGUMENT_VECTOR_INCOMPLETE'}
           $sw=[System.Diagnostics.Stopwatch]::StartNew()
-          $proc=Start-Process -FilePath (Join-Path $env:RUNNER_TEMP 'g34.exe') -ArgumentList $argsList -Wait -PassThru -NoNewWindow -RedirectStandardOutput $std -RedirectStandardError $err
+          $proc=[System.Diagnostics.Process]::Start($psi)
+          if($null -eq $proc){throw 'G34_PROCESS_START_FAILED'}
+          $output=$proc.StandardOutput.ReadToEnd()
+          $errText=$proc.StandardError.ReadToEnd()
+          $proc.WaitForExit()
           $sw.Stop()
           if($proc.ExitCode -ne 0){
-            Get-Content -LiteralPath $err -ErrorAction SilentlyContinue
+            if($errText){Write-Host $errText}
             throw ('G34_TYPED_SOURCE_RUN_FAILED_'+$proc.ExitCode)
           }
+          if($output){Write-Host $output}
           if(-not(Test-Path -LiteralPath $raw)){throw 'G34_TYPED_REPORT_MISSING'}
           $peak=[long]$proc.PeakWorkingSet64
           if($peak -le 0 -or $peak -gt 536870912){throw ('G34_UNVERIFIED_OR_OVER_512MB_RSS_'+$peak)}
