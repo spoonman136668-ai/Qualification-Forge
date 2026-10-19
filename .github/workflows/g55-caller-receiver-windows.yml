@@ -293,10 +293,16 @@ jobs:
           $methodOwners=@($d.TypeCheckedEdges|Where-Object {$_.Caller -like '*::method::*'})
           if($methodOwners.Count -lt 1){throw 'G55_NO_REAL_METHOD_CALLER_EDGES'}
           foreach($edge in $methodOwners){
-            $parts=$edge.Caller -split '::method::',2
+            $parts=[string]$edge.Caller -split '::method::',2
             if($parts.Count -ne 2 -or
-               $parts[1] -notlike ($parts[0]+'.(*') -or
-               $parts[1] -notmatch '\)\.[A-Za-z_][A-Za-z_0-9]*
+               -not $parts[1].StartsWith($parts[0]+'.(') -or
+               -not $parts[1].Contains(').')){
+              throw 'G55_UNQUALIFIED_REAL_METHOD_CALLER'
+            }
+          }
+          Write-Host ('G55_REAL_TYPED_METHOD_CALLER_EDGES='+$methodOwners.Count)
+          Write-Host 'G55_RECEIVER_DECLARATION_CALLER_COLLISION_REPAIRED=PASS'
+          $rawSHA=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
           $browser=Join-Path $env:RUNNER_TEMP 'g55-browser.exe'
           $browserInfo=[System.Diagnostics.ProcessStartInfo]::new($browser)
           $browserInfo.WorkingDirectory=(Get-Location).Path
