@@ -1,0 +1,91 @@
+name: R25-C67C Go versus PowerShell donor receipt JSON parity (synthetic)
+on:
+  push:
+    branches: [qualification/r25-c66-authentic-donor-finance-20261019]
+    paths: [.github/workflows/r25-c67c-json-parity.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c67c-hosted-json-parity
+  cancel-in-progress: false
+jobs:
+  serializer-parity:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Admit GitHub-hosted environment only
+        shell: pwsh
+        run: |
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:RUNNER_OS -cne 'Windows'){
+            throw 'R25_C67C_HOST_BOUNDARY_DRIFT'
+          }
+          Write-Host 'R25_C67C_HOSTED_WINDOWS=PASS'
+      - name: Setup Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.12'
+          cache: false
+      - name: Match donor ordered receipt serialization exactly
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $program=@'
+          package main
+          import("encoding/json";"fmt";"os")
+          type Core struct{
+            SchemaVersion int `json:"schema_version"`
+            Sequence uint64 `json:"sequence"`
+            OrderID string `json:"order_id"`
+            ClientOrderID string `json:"client_order_id,omitempty"`
+            ProductID string `json:"product_id"`
+            Side string `json:"side"`
+            TerminalStatus string `json:"terminal_status"`
+            SettledAt string `json:"settled_at"`
+            FillSetDigest string `json:"fill_set_digest"`
+            FillAccountingDigest string `json:"fill_accounting_digest"`
+            ReservationBeforeDigest string `json:"reservation_before_digest"`
+            PortfolioAfterDigest string `json:"portfolio_after_digest"`
+            PreviousReceiptHash string `json:"previous_receipt_hash,omitempty"`
+          }
+          func main(){
+             x:=Core{SchemaVersion:1,Sequence:1,OrderID:"synthetic-uuid-one",ProductID:"BTC-USDC",Side:"SELL",TerminalStatus:"FILLED",SettledAt:"2026-10-19T15:00:00Z",FillSetDigest:"a",FillAccountingDigest:"b",ReservationBeforeDigest:"c",PortfolioAfterDigest:"d"}
+             if len(os.Args)>1 {x.Sequence=2;x.ClientOrderID="ckb-synthetic-abc";x.PreviousReceiptHash="e"}
+             b,err:=json.Marshal(x);if err!=nil{panic(err)}
+             fmt.Print(string(b))
+          }
+          '@
+          $path=Join-Path $env:RUNNER_TEMP 'r25c67c-canonical.go'
+          [IO.File]::WriteAllText($path,$program,[Text.UTF8Encoding]::new($false))
+          try{
+            foreach($step in @(0,1)){
+              $args=@()
+              if($step -eq 1){$args=@('second')}
+              $go=& go run $path @args
+              if($LASTEXITCODE -ne 0){throw 'R25_C67C_GO_SYNTHETIC_NOT_RUNNING'}
+              $core=[ordered]@{schema_version=1;sequence=[long]($step+1);order_id='synthetic-uuid-one'}
+              if($step -eq 1){$core['client_order_id']='ckb-synthetic-abc'}
+              $core['product_id']='BTC-USDC'
+              $core['side']='SELL'
+              $core['terminal_status']='FILLED'
+              $core['settled_at']='2026-10-19T15:00:00Z'
+              $core['fill_set_digest']='a'
+              $core['fill_accounting_digest']='b'
+              $core['reservation_before_digest']='c'
+              $core['portfolio_after_digest']='d'
+              if($step -eq 1){$core['previous_receipt_hash']='e'}
+              $ps=ConvertTo-Json -InputObject $core -Depth 6 -Compress
+              if($ps -cne $go){
+                Write-Host ('R25_C67C_CASE_'+$step+'_JSON_MATCH=FALSE')
+                # Synthetic only; emitting the generated samples is safe.
+                Write-Host ('R25_C67C_GO_SYNTHETIC='+$go)
+                Write-Host ('R25_C67C_PS_SYNTHETIC='+$ps)
+                throw 'R25_C67C_SERIALIZATION_PARITY_FAILED'
+              }
+            }
+            Write-Host 'R25_C67C_DONOR_GO_POWERSHELL_SERIALIZER_PARITY=PASS'
+            Write-Host 'R25_C67C_USER_DATA_PRESENT=FALSE'
+          }finally{
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force}
+          }
