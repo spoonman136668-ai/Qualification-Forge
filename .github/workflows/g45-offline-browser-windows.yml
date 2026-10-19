@@ -1,0 +1,339 @@
+name: G45 private offline compiler-qualified dependency navigator acceptance
+on:
+  push:
+    branches: [qualification/g45-offline-browser-20261019]
+    paths: [.github/workflows/g45-offline-browser-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: g45-offline-browser-20261019
+  cancel-in-progress: false
+jobs:
+  qualification:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      SOURCE: '5ab492676eadd74dad242c4b5d09caee4db65712'
+      TREE: '7951b17a3c3f168b6d94ddb90c3ffa0e18d72ebb'
+      BASE: '4c767e79fedb60a38862ba98917d97bc70dd0984'
+      GOFLAGS: '-p=1'
+      GOMAXPROCS: '1'
+      CGO_ENABLED: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact private source without retained credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: 5ab492676eadd74dad242c4b5d09caee4db65712
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact source and three added navigator-only paths
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'G45_UNSAFE_PLATFORM_OR_AUTHORITY'
+          }
+          if((git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G45_SOURCE_DRIFT'}
+          $expected=@(
+            'tools/graphify/g45_browser/main.go',
+            'tools/graphify/g45_browser/main_test.go',
+            'tools/graphify/g45_browser/README.md'
+          )|Sort-Object
+          $actual=@(git diff --name-only $env:BASE $env:SOURCE)|Sort-Object
+          if($actual.Count -ne 3 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G45_SCOPE_DRIFT'}
+          $srcMod=(git rev-parse ($env:SOURCE+':go.mod')).Trim()
+          $baseMod=(git rev-parse ($env:BASE+':go.mod')).Trim()
+          if($srcMod -cne $baseMod){throw 'G45_GO_MOD_DRIFT'}
+          if((git rev-parse ($env:SOURCE+':go.sum')).Trim() -cne '69585a34b570b18b077a232985e0bd116adaecd3'){
+            throw 'G45_GO_SUM_DRIFT'
+          }
+          $g35files=@(
+            'tools/graphify/g35_typecalls/main.go',
+            'tools/graphify/g35_typecalls/main_test.go',
+            'tools/graphify/g35_typecalls/sqlite_external.go',
+            'tools/graphify/g35_typecalls/sqlite_external_test.go',
+            'tools/graphify/g35_typecalls/g39_closure_test.go',
+            'tools/graphify/g35_typecalls/g41_initializers_test.go',
+            'tools/graphify/g35_typecalls/g43_method_receiver_test.go',
+            'tools/graphify/g35_typecalls/G43.md'
+          )
+          foreach($f in $g35files){
+            if((git rev-parse ($env:BASE+':'+$f)).Trim() -cne (git rev-parse ($env:SOURCE+':'+$f)).Trim()){
+              throw 'G45_UNCHANGED_G35_FOUNDATION_DRIFT'
+            }
+          }
+          Write-Host 'G45_EXACT_THREE_NAVIGATOR_FILES_ONLY=PASS'
+      - name: Use frozen Go 1.23 Windows toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Authenticate pinned SQLite module in disposable Go cache
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=& go mod download -json github.com/mattn/go-sqlite3@v1.14.18 | ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $p.Path -cne 'github.com/mattn/go-sqlite3' -or
+             $p.Version -cne 'v1.14.18' -or
+             $p.Sum -cne 'h1:JL0eqdCOq6DJVNPSvArO/bIV9/P7fbGrV00LZHc+5aI=' -or
+             $p.GoModSum -cne 'h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg='){
+            throw 'G45_SQLITE_GO_MODULE_AUTH_FAILURE'
+          }
+          & go mod verify
+          if($LASTEXITCODE -ne 0){throw 'G45_DEPENDENCY_CACHE_VERIFY_FAILED'}
+          Write-Host 'G45_SQLITE_EXACT_MODULE_SOURCE_VERIFIED=PASS'
+      - name: Qualify bounded new compiler concurrency and affected tool interfaces
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $v=(& go version)
+          if($LASTEXITCODE -ne 0 -or $v -cne 'go version go1.23.12 windows/amd64'){
+            throw 'G45_TOOLCHAIN_DRIFT'
+          }
+          # Source changed at SQLite compiler-concurrency boundary; never reuse
+          # focused evidence from the previous, different SHA.
+          & go test -mod=readonly -count=1 ./tools/graphify/g45_browser
+          if($LASTEXITCODE -ne 0){throw 'G45_FOCUSED_TEST_FAILURE'}
+          & go vet -mod=readonly ./tools/graphify/g45_browser
+          if($LASTEXITCODE -ne 0){throw 'G45_VET_FAILURE'}
+          # G43 generator was independently qualified at exact unchanged blob.
+          # Do not repeat its 512 MiB-bounded private graph computation here.
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g45-browser.exe') ./tools/graphify/g45_browser
+          if($LASTEXITCODE -ne 0){throw 'G45_BROWSER_BUILD_FAILURE'}
+          Write-Host 'G45_NEW_SHA_BROWSER_TEST_VET_BUILD=PASS'
+      - name: Qualify private HTML navigator on an explicitly synthetic source-bound fixture
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=Join-Path $env:RUNNER_TEMP ('g45-private-'+$env:GITHUB_RUN_ID+'.json')
+          $privateHTML=Join-Path $env:RUNNER_TEMP ('g45-private-'+$env:GITHUB_RUN_ID+'.html')
+          if((Test-Path -LiteralPath $raw) -or (Test-Path -LiteralPath $privateHTML)){
+            throw 'G45_PRIVATE_INPUT_OR_OUTPUT_COLLISION'
+          }
+          # G43 actual report generation has immutable run #39249124508,
+          # digest and source-blob identity. This fixture is NOT real G43 data.
+          $generatorBlob=(git rev-parse ($env:SOURCE+':tools/graphify/g35_typecalls/main.go')).Trim()
+          if($generatorBlob -cne (git rev-parse ($env:BASE+':tools/graphify/g35_typecalls/main.go')).Trim()){
+            throw 'G45_UNCHANGED_G43_GENERATOR_DRIFT'
+          }
+          $fixture=[ordered]@{
+            Schema='graphify.g43.receiver-qualified-static-methods.v1'
+            Authority='SYNTHETIC_FIXTURE_ONLY_NEVER_ACTUAL_DEPENDENCY_EVIDENCE'
+            SourceCommit=$env:SOURCE
+            SourceTree=$env:TREE
+            BaseCommit=$env:BASE
+            GeneratorBlob=$generatorBlob
+            SourceFileCount=1
+            SelectedSourceBytes=100
+            CallSites=2
+            Unresolved=1
+            ResolvedConcreteMethods=1
+            ReceiverQualifiedMethodEdges=1
+            SelectedPackages=@('internal/sample')
+            Packages=@([ordered]@{
+              Package='ktrade/internal/sample'
+              FileCount=1
+              CallSites=2
+              AmbiguousOrUnresolved=1
+              UnresolvedReasons=@{interface_dynamic_dispatch=1}
+            })
+            TypeCheckedEdges=@([ordered]@{
+              Caller='ktrade/internal/sample::Worker'
+              Callee='ktrade/internal/sample.(Receiver).Method'
+              CalleePackage='ktrade/internal/sample'
+              File='internal/sample/source.go'
+              Line=18
+              Kind='concrete_method'
+              Confidence='go_types_static_object'
+            })
+          }
+          $fixture|ConvertTo-Json -Depth 12|Set-Content -LiteralPath $raw -Encoding utf8
+          $inputSHA=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          $exe=Join-Path $env:RUNNER_TEMP 'g45-browser.exe'
+          $psi=[System.Diagnostics.ProcessStartInfo]::new($exe)
+          $psi.WorkingDirectory=(Get-Location).Path
+          $psi.UseShellExecute=$false
+          $psi.RedirectStandardOutput=$true
+          $psi.RedirectStandardError=$true
+          foreach($arg in @('--repo=.',('--in='+$raw),('--out='+$privateHTML),
+              ('--source='+$env:SOURCE),('--tree='+$env:TREE),
+              ('--base='+$env:BASE),('--input-sha256='+$inputSHA))){
+            [void]$psi.ArgumentList.Add($arg)
+          }
+          $jobCSharp=@'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class G45ProcessTreeBudget {
+            [StructLayout(LayoutKind.Sequential)] public struct BasicLimit {
+              public long PerProcessUserTimeLimit, PerJobUserTimeLimit;
+              public uint LimitFlags;
+              public UIntPtr MinimumWorkingSetSize, MaximumWorkingSetSize;
+              public uint ActiveProcessLimit;
+              public UIntPtr Affinity;
+              public uint PriorityClass, SchedulingClass;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct IoCounters {
+              public ulong ReadOperations, WriteOperations, OtherOperations;
+              public ulong ReadBytes, WriteBytes, OtherBytes;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct ExtendedLimit {
+              public BasicLimit BasicLimitInformation;
+              public IoCounters IoInfo;
+              public UIntPtr ProcessMemoryLimit, JobMemoryLimit;
+              public UIntPtr PeakProcessMemoryUsed, PeakJobMemoryUsed;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct Accounting {
+              public long TotalUserTime, TotalKernelTime;
+              public long ThisPeriodTotalUserTime, ThisPeriodTotalKernelTime;
+              public uint TotalPageFaultCount, TotalProcesses;
+              public uint ActiveProcesses, TotalTerminatedProcesses;
+            }
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern IntPtr CreateJobObject(IntPtr attributes, string name);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool SetInformationJobObject(IntPtr job,int kind,ref ExtendedLimit data,uint size);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool QueryInformationJobObject(IntPtr job,int kind,out ExtendedLimit data,uint size,out uint result);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool QueryInformationJobObject(IntPtr job,int kind,out Accounting data,uint size,out uint result);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool AssignProcessToJobObject(IntPtr job,IntPtr process);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool CloseHandle(IntPtr handle);
+            static Exception Fail(string s){return new InvalidOperationException(s+": "+Marshal.GetLastWin32Error());}
+            public static IntPtr Create(ulong limit){
+              IntPtr job=CreateJobObject(IntPtr.Zero,null);
+              if(job==IntPtr.Zero)throw Fail("G45_JOB_CREATE");
+              var x=new ExtendedLimit();
+              x.BasicLimitInformation.LimitFlags=0x00000200|0x00002000;
+              x.JobMemoryLimit=new UIntPtr(limit);
+              if(!SetInformationJobObject(job,9,ref x,(uint)Marshal.SizeOf<ExtendedLimit>())){
+                CloseHandle(job);throw Fail("G45_JOB_SET_LIMIT");
+              }
+              return job;
+            }
+            public static void Attach(IntPtr job,IntPtr process){
+              if(!AssignProcessToJobObject(job,process))throw Fail("G45_JOB_ATTACH");
+            }
+            public static double[] Read(IntPtr job){
+              ExtendedLimit x;
+              Accounting a;
+              uint returned;
+              if(!QueryInformationJobObject(job,9,out x,(uint)Marshal.SizeOf<ExtendedLimit>(),out returned))
+                throw Fail("G45_JOB_MEMORY_READ");
+              if(!QueryInformationJobObject(job,1,out a,(uint)Marshal.SizeOf<Accounting>(),out returned))
+                throw Fail("G45_JOB_CPU_READ");
+              return new double[]{(a.TotalUserTime+a.TotalKernelTime)/10000.0,
+                  x.PeakJobMemoryUsed.ToUInt64(),a.TotalProcesses};
+            }
+            public static void Close(IntPtr job){if(job!=IntPtr.Zero)CloseHandle(job);}
+          }
+          '@
+          Add-Type -TypeDefinition $jobCSharp -ErrorAction Stop
+          $job=[G45ProcessTreeBudget]::Create([ulong]536870912)
+          $watch=[System.Diagnostics.Stopwatch]::StartNew()
+          $p=[System.Diagnostics.Process]::Start($psi)
+          if($null -eq $p){[G45ProcessTreeBudget]::Close($job);throw 'G45_BROWSER_START_FAILURE'}
+          [G45ProcessTreeBudget]::Attach($job,$p.Handle)
+          $stdOut=$p.StandardOutput.ReadToEndAsync()
+          $stdErr=$p.StandardError.ReadToEndAsync()
+          while(-not $p.HasExited){
+            if($watch.Elapsed.TotalSeconds -gt 120){$p.Kill();throw 'G45_120_SECOND_WALL_LIMIT'}
+            Start-Sleep -Milliseconds 50
+          }
+          $p.WaitForExit()
+          $metrics=[G45ProcessTreeBudget]::Read($job)
+          [G45ProcessTreeBudget]::Close($job)
+          $watch.Stop()
+          $cpu=[long][Math]::Ceiling($metrics[0])
+          $memory=[long]$metrics[1]
+          if($p.ExitCode -ne 0){throw ('G45_BROWSER_FAILED_'+$p.ExitCode+': '+$stdErr.GetAwaiter().GetResult())}
+          if($cpu -gt 120000 -or $cpu -lt 0 -or $memory -le 0 -or
+             $memory -gt 536870912 -or $watch.Elapsed.TotalSeconds -gt 120){
+            throw 'G45_BROWSER_CPU_MEMORY_WALL_HARD_LIMIT'
+          }
+          if(!(Test-Path -LiteralPath $privateHTML)){throw 'G45_NO_PRIVATE_HTML'}
+          $htmlBytes=[long](Get-Item -LiteralPath $privateHTML).Length
+          if($htmlBytes -lt 1000 -or $htmlBytes -gt 25165824){
+            throw 'G45_HTML_RESOURCE_BOUNDARY'
+          }
+          $html=(Get-Content -LiteralPath $privateHTML -Raw)
+          if(-not $html.Contains('Content-Security-Policy') -or
+             -not $html.Contains("connect-src 'none'") -or
+             -not $html.Contains('ktrade/internal/sample.(Receiver).Method') -or
+             -not $html.Contains('Unresolved calls')){
+            throw 'G45_OFFLINE_HTML_SEMANTICS_OR_ESCAPE_FAILURE'
+          }
+          $htmlSHA=(Get-FileHash -LiteralPath $privateHTML -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host 'G45_G43_GENERATOR_BLOB_REUSED_UNCHANGED=PASS'
+          Write-Host 'G45_FIXTURE_KIND=SYNTHETIC_ONLY'
+          Write-Host 'G45_PRIVATE_HTML_CREATED_AND_VERIFIED=PASS'
+          Write-Host ('G45_PRIVATE_HTML_SHA256='+$htmlSHA)
+          Write-Host ('G45_HTML_SIZE='+$htmlBytes)
+          Write-Host ('G45_JOB_TOTAL_CPU_MS='+$cpu)
+          Write-Host ('G45_JOB_PEAK_COMMITTED_BYTES='+$memory)
+          Write-Host 'G45_512_MIB_JOB_LIMIT=ENFORCED'
+          Write-Host 'G45_PRIVATE_SOURCE_GRAPH_OR_HTML_UPLOADED=FALSE'
+          $receipt=[ordered]@{
+            schema='graphify.g45.offline-navigation-qualified.v1'
+            fixture_kind='synthetic'
+            authentic_graph_replayed=$false
+            prior_g43_qualification_run=39249124508
+            source_sha=$env:SOURCE; source_tree=$env:TREE; source_parent=$env:BASE
+            runner_workflow_sha=$env:GITHUB_SHA; run_id=$env:GITHUB_RUN_ID
+            unchanged_g43_generator_blob=$generatorBlob
+            synthetic_fixture_calls=2; synthetic_qualified_static_edges=1
+            synthetic_unresolved_calls=1
+            private_input_sha256=$inputSHA
+            private_html_sha256=$htmlSHA; private_html_bytes=$htmlBytes
+            cpu_ms=$cpu; peak_job_committed_bytes=$memory
+            job_memory_cap_bytes=536870912
+            private_html_uploaded=$false; private_graph_uploaded=$false
+            product_source_changed=$false; trading_or_release_authorized=$false
+          }
+          $folder=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $folder -Force|Out-Null
+          $receipt|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $folder 'g45-sanitized.json') -Encoding utf8
+          Write-Host ('G45_SANITIZED_SHA256='+(Get-FileHash -LiteralPath (Join-Path $folder 'g45-sanitized.json') -Algorithm SHA256).Hash.ToLowerInvariant())
+      - name: Check immutable source and upload sanitized receipt only
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G45_POST_QUAL_SOURCE_MUTATION'}
+          Write-Host 'G45_SOURCE_IMMUTABLE=PASS'
+      - name: Upload sanitized qualification
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g45-sqlite-qualified-sanitized
+          path: evidence/g45-sanitized.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Remove private source and generated reports
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -LiteralPath $env:RUNNER_TEMP -File -Filter 'g45-*' -ErrorAction SilentlyContinue|Remove-Item -Force
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g45.exe') -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g45-browser.exe') -Force -ErrorAction SilentlyContinue
+          if(Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source')){throw 'G45_CLEANUP_FAILED'}
+          Write-Host 'G45_PRIVATE_CLEANUP=PASS'
