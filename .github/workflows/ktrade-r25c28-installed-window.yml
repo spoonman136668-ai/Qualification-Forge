@@ -1,0 +1,278 @@
+name: KTRADE R25-C28 exact PR43 installed Electron CDP UI and restart acceptance
+on:
+  push:
+    branches: [qualification/ktrade-r25c28-installed-window-20261018]
+    paths: [.github/workflows/ktrade-r25c28-electron-stage.yml]
+permissions:
+  contents: read
+jobs:
+  windows-desktop:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 80
+    env:
+      KTRADE_SOURCE: 'fe92c0d48c9cfde664d7518c9fc302ec79b6f4c0'
+      KTRADE_TREE: '5c7b094e951265196ec957f4ae012821ac82a398'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Exact private source checkout read-only
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: fe92c0d48c9cfde664d7518c9fc302ec79b6f4c0
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          fetch-depth: 4
+      - name: Checkout qualification-only installed-window CDP test script
+        uses: actions/checkout@v4
+        with:
+          path: harness
+          persist-credentials: false
+      - name: Pin tree and record authentic packaging-input deficits
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+             $env:KTRADE_RECOVERY_ISOLATED -cne '1'){throw 'R25C28_AUTHORITY_OR_PLATFORM_DRIFT'}
+          if((& git -C $root rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE -or
+             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_TREE -or
+             @(& git -C $root status --porcelain).Count -ne 0){throw 'R25C28_SOURCE_DRIFT'}
+          $base='1b5c7c51d433d61dd0180b937264b471a9d3545c'
+          $delta=@(git -C $root diff --name-only $base HEAD|Sort-Object)
+          $expected=@('electron/main.js','package.json')|Sort-Object
+          if($LASTEXITCODE -ne 0 -or $delta.Count -ne 2 -or
+             @(Compare-Object $expected $delta).Count -ne 0){throw 'R25C28_CANDIDATE_DELTA_SCOPE_DRIFT'}
+          Write-Output 'R25C28_EXACT_TWO_FILE_CANDIDATE=PASS'
+          $pkg=Get-Content -LiteralPath (Join-Path $root 'package.json') -Raw|ConvertFrom-Json
+          if($pkg.build.productName -cne 'KTRADE' -or
+             $pkg.build.extraResources[0].to -cne 'bin/ktrade.exe'){throw 'R25C28_PACKAGING_CONTRACT_DRIFT'}
+          $lock=Test-Path -LiteralPath (Join-Path $root 'package-lock.json')
+          $icon=Test-Path -LiteralPath (Join-Path $root 'electron/assets/icon.ico')
+          $exe=Test-Path -LiteralPath (Join-Path $root 'ktrade.exe')
+          New-Item -ItemType Directory -Path (Join-Path $env:GITHUB_WORKSPACE 'evidence') -Force|Out-Null
+          [ordered]@{source_sha=$env:KTRADE_SOURCE;source_tree=$env:KTRADE_TREE;lock_present=$lock;icon_present=$icon;binary_present=$exe;release_inputs_qualified=($lock -and $icon -and $exe);temporary_stage_not_a_release=$true;private_data_touched=$false;broker_used=$false}|ConvertTo-Json|Set-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'evidence/r25c28-inputs.json') -Encoding utf8
+          Write-Output 'R25C28_EXACT_SOURCE_AND_SAFETY=PASS'
+          Write-Output ('R25C28_ORIGINAL_INPUT_LOCK='+$lock+'_ICON='+$icon+'_EXE='+$exe)
+          if(!$lock -or !$icon -or !$exe){Write-Output 'R25C28_AUTHENTIC_SOURCE_PACKAGE_INPUTS=BLOCKED'}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build exact full KTRADE and stage source-independent temporary installer inputs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          $stage=Join-Path $env:RUNNER_TEMP 'r25c28-stage'
+          if(Test-Path -LiteralPath $stage){throw 'R25C28_DIRTY_STAGE'}
+          New-Item -ItemType Directory -Path $stage|Out-Null
+          foreach($entry in @('package.json','electron','static','templates','strategies')){
+            Copy-Item -LiteralPath (Join-Path $root $entry) -Destination $stage -Recurse -Force
+          }
+          # The previously tested native cwd fix is now actual private candidate source.
+          $electronEntry=Join-Path $stage 'electron/main.js'
+          $js=Get-Content -LiteralPath $electronEntry -Raw
+          $expected="cwd: app.isPackaged ? path.join(process.resourcesPath, 'bin') : path.join(__dirname, '..'),"
+          if(([regex]::Matches($js,[regex]::Escape($expected))).Count -ne 1){throw 'R25C28_CANDIDATE_NATIVE_CWD_MISMATCH'}
+          Write-Output 'R25C28_REAL_CANDIDATE_ELECTRON_CWD=VERIFIED_UNPATCHED'
+          if($js -notmatch 'KTRADE_ISOLATED_LISTEN=127\\?\.') {throw 'R25C28_INSTALLED_LOOPBACK_SOURCE_WIRING_NOT_PRESENT'}
+          Push-Location $root
+          try{
+            go mod download
+            if($LASTEXITCODE -ne 0){throw 'R25C28_GO_DEPENDENCIES_FAILED'}
+            git diff --exit-code -- go.mod go.sum
+            if($LASTEXITCODE -ne 0){throw 'R25C28_GO_MODULE_DRIFT'}
+            & go build -mod=readonly -tags=ktrade_full -o (Join-Path $stage 'ktrade.exe') ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'R25C28_FULL_KTRADE_BUILD_FAILED'}
+          }finally{Pop-Location}
+          $b=Join-Path $stage 'ktrade.exe'
+          Write-Output ('R25C28_EXACT_BACKEND_SHA256='+(Get-FileHash -LiteralPath $b -Algorithm SHA256).Hash.ToLowerInvariant())
+          Write-Output 'R25C28_NO_GO_REGRESSION_RERUN=TRUE'
+      - name: Generate explicitly synthetic Windows icon fixture
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $stage=Join-Path $env:RUNNER_TEMP 'r25c28-stage'
+          $dir=Join-Path $stage 'electron/assets'
+          New-Item -ItemType Directory -Path $dir -Force|Out-Null
+          $py=@'
+          import pathlib,struct,zlib,sys
+          output=pathlib.Path(sys.argv[1])
+          def chunk(k,data):
+              return struct.pack(">I",len(data))+k+data+struct.pack(">I",zlib.crc32(k+data)&0xffffffff)
+          images=[]
+          for w in (16,32,48,64,128,256):
+              pix=b"".join(b"\x00"+b"\x24\x3f\x58\xff"*w for _ in range(w))
+              png=b"\x89PNG\r\n\x1a\n"+chunk(b"IHDR",struct.pack(">2I5B",w,w,8,6,0,0,0))+chunk(b"IDAT",zlib.compress(pix,9))+chunk(b"IEND",b"")
+              images.append((w,png))
+          out=bytearray(struct.pack("<HHH",0,1,len(images)))
+          pos=6+16*len(images)
+          for w,png in images:
+              out+=struct.pack("<BBBBHHII",0 if w==256 else w,0 if w==256 else w,0,0,1,32,len(png),pos)
+              pos+=len(png)
+          for w,png in images:out+=png
+          output.write_bytes(out)
+          '@
+          $src=Join-Path $env:RUNNER_TEMP 'r25c28-icon.py'
+          $py|Set-Content -LiteralPath $src -Encoding utf8
+          & python $src (Join-Path $dir 'icon.ico')
+          if($LASTEXITCODE -ne 0){throw 'R25C28_TEMP_ICON_FAILED'}
+          Write-Output 'R25C28_ICON_SYNTHETIC_FIXTURE_NOT_PRODUCT=TRUE'
+      - name: Freeze temporary npm resolution and build disposable NSIS portable packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $stage=Join-Path $env:RUNNER_TEMP 'r25c28-stage'
+          Push-Location $stage
+          try{
+            & npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+            if($LASTEXITCODE -ne 0){throw 'R25C28_STAGING_LOCK_RESOLUTION_FAILED'}
+            Write-Output ('R25C28_TEMP_LOCK_SHA256='+(Get-FileHash -LiteralPath 'package-lock.json' -Algorithm SHA256).Hash.ToLowerInvariant())
+            & npm ci --no-audit --no-fund
+            if($LASTEXITCODE -ne 0){throw 'R25C28_STAGING_NPM_CI_FAILED'}
+            $pkg=Get-Content -LiteralPath 'package.json' -Raw|ConvertFrom-Json
+            foreach($item in @(@{from='static';to='bin/static'},@{from='templates';to='bin/templates'},@{from='strategies';to='bin/strategies'})){
+              $matching=@($pkg.build.extraResources|Where-Object {$_.from -ceq $item.from -and $_.to -ceq $item.to})
+              if($matching.Count -ne 1){throw ('R25C28_CANDIDATE_GO_ASSET_MAP_MISSING_'+$item.from)}
+            }
+            Write-Output 'R25C28_REAL_CANDIDATE_GO_ASSET_MAP=VERIFIED_UNPATCHED'
+            $pkg.build|Add-Member -NotePropertyName portable -NotePropertyValue (@{artifactName='KTRADE-TemporaryPortable-@VERSION@-@ARCH@.@EXT@'}) -Force
+            $json=$pkg|ConvertTo-Json -Depth 30
+            $json=$json.Replace('@VERSION@','@DOLLAR@{version}').Replace('@ARCH@','@DOLLAR@{arch}').Replace('@EXT@','@DOLLAR@{ext}')
+            $json=$json.Replace('@DOLLAR@','$')
+            $json|Set-Content -LiteralPath 'package.json' -Encoding utf8
+            & node ./node_modules/electron-builder/cli.js --win nsis portable --x64 --publish never
+            if($LASTEXITCODE -ne 0){throw 'R25C28_DISPOSABLE_PACKAGING_FAILED'}
+            $nsis=@(Get-ChildItem -LiteralPath 'dist' -Filter 'KTRADE-Setup-*.exe' -File)
+            $portable=@(Get-ChildItem -LiteralPath 'dist' -Filter 'KTRADE-TemporaryPortable-*.exe' -File)
+            if($nsis.Count -ne 1 -or $portable.Count -ne 1){throw ('R25C28_INSTALLER_ARTIFACTS_MISSING_NSIS_'+$nsis.Count+'_PORTABLE_'+$portable.Count)}
+            foreach($file in @($nsis[0],$portable[0])){
+              Write-Output ('R25C28_DISPOSABLE_INSTALLER_HASH_'+$file.Name+'='+(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant())
+            }
+            Write-Output 'R25C28_SYNTHETIC_NSIS_AND_PORTABLE_BUILD=PASS_NOT_RELEASE'
+            Write-Output 'R25C28_REAL_CANDIDATE_NATIVE_CWD_AND_ASSET_PATHS_UNPATCHED=TRUE'
+          }finally{Pop-Location}
+      - name: Install and verify disposable NSIS payload identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $stage=Join-Path $env:RUNNER_TEMP 'r25c28-stage'
+          $setup=@(Get-ChildItem -LiteralPath (Join-Path $stage 'dist') -Filter 'KTRADE-Setup-*.exe' -File)
+          if($setup.Count -ne 1){throw 'R25C28_SETUP_NOT_UNIQUE'}
+          $path=Join-Path $env:RUNNER_TEMP 'r25c28-nsis-installed'
+          if(Test-Path -LiteralPath $path){throw 'R25C28_INSTALL_DIR_DIRTY'}
+          $p=Start-Process -FilePath $setup[0].FullName -ArgumentList @('/S',('/D='+$path)) -Wait -PassThru -WindowStyle Hidden
+          if($p.ExitCode -ne 0){throw ('R25C28_NSIS_INSTALL_EXIT_'+$p.ExitCode)}
+          $backend=Join-Path $path 'resources/bin/ktrade.exe'
+          $app=Join-Path $path 'KTRADE.exe'
+          if(!(Test-Path -LiteralPath $backend) -or !(Test-Path -LiteralPath $app)){throw 'R25C28_INSTALLED_BINARIES_MISSING'}
+          $hash=(Get-FileHash -LiteralPath $backend -Algorithm SHA256).Hash
+          $stageHash=(Get-FileHash -LiteralPath (Join-Path $stage 'ktrade.exe') -Algorithm SHA256).Hash
+          if($hash -cne $stageHash){throw 'R25C28_INSTALLED_BACKEND_BYTE_DRIFT'}
+          Write-Output ('R25C28_INSTALLED_KTRADE_BACKEND_SHA256='+$hash.ToLowerInvariant())
+          Write-Output 'R25C28_DISPOSABLE_NSIS_INSTALL_BINARY_PARITY=PASS'
+      - name: Real installed Electron chart CDP with two synthetic restarts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $path=Join-Path $env:RUNNER_TEMP 'r25c28-nsis-installed'
+          $desktop=Join-Path $path 'KTRADE.exe'
+          $backend=Join-Path $path 'resources/bin/ktrade.exe'
+          $probe=Join-Path $env:GITHUB_WORKSPACE 'harness/qualification/ktrade-r25c28-installed-window.cjs'
+          if(!(Test-Path -LiteralPath $desktop) -or !(Test-Path -LiteralPath $backend) -or
+             !(Test-Path -LiteralPath $probe)){throw 'R25C28_REAL_INSTALL_OR_PROBE_MISSING'}
+          $rules=@("R25C28-Desktop-$($env:GITHUB_RUN_ID)","R25C28-Backend-$($env:GITHUB_RUN_ID)")
+          $env:APPDATA=Join-Path $env:RUNNER_TEMP 'r25c28-appdata'
+          $env:LOCALAPPDATA=Join-Path $env:RUNNER_TEMP 'r25c28-localappdata'
+          New-Item -ItemType Directory -Path $env:APPDATA,$env:LOCALAPPDATA -Force|Out-Null
+          try{
+            $null=New-NetFirewallRule -DisplayName $rules[0] -Direction Outbound -Action Block -Program $desktop -Profile Any -ErrorAction Stop
+            $null=New-NetFirewallRule -DisplayName $rules[1] -Direction Outbound -Action Block -Program $backend -Profile Any -ErrorAction Stop
+            foreach($rule in $rules){
+              $firewall=Get-NetFirewallRule -DisplayName $rule -ErrorAction Stop
+              if(!$firewall.Enabled -or $firewall.Action -cne 'Block'){throw 'R25C28_NETWORK_DENIAL_NOT_ENFORCED'}
+            }
+            Write-Output 'R25C28_DESKTOP_AND_BACKEND_OUTBOUND_DENIAL=PASS'
+            for($cycle=1;$cycle -le 2;$cycle++){
+              $portPicker=[System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,0)
+              $portPicker.Start()
+              $port=[int]$portPicker.LocalEndpoint.Port
+              $portPicker.Stop()
+              if($port -lt 1025 -or $port -gt 65535){throw 'R25C28_DEBUG_PORT_INVALID'}
+              $p=Start-Process -FilePath $desktop -WorkingDirectory $path -ArgumentList @('--no-sandbox','--remote-debugging-address=127.0.0.1',("--remote-debugging-port="+$port)) -PassThru -WindowStyle Hidden
+              $p.Refresh()
+              if($p.HasExited){throw 'R25C28_DESKTOP_EXITED_BEFORE_CDP'}
+              & node $probe $port
+              if($LASTEXITCODE -ne 0){throw ('R25C28_INSTALLED_CDP_FAILED_CYCLE_'+$cycle)}
+              $p.Refresh()
+              $backends=@(Get-CimInstance Win32_Process -Filter "name='ktrade.exe'" -ErrorAction SilentlyContinue|Where-Object {$_.ExecutablePath -eq $backend})
+              if($backends.Count -ne 1){throw ('R25C28_BACKEND_CHILD_COUNT_'+$backends.Count+'_CYCLE_'+$cycle)}
+              Write-Output ('R25C28_INSTALLED_GO_CHILD='+$backends.Count+'_CYCLE_'+$cycle)
+              $closed=$p.WaitForExit(12000)
+              if(!$closed){throw ('R25C28_BROWSER_CLOSE_DID_NOT_END_PARENT_CYCLE_'+$cycle)}
+              Start-Sleep -Seconds 2
+              $remaining=@(Get-CimInstance Win32_Process -Filter "name='ktrade.exe'" -ErrorAction SilentlyContinue|Where-Object {$_.ExecutablePath -eq $backend})
+              if($remaining.Count -ne 0){throw ('R25C28_BACKEND_NOT_REAPED_AFTER_CLOSE_CYCLE_'+$cycle)}
+              Write-Output ('R25C28_INSTALLED_RENDERER_AND_BACKEND_SHUTDOWN=PASS_CYCLE_'+$cycle)
+            }
+            Write-Output 'R25C28_TWO_REAL_ELECTRON_INSTALL_RESTARTS=PASS'
+          }finally{
+            Get-CimInstance Win32_Process -Filter "name='ktrade.exe'" -ErrorAction SilentlyContinue|Where-Object {$_.ExecutablePath -eq $backend}|ForEach-Object{Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue}
+            Get-CimInstance Win32_Process -Filter "name='KTRADE.exe'" -ErrorAction SilentlyContinue|Where-Object {$_.ExecutablePath -eq $desktop}|ForEach-Object{Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue}
+            foreach($rule in $rules){Get-NetFirewallRule -DisplayName $rule -ErrorAction SilentlyContinue|Remove-NetFirewallRule -ErrorAction SilentlyContinue}
+          }
+      - name: Disposed NSIS uninstallation and local resource cleanup
+        shell: pwsh
+        if: always()
+        run: |
+          $path=Join-Path $env:RUNNER_TEMP 'r25c28-nsis-installed'
+          $uninstaller=Join-Path $path 'Uninstall KTRADE.exe'
+          if(Test-Path -LiteralPath $uninstaller){
+            $p=Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait -PassThru -WindowStyle Hidden
+            if($p.ExitCode -ne 0){throw ('R25C28_NSIS_UNINSTALL_EXIT_'+$p.ExitCode)}
+            if(Test-Path -LiteralPath (Join-Path $path 'resources/bin/ktrade.exe')){throw 'R25C28_UNINSTALL_BACKEND_LEFT_BEHIND'}
+            Write-Output 'R25C28_DISPOSABLE_NSIS_UNINSTALL=PASS'
+          }else{Write-Output 'R25C28_UNINSTALL_NOT_YET_APPLICABLE=TRUE'}
+      - name: Persist sanitized evidence only, no private source or binaries
+        shell: pwsh
+        if: always()
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          if(!(Test-Path -LiteralPath $dir)){New-Item -ItemType Directory -Path $dir -Force|Out-Null}
+          $receipt=[ordered]@{schema='ktrade.r25c28.real-installed-window.v1';source_sha=$env:KTRADE_SOURCE;source_tree=$env:KTRADE_TREE;qualification_workflow=$env:GITHUB_SHA;run_id=$env:GITHUB_RUN_ID;installed_browser_verified_by_step_logs=$true;source_release_qualified=$false;icon_is_temporary=$true;lock_is_temporary=$true;private_user_profile_touched=$false;broker_access_authorized=$false;production_promotion=$false;read_step_conclusions_from_github_api=$true}
+          $file=Join-Path $dir 'r25c28-stage-receipt.json'
+          $receipt|ConvertTo-Json|Set-Content -LiteralPath $file -Encoding utf8
+          Write-Output ('R25C28_RECEIPT_SHA256='+(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant())
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ktrade-r25c28-installed-window-evidence
+          path: evidence/r25c28-*
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Delete private checkout and disposable installation
+        shell: pwsh
+        if: always()
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          foreach($dir in @('r25c28-stage','r25c28-nsis-installed','r25c28-appdata','r25c28-localappdata')){
+            Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP $dir) -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          Write-Output 'R25C28_DISPOSABLE_CLEANUP_ATTEMPTED=TRUE'
