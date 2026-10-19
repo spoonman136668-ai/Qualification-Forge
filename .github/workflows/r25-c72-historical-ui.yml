@@ -1,0 +1,157 @@
+name: R25-C72 KTRADE authentic full-app historical accounting presentation
+on:
+  push:
+    branches: [qualification/r25-c72-historical-ui-20261019]
+    paths: [.github/workflows/r25-c72-historical-ui.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c72-qualification-hosted-windows
+  cancel-in-progress: false
+jobs:
+  accept-historical-ui:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      SOURCE_SHA: 'a288dfba830315a1cf0f32d22354687f9556e794'
+      SOURCE_TREE: '8bcc010b21c9b46eaf1175a177d9a9ad3804e9e0'
+      BASE_SHA: 'efd9c95149f1a6abde2fb3dd20a94c1a6916f83f'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Qualify GitHub-hosted nonresearch Windows only
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or
+             $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+             throw 'R25_C72_NOT_ISOLATED_HOSTED_WINDOWS'
+          }
+          Write-Host 'R25_C72_HOSTED_WINDOWS_NO_RESEARCH_RUNNERS=PASS'
+      - name: Checkout exact KTRADE staged source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a288dfba830315a1cf0f32d22354687f9556e794
+          fetch-depth: 0
+          path: source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Freeze source tree and verify no broker/accounting modifications
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+             (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:SOURCE_TREE -or
+             @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+            throw 'R25_C72_SOURCE_IDENTITY_DRIFT'
+          }
+          $want=@(
+            'internal/durableupgrade/historical_readonly_view.go',
+            'internal/durableupgrade/historical_readonly_view_test.go',
+            'cmd/ktrade/historical_recovery_full.go',
+            'cmd/ktrade/historical_recovery_full_test.go',
+            'cmd/ktrade/main_full.go',
+            'templates/chart.tmpl',
+            'static/recovery_history.html',
+            'static/recovery_history.css',
+            'static/recovery_history.js',
+            'static/historical_recovery_link.js'
+          )|Sort-Object
+          $got=@(& git diff --name-only $env:BASE_SHA $env:SOURCE_SHA|Sort-Object)
+          if($got.Count -ne $want.Count -or @(Compare-Object $want $got).Count -ne 0){
+            throw 'R25_C72_UNAUTHORIZED_SOURCE_SCOPE'
+          }
+          foreach($file in @(
+            'internal/durableupgrade/durable_upgrade.go',
+            'internal/durableupgrade/historic_paired_strategy.go',
+            'internal/papertrading/ledger.go',
+            'cmd/ktrade/paper_authority_route_full.go'
+          )){
+            if((& git rev-parse ($env:BASE_SHA+':'+$file)).Trim() -cne
+               (& git rev-parse ($env:SOURCE_SHA+':'+$file)).Trim()){
+              throw 'R25_C72_EXISTING_LEDGER_AND_BROKER_BOUNDARY_CHANGED'
+            }
+          }
+          Write-Host 'R25_C72_SOURCE_TEN_FILE_DELTA=PASS'
+          Write-Host 'R25_C72_BROKER_AND_ACCOUNTING_SOURCE_UNCHANGED=PASS'
+      - name: Frozen Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.12'
+          cache: false
+      - name: Focused authenticated history, no double count, and API failure tests
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c72-focused-private.log'
+          & go test -mod=readonly -count=1 -run '^TestR25C72' ./internal/durableupgrade *> $log
+          if($LASTEXITCODE -ne 0){throw 'R25_C72_ACCOUNTING_TESTS_FAIL_CLOSED'}
+          & go test -mod=readonly -tags=ktrade_full -count=1 -run '^TestR25C72' ./cmd/ktrade *> $log
+          if($LASTEXITCODE -ne 0){throw 'R25_C72_ACTUAL_FULL_APP_HTTP_ROUTE_TESTS_FAIL_CLOSED'}
+          & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade ./internal/durableupgrade *> $log
+          if($LASTEXITCODE -ne 0){throw 'R25_C72_SOURCE_VET_FAILED'}
+          Write-Host 'R25_C72_HISTORICAL_ACCOUNTING_NO_DOUBLE_COUNT=PASS'
+          Write-Host 'R25_C72_HOSTED_SYNTHETIC_HISTORY_POSITION_AND_PNL=PASS'
+          Write-Host 'R25_C72_REAL_APP_HTML_AND_API_HTTP_TESTS=PASS'
+          Write-Host 'R25_C72_CROSS_ORIGIN_DISABLED_MODE_AND_INVALID_RECEIPT_REJECTION=PASS'
+          Write-Host 'R25_C72_FOCUSED_TEST_VET=PASS'
+      - name: Compile complete authentic KTRADE executable and ship assets together
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'r25c72-full-app'
+          if(Test-Path -LiteralPath $out){throw 'R25_C72_OUTPUT_COLLISION'}
+          $null=New-Item -Path $out -ItemType Directory
+          $log=Join-Path $env:RUNNER_TEMP 'r25c72-build-private.log'
+          & go build -mod=readonly -tags=ktrade_full -o (Join-Path $out 'ktrade.exe') ./cmd/ktrade *> $log
+          if($LASTEXITCODE -ne 0){throw 'R25_C72_FULL_APPLICATION_BUILD_FAILED'}
+          foreach($dir in @('static','templates','strategies')){
+            if(!(Test-Path -LiteralPath $dir -PathType Container)){throw 'R25_C72_ASSET_FOLDER_MISSING'}
+            Copy-Item -LiteralPath $dir -Destination $out -Recurse -ErrorAction Stop
+          }
+          foreach($file in @(
+            'static/recovery_history.html','static/recovery_history.js','static/recovery_history.css',
+            'static/historical_recovery_link.js','templates/chart.tmpl'
+          )){
+            if(!(Test-Path -LiteralPath (Join-Path $out $file) -PathType Leaf)){
+              throw 'R25_C72_RECOVERY_OPERATOR_SURFACE_NOT_PACKAGED'
+            }
+          }
+          Write-Host 'R25_C72_AUTHENTIC_FULL_KTRADE_BUILD=PASS'
+          Write-Host 'R25_C72_HISTORICAL_VIEW_PACKAGED_WITH_CHART=PASS'
+          Write-Host 'R25_C72_PRODUCTION_INSTALLED_OR_RESTARTED=FALSE'
+      - name: Verify tracked files remain immutable and discard test logs
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if(Test-Path -LiteralPath $root -PathType Container){
+            Push-Location $root
+            try{
+              if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+                 @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+                throw 'R25_C72_SOURCE_MUTATED'
+              }
+            }finally{Pop-Location}
+          }
+          foreach($file in @('r25c72-focused-private.log','r25c72-build-private.log')){
+            $path=Join-Path $env:RUNNER_TEMP $file
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force}
+          }
+          Write-Host 'R25_C72_TRACKED_SOURCE_UNCHANGED=PASS'
+          Write-Host 'R25_C72_REAL_OWNER_FINANCIAL_DATA_READ=FALSE'
+          Write-Host 'R25_C72_PRIVATE_ARTIFACT_UPLOAD=FALSE'
+          Write-Host 'R25_C72_APP_AUTORESTART_ORDER_OR_BROKER_ACCESS=FALSE'
+          Write-Host 'R25_C72_MIGRATION_AND_RELEASE_AUTHORIZED=FALSE'
