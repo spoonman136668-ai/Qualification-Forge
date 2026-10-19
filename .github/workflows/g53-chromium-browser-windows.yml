@@ -384,9 +384,9 @@ jobs:
             throw ('G53_REAL_REPORT_DOM_SIMULATION_FAILED_'+$p3.ExitCode+': '+$e3.GetAwaiter().GetResult())
           }
           $interactionProof=$o3.GetAwaiter().GetResult()
-          if(-not $interactionProof.Contains('G53_DOM_INTERACTION_SIMULATION=PASS') -or
-             -not $interactionProof.Contains('G53_TEXT_FILTER_SELECTION_AND_CLEAR=PASS') -or
-             -not $interactionProof.Contains('G53_FOCUS_AND_CONTEXT=PASS')){
+          if(-not $interactionProof.Contains('G51_DOM_INTERACTION_SIMULATION=PASS') -or
+             -not $interactionProof.Contains('G51_TEXT_FILTER_SELECTION_AND_CLEAR=PASS') -or
+             -not $interactionProof.Contains('G51_FOCUS_AND_CONTEXT=PASS')){
              throw 'G53_DOM_OBSERVATION_FAILED'
           }
           $totalCPU=$cpu1+$cpu2+$cpu3
