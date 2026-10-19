@@ -42,7 +42,7 @@ jobs:
               if not isinstance(ev,dict) or set(ev)!={'push','schedule','workflow_dispatch'}: return False
               if ev['push'].get('branches')!=['repair/uq62-mind-palace-poll-tree-identity']: return False
               if ev['schedule']!=[{'cron':'17 */6 * * *'}]: return False
-              if ev['workflow_dispatch'] is not None: return False
+              if ev['workflow_dispatch'] not in ('', None): return False
               j=d.get('jobs',{}).get('inspect',{})
               return j.get('runs-on')==['self-hosted','Windows','forge-codex-isolated'] and j.get('timeout-minutes')=='15'
           assert check(s), 'G32C1_FORGE_TRIGGER_CONTRACT_INVALID'
