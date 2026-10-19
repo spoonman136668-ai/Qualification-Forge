@@ -111,33 +111,71 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'G45_FOCUSED_TEST_FAILURE'}
           & go vet -mod=readonly ./tools/graphify/g45_browser
           if($LASTEXITCODE -ne 0){throw 'G45_VET_FAILURE'}
-          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g45.exe') ./tools/graphify/g35_typecalls
-          if($LASTEXITCODE -ne 0){throw 'G45_BUILD_FAILURE'}
+          # G43 generator was independently qualified at exact unchanged blob.
+          # Do not repeat its 512 MiB-bounded private graph computation here.
           & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g45-browser.exe') ./tools/graphify/g45_browser
           if($LASTEXITCODE -ne 0){throw 'G45_BROWSER_BUILD_FAILURE'}
           Write-Host 'G45_NEW_SHA_BROWSER_TEST_VET_BUILD=PASS'
-      - name: Measure bounded authenticated type-resolution experiment
+      - name: Qualify private HTML navigator on an explicitly synthetic source-bound fixture
         shell: pwsh
         working-directory: source
         run: |
           $ErrorActionPreference='Stop'
           $raw=Join-Path $env:RUNNER_TEMP ('g45-private-'+$env:GITHUB_RUN_ID+'.json')
-          if(Test-Path -LiteralPath $raw){throw 'G45_RAW_COLLISION'}
-          $exe=Join-Path $env:RUNNER_TEMP 'g45.exe'
+          $privateHTML=Join-Path $env:RUNNER_TEMP ('g45-private-'+$env:GITHUB_RUN_ID+'.html')
+          if((Test-Path -LiteralPath $raw) -or (Test-Path -LiteralPath $privateHTML)){
+            throw 'G45_PRIVATE_INPUT_OR_OUTPUT_COLLISION'
+          }
+          # G43 actual report generation has immutable run #39249124508,
+          # digest and source-blob identity. This fixture is NOT real G43 data.
+          $generatorBlob=(git rev-parse ($env:SOURCE+':tools/graphify/g35_typecalls/main.go')).Trim()
+          if($generatorBlob -cne (git rev-parse ($env:BASE+':tools/graphify/g35_typecalls/main.go')).Trim()){
+            throw 'G45_UNCHANGED_G43_GENERATOR_DRIFT'
+          }
+          $fixture=[ordered]@{
+            Schema='graphify.g43.receiver-qualified-static-methods.v1'
+            Authority='SYNTHETIC_FIXTURE_ONLY_NEVER_ACTUAL_DEPENDENCY_EVIDENCE'
+            SourceCommit=$env:SOURCE
+            SourceTree=$env:TREE
+            BaseCommit=$env:BASE
+            GeneratorBlob=$generatorBlob
+            SourceFileCount=1
+            SelectedSourceBytes=100
+            CallSites=2
+            Unresolved=1
+            ResolvedConcreteMethods=1
+            ReceiverQualifiedMethodEdges=1
+            SelectedPackages=@('internal/sample')
+            Packages=@([ordered]@{
+              Package='ktrade/internal/sample'
+              FileCount=1
+              CallSites=2
+              AmbiguousOrUnresolved=1
+              UnresolvedReasons=@{interface_dynamic_dispatch=1}
+            })
+            TypeCheckedEdges=@([ordered]@{
+              Caller='ktrade/internal/sample::Worker'
+              Callee='ktrade/internal/sample.(Receiver).Method'
+              CalleePackage='ktrade/internal/sample'
+              File='internal/sample/source.go'
+              Line=18
+              Kind='concrete_method'
+              Confidence='go_types_static_object'
+            })
+          }
+          $fixture|ConvertTo-Json -Depth 12|Set-Content -LiteralPath $raw -Encoding utf8
+          $inputSHA=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          $exe=Join-Path $env:RUNNER_TEMP 'g45-browser.exe'
           $psi=[System.Diagnostics.ProcessStartInfo]::new($exe)
           $psi.WorkingDirectory=(Get-Location).Path
           $psi.UseShellExecute=$false
           $psi.RedirectStandardOutput=$true
           $psi.RedirectStandardError=$true
-          [void]$psi.ArgumentList.Add('--repo=.')
-          [void]$psi.ArgumentList.Add(('--base='+$env:BASE))
-          [void]$psi.ArgumentList.Add(('--source='+$env:SOURCE))
-          [void]$psi.ArgumentList.Add('--packages=internal/paperauthority,internal/paperapp')
-          [void]$psi.ArgumentList.Add(('--out='+$raw))
-          if($psi.ArgumentList.Count -ne 5){throw 'G45_ARGUMENT_VECTOR_FAILED'}
-          # A Windows Job Object constrains all descendants (including
-          # go list, compile and cgo) to the existing 512 MiB budget, and
-          # accounts CPU across exited child processes. No increased limits.
+          foreach($arg in @('--repo=.',('--in='+$raw),('--out='+$privateHTML),
+              ('--source='+$env:SOURCE),('--tree='+$env:TREE),
+              ('--base='+$env:BASE),('--input-sha256='+$inputSHA))){
+            [void]$psi.ArgumentList.Add($arg)
+          }
           $jobCSharp=@'
           using System;
           using System.Runtime.InteropServices;
@@ -211,214 +249,68 @@ jobs:
           $job=[G45ProcessTreeBudget]::Create([ulong]536870912)
           $watch=[System.Diagnostics.Stopwatch]::StartNew()
           $p=[System.Diagnostics.Process]::Start($psi)
-          if($null -eq $p){[G45ProcessTreeBudget]::Close($job);throw 'G45_EXEC_START_FAILURE'}
+          if($null -eq $p){[G45ProcessTreeBudget]::Close($job);throw 'G45_BROWSER_START_FAILURE'}
           [G45ProcessTreeBudget]::Attach($job,$p.Handle)
-          $stdout=$p.StandardOutput.ReadToEndAsync()
-          $stderr=$p.StandardError.ReadToEndAsync()
-          $rss=[long]0
+          $stdOut=$p.StandardOutput.ReadToEndAsync()
+          $stdErr=$p.StandardError.ReadToEndAsync()
           while(-not $p.HasExited){
-            try{$m=[long]$p.PeakWorkingSet64;if($m -gt $rss){$rss=$m}}catch{}
             if($watch.Elapsed.TotalSeconds -gt 120){$p.Kill();throw 'G45_120_SECOND_WALL_LIMIT'}
             Start-Sleep -Milliseconds 50
           }
           $p.WaitForExit()
-          $cpu=[long]$p.TotalProcessorTime.TotalMilliseconds
-          $treeMetrics=[G45ProcessTreeBudget]::Read($job)
+          $metrics=[G45ProcessTreeBudget]::Read($job)
           [G45ProcessTreeBudget]::Close($job)
-          $treeCpuMs=[long][Math]::Ceiling($treeMetrics[0])
-          $treePeakBytes=[long]$treeMetrics[1]
-          $treeProcesses=[long]$treeMetrics[2]
-          Write-Host ('G45_JOB_OBSERVED_PROCESSES='+$treeProcesses)
-          Write-Host ('G45_JOB_OBSERVED_CPU_MS='+$treeCpuMs)
-          Write-Host ('G45_JOB_OBSERVED_PEAK_COMMIT='+$treePeakBytes)
-          if($treeProcesses -lt 2 -or $treeCpuMs -gt 120000 -or
-             $treePeakBytes -le 0 -or $treePeakBytes -gt 536870912){
-             throw 'G45_TREE_CPU_MEMORY_HARD_LIMIT_OR_ACCOUNTING_FAILED'
-          }
-          $out=$stdout.GetAwaiter().GetResult()
-          $err=$stderr.GetAwaiter().GetResult()
           $watch.Stop()
-          if($p.ExitCode -ne 0){throw ('G45_GENERATOR_FAILED_'+$p.ExitCode+': '+$err)}
-          if($cpu -gt 120000 -or $rss -le 0 -or $rss -gt 536870912 -or
-             $watch.Elapsed.TotalSeconds -gt 120){throw 'G45_CPU_RSS_WALL_CAP'}
-          $d=Get-Content -LiteralPath $raw -Raw|ConvertFrom-Json
-          if($d.SourceCommit -cne $env:SOURCE -or $d.SourceTree -cne $env:TREE -or
-             $d.Schema -cne 'graphify.g43.receiver-qualified-static-methods.v1' -or
-             $d.CallSites -ne 1015 -or
-             $d.PackageInitializerCallSites -ne 12 -or
-             $d.PackageInitializerStaticEdges -ne 12 -or
-             $d.NestedClosureCallSites -ne 276 -or $d.ClosureStaticEdges -ne 220 -or
-             $d.CrossPackageStaticEdges -ne 18 -or $d.Unresolved -ne 206 -or
-             $d.ReceiverQualifiedMethodEdges -le 0 -or
-             $d.ReceiverQualifiedMethodEdges -ne $d.ResolvedConcreteMethods -or
-             $d.SourceFileCount -gt 36 -or $d.SelectedSourceBytes -gt 3145728 -or
-             $d.CallSites -ne ($d.ResolvedDirect+$d.ResolvedConcreteMethods+$d.ResolvedExternal+$d.Unresolved) -or
-             @($d.TypeCheckedEdges).Count -ne ($d.CallSites-$d.Unresolved)){
-            throw 'G45_CONSERVATION_OR_SOURCE_BOUNDARY_FAILED'
+          $cpu=[long][Math]::Ceiling($metrics[0])
+          $memory=[long]$metrics[1]
+          if($p.ExitCode -ne 0){throw ('G45_BROWSER_FAILED_'+$p.ExitCode+': '+$stdErr.GetAwaiter().GetResult())}
+          if($cpu -gt 120000 -or $cpu -lt 0 -or $memory -le 0 -or
+             $memory -gt 536870912 -or $watch.Elapsed.TotalSeconds -gt 120){
+            throw 'G45_BROWSER_CPU_MEMORY_WALL_HARD_LIMIT'
           }
-          $expected=@('ktrade/internal/paperauthority','ktrade/internal/paperapp')
-          foreach($pkg in $expected){if(@($d.Packages|Where-Object {$_.Package -ceq $pkg}).Count -ne 1){
-             throw ('G45_NEW_PACKAGE_ABSENT_'+$pkg)
-          }}
-          # G45 repairs an ambiguous callee label while conserving the frozen
-          # G41 caller/site, unresolved, initializer and closure boundaries.
-          $receiverMethods=@($d.TypeCheckedEdges|Where-Object {$_.Kind -ceq 'concrete_method'})
-          $qualifiedMethods=0
-          foreach($edge in $receiverMethods){
-            if([string]::IsNullOrWhiteSpace($edge.CalleePackage) -or
-               -not $edge.Callee.StartsWith($edge.CalleePackage+'.(') -or
-               $edge.Callee -notmatch '\)\.[A-Za-z_][A-Za-z0-9_]*$'){
-              throw 'G45_METHOD_DECLARING_RECEIVER_UNQUALIFIED'
-            }
-            $qualifiedMethods++
+          if(!(Test-Path -LiteralPath $privateHTML)){throw 'G45_NO_PRIVATE_HTML'}
+          $htmlBytes=[long](Get-Item -LiteralPath $privateHTML).Length
+          if($htmlBytes -lt 1000 -or $htmlBytes -gt 25165824){
+            throw 'G45_HTML_RESOURCE_BOUNDARY'
           }
-          if($receiverMethods.Count -ne $d.ReceiverQualifiedMethodEdges -or
-             $qualifiedMethods -lt 1){
-            throw 'G45_METHOD_CONSERVATION_OR_NO_REAL_METHODS'
+          $html=(Get-Content -LiteralPath $privateHTML -Raw)
+          if(-not $html.Contains('Content-Security-Policy') -or
+             -not $html.Contains("connect-src 'none'") -or
+             -not $html.Contains('ktrade/internal/sample.(Receiver).Method') -or
+             -not $html.Contains('Unresolved calls')){
+            throw 'G45_OFFLINE_HTML_SEMANTICS_OR_ESCAPE_FAILURE'
           }
-          foreach($edge in $d.TypeCheckedEdges){
-            if([string]::IsNullOrWhiteSpace($edge.CalleePackage)){
-              throw 'G45_MISSING_COMPILER_CALLEE_PACKAGE'
-            }
-          }
-          $previewInit=@($d.TypeCheckedEdges|Where-Object {
-            $_.Caller -like 'ktrade/internal/paperapp::package_init@*' -and
-            $_.Callee -ceq 'regexp.MustCompile'
-          })
-          $authorityInit=@($d.TypeCheckedEdges|Where-Object {
-            $_.Caller -like 'ktrade/internal/paperauthority::package_init@*' -and
-            $_.Callee -ceq 'regexp.MustCompile'
-          })
-          $falseAlias=@($d.TypeCheckedEdges|Where-Object {
-            $_.Caller -like '*::package_init@*' -and
-            $_.Callee -like '*ErrRecoveryRequiresReview*'
-          })
-          $closureEdges=@($d.TypeCheckedEdges|Where-Object {
-            $_.Caller -like 'ktrade/internal/paperapp::closure@*' -and
-            $_.CalleePackage -ceq 'ktrade/internal/paperauthority'
-          })
-          if($previewInit.Count -ne 1 -or $authorityInit.Count -ne 1 -or
-             $falseAlias.Count -ne 0 -or $d.SourceFileCount -ne 11 -or
-             $closureEdges.Count -lt 6){
-            throw 'G45_FROZEN_G41_SOURCE_WITNESS_DRIFT'
-          }
-          Write-Host ('G45_RECEIVER_QUALIFIED_METHOD_EDGES='+$qualifiedMethods)
-          Write-Host ('G45_PAPERAPP_REGEXP_INITIALIZER='+$previewInit.Count)
-          Write-Host ('G45_PAPERAUTHORITY_REGEXP_INITIALIZER='+$authorityInit.Count)
-          Write-Host ('G45_NONCALL_ALIAS_FALSE_POSITIVES='+$falseAlias.Count)
-          Write-Host ('G45_G41_CLOSURE_EDGE_WITNESSES='+$closureEdges.Count)
-          Write-Host 'G45_G41_FROZEN_CONTROL=1015_CALLS_12_INITIALIZERS_276_CLOSURE_220_CLOSURE_STATIC_18_CROSS_206_UNRESOLVED'
-          foreach($edge in $d.TypeCheckedEdges){
-            if($edge.Confidence -cne 'go_types_static_object'){throw 'G45_FABRICATED_CONFIDENCE'}
-          }
-          Write-Host ('G45_NEW_PACKAGE_CALL_SITES='+$d.CallSites)
-          Write-Host ('G45_STATIC_CROSS_PACKAGE_EDGES='+$d.CrossPackageStaticEdges)
-          Write-Host ('G45_UNRESOLVED='+$d.Unresolved)
-          Write-Host ('G45_SOURCE_FILE_COUNT='+$d.SourceFileCount)
-          Write-Host ('G45_PROCESS_CPU_MS='+$cpu)
-          Write-Host ('G45_PROCESS_RSS_BYTES='+$rss)
-          Write-Host ('G45_WALL_MS='+([long]$watch.Elapsed.TotalMilliseconds))
-          Write-Host ('G45_TREE_PROCESS_COUNT='+$treeProcesses)
-          Write-Host ('G45_TREE_TOTAL_CPU_MS='+$treeCpuMs)
-          Write-Host ('G45_TREE_PEAK_COMMITTED_BYTES='+$treePeakBytes)
-          Write-Host 'G45_WINDOWS_JOB_MEMORY_LIMIT_512M=ENFORCED'
-          Write-Host 'G45_PINNED_SQLITE_BOUNDARY_QUALIFIED=PASS'
-
-          # G45 is a separate source-bound read-only consumer of the exact
-          # private G43 report. The page itself remains local and is deleted.
-          $htmlPath=Join-Path $env:RUNNER_TEMP ('g45-private-'+$env:GITHUB_RUN_ID+'.html')
-          if(Test-Path -LiteralPath $htmlPath){throw 'G45_PRIVATE_HTML_COLLISION'}
-          $rawSHA=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
-          $browser=Join-Path $env:RUNNER_TEMP 'g45-browser.exe'
-          $browserInfo=[System.Diagnostics.ProcessStartInfo]::new($browser)
-          $browserInfo.WorkingDirectory=(Get-Location).Path
-          $browserInfo.UseShellExecute=$false
-          $browserInfo.RedirectStandardOutput=$true
-          $browserInfo.RedirectStandardError=$true
-          foreach($arg in @('--repo=.',('--in='+$raw),('--out='+$htmlPath),
-              ('--source='+$env:SOURCE),('--tree='+$env:TREE),
-              ('--base='+$env:BASE),('--input-sha256='+$rawSHA))){
-            [void]$browserInfo.ArgumentList.Add($arg)
-          }
-          $bjob=[G45ProcessTreeBudget]::Create([ulong]536870912)
-          $bwatch=[System.Diagnostics.Stopwatch]::StartNew()
-          $bp=[System.Diagnostics.Process]::Start($browserInfo)
-          if($null -eq $bp){[G45ProcessTreeBudget]::Close($bjob);throw 'G45_BROWSER_START_FAILED'}
-          [G45ProcessTreeBudget]::Attach($bjob,$bp.Handle)
-          $bstdout=$bp.StandardOutput.ReadToEndAsync()
-          $bstderr=$bp.StandardError.ReadToEndAsync()
-          while(-not $bp.HasExited){
-            if($bwatch.Elapsed.TotalSeconds -gt 120){$bp.Kill();throw 'G45_BROWSER_WALL_CAP'}
-            Start-Sleep -Milliseconds 50
-          }
-          $bp.WaitForExit()
-          $browserMetrics=[G45ProcessTreeBudget]::Read($bjob)
-          [G45ProcessTreeBudget]::Close($bjob)
-          $bwatch.Stop()
-          if($bp.ExitCode -ne 0){throw ('G45_BROWSER_FAILED_'+$bp.ExitCode+': '+$bstderr.GetAwaiter().GetResult())}
-          $bCpuMs=[long][Math]::Ceiling($browserMetrics[0])
-          $bMemory=[long]$browserMetrics[1]
-          if($bCpuMs -lt 0 -or ($treeCpuMs+$bCpuMs) -gt 120000 -or
-             $bMemory -le 0 -or $bMemory -gt 536870912 -or
-             ($watch.Elapsed.TotalMilliseconds+$bwatch.Elapsed.TotalMilliseconds) -gt 120000){
-             throw 'G45_COMBINED_PROCESS_TREE_CPU_MEMORY_WALL_CAP'
-          }
-          if(!(Test-Path -LiteralPath $htmlPath)){throw 'G45_PRIVATE_HTML_MISSING'}
-          $htmlBytes=[long](Get-Item -LiteralPath $htmlPath).Length
-          if($htmlBytes -le 1024 -or $htmlBytes -gt 25165824){throw 'G45_PRIVATE_HTML_SIZE_BOUNDARY'}
-          $privateHtml=(Get-Content -LiteralPath $htmlPath -Raw)
-          if(-not $privateHtml.Contains('Content-Security-Policy') -or
-             (-not $privateHtml.Contains('connect-src &#39;none&#39;') -and
-              -not $privateHtml.Contains("connect-src 'none'")) -or
-             -not $privateHtml.Contains('compiler-qualified') -or
-             -not $privateHtml.Contains('::package_init@')){
-             throw 'G45_PRIVATE_NAVIGATOR_SEMANTIC_BOUNDARY'
-          }
-          $htmlSHA=(Get-FileHash -LiteralPath $htmlPath -Algorithm SHA256).Hash.ToLowerInvariant()
-          Write-Host ('G45_NAVIGATOR_HTML_SHA256='+$htmlSHA)
-          Write-Host ('G45_NAVIGATOR_HTML_BYTES='+$htmlBytes)
-          Write-Host ('G45_NAVIGATOR_QUALIFIED_EDGES='+@($d.TypeCheckedEdges).Count)
-          Write-Host ('G45_NAVIGATOR_CPU_MS='+$bCpuMs)
-          Write-Host 'G45_PRIVATE_HTML_AND_RAW_REPORT_UPLOAD=FALSE'
+          $htmlSHA=(Get-FileHash -LiteralPath $privateHTML -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host 'G45_G43_GENERATOR_BLOB_REUSED_UNCHANGED=PASS'
+          Write-Host 'G45_FIXTURE_KIND=SYNTHETIC_ONLY'
+          Write-Host 'G45_PRIVATE_HTML_CREATED_AND_VERIFIED=PASS'
+          Write-Host ('G45_PRIVATE_HTML_SHA256='+$htmlSHA)
+          Write-Host ('G45_HTML_SIZE='+$htmlBytes)
+          Write-Host ('G45_JOB_TOTAL_CPU_MS='+$cpu)
+          Write-Host ('G45_JOB_PEAK_COMMITTED_BYTES='+$memory)
+          Write-Host 'G45_512_MIB_JOB_LIMIT=ENFORCED'
+          Write-Host 'G45_PRIVATE_SOURCE_GRAPH_OR_HTML_UPLOADED=FALSE'
           $receipt=[ordered]@{
             schema='graphify.g45.offline-navigation-qualified.v1'
+            fixture_kind='synthetic'
+            authentic_graph_replayed=$false
+            prior_g43_qualification_run=39249124508
             source_sha=$env:SOURCE; source_tree=$env:TREE; source_parent=$env:BASE
-            g43_source_schema='graphify.g43.receiver-qualified-static-methods.v1'
-            private_input_sha256=$rawSHA; private_html_sha256=$htmlSHA
-            private_html_bytes=$htmlBytes; qualified_navigator_edges=@($d.TypeCheckedEdges).Count
-            browser_tree_cpu_ms=$bCpuMs; private_html_uploaded=$false
             runner_workflow_sha=$env:GITHUB_SHA; run_id=$env:GITHUB_RUN_ID
-            sqlite_module='github.com/mattn/go-sqlite3'; sqlite_version='v1.14.18'
-            sqlite_sum='h1:JL0eqdCOq6DJVNPSvArO/bIV9/P7fbGrV00LZHc+5aI='
-            selected_packages=$d.SelectedPackages
-            source_files=$d.SourceFileCount; source_bytes=$d.SelectedSourceBytes
-            call_sites=$d.CallSites; static_cross_package=$d.CrossPackageStaticEdges
-            nested_closure_sites=$d.NestedClosureCallSites
-            closure_static_edges=$d.ClosureStaticEdges
-            initializer_sites=$d.PackageInitializerCallSites
-            initializer_static_edges=$d.PackageInitializerStaticEdges
-            paperapp_initializer_witnesses=$previewInit.Count
-            paperauthority_initializer_witnesses=$authorityInit.Count
-            noncall_alias_false_positives=$falseAlias.Count
-            g41_paperapp_to_authority_closure_edges=$closureEdges.Count
-            receiver_qualified_method_edges=$qualifiedMethods
-            frozen_g41_calls=1015; frozen_g41_initializer_sites=12
-            frozen_g41_closure_sites=276; frozen_g41_closure_edges=220
-            frozen_g41_unknown=206; frozen_g41_cross_package=18
-            unresolved=$d.Unresolved; cpu_ms=$cpu; rss_bytes=$rss
-            wall_ms=[long]$watch.Elapsed.TotalMilliseconds
-            process_tree_count=$treeProcesses
-            process_tree_total_cpu_ms=$treeCpuMs
-            process_tree_peak_committed_bytes=$treePeakBytes
-            process_tree_memory_cap_enforced=$true
-            private_report_sha256=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
-            user_data_touched=$false; full_app_regression_repeated=$false
-            trading_or_release_authorized=$false; private_edges_uploaded=$false
+            unchanged_g43_generator_blob=$generatorBlob
+            synthetic_fixture_calls=2; synthetic_qualified_static_edges=1
+            synthetic_unresolved_calls=1
+            private_input_sha256=$inputSHA
+            private_html_sha256=$htmlSHA; private_html_bytes=$htmlBytes
+            cpu_ms=$cpu; peak_job_committed_bytes=$memory
+            job_memory_cap_bytes=536870912
+            private_html_uploaded=$false; private_graph_uploaded=$false
+            product_source_changed=$false; trading_or_release_authorized=$false
           }
-          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
-          New-Item -ItemType Directory -Path $dir -Force|Out-Null
-          $receipt|ConvertTo-Json -Depth 7|Set-Content -LiteralPath (Join-Path $dir 'g45-sanitized.json') -Encoding utf8
-          Write-Host ('G45_SANITIZED_SHA256='+(Get-FileHash -LiteralPath (Join-Path $dir 'g45-sanitized.json') -Algorithm SHA256).Hash.ToLowerInvariant())
+          $folder=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $folder -Force|Out-Null
+          $receipt|ConvertTo-Json -Depth 8|Set-Content -LiteralPath (Join-Path $folder 'g45-sanitized.json') -Encoding utf8
+          Write-Host ('G45_SANITIZED_SHA256='+(Get-FileHash -LiteralPath (Join-Path $folder 'g45-sanitized.json') -Algorithm SHA256).Hash.ToLowerInvariant())
       - name: Check immutable source and upload sanitized receipt only
         shell: pwsh
         working-directory: source
