@@ -1,0 +1,98 @@
+name: KTRADE R25-C32 signed-release and private-profile fail-closed admission
+on:
+  push:
+    branches: [qualification/ktrade-r25c32-release-admission-20261018]
+    paths: [.github/workflows/ktrade-r25c32-release-admission.yml]
+permissions:
+  contents: read
+jobs:
+  bounded-negative-acceptance:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      SOURCE_SHA: '464f93a5d64c77af0c46636509dfa43a018a30f9'
+      SOURCE_TREE: 'd0431442598d21140ecf4dfdd9b755c864cb0988'
+      QUALIFIED_MAIN: 'ec4f6e67d4aec59c1682149015ffa5c53cd516b9'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_RECOVERY_ISOLATED: '1'
+    steps:
+      - name: Fetch exact private KTRADE review source read-only
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 464f93a5d64c77af0c46636509dfa43a018a30f9
+          fetch-depth: 4
+          path: source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Verify exact three-file admission-only delta and broker denial
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+             $env:KTRADE_RECOVERY_ISOLATED -cne '1'){throw 'R25C32_UNSAFE_QUALIFICATION'}
+          if((& git -C $dir rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+             (& git -C $dir rev-parse 'HEAD^{tree}').Trim() -cne $env:SOURCE_TREE -or
+             (& git -C $dir rev-parse HEAD~3).Trim() -cne $env:QUALIFIED_MAIN -or
+             @(& git -C $dir status --porcelain).Count -ne 0){throw 'R25C32_SOURCE_IDENTITY_DRIFT'}
+          $paths=@(& git -C $dir diff --name-only $env:QUALIFIED_MAIN HEAD|Sort-Object)
+          $expected=@('docs/R25_C32_RELEASE_ADMISSION.md','scripts/Test-R25C32-ReleaseAdmission.ps1','tests/Test-R25C32-ReleaseAdmission.ps1')|Sort-Object
+          if($LASTEXITCODE -ne 0 -or $paths.Count -ne 3 -or @(Compare-Object $paths $expected).Count -ne 0){
+            throw 'R25C32_UNAUTHORIZED_SOURCE_SCOPE'
+          }
+          Write-Output 'R25C32_QUALIFIED_MAIN_ANCESTRY=PASS'
+          Write-Output 'R25C32_EXACT_THREE_FILE_ADMISSION_DELTA=PASS'
+          Write-Output 'R25C32_NO_GO_REGRESSION_RERUN=TRUE'
+      - name: Run only Windows fail-closed release admission and synthetic spoof tests
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          & pwsh -NoProfile -NonInteractive -File tests/Test-R25C32-ReleaseAdmission.ps1
+          if($LASTEXITCODE -ne 0){throw 'R25C32_NEGATIVE_TESTS_FAILED'}
+          Write-Output 'R25C32_WINDOWS_RELEASE_NEGATIVE_ACCEPTANCE=PASS'
+      - name: Seal only the source-bound denial receipt
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $dir -Force|Out-Null
+          $receipt=[ordered]@{
+            schema='ktrade.r25c32.release-negative-qualification.v1'
+            source_sha=$env:SOURCE_SHA
+            source_tree=$env:SOURCE_TREE
+            qualified_parent_main=$env:QUALIFIED_MAIN
+            forge_run=$env:GITHUB_RUN_ID
+            forge_commit=$env:GITHUB_SHA
+            exact_source_three_file_scope='PASS'
+            focused_windows_negative_tests='PASS'
+            real_profile_read=$false
+            live_broker_access=$false
+            release_signing_performed=$false
+            icon_approval_generated=$false
+            release_admitted=$false
+            previous_full_regression_reused=$true
+          }
+          $file=Join-Path $dir 'r25c32-admission.json'
+          $receipt|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $file -Encoding utf8
+          $sha=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Output ('R25C32_RECEIPT_SHA256='+$sha)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c32-readonly-admission-evidence
+          path: evidence/r25c32-admission.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Erase private source from temporary runner
+        shell: pwsh
+        if: always()
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C32_QUALIFICATION_CHECKOUT_CLEANUP_ATTEMPTED=TRUE'
