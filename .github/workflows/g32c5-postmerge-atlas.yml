@@ -1,0 +1,247 @@
+name: G32-C5 integrated source incremental acceptance
+on:
+  push:
+    branches: [qualification/g32c5-integrated-source-20261018]
+    paths: [.github/workflows/g32c5-postmerge-atlas.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: g32c5-ktrade-source-seal
+  cancel-in-progress: false
+jobs:
+  windows-source:
+    name: Exact integrated source and bounded analyzer proof
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      G32_MERGED: '20a39cc874f2c83713f5096d48ada82a9c9445c8'
+      G32_TREE: '28958f4ebdae465ee27ea1fde609183d0f4794a7'
+      G32_BASE: '1b5c7c51d433d61dd0180b937264b471a9d3545c'
+      G32_QUALIFIED: '3761034e2ea04e10c77b714b474b4adae3b20fa2'
+      G32_G31_BASE: 'a3b2e1a53a8b714bbdca1b33a6db71e128f32fa1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Checkout exact integrated private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: 20a39cc874f2c83713f5096d48ada82a9c9445c8
+          fetch-depth: 0
+          path: source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Verify merge parents, source tree, exact changed blob identities and no production modifications
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1'){
+            throw 'G32C5_INELIGIBLE_PLATFORM_OR_AUTHORITY'
+          }
+          if((& git rev-parse HEAD).Trim() -cne $env:G32_MERGED -or
+             (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:G32_TREE){throw 'G32C5_MERGED_SOURCE_DRIFT'}
+          $parents=((git rev-list --parents -n 1 HEAD)|Out-String).Trim() -split '\s+'
+          if($parents.Count -ne 3 -or $parents[0] -cne $env:G32_MERGED -or
+             $parents[1] -cne $env:G32_BASE -or $parents[2] -cne $env:G32_QUALIFIED){
+            throw 'G32C5_HISTORIC_MERGE_PARENT_DRIFT'
+          }
+          $expected=@('tools/graphify/g32_delta/main.go','tools/graphify/g32_delta/main_test.go')|Sort-Object
+          $actual=@(git diff --name-only $env:G32_BASE $env:G32_MERGED)|Sort-Object
+          if($actual.Count -ne 2 -or @((Compare-Object $expected $actual)).Count -ne 0){
+            throw ('G32C5_BASE_TO_MERGED_HAS_OTHER_CHANGES_'+($actual -join ','))
+          }
+          $pine=@(git diff --name-only $env:G32_QUALIFIED $env:G32_MERGED)
+          if($pine.Count -ne 1 -or $pine[0] -cne 'pkg/pine_nullable_types.go'){
+            throw 'G32C5_QUALIFIED_TO_MERGE_CHANGED_UNEXPECTED_FILES'
+          }
+          $witnesses=[ordered]@{
+            'tools/graphify/g32_delta/main.go'='5c93f038f51fb86ebefe470e543ead89716fcc9c'
+            'tools/graphify/g32_delta/main_test.go'='af39d7c0f24d31643bf2ef5c409c2cef6a56e466'
+            'pkg/pine_nullable_types.go'='ff47a274e087526706bc55043358f5e1b4e8096d'
+            'go.mod'='4edcb1945291b65726a7bb234ba15d00cb711b44'
+            'go.sum'='69585a34b570b18b077a232985e0bd116adaecd3'
+          }
+          foreach($path in $witnesses.Keys){
+            $got=(& git hash-object -- $path).Trim()
+            if($LASTEXITCODE -ne 0 -or $got -cne $witnesses[$path]){
+              throw ('G32C5_SOURCE_BLOB_DRIFT_'+$path)
+            }
+          }
+          if(@(git status --porcelain).Count -ne 0){throw 'G32C5_DIRTY_CHECKOUT'}
+          Write-Host 'G32C5_EXACT_MERGE_TREE_AND_PARENTS=PASS'
+          Write-Host 'G32C5_IDENTICAL_QUALIFIED_G32_BLOBS=PASS'
+          Write-Host 'G32C5_ONLY_PREVIOUSLY_QUALIFIED_PINE_COMPLEMENT=PASS'
+          Write-Host 'G32C5_PRODUCTION_CODE_UNCHANGED_FROM_PREMERGE_MAIN=PASS'
+      - name: Authenticate existing source-specific regression and Pine qualifications without replay
+        shell: pwsh
+        env:
+          QUAL_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $h=@{
+            Authorization=('Bearer '+$env:QUAL_TOKEN)
+            Accept='application/vnd.github+json'
+            'User-Agent'='G32-C5-readonly-evidence-reuse'
+          }
+          $base='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge'
+          $records=@(
+            @{id=39179423601;sha='41fb5435384c8d85246dbc7b74fec3e7ad334c62';steps=@('G32-C2 restore exact historical JSON witnesses from immutable parents','One complete witness-bound Windows integration regression','Vet complete source and build G32 plus Windows KTRADE','Remove private worktree and output executables')},
+            @{id=39176556618;sha='d316d6d5f465b8ab056b18ff861cabebb68228c6';steps=@('Reconstruct original R25-C12 wire witnesses on exact immutable foundations','One complete Windows Go regression','Vet all unchanged and affected Go packages','Seal sanitized qualification receipt')}
+          )
+          foreach($record in $records){
+            $run=Invoke-RestMethod -Uri ($base+'/actions/runs/'+$record.id) -Headers $h -TimeoutSec 30
+            $jobs=Invoke-RestMethod -Uri ($base+'/actions/runs/'+$record.id+'/jobs?per_page=100') -Headers $h -TimeoutSec 30
+            if($run.head_sha -cne $record.sha -or $run.status -cne 'completed' -or
+               $run.conclusion -cne 'success' -or $run.run_attempt -ne 1 -or
+               $jobs.total_count -ne 1 -or @($jobs.jobs).Count -ne 1 -or
+               $jobs.jobs[0].conclusion -cne 'success'){
+              throw ('G32C5_HISTORICAL_RECEIPT_UNTRUSTED_'+$record.id)
+            }
+            foreach($name in $record.steps){
+              $got=@($jobs.jobs[0].steps|Where-Object {$_.name -ceq $name})
+              if($got.Count -ne 1 -or $got[0].conclusion -cne 'success'){
+                throw ('G32C5_HISTORICAL_STEP_UNVERIFIED_'+$record.id+'_'+$name)
+              }
+            }
+          }
+          Write-Host 'G32C5_FROZEN_FULL_REGRESSION_WITNESSES_REUSED=PASS'
+          Write-Host 'G32C5_INDEPENDENT_PINE_QUALIFICATION_REUSED=PASS'
+          Write-Host 'G32C5_FULL_REGRESSION_RERUN=FALSE'
+      - name: Restore known toolchain only
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Three focused analyzer tests and vet on actual merged code
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go test -mod=readonly -count=1 ./tools/graphify/g32_delta
+          if($LASTEXITCODE -ne 0){throw 'G32C5_MERGED_ANALYZER_FOCUSED_TESTS_FAILED'}
+          go vet -mod=readonly ./tools/graphify/g32_delta
+          if($LASTEXITCODE -ne 0){throw 'G32C5_MERGED_ANALYZER_VET_FAILED'}
+          Write-Host 'G32C5_MERGED_THREE_FOCUSED_TESTS_AND_VET=PASS'
+      - name: Execute real integrated import analysis across both qualified source histories
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $runs=@(
+            @{name='G31-to-main';base=$env:G32_G31_BASE;target=$env:G32_MERGED;expect='historical'},
+            @{name='premerge-main-to-main';base=$env:G32_BASE;target=$env:G32_MERGED;expect='only_g32'},
+            @{name='qualified-G32-to-main';base=$env:G32_QUALIFIED;target=$env:G32_MERGED;expect='only_pine'}
+          )
+          $summaries=@()
+          foreach($r in $runs){
+            $raw=& go run -mod=readonly ./tools/graphify/g32_delta --repo=. --base=$r.base --target=$r.target
+            if($LASTEXITCODE -ne 0){throw ('G32C5_INTEGRATED_ANALYZER_FAILED_'+$r.name)}
+            $json=($raw|Out-String)
+            $v=$json|ConvertFrom-Json -ErrorAction Stop
+            if($v.schema -cne 'g32.go-package-impact.v1' -or $v.authority -cne 'advisory-no-mutation' -or
+               $v.base_commit -cne $r.base -or $v.target_commit -cne $r.target -or
+               $v.exact_blob_reuse_count -le 0 -or -not [bool]$v.final_regression_required){
+              throw ('G32C5_INTEGRATED_IMPACT_SOURCE_DRIFT_'+$r.name)
+            }
+            if($r.expect -ceq 'only_g32'){
+              if(@($v.changes).Count -ne 2 -or @($v.changed_packages).Count -ne 1 -or
+                 $v.changed_packages[0] -cne 'ktrade/tools/graphify/g32_delta' -or
+                 @($v.changed_workflows).Count -ne 0 -or @($v.reverse_affected_packages).Count -ne 0){
+                throw 'G32C5_PRODUCT_IMPORT_IMPACT_DIFFERENT_FROM_PREMERGE_MAIN'
+              }
+            }
+            if($r.expect -ceq 'only_pine'){
+              if(@($v.changes).Count -ne 1 -or $v.changes[0].path -cne 'pkg/pine_nullable_types.go' -or
+                 @($v.changed_packages).Count -ne 1 -or $v.changed_packages[0] -cne 'ktrade/pkg' -or
+                 @($v.changed_workflows).Count -ne 0){
+                throw 'G32C5_PINE_COMPOSITION_DRIFT'
+              }
+            }
+            if($r.expect -ceq 'historical'){
+              if(@($v.changed_packages|Where-Object {$_ -ceq 'ktrade/internal/durableupgrade'}).Count -ne 1 -or
+                 @($v.changed_packages|Where-Object {$_ -ceq 'ktrade/cmd/ktrade-inventory-hash'}).Count -ne 1){
+                throw 'G32C5_HISTORICAL_RELATIONSHIP_REGRESSION'
+              }
+            }
+            $temp=Join-Path $env:RUNNER_TEMP ('g32c5-'+$r.name+'.json')
+            [System.IO.File]::WriteAllText($temp,$json,[System.Text.UTF8Encoding]::new($false))
+            $hash=(Get-FileHash -LiteralPath $temp -Algorithm SHA256).Hash.ToLowerInvariant()
+            $summaries+= [ordered]@{
+              comparison=$r.name
+              base_sha=$r.base
+              target_sha=$r.target
+              impact_json_sha256=$hash
+              changed_file_count=@($v.changes).Count
+              changed_package_count=@($v.changed_packages).Count
+              affected_reverse_import_count=@($v.reverse_affected_packages).Count
+              exact_blob_reuse_count=[int]$v.exact_blob_reuse_count
+              advisory_only=$true
+            }
+            Write-Host ('G32C5_COMPARISON_'+$r.name+'_PASS')
+          }
+          $out=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $out -Force|Out-Null
+          $receipt=[ordered]@{
+            schema='graphify.g32c5.integrated-import-impact.v1'
+            source_repo='spoonman136668-ai/KTRADE'
+            target_sha=$env:G32_MERGED
+            target_tree=$env:G32_TREE
+            qualifying_workflow_sha=$env:GITHUB_SHA
+            qualifying_run_id=$env:GITHUB_RUN_ID
+            previously_qualified_G32='3761034e2ea04e10c77b714b474b4adae3b20fa2'
+            reused_proven_runs=@(39179423601,39176556618)
+            focused_merged_tests='PASS'
+            full_regression_reused=$true
+            full_regression_reexecuted=$false
+            comparison_receipts=$summaries
+            private_source_in_receipt=$false
+            release_authorized=$false
+            live_trading_authorized=$false
+          }
+          $file=Join-Path $out 'g32c5-integrated-receipt.json'
+          $receipt|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $file -Encoding utf8
+          $digest=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          ($digest+'  g32c5-integrated-receipt.json')|Set-Content -LiteralPath (Join-Path $out 'g32c5-integrated-receipt.sha256') -Encoding ascii
+          Write-Host ('G32C5_RECEIPT_SHA256='+$digest)
+          Write-Host 'G32C5_COMBINED_MAIN_IMPORT_ANALYSIS_AND_SANITIZED_SEAL=PASS'
+      - name: Verify untouched source identity before cleanup
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:G32_MERGED -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:G32_TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G32C5_POST_QUALIFICATION_SOURCE_DRIFT'}
+          Write-Host 'G32C5_SOURCE_UNMODIFIED=PASS'
+          Write-Host 'G32C5_INSTALLED_APPLICATION_TOUCHED=FALSE'
+          Write-Host 'G32C5_BROKER_ACCESS=FALSE; PRODUCTION_PROMOTION=FALSE'
+      - name: Upload sanitized source-bound evidence only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g32c5-integrated-source-evidence
+          path: |
+            evidence/g32c5-integrated-receipt.json
+            evidence/g32c5-integrated-receipt.sha256
+          retention-days: 90
+          if-no-files-found: error
+      - name: Remove private source and raw impact scratch
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Force -Recurse -ErrorAction SilentlyContinue
+          Get-ChildItem -Path $env:RUNNER_TEMP -Filter 'g32c5-*.json' -File -ErrorAction SilentlyContinue|Remove-Item -Force
+          if(Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source')){
+            throw 'G32C5_PRIVATE_SOURCE_NOT_CLEANED'
+          }
+          Write-Host 'G32C5_PRIVATE_SOURCE_AND_RAW_SCRATCH_CLEAN=PASS'
