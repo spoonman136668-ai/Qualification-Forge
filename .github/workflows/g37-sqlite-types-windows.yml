@@ -1,0 +1,213 @@
+name: G37 authenticated SQLite type import qualification
+on:
+  push:
+    branches: [qualification/g37-sqlite-types-20261019]
+    paths: [.github/workflows/g37-sqlite-types-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: g37-sqlite-types-20261019
+  cancel-in-progress: false
+jobs:
+  qualification:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      SOURCE: 'e176254600da20cbe9c0ff54a37b8f0dc4586ab8'
+      TREE: '0b0dfaa78327c07a69f5998818fd9ddbfd06bf48'
+      BASE: '3d3187150e16084806f62ebb7f2a21c72a4dced6'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact private source without retained credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: e176254600da20cbe9c0ff54a37b8f0dc4586ab8
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact source and narrow three-file tooling delta
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'G37_UNSAFE_PLATFORM_OR_AUTHORITY'
+          }
+          if((git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G37_SOURCE_DRIFT'}
+          $expected=@(
+            'tools/graphify/g35_typecalls/main.go',
+            'tools/graphify/g35_typecalls/sqlite_external.go',
+            'tools/graphify/g35_typecalls/sqlite_external_test.go'
+          )|Sort-Object
+          $actual=@(git diff --name-only $env:BASE $env:SOURCE)|Sort-Object
+          if($actual.Count -ne 3 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G37_SCOPE_DRIFT'}
+          if((git rev-parse ($env:SOURCE+':go.mod')).Trim() -cne 'a6e112a2fb77eccd72b2f26394d0219b5dcc3f85'){
+            # The go.mod blob must instead be checked against the exact BASE identity:
+            $srcMod=(git rev-parse ($env:SOURCE+':go.mod')).Trim()
+            $baseMod=(git rev-parse ($env:BASE+':go.mod')).Trim()
+            if($srcMod -cne $baseMod){throw 'G37_GO_MOD_DRIFT'}
+          }
+          if((git rev-parse ($env:SOURCE+':go.sum')).Trim() -cne '69585a34b570b18b077a232985e0bd116adaecd3'){
+            throw 'G37_GO_SUM_DRIFT'
+          }
+          $g35files=@('tools/graphify/g35_typecalls/main_test.go','tools/graphify/g35_typecalls/README.md')
+          foreach($f in $g35files){
+            if((git rev-parse ($env:BASE+':'+$f)).Trim() -cne (git rev-parse ($env:SOURCE+':'+$f)).Trim()){
+              throw 'G37_UNCHANGED_G35_FOUNDATION_DRIFT'
+            }
+          }
+          Write-Host 'G37_EXACT_THREE_TOOLING_FILES_ONLY=PASS'
+      - name: Use frozen Go 1.23 Windows toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Authenticate pinned SQLite module in disposable Go cache
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=& go mod download -json github.com/mattn/go-sqlite3@v1.14.18 | ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $p.Path -cne 'github.com/mattn/go-sqlite3' -or
+             $p.Version -cne 'v1.14.18' -or
+             $p.Sum -cne 'h1:JL0eqdCOq6DJVNPSvArO/bIV9/P7fbGrV00LZHc+5aI=' -or
+             $p.GoModSum -cne 'h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg='){
+            throw 'G37_SQLITE_GO_MODULE_AUTH_FAILURE'
+          }
+          & go mod verify
+          if($LASTEXITCODE -ne 0){throw 'G37_DEPENDENCY_CACHE_VERIFY_FAILED'}
+          Write-Host 'G37_SQLITE_EXACT_MODULE_SOURCE_VERIFIED=PASS'
+      - name: Qualify affected tool and app interfaces
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 ./tools/graphify/g35_typecalls ./internal/paperauthority ./internal/paperapp
+          if($LASTEXITCODE -ne 0){throw 'G37_FOCUSED_TEST_FAILURE'}
+          & go vet -mod=readonly ./tools/graphify/g35_typecalls ./internal/paperauthority ./internal/paperapp
+          if($LASTEXITCODE -ne 0){throw 'G37_VET_FAILURE'}
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g37.exe') ./tools/graphify/g35_typecalls
+          if($LASTEXITCODE -ne 0){throw 'G37_BUILD_FAILURE'}
+          Write-Host 'G37_FOCUSED_TEST_VET_BUILD=PASS'
+      - name: Measure bounded authenticated type-resolution experiment
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=Join-Path $env:RUNNER_TEMP ('g37-private-'+$env:GITHUB_RUN_ID+'.json')
+          if(Test-Path -LiteralPath $raw){throw 'G37_RAW_COLLISION'}
+          $exe=Join-Path $env:RUNNER_TEMP 'g37.exe'
+          $psi=[System.Diagnostics.ProcessStartInfo]::new($exe)
+          $psi.WorkingDirectory=(Get-Location).Path
+          $psi.UseShellExecute=$false
+          $psi.RedirectStandardOutput=$true
+          $psi.RedirectStandardError=$true
+          foreach($arg in @('--repo=.','--base='+$env:BASE,'--source='+$env:SOURCE,
+            '--packages=internal/paperauthority,internal/paperapp','--out='+$raw)){
+            [void]$psi.ArgumentList.Add($arg)
+          }
+          $watch=[System.Diagnostics.Stopwatch]::StartNew()
+          $p=[System.Diagnostics.Process]::Start($psi)
+          if($null -eq $p){throw 'G37_EXEC_START_FAILURE'}
+          $stdout=$p.StandardOutput.ReadToEndAsync()
+          $stderr=$p.StandardError.ReadToEndAsync()
+          $rss=[long]0
+          while(-not $p.HasExited){
+            try{$m=[long]$p.PeakWorkingSet64;if($m -gt $rss){$rss=$m}}catch{}
+            if($watch.Elapsed.TotalSeconds -gt 120){$p.Kill();throw 'G37_120_SECOND_WALL_LIMIT'}
+            Start-Sleep -Milliseconds 50
+          }
+          $p.WaitForExit()
+          $cpu=[long]$p.TotalProcessorTime.TotalMilliseconds
+          $out=$stdout.GetAwaiter().GetResult()
+          $err=$stderr.GetAwaiter().GetResult()
+          $watch.Stop()
+          if($p.ExitCode -ne 0){throw ('G37_GENERATOR_FAILED_'+$p.ExitCode+': '+$err)}
+          if($cpu -gt 120000 -or $rss -le 0 -or $rss -gt 536870912 -or
+             $watch.Elapsed.TotalSeconds -gt 120){throw 'G37_CPU_RSS_WALL_CAP'}
+          $d=Get-Content -LiteralPath $raw -Raw|ConvertFrom-Json
+          if($d.SourceCommit -cne $env:SOURCE -or $d.SourceTree -cne $env:TREE -or
+             $d.CallSites -le 0 -or $d.CallSites -gt 20000 -or
+             $d.SourceFileCount -gt 36 -or $d.SelectedSourceBytes -gt 3145728 -or
+             $d.CallSites -ne ($d.ResolvedDirect+$d.ResolvedConcreteMethods+$d.ResolvedExternal+$d.Unresolved) -or
+             @($d.TypeCheckedEdges).Count -ne ($d.CallSites-$d.Unresolved)){
+            throw 'G37_CONSERVATION_OR_SOURCE_BOUNDARY_FAILED'
+          }
+          $expected=@('ktrade/internal/paperauthority','ktrade/internal/paperapp')
+          foreach($pkg in $expected){if(@($d.Packages|Where-Object {$_.Package -ceq $pkg}).Count -ne 1){
+             throw ('G37_NEW_PACKAGE_ABSENT_'+$pkg)
+          }}
+          $cross=@($d.TypeCheckedEdges|Where-Object {
+            $_.Caller -like 'ktrade/internal/paperapp::*' -and
+            $_.Callee -like 'ktrade/internal/paperauthority.*'
+          })
+          if($cross.Count -lt 1 -or $d.Unresolved -lt 1 -or
+             $d.CrossPackageStaticEdges -lt 1){throw 'G37_TYPED_EDGE_OR_UNCERTAINTY_NOT_PROVEN'}
+          foreach($edge in $d.TypeCheckedEdges){
+            if($edge.Confidence -cne 'go_types_static_object'){throw 'G37_FABRICATED_CONFIDENCE'}
+          }
+          Write-Host ('G37_NEW_PACKAGE_CALL_SITES='+$d.CallSites)
+          Write-Host ('G37_STATIC_CROSS_PACKAGE_EDGES='+$d.CrossPackageStaticEdges)
+          Write-Host ('G37_UNRESOLVED='+$d.Unresolved)
+          Write-Host ('G37_SOURCE_FILE_COUNT='+$d.SourceFileCount)
+          Write-Host ('G37_PROCESS_CPU_MS='+$cpu)
+          Write-Host ('G37_PROCESS_RSS_BYTES='+$rss)
+          Write-Host ('G37_WALL_MS='+([long]$watch.Elapsed.TotalMilliseconds))
+          Write-Host 'G37_PINNED_SQLITE_BOUNDARY_QUALIFIED=PASS'
+          $receipt=[ordered]@{
+            schema='graphify.g37.sqlite-qualified.v1'
+            source_sha=$env:SOURCE; source_tree=$env:TREE; source_parent=$env:BASE
+            runner_workflow_sha=$env:GITHUB_SHA; run_id=$env:GITHUB_RUN_ID
+            sqlite_module='github.com/mattn/go-sqlite3'; sqlite_version='v1.14.18'
+            sqlite_sum='h1:JL0eqdCOq6DJVNPSvArO/bIV9/P7fbGrV00LZHc+5aI='
+            selected_packages=$d.SelectedPackages
+            source_files=$d.SourceFileCount; source_bytes=$d.SelectedSourceBytes
+            call_sites=$d.CallSites; static_cross_package=$d.CrossPackageStaticEdges
+            unresolved=$d.Unresolved; cpu_ms=$cpu; rss_bytes=$rss
+            wall_ms=[long]$watch.Elapsed.TotalMilliseconds
+            private_report_sha256=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+            user_data_touched=$false; full_app_regression_repeated=$false
+            trading_or_release_authorized=$false; private_edges_uploaded=$false
+          }
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $dir -Force|Out-Null
+          $receipt|ConvertTo-Json -Depth 7|Set-Content -LiteralPath (Join-Path $dir 'g37-sanitized.json') -Encoding utf8
+          Write-Host ('G37_SANITIZED_SHA256='+(Get-FileHash -LiteralPath (Join-Path $dir 'g37-sanitized.json') -Algorithm SHA256).Hash.ToLowerInvariant())
+      - name: Check immutable source and upload sanitized receipt only
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G37_POST_QUAL_SOURCE_MUTATION'}
+          Write-Host 'G37_SOURCE_IMMUTABLE=PASS'
+      - name: Upload sanitized qualification
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g37-sqlite-qualified-sanitized
+          path: evidence/g37-sanitized.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Remove private source and generated reports
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -LiteralPath $env:RUNNER_TEMP -File -Filter 'g37-*' -ErrorAction SilentlyContinue|Remove-Item -Force
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g37.exe') -Force -ErrorAction SilentlyContinue
+          if(Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source')){throw 'G37_CLEANUP_FAILED'}
+          Write-Host 'G37_PRIVATE_CLEANUP=PASS'
