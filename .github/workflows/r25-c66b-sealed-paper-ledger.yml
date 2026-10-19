@@ -1,0 +1,133 @@
+name: R25-C66B KTRADE sealed paper FIFO and settlement validators (hosted)
+# Separate from blocked original CKB donor checkout. Reuse qualified
+# KTRADE's original source-identical local paper-accounting implementation.
+on:
+  push:
+    branches: [qualification/r25-c66-authentic-donor-finance-20261019]
+    paths: [.github/workflows/r25-c66b-sealed-paper-ledger.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c66b-hosted-paper-ledger
+  cancel-in-progress: false
+jobs:
+  financial-integrity:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      KTRADE_SHA: 'efd9c95149f1a6abde2fb3dd20a94c1a6916f83f'
+      KTRADE_TREE: 'eaa8eb11b3c094b5e75f786afbccb6fd544a311a'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Enforce hosted Windows and no broker/owner data
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:RUNNER_OS -cne 'Windows' -or
+             $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+             $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+             throw 'R25_C66B_HOST_OR_AUTHORITY_INVALID'
+          }
+          Write-Host 'R25_C66B_GITHUB_HOSTED_WINDOWS=PASS'
+          Write-Host 'R25_C66B_NO_LOCAL_RESEARCH_COMPUTE=PASS'
+      - name: Checkout exact protected KTRADE paper source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: efd9c95149f1a6abde2fb3dd20a94c1a6916f83f
+          fetch-depth: 1
+          persist-credentials: false
+          path: source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify pinned ledger and settlement-validator blobs
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_SHA -or
+             (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_TREE -or
+             @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+             throw 'R25_C66B_SOURCE_IDENTITY_DRIFT'
+          }
+          $pin=[ordered]@{
+           'internal/papertrading/ledger.go'='d44341253e7d4b51d31b03cea26a77cbbb534f7b'
+           'internal/papertrading/ledger_test.go'='9ea5bdda2cface94e6846717b55d3ccae0f30ad3'
+           'internal/paperreconcile/reconcile_test.go'='b5692a8e706a8989181d2e4605f07aeaa2c98d56'
+           'internal/paperreconcile/settlement_review_test.go'='066ff1e054dc604baf9b8cdf4daaa96cff0619ac'
+          }
+          foreach($path in $pin.Keys){
+             if((& git rev-parse ("HEAD:"+$path)).Trim() -cne $pin[$path]){
+               throw 'R25_C66B_PROTECTED_ACCOUNTING_BLOB_CHANGED'
+             }
+          }
+          Write-Host 'R25_C66B_PROTECTED_PAPER_LEDGER_BLOB=PASS'
+          Write-Host 'R25_C66B_PROTECTED_RECONCILIATION_TEST_BLOBS=PASS'
+          Write-Host 'R25_C66B_SOURCE_UNMODIFIED=PASS'
+      - name: Frozen Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.12'
+          cache: false
+      - name: Requalify original fixed-point FIFO, fees, replay and settlement barriers
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c66b-paper-private.jsonl'
+          $rx='^(TestKTRADER10|TestReconciliation|TestSettle)'
+          & go test -mod=readonly -json -count=1 -timeout 10m -run $rx ./internal/papertrading ./internal/paperreconcile *> $log
+          if($LASTEXITCODE -ne 0){throw 'R25_C66B_ACCOUNTING_TESTS_FAILED_PRIVATE_LOG'}
+          $records=@(Get-Content -LiteralPath $log | ForEach-Object {
+            try { $_ | ConvertFrom-Json } catch {$null}
+          } | Where-Object {$_})
+          $passes=@($records|Where-Object {$_.Action -ceq 'pass' -and $_.Test -match $rx})
+          $fails=@($records|Where-Object {$_.Action -ceq 'fail'})
+          $skips=@($records|Where-Object {$_.Action -ceq 'skip' -and $_.Test -match $rx})
+          $unique=@($passes | Select-Object -ExpandProperty Test -Unique)
+          if($fails.Count -ne 0 -or $skips.Count -ne 0 -or $unique.Count -lt 13){
+             throw 'R25_C66B_ORIGINAL_PAPER_TEST_COVERAGE_INCOMPLETE'
+          }
+          & go vet -mod=readonly ./internal/papertrading ./internal/paperreconcile *> $log
+          if($LASTEXITCODE -ne 0){throw 'R25_C66B_ACCOUNTING_GO_VET_FAILED'}
+          Write-Host 'R25_C66B_PAPER_FIXED_POINT_FIFO_FEES=PASS'
+          Write-Host 'R25_C66B_PAPER_HASH_CHAIN_REOPEN_TAMPER=PASS'
+          Write-Host 'R25_C66B_PAPER_RECONCILE_CRASH_AND_RETRY=PASS'
+          Write-Host 'R25_C66B_PAPER_SETTLEMENT_RELEASE_FAIL_CLOSED=PASS'
+          Write-Host ('R25_C66B_ORIGINAL_ACCOUNTING_TESTS_PASSED='+$unique.Count)
+          Write-Host 'R25_C66B_TARGETED_GO_TEST_VET=PASS'
+          Write-Host 'R25_C66B_ORIGINAL_DONOR_TRADEGUARD_TESTED=FALSE'
+          Write-Host 'R25_C66B_HISTORICAL_USER_ACCOUNT_TESTED=FALSE'
+          Write-Host 'R25_C66B_HISTORICAL_REAL_PNL_CERTIFIED=FALSE'
+          Write-Host 'R25_C66B_STRATEGY_ACTIVATION_AUTHORIZED=FALSE'
+          Write-Host 'R25_C66B_MIGRATION_AUTHORIZED=FALSE'
+          Write-Host 'R25_C66B_RELEASE_AUTHORIZED=FALSE'
+      - name: Preserve pinned source and clean private logs
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if(Test-Path -LiteralPath $root){
+            Push-Location $root
+            try{
+              if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_SHA -or
+                 @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+                throw 'R25_C66B_TRACKED_SOURCE_MODIFIED'
+              }
+            }finally {Pop-Location}
+          }
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c66b-paper-private.jsonl'
+          if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
+          Write-Host 'R25_C66B_SOURCE_TRACKED_UNCHANGED=PASS'
+          Write-Host 'R25_C66B_OWNER_FILES_ACCESSED=FALSE'
+          Write-Host 'R25_C66B_PRIVATE_ARTIFACT_UPLOAD=FALSE'
