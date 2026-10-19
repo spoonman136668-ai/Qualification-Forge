@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      G35_SOURCE: '07d7a1da990bb214901a1836c55f65d2545103ba'
-      G35_TREE: 'd90b55a8937a138ee3946d2e43e11a75f33b9fcc'
+      G35_SOURCE: '6bc27d9b23af784632f6d45d43aa33c9c7c27b6d'
+      G35_TREE: '671d911779f5a13a7a527d508ae8325a0d58c51b'
       G35_BASE: '7880474e507854eed74832adbce578d246b749ab'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/KTRADE
-          ref: 07d7a1da990bb214901a1836c55f65d2545103ba
+          ref: 6bc27d9b23af784632f6d45d43aa33c9c7c27b6d
           fetch-depth: 0
           path: source
           persist-credentials: false
@@ -168,7 +168,7 @@ jobs:
           $expanded=Invoke-Bounded -Group 'EXPANDED' -Packages 'internal/papertrading,internal/paperproposal,internal/paperreconcile,internal/durableupgrade'
           $x=$expanded.d
           if(@($x.SelectedPackages).Count -ne 4 -or @($x.Packages).Count -ne 4 -or
-             $x.SourceFileCount -ne 11 -or $x.CallSites -le $f.CallSites -or
+             $x.SourceFileCount -ne 10 -or $x.CallSites -le $f.CallSites -or
              $x.CrossPackageStaticEdges -le 0 -or $x.Unresolved -le 0){
             throw 'G35_CROSS_PACKAGE_PROGRESS_OR_CLOSURE_NOT_PROVEN'
           }
