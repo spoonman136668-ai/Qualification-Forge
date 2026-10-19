@@ -141,78 +141,15 @@ jobs:
         working-directory: source
         run: |
           $ErrorActionPreference='Stop'
-          $exe=Join-Path (Join-Path $env:RUNNER_TEMP 'r25c74c-full-app') 'ktrade.exe'
-          $env:KTRADE_R25C74B_APP_EXE=$exe
+          $env:KTRADE_R25C74B_APP_EXE=Join-Path (Join-Path $env:RUNNER_TEMP 'r25c74c-full-app') 'ktrade.exe'
           $log=Join-Path $env:RUNNER_TEMP 'r25c74c-browser.log'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=4m -run '^TestR25C74BPackagedProcessAndChromium
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=4m -run '^TestR25C74BPackagedProcessAndChromium$' ./cmd/ktrade *> $log
           if($LASTEXITCODE -ne 0){
             Get-Content -LiteralPath $log -TotalCount 70 | ForEach-Object {Write-Host $_}
-            throw 'R25_C74C_CHROMIUM_ACCEPTANCE_FAILED'
+            throw 'R25_C74C_INHERITED_BROWSER_REGRESSION_FAILED'
           }
-          Write-Host 'R25_C74C_REAL_EXE_CHROMIUM_HISTORICAL_PNL=PASS'
-          Write-Host 'R25_C74C_BROKER_AND_UNQUALIFIED_CHART_BLOCKED=PASS'
-          Write-Host 'R25_C74C_SYNTHETIC_CUSTODY_UNCHANGED=PASS'
-          Write-Host 'R25_C74C_REAL_OWNER_DATA_USED=FALSE'
-      - name: Verify no tracked mutation and clean private logs
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
-          if(Test-Path -LiteralPath $root -PathType Container){
-            Push-Location $root
-            try{
-              if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
-                 @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
-                throw 'R25_C74C_SOURCE_MUTATED'
-              }
-            }finally{Pop-Location}
-          }
-          foreach($name in @('r25c74c-focused.log','r25c74c-build.log','r25c74c-browser.log')){
-            $file=Join-Path $env:RUNNER_TEMP $name
-            if(Test-Path -LiteralPath $file){Remove-Item -LiteralPath $file -Force}
-          }
-          Write-Host 'R25_C74C_SOURCE_CLEAN=PASS'
-          Write-Host 'R25_C74C_PRIVATE_ARTIFACT_UPLOAD=FALSE'
-          Write-Host 'R25_C74C_PRODUCTION_RELEASE_AND_BROKER=FALSE'
- ./cmd/ktrade *> $log
-          if($LASTEXITCODE -ne 0){
-            Get-Content -LiteralPath $log -TotalCount 70 | ForEach-Object {Write-Host $_}
-            throw 'R25_C74C_INHERITED_REAL_BROWSER_REGRESSION_FAILED'
-          }
-          $env:KTRADE_R25C74C_APP_EXE=$exe
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=4m -run '^TestR25C74CPackagedOriginalChartChromium
-          if($LASTEXITCODE -ne 0){
-            Get-Content -LiteralPath $log -TotalCount 70 | ForEach-Object {Write-Host $_}
-            throw 'R25_C74C_CHROMIUM_ACCEPTANCE_FAILED'
-          }
-          Write-Host 'R25_C74C_REAL_EXE_CHROMIUM_HISTORICAL_PNL=PASS'
-          Write-Host 'R25_C74C_BROKER_AND_UNQUALIFIED_CHART_BLOCKED=PASS'
-          Write-Host 'R25_C74C_SYNTHETIC_CUSTODY_UNCHANGED=PASS'
-          Write-Host 'R25_C74C_REAL_OWNER_DATA_USED=FALSE'
-      - name: Verify no tracked mutation and clean private logs
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
-          if(Test-Path -LiteralPath $root -PathType Container){
-            Push-Location $root
-            try{
-              if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
-                 @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
-                throw 'R25_C74C_SOURCE_MUTATED'
-              }
-            }finally{Pop-Location}
-          }
-          foreach($name in @('r25c74c-focused.log','r25c74c-build.log','r25c74c-browser.log')){
-            $file=Join-Path $env:RUNNER_TEMP $name
-            if(Test-Path -LiteralPath $file){Remove-Item -LiteralPath $file -Force}
-          }
-          Write-Host 'R25_C74C_SOURCE_CLEAN=PASS'
-          Write-Host 'R25_C74C_PRIVATE_ARTIFACT_UPLOAD=FALSE'
-          Write-Host 'R25_C74C_PRODUCTION_RELEASE_AND_BROKER=FALSE'
- ./cmd/ktrade *> $log
+          $env:KTRADE_R25C74C_APP_EXE=$env:KTRADE_R25C74B_APP_EXE
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=4m -run '^TestR25C74CPackagedOriginalChartChromium$' ./cmd/ktrade *> $log
           if($LASTEXITCODE -ne 0){
             Get-Content -LiteralPath $log -TotalCount 70 | ForEach-Object {Write-Host $_}
             throw 'R25_C74C_CHROMIUM_ACCEPTANCE_FAILED'
