@@ -61,7 +61,6 @@ jobs:
             'cmd/ktrade/operator_navigation_c74d_full_test.go',
             'recovery/operator-bridge/operator-navigation-acceptance.js',
             'recovery/operator-bridge/operator-chart-navigation.js',
-            'recovery/operator-bridge/operator-chart-navigation.js',
             'docs/R25_C74D_ORIGINAL_CHART_ACCEPTANCE.md'
           )|Sort-Object
           $actual=@(& git diff --name-only $env:BASE_SHA $env:SOURCE_SHA | Sort-Object)
@@ -126,7 +125,8 @@ jobs:
             'recovery/operator-donor-v11110/strategy.html',
             'recovery/operator-donor-v11110/app.js',
             'recovery/operator-bridge/historical-review.js',
-            'recovery/operator-bridge/operator-navigation-acceptance.js'
+            'recovery/operator-bridge/operator-navigation-acceptance.js',
+            'recovery/operator-bridge/operator-chart-navigation.js'
           )){
             if(!(Test-Path -LiteralPath (Join-Path $out $file) -PathType Leaf)){
               throw 'R25_C74D_ASSET_PACKAGING_MISSING'
