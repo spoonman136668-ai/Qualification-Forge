@@ -79,7 +79,7 @@ jobs:
           $main=Get-Content -LiteralPath $electronEntry -Raw
           $oldCwd="cwd: path.join(__dirname, '..'),"
           $newCwd="cwd: app.isPackaged ? path.join(process.resourcesPath, 'bin') : path.join(__dirname, '..'),"
-          if($main.Split($oldCwd).Count -ne 2){throw 'R25C27_ELECTRON_CWD_SOURCE_SURFACE_DRIFT'}
+          if(([regex]::Matches($main,[regex]::Escape($oldCwd))).Count -ne 1){throw 'R25C27_ELECTRON_CWD_SOURCE_SURFACE_DRIFT'}
           $main.Replace($oldCwd,$newCwd)|Set-Content -LiteralPath $electronEntry -Encoding utf8
           Write-Output 'R25C27_STAGING_ONLY_ELECTRON_NATIVE_CWD_REPAIR=ACTIVE'
           Push-Location $root
