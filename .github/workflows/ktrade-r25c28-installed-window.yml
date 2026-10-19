@@ -218,12 +218,17 @@ jobs:
               $p=Start-Process -FilePath $desktop -WorkingDirectory $path -ArgumentList @('--no-sandbox','--remote-debugging-address=127.0.0.1',("--remote-debugging-port="+$port)) -PassThru -WindowStyle Hidden
               $p.Refresh()
               if($p.HasExited){throw 'R25C28_DESKTOP_EXITED_BEFORE_CDP'}
+              $backends=@()
+              for($i=0;$i -lt 24;$i++){
+                $backends=@(Get-CimInstance Win32_Process -Filter "name='ktrade.exe'" -ErrorAction SilentlyContinue|Where-Object {$_.ExecutablePath -eq $backend})
+                if($backends.Count -eq 1){break}
+                Start-Sleep -Milliseconds 250
+              }
+              if($backends.Count -ne 1){throw ('R25C28_BACKEND_CHILD_COUNT_'+$backends.Count+'_CYCLE_'+$cycle)}
+              Write-Output ('R25C28_INSTALLED_GO_CHILD='+$backends.Count+'_CYCLE_'+$cycle)
               & node $probe $port
               if($LASTEXITCODE -ne 0){throw ('R25C28_INSTALLED_CDP_FAILED_CYCLE_'+$cycle)}
               $p.Refresh()
-              $backends=@(Get-CimInstance Win32_Process -Filter "name='ktrade.exe'" -ErrorAction SilentlyContinue|Where-Object {$_.ExecutablePath -eq $backend})
-              if($backends.Count -ne 1){throw ('R25C28_BACKEND_CHILD_COUNT_'+$backends.Count+'_CYCLE_'+$cycle)}
-              Write-Output ('R25C28_INSTALLED_GO_CHILD='+$backends.Count+'_CYCLE_'+$cycle)
               $closed=$p.WaitForExit(12000)
               if(!$closed){throw ('R25C28_BROWSER_CLOSE_DID_NOT_END_PARENT_CYCLE_'+$cycle)}
               Start-Sleep -Seconds 2
