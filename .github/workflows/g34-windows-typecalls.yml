@@ -96,6 +96,8 @@ jobs:
             if($errText){Write-Host $errText}
             throw ('G34_TYPED_SOURCE_RUN_FAILED_'+$proc.ExitCode)
           }
+          [System.IO.File]::WriteAllText($std,$output)
+          [System.IO.File]::WriteAllText($err,$errText)
           if($output){Write-Host $output}
           if(-not(Test-Path -LiteralPath $raw)){throw 'G34_TYPED_REPORT_MISSING'}
           $peak=[long]$proc.PeakWorkingSet64
