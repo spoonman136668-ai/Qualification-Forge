@@ -1,0 +1,113 @@
+name: R25-C59 historical recovery portable policy qualification
+on:
+  push:
+    branches: [qualification/r25-c59-portability-20261019]
+    paths: [.github/workflows/r25-c59-portability.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c59-hosted-policy
+  cancel-in-progress: false
+jobs:
+  source-only:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      SOURCE: '3dd0c45f0e480af02f4d5f746c8d0ca7eccbbab6'
+      TREE: 'e03dc829d98d0eef73cf169426f6b7638d05cdd3'
+      BASE: '780723e87e51e6595634a708ad740d0cfc36316d'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Qualify hosted runner and paper-only execution identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or
+              $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'R25_C59_UNQUALIFIED_HOST'
+          }
+          Write-Host 'R25_C59_HOSTED_WINDOWS_NO_LOCAL_RUNNER=PASS'
+      - name: Checkout pinned private KTRADE review source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 3dd0c45f0e480af02f4d5f746c8d0ca7eccbbab6
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact source tree and two-file delta
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+              (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
+              @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) {
+            throw 'R25_C59_SOURCE_IDENTITY_DRIFT'
+          }
+          $expected=@(
+            'internal/durableupgrade/selected_recovery_portability.go',
+            'internal/durableupgrade/selected_recovery_portability_test.go'
+          ) | Sort-Object
+          $actual=@(& git diff --name-only $env:BASE $env:SOURCE | Sort-Object)
+          if ($actual.Count -ne 2 -or @(Compare-Object $expected $actual).Count -ne 0) {
+            throw 'R25_C59_SCOPE_DRIFT'
+          }
+          if ((& git rev-parse ($env:BASE+':internal/durableupgrade/durable_upgrade.go')).Trim() -cne
+              (& git rev-parse ($env:SOURCE+':internal/durableupgrade/durable_upgrade.go')).Trim()) {
+            throw 'R25_C59_EXISTING_PORTABLE_POLICY_CHANGED'
+          }
+          Write-Host 'R25_C59_EXACT_TWO_FILE_BOUNDARY=PASS'
+          Write-Host 'R25_C59_ORIGINAL_UPGRADE_ALLOWLIST_UNCHANGED=PASS'
+      - name: Frozen Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.12'
+          cache: false
+      - name: Focused synthetic 695-entry policy and adversarial matrix
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c59-private.log'
+          & go test -mod=readonly -count=1 -run '^TestR25C59' ./internal/durableupgrade *> $log
+          if ($LASTEXITCODE -ne 0) {throw 'R25_C59_FOCUSED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+          & go vet -mod=readonly ./internal/durableupgrade *> $log
+          if ($LASTEXITCODE -ne 0) {throw 'R25_C59_VET_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+          Write-Host 'R25_C59_SYNTHETIC_695_COVERAGE=PASS'
+          Write-Host 'R25_C59_MALFORMED_TRAVERSAL_COLLISION_LIMITS=PASS'
+          Write-Host 'R25_C59_PORTABLE_RULE_INHERITANCE=PASS'
+          Write-Host 'R25_C59_FOCUSED_TEST_VET=PASS'
+          Write-Host 'R25_C59_REAL_PROFILE_CONTENTS_READ=FALSE'
+          Write-Host 'R25_C59_SNAPSHOT_MIGRATED=FALSE'
+          Write-Host 'R25_C59_APPLICATION_RESTORE_VERIFIED=FALSE'
+          Write-Host 'R25_C59_AUTOMATIC_MIGRATION_AUTHORIZED=FALSE'
+          Write-Host 'R25_C59_RELEASE_AUTHORIZED=FALSE'
+      - name: Final source guard and ephemeral-only cleanup
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $source=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if (Test-Path -LiteralPath $source -PathType Container) {
+            Push-Location $source
+            try {
+              if ((& git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+                  @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) {
+                throw 'R25_C59_TRACKED_SOURCE_CHANGED'
+              }
+            } finally {Pop-Location}
+          }
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c59-private.log'
+          if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
+          Write-Host 'R25_C59_TRACKED_SOURCE_UNCHANGED=PASS'
+          Write-Host 'R25_C59_LOCAL_RESEARCH_RUNNERS_USED=FALSE'
+          Write-Host 'R25_C59_PRIVATE_ARTIFACT_UPLOAD=FALSE'
