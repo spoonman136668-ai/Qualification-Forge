@@ -1,4 +1,4 @@
-name: KTRADE R25-C27 disposable Electron Windows installer qualification
+name: KTRADE R25-C27 exact PR43 Electron disposable installer qualification
 on:
   push:
     branches: [qualification/ktrade-r25c27-desktop-stage-20261018]
@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 80
     env:
-      KTRADE_SOURCE: '1b5c7c51d433d61dd0180b937264b471a9d3545c'
-      KTRADE_TREE: 'c4fd194f48ef4ea331929c1123a7e0fa99de9c0d'
+      KTRADE_SOURCE: 'd36c1efa9c16fc36347d6a66ceb697023e32c1cc'
+      KTRADE_TREE: 'b697bf9a3657040729004bdf7f9f123550e9150f'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -28,11 +28,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1b5c7c51d433d61dd0180b937264b471a9d3545c
+          ref: d36c1efa9c16fc36347d6a66ceb697023e32c1cc
           path: source
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-          fetch-depth: 1
+          fetch-depth: 4
       - name: Pin tree and record authentic packaging-input deficits
         shell: pwsh
         run: |
@@ -45,6 +45,12 @@ jobs:
           if((& git -C $root rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE -or
              (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_TREE -or
              @(& git -C $root status --porcelain).Count -ne 0){throw 'R25C27_SOURCE_DRIFT'}
+          $base='1b5c7c51d433d61dd0180b937264b471a9d3545c'
+          $delta=@(git -C $root diff --name-only $base HEAD|Sort-Object)
+          $expected=@('electron/main.js','package.json')|Sort-Object
+          if($LASTEXITCODE -ne 0 -or $delta.Count -ne 2 -or
+             @(Compare-Object $expected $delta).Count -ne 0){throw 'R25C27_CANDIDATE_DELTA_SCOPE_DRIFT'}
+          Write-Output 'R25C27_EXACT_TWO_FILE_CANDIDATE=PASS'
           $pkg=Get-Content -LiteralPath (Join-Path $root 'package.json') -Raw|ConvertFrom-Json
           if($pkg.build.productName -cne 'KTRADE' -or
              $pkg.build.extraResources[0].to -cne 'bin/ktrade.exe'){throw 'R25C27_PACKAGING_CONTRACT_DRIFT'}
@@ -74,14 +80,12 @@ jobs:
           foreach($entry in @('package.json','electron','static','templates','strategies')){
             Copy-Item -LiteralPath (Join-Path $root $entry) -Destination $stage -Recurse -Force
           }
-          # Staging-only causal probe: native child cannot use virtual app.asar as cwd.
+          # The previously tested native cwd fix is now actual private candidate source.
           $electronEntry=Join-Path $stage 'electron/main.js'
-          $main=Get-Content -LiteralPath $electronEntry -Raw
-          $oldCwd="cwd: path.join(__dirname, '..'),"
-          $newCwd="cwd: app.isPackaged ? path.join(process.resourcesPath, 'bin') : path.join(__dirname, '..'),"
-          if(([regex]::Matches($main,[regex]::Escape($oldCwd))).Count -ne 1){throw 'R25C27_ELECTRON_CWD_SOURCE_SURFACE_DRIFT'}
-          $main.Replace($oldCwd,$newCwd)|Set-Content -LiteralPath $electronEntry -Encoding utf8
-          Write-Output 'R25C27_STAGING_ONLY_ELECTRON_NATIVE_CWD_REPAIR=ACTIVE'
+          $js=Get-Content -LiteralPath $electronEntry -Raw
+          $expected="cwd: app.isPackaged ? path.join(process.resourcesPath, 'bin') : path.join(__dirname, '..'),"
+          if(([regex]::Matches($js,[regex]::Escape($expected))).Count -ne 1){throw 'R25C27_CANDIDATE_NATIVE_CWD_MISMATCH'}
+          Write-Output 'R25C27_REAL_CANDIDATE_ELECTRON_CWD=VERIFIED_UNPATCHED'
           Push-Location $root
           try{
             go mod download
@@ -137,13 +141,11 @@ jobs:
             & npm ci --no-audit --no-fund
             if($LASTEXITCODE -ne 0){throw 'R25C27_STAGING_NPM_CI_FAILED'}
             $pkg=Get-Content -LiteralPath 'package.json' -Raw|ConvertFrom-Json
-            # Backend resolves its assets beside resources/bin/ktrade.exe.
-            $pkg.build.extraResources+=@(
-              [pscustomobject]@{from='static';to='bin/static'},
-              [pscustomobject]@{from='templates';to='bin/templates'},
-              [pscustomobject]@{from='strategies';to='bin/strategies'}
-            )
-            Write-Output 'R25C27_STAGING_ONLY_GO_ASSET_COLOCATION_REPAIR=ACTIVE'
+            foreach($item in @(@{from='static';to='bin/static'},@{from='templates';to='bin/templates'},@{from='strategies';to='bin/strategies'})){
+              $matching=@($pkg.build.extraResources|Where-Object {$_.from -ceq $item.from -and $_.to -ceq $item.to})
+              if($matching.Count -ne 1){throw ('R25C27_CANDIDATE_GO_ASSET_MAP_MISSING_'+$item.from)}
+            }
+            Write-Output 'R25C27_REAL_CANDIDATE_GO_ASSET_MAP=VERIFIED_UNPATCHED'
             $pkg.build|Add-Member -NotePropertyName portable -NotePropertyValue (@{artifactName='KTRADE-TemporaryPortable-@VERSION@-@ARCH@.@EXT@'}) -Force
             $json=$pkg|ConvertTo-Json -Depth 30
             $json=$json.Replace('@VERSION@','@DOLLAR@{version}').Replace('@ARCH@','@DOLLAR@{arch}').Replace('@EXT@','@DOLLAR@{ext}')
@@ -158,7 +160,7 @@ jobs:
               Write-Output ('R25C27_DISPOSABLE_INSTALLER_HASH_'+$file.Name+'='+(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant())
             }
             Write-Output 'R25C27_SYNTHETIC_NSIS_AND_PORTABLE_BUILD=PASS_NOT_RELEASE'
-            Write-Output 'R25C27_DISPOSABLE_RUNTIME_PATH_PATCHES_ARE_NOT_KTRADE_SOURCE=TRUE'
+            Write-Output 'R25C27_REAL_CANDIDATE_NATIVE_CWD_AND_ASSET_PATHS_UNPATCHED=TRUE'
           }finally{Pop-Location}
       - name: Install and verify disposable NSIS payload identity
         shell: pwsh
