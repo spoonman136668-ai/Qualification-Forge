@@ -1,0 +1,212 @@
+name: G32-C2 KTRADE historical witness regression recovery
+on:
+  push:
+    branches: [qualification/g32c2-historical-witness-20261018]
+    paths: [.github/workflows/g32c2-ktrade-witness-regression.yml]
+permissions:
+  contents: read
+concurrency:
+  group: g32c2-exact-head-ktrade-20261018
+  cancel-in-progress: false
+jobs:
+  windows:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 95
+    env:
+      KTRADE_SOURCE_SHA: '3761034e2ea04e10c77b714b474b4adae3b20fa2'
+      KTRADE_SOURCE_TREE: 'f0412653b8a034803d6aee8ed28f50a305d92111'
+      G32_FOUNDATION_SHA: '56c6e6aa867d4956ad6ab5dcbb234817480061a2'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Read pinned private G32 source without retained credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: 3761034e2ea04e10c77b714b474b4adae3b20fa2
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Bind changed two-file surface and immutable baseline
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0' -or $env:KTRADE_CI_PAPER_ONLY -cne '1'){
+            throw 'G32C2_UNSAFE_RUNNER_OR_AUTHORITY'
+          }
+          if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE_SHA -or
+             (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:KTRADE_SOURCE_TREE){
+            throw 'G32C2_EXACT_SOURCE_DRIFT'
+          }
+          & git merge-base --is-ancestor $env:G32_FOUNDATION_SHA $env:KTRADE_SOURCE_SHA
+          if($LASTEXITCODE -ne 0){throw 'G32C2_IMMUTABLE_FOUNDATION_DRIFT'}
+          $expected=@('tools/graphify/g32_delta/main.go','tools/graphify/g32_delta/main_test.go')|Sort-Object
+          $actual=@(git diff --name-only $env:G32_FOUNDATION_SHA $env:KTRADE_SOURCE_SHA)|Sort-Object
+          if(@(Compare-Object $expected $actual).Count -ne 0 -or $actual.Count -ne 2){
+            throw ('G32C2_PRODUCT_SOURCE_DELTA_OUT_OF_SCOPE '+($actual -join ','))
+          }
+          if(@(git status --porcelain).Count -ne 0){throw 'G32C2_WORKTREE_DIRTY'}
+          Write-Output 'G32C2_G32_EXACT_SOURCE_TREE_AND_TWO_FILES=PASS'
+      - name: Restore frozen Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Fetch locked modules without modifying repository
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go mod download
+          if($LASTEXITCODE -ne 0){throw 'G32C2_LOCKED_DEPENDENCIES_FAILED'}
+          git diff --exit-code -- go.mod go.sum
+          if($LASTEXITCODE -ne 0){throw 'G32C2_MODULE_FILES_CHANGED'}
+          Write-Output 'G32C2_MODULE_IDENTITY=PASS'
+      - name: G32-C2 restore exact historical JSON witnesses from immutable parents
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $head='3761034e2ea04e10c77b714b474b4adae3b20fa2'
+          $headTree='f0412653b8a034803d6aee8ed28f50a305d92111'
+          $s1='2af730f8a7bed15370d86d2ce0ced060c56beed2'
+          $s1Tree='89cc720ff3d6da6cec12d583a23682584f473ac6'
+          $s0='d892d5902f6c19105c4395bf6b71bfb112b22a62'
+          $s0Tree='95846811b88a0cb538dd6d494bb771ef3cd8102b'
+          $root=(Get-Location).Path
+          $gov=Join-Path $root 'pkg/r25c12_governance_wire_compat_test.go'
+          $mixed=Join-Path $root 'pkg/r25c12_mixed_phase9_wire_compat_test.go'
+          $fg=Join-Path $env:RUNNER_TEMP 'r25c13-gov-frozen.go'
+          $fm=Join-Path $env:RUNNER_TEMP 'r25c13-mixed-frozen.go'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c13-private-witness.log'
+          $values=[ordered]@{}
+          try {
+            if ((& git rev-parse HEAD).Trim() -cne $head -or
+                (& git rev-parse 'HEAD^{tree}').Trim() -cne $headTree -or
+                (& git rev-parse ($s1+'^{tree}')).Trim() -cne $s1Tree -or
+                (& git rev-parse ($s0+'^{tree}')).Trim() -cne $s0Tree -or
+                (& git hash-object $gov).Trim() -cne '8813b0db1c5591db5b136dc32b568d8773cbc4e6' -or
+                (& git hash-object $mixed).Trim() -cne '00d8cabd7077f84e8b9d39d36cd5f8eb9b658206') {throw 'R25C23_HISTORICAL_WITNESS_IDENTITY_DRIFT'}
+            & git merge-base --is-ancestor $s0 $head
+            if($LASTEXITCODE -ne 0){throw 'R25C23_ORIGINAL_PARENT_NOT_ANCESTOR'}
+            & git merge-base --is-ancestor $s1 $head
+            if($LASTEXITCODE -ne 0){throw 'R25C23_MIXED_PARENT_NOT_ANCESTOR'}
+            Copy-Item -LiteralPath $gov -Destination $fg
+            Copy-Item -LiteralPath $mixed -Destination $fm
+            & git checkout --detach $s0 *> $log
+            if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $s0Tree) {throw 'R25C13_FIRST_PARENT_CHECKOUT_FAILED'}
+            Copy-Item -LiteralPath $fg -Destination $gov
+            $env:R25C12_ORIGINAL_MODE='1'
+            & go test -vet=off -mod=readonly -count=1 -timeout=10m -v -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_55_PARENT_WITNESS_TESTS_FAILED'}
+            $out=Get-Content -LiteralPath $log -Raw
+            foreach ($n in @(298..332)+@(354..373)) {
+              $k='T'+$n
+              $a=[regex]::Match($out,('R25C12_PARENT_'+$k+'_COLLISIONS_B64=([A-Za-z0-9+/=]+)'))
+              $b=[regex]::Match($out,('R25C12_PARENT_'+$k+'_SHA256=([a-f0-9]{64})'))
+              if (!$a.Success -or !$b.Success) {throw ('R25C13_GOVERNANCE_PARENT_PROVENANCE_MISSING_'+$k)}
+              $values['R25C12_'+$k+'_COLLISIONS_B64']=$a.Groups[1].Value
+              $values['R25C12_'+$k+'_SHA256']=$b.Groups[1].Value
+            }
+            if ($values.Count -ne 110) {throw 'R25C13_GOVERNANCE_PARENT_COUNT_DRIFT'}
+            Remove-Item -LiteralPath $gov -Force
+            & git checkout --detach $s1 *> $log
+            if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $s1Tree) {throw 'R25C13_SECOND_PARENT_CHECKOUT_FAILED'}
+            Copy-Item -LiteralPath $fm -Destination $mixed
+            $env:R25C12_ORIGINAL_MODE='0'
+            $env:R25C12_MIXED_PARENT_MODE='1'
+            & go test -vet=off -mod=readonly -count=1 -timeout=10m -v -run '^TestR25C12MixedPhase9HistoricalJSONWire$' ./pkg *> $log
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_17_PARENT_WITNESS_TESTS_FAILED'}
+            $out=Get-Content -LiteralPath $log -Raw
+            foreach ($n in 24..40) {
+              $k='T'+$n
+              $a=[regex]::Match($out,('R25C12_MIXED_PARENT_'+$k+'_FIELDS_B64=([A-Za-z0-9+/=]+)'))
+              $b=[regex]::Match($out,('R25C12_MIXED_PARENT_'+$k+'_SHA256=([a-f0-9]{64})'))
+              if (!$a.Success -or !$b.Success) {throw ('R25C13_MIXED_PARENT_PROVENANCE_MISSING_'+$k)}
+              $values['R25C12_MIXED_'+$k+'_FIELDS_B64']=$a.Groups[1].Value
+              $values['R25C12_MIXED_'+$k+'_SHA256']=$b.Groups[1].Value
+            }
+            if ($values.Count -ne 144) {throw 'R25C13_TOTAL_PARENT_WITNESS_COUNT_DRIFT'}
+            Remove-Item -LiteralPath $mixed -Force
+            & git checkout --detach $head *> $log
+            if ($LASTEXITCODE -ne 0 -or (& git rev-parse 'HEAD^{tree}').Trim() -cne $headTree -or
+                @(& git status --porcelain).Count -ne 0) {throw 'R25C13_CANDIDATE_RESTORE_DRIFT'}
+            $env:R25C12_MIXED_PARENT_MODE='0'
+            foreach ($key in $values.Keys) {
+              [Environment]::SetEnvironmentVariable($key,$values[$key])
+            }
+            & go test -vet=off -mod=readonly -count=1 -timeout=10m -run '^(TestR25C12HistoricalGovernanceJSONWire|TestR25C12MixedPhase9HistoricalJSONWire)$' ./pkg *> $log
+            if ($LASTEXITCODE -ne 0) {throw 'R25C13_FOCUSED_HISTORICAL_PARITY_FAILED'}
+            foreach ($key in $values.Keys) {
+              Add-Content -LiteralPath $env:GITHUB_ENV -Value ($key+'='+$values[$key]) -Encoding utf8
+            }
+            Write-Output 'R25C13_55_GOVERNANCE_PARENT_WITNESSES=PASS'
+            Write-Output 'R25C13_17_MIXED_PARENT_WITNESSES=PASS'
+            Write-Output 'R25C13_FOCUSED_HISTORICAL_PARITY=PASS'
+            Write-Output 'G32C2_HISTORICAL_72_WITNESSES=PASS'
+          } finally {
+            Remove-Item -LiteralPath $log,$fg,$fm -Force -ErrorAction SilentlyContinue
+          }
+      - name: One complete witness-bound Windows integration regression
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $governance=@(Get-ChildItem Env:R25C12_T*_COLLISIONS_B64)
+          $mixed=@(Get-ChildItem Env:R25C12_MIXED_T*_FIELDS_B64)
+          $hashGov=@(Get-ChildItem Env:R25C12_T*_SHA256)
+          $hashMixed=@(Get-ChildItem Env:R25C12_MIXED_T*_SHA256)
+          if($governance.Count -ne 55 -or $mixed.Count -ne 17 -or $hashGov.Count -ne 55 -or $hashMixed.Count -ne 17){
+            throw ('G32C2_WITNESS_ENV_INCOMPLETE gov='+$governance.Count+' mixed='+$mixed.Count)
+          }
+          & go test -mod=readonly -count=1 -timeout=25m ./...
+          if($LASTEXITCODE -ne 0){throw 'G32C2_FINAL_INTEGRATION_REGRESSION_FAILED'}
+          Write-Output 'G32C2_ONE_FINAL_FULL_WINDOWS_REGRESSION=PASS'
+      - name: Vet complete source and build G32 plus Windows KTRADE
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          go vet -mod=readonly ./...
+          if($LASTEXITCODE -ne 0){throw 'G32C2_FULL_VET_FAILED'}
+          Write-Output 'G32C2_FULL_VET=PASS'
+          $atlas=Join-Path $env:RUNNER_TEMP 'g32c2-delta.exe'
+          go build -mod=readonly -o $atlas ./tools/graphify/g32_delta
+          if($LASTEXITCODE -ne 0 -or -not(Test-Path -LiteralPath $atlas -PathType Leaf)){
+            throw 'G32C2_ATLAS_BUILD_FAILED'
+          }
+          $app=Join-Path $env:RUNNER_TEMP 'g32c2-ktrade.exe'
+          go build -mod=readonly -tags=ktrade_full -o $app ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or -not(Test-Path -LiteralPath $app -PathType Leaf)){
+            throw 'G32C2_KTRADE_BUILD_FAILED'
+          }
+          if((git rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE_SHA -or @(git status --porcelain).Count -ne 0){
+            throw 'G32C2_SOURCE_DIRTY_AFTER_BUILD'
+          }
+          Write-Output ('G32C2_ATLAS_BINARY_SHA256='+(Get-FileHash -LiteralPath $atlas -Algorithm SHA256).Hash.ToLowerInvariant())
+          Write-Output ('G32C2_KTRADE_BINARY_SHA256='+(Get-FileHash -LiteralPath $app -Algorithm SHA256).Hash.ToLowerInvariant())
+          Write-Output 'G32C2_WINDOWS_BUILDS_AND_SOURCE_IDENTITY=PASS'
+          Write-Output 'G32C2_RELEASE=FALSE; BROKER_CONTACT=FALSE; PRODUCT_EXECUTION=FALSE'
+      - name: Remove private worktree and output executables
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g32c2-delta.exe') -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g32c2-ktrade.exe') -Force -ErrorAction SilentlyContinue
+          if(Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source')){
+            throw 'G32C2_PRIVATE_SOURCE_CLEANUP_FAILED'
+          }
+          Write-Output 'G32C2_PRIVATE_SOURCE_SCRATCH_CLEAN=PASS'
