@@ -1,0 +1,58 @@
+name: G32-C1 FORGE UQ37 trigger source qualification
+on:
+  push:
+    branches: [qualification/g32c1-ktrade-forge-20261018]
+    paths: [.github/workflows/g32c1-forge-trigger.yml]
+permissions:
+  contents: read
+jobs:
+  source-only-event-contract:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout immutable public FORGE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/FORGE
+          ref: f569b827aeeddcbb2865bec49c062d2a7e523886
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify workflow-only delta and exact blob identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = f569b827aeeddcbb2865bec49c062d2a7e523886
+          test "$(git hash-object .github/workflows/mind-palace-uq37-scheduled-poll.yml)" = 107587bb84acf3401078daf3d03dbbd966e6c94f
+          test "$(git diff --name-only 145d7ab727dad73af357d38122baf9343cd0de34 f569b827aeeddcbb2865bec49c062d2a7e523886)" = '.github/workflows/mind-palace-uq37-scheduled-poll.yml'
+          echo G32C1_FORGE_EXACT_SOURCE_AND_WORKFLOW_DELTA=PASS
+      - name: Assert event semantics and falsification controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet 'PyYAML==6.0.2'
+          python3 - <<'PY'
+          from pathlib import Path
+          import yaml
+          s=Path('.github/workflows/mind-palace-uq37-scheduled-poll.yml').read_text(encoding='utf8')
+          def check(text):
+              d=yaml.load(text,Loader=yaml.BaseLoader)
+              if not isinstance(d,dict) or d.get('name')!='Mind-Palace UQ37 bounded selected-source intake poll': return False
+              ev=d.get('on')
+              if not isinstance(ev,dict) or set(ev)!={'push','schedule','workflow_dispatch'}: return False
+              if ev['push'].get('branches')!=['repair/uq62-mind-palace-poll-tree-identity']: return False
+              if ev['schedule']!=[{'cron':'17 */6 * * *'}]: return False
+              if ev['workflow_dispatch'] is not None: return False
+              j=d.get('jobs',{}).get('inspect',{})
+              return j.get('runs-on')==['self-hosted','Windows','forge-codex-isolated'] and j.get('timeout-minutes')=='15'
+          assert check(s), 'G32C1_FORGE_TRIGGER_CONTRACT_INVALID'
+          assert not check(s.replace('repair/uq62-mind-palace-poll-tree-identity','main')), 'branch-negative failed'
+          assert not check(s.replace('17 */6 * * *','*/5 * * * *')), 'schedule-negative failed'
+          assert not check(s.replace('forge-codex-isolated','windows-latest')), 'runner-isolation-negative failed'
+          assert "$expectedToolsTree = 'ea22c70ecfcff61bef6f3a4cfb6f7225bee74200'" in s
+          assert "$expectedSchemasTree = '3a88cdabbe11d4cd8f95a074860f08845b1cce4a'" in s
+          print('G32C1_FORGE_EVENT_TRIGGER_NEGATIVE_CONTROLS=PASS')
+          print('G32C1_FORGE_SOURCE_ONLY_NOT_EVENT_DELIVERY=PASS')
+          PY
+          test -z "$(git status --porcelain)"
+          echo G32C1_FORGE_PUBLIC_SOURCE_CLEAN=PASS
