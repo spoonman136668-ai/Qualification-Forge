@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      SOURCE: 'f71164d45485decd96a3f2b1553889c7b31d3424'
-      TREE: '87773cabaa5aa038dc66156d08d6e7dae665a06d'
+      SOURCE: '449545f88b4b40c09bb440aa38ccbcb3064609e7'
+      TREE: '30ef6219d6f9b8a215e0a9af511f3513af618f08'
       BASE: 'f5a7bc0b3b07eddc076f150b9399aac24cfc1be2'
       GOFLAGS: '-p=1'
       GOMAXPROCS: '1'
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/KTRADE
-          ref: f71164d45485decd96a3f2b1553889c7b31d3424
+          ref: 449545f88b4b40c09bb440aa38ccbcb3064609e7
           fetch-depth: 0
           path: source
           persist-credentials: false
@@ -50,11 +50,12 @@ jobs:
           $expected=@(
             'tools/graphify/g45_browser/main.go',
             'tools/graphify/g45_browser/g51_operator_test.go',
+            'tools/graphify/g45_browser/g49_package_pairs_test.go',
             'tools/graphify/g45_browser/g51_interaction.cjs',
             'tools/graphify/g45_browser/README.md'
           )|Sort-Object
           $actual=@(git diff --name-only $env:BASE $env:SOURCE)|Sort-Object
-          if($actual.Count -ne 4 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G51_SCOPE_DRIFT'}
+          if($actual.Count -ne 5 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G51_SCOPE_DRIFT'}
           $srcMod=(git rev-parse ($env:SOURCE+':go.mod')).Trim()
           $baseMod=(git rev-parse ($env:BASE+':go.mod')).Trim()
           if($srcMod -cne $baseMod){throw 'G51_GO_MOD_DRIFT'}
@@ -76,7 +77,7 @@ jobs:
               throw 'G51_UNCHANGED_G35_FOUNDATION_DRIFT'
             }
           }
-          Write-Host 'G51_EXACT_FOUR_NAVIGATOR_FILES_ONLY=PASS'
+          Write-Host 'G51_EXACT_FIVE_NAVIGATOR_FILES_ONLY=PASS'
       - name: Use frozen Go 1.23 Windows toolchain
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
         with:
