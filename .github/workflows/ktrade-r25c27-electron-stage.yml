@@ -74,6 +74,14 @@ jobs:
           foreach($entry in @('package.json','electron','static','templates','strategies')){
             Copy-Item -LiteralPath (Join-Path $root $entry) -Destination $stage -Recurse -Force
           }
+          # Staging-only causal probe: native child cannot use virtual app.asar as cwd.
+          $electronEntry=Join-Path $stage 'electron/main.js'
+          $main=Get-Content -LiteralPath $electronEntry -Raw
+          $oldCwd="cwd: path.join(__dirname, '..'),"
+          $newCwd="cwd: app.isPackaged ? path.join(process.resourcesPath, 'bin') : path.join(__dirname, '..'),"
+          if($main.Split($oldCwd).Count -ne 2){throw 'R25C27_ELECTRON_CWD_SOURCE_SURFACE_DRIFT'}
+          $main.Replace($oldCwd,$newCwd)|Set-Content -LiteralPath $electronEntry -Encoding utf8
+          Write-Output 'R25C27_STAGING_ONLY_ELECTRON_NATIVE_CWD_REPAIR=ACTIVE'
           Push-Location $root
           try{
             go mod download
@@ -129,6 +137,13 @@ jobs:
             & npm ci --no-audit --no-fund
             if($LASTEXITCODE -ne 0){throw 'R25C27_STAGING_NPM_CI_FAILED'}
             $pkg=Get-Content -LiteralPath 'package.json' -Raw|ConvertFrom-Json
+            # Backend resolves its assets beside resources/bin/ktrade.exe.
+            $pkg.build.extraResources+=@(
+              [pscustomobject]@{from='static';to='bin/static'},
+              [pscustomobject]@{from='templates';to='bin/templates'},
+              [pscustomobject]@{from='strategies';to='bin/strategies'}
+            )
+            Write-Output 'R25C27_STAGING_ONLY_GO_ASSET_COLOCATION_REPAIR=ACTIVE'
             $pkg.build|Add-Member -NotePropertyName portable -NotePropertyValue (@{artifactName='KTRADE-TemporaryPortable-@VERSION@-@ARCH@.@EXT@'}) -Force
             $json=$pkg|ConvertTo-Json -Depth 30
             $json=$json.Replace('@VERSION@','@DOLLAR@{version}').Replace('@ARCH@','@DOLLAR@{arch}').Replace('@EXT@','@DOLLAR@{ext}')
@@ -143,6 +158,7 @@ jobs:
               Write-Output ('R25C27_DISPOSABLE_INSTALLER_HASH_'+$file.Name+'='+(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant())
             }
             Write-Output 'R25C27_SYNTHETIC_NSIS_AND_PORTABLE_BUILD=PASS_NOT_RELEASE'
+            Write-Output 'R25C27_DISPOSABLE_RUNTIME_PATH_PATCHES_ARE_NOT_KTRADE_SOURCE=TRUE'
           }finally{Pop-Location}
       - name: Install and verify disposable NSIS payload identity
         shell: pwsh
