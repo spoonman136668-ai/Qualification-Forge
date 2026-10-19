@@ -1,0 +1,295 @@
+name: G36 extended application type-aware call qualification
+on:
+  push:
+    branches: [qualification/g36-application-typecalls-20261019]
+    paths: [.github/workflows/g36-application-typecalls-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: g36-application-typecalls-20261019
+  cancel-in-progress: false
+jobs:
+  qualification:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      G35_SOURCE: '3d3187150e16084806f62ebb7f2a21c72a4dced6'
+      G35_TREE: '671d911779f5a13a7a527d508ae8325a0d58c51b'
+      G35_BASE: '7880474e507854eed74832adbce578d246b749ab'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout private exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: 3d3187150e16084806f62ebb7f2a21c72a4dced6
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source and scope
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'G35_UNSAFE_PLATFORM_OR_AUTHORITY'
+          }
+          if((git rev-parse HEAD).Trim() -cne $env:G35_SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:G35_TREE){throw 'G35_SOURCE_DRIFT'}
+          $expected=@('tools/graphify/g35_typecalls/README.md','tools/graphify/g35_typecalls/main.go','tools/graphify/g35_typecalls/main_test.go')|Sort-Object
+          $actual=@(git diff --name-only $env:G35_BASE $env:G35_SOURCE)|Sort-Object
+          if($actual.Count -ne 3 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G35_DELTA_SCOPE_DRIFT'}
+          if(@(git status --porcelain).Count -ne 0){throw 'G35_CHECKOUT_DIRTY'}
+
+          # Exact immutable source identities of all 12 app Go files; fail closed on identity drift.
+          $sourceWitnesses=@(
+            @{p='internal/durableupgrade/durable_upgrade.go';sha='0b5d77438af932cee56082aab320ef8d1378d0b5'},
+            @{p='internal/durableupgrade/installed_inventory_hash.go';sha='33a2682a3113b1ceb1cb21453c36f9d2f6c10715'},
+            @{p='internal/durableupgrade/installed_inventory_readonly.go';sha='d96cb0d82fc107751c9c7a47320cde0dd1627e0a'},
+            @{p='internal/durableupgrade/installed_inventory_review.go';sha='ee91b19a810c248376628489f6b398107806f339'},
+            @{p='internal/paperproposal/proposal.go';sha='b0c41b3bb69a51ef1528b52aa33245a11c4d0d3e'},
+            @{p='internal/paperreconcile/commit_protocol_shadow.go';sha='b3cd213be821779aac321044cd706874b2e5397c'},
+            @{p='internal/paperreconcile/original_risk_custody.go';sha='c9d47d8024f63d3502dbb58b9ecfc4ebdb9c6036'},
+            @{p='internal/paperreconcile/reconcile.go';sha='fccbbc574dd4a308e9ea2a30dc8b9237af4abced'},
+            @{p='internal/paperreconcile/risk_replay.go';sha='5c0b07ace7dc7789d4aa8d20f0661dd9eee92dac'},
+            @{p='internal/paperreconcile/settlement_review.go';sha='09de943e8a95834790bc8f7803bdf261a9dce844'},
+            @{p='internal/paperreconcile/windows_fs_capability_shadow_windows.go';sha='503f4af107eadcd1fce3abbbd7d7ac011c216b77'},
+            @{p='internal/papertrading/ledger.go';sha='d44341253e7d4b51d31b03cea26a77cbbb534f7b'},
+            @{p='internal/paperweb/server.go';sha='dd0d52621f7267db487527024cda91530a09ab5e'},
+            @{p='cmd/ktrade-paper-web/main.go';sha='5f0c5d57d97a09d7bd995b5f63477e9fbbefaf6f'}
+          )
+          foreach($src in $sourceWitnesses){
+            $found=(& git hash-object -- $src.p).Trim()
+            if($LASTEXITCODE -ne 0 -or $found -cne $src.sha){throw ('G35_APP_GIT_BLOB_DRIFT_'+$src.p)}
+          }
+          $toolBlob=(& git rev-parse ($env:G35_SOURCE+':tools/graphify/g35_typecalls/main.go')).Trim()
+          if($LASTEXITCODE -ne 0 -or $toolBlob -cne '277da4a2e3c4fe8920f4ed6a3fc8e12d592b8e31'){
+            throw 'G36_REUSED_ANALYZER_BLOB_IDENTITY_DRIFT'
+          }
+          Write-Host 'G36_G35_FROZEN_TREE_AND_ANALYZER_IDENTITY=PASS'
+          Write-Host 'G36_FOURTEEN_SOURCE_BLOBS_EXACT=PASS'
+          Write-Host 'G35_EXACT_THREE_TOOLING_FILES_ONLY=PASS'
+      - name: Install existing Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Qualify only newly affected web and command interfaces
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          # Frozen G35 analyzer SHA and G35 qualification run 39223337488 remain identical.
+          # Do not repeat the unchanged seven synthetic unit tests or full app regression.
+          & go test -mod=readonly -count=1 ./internal/paperweb ./cmd/ktrade-paper-web
+          if($LASTEXITCODE -ne 0){throw 'G36_AFFECTED_INTERFACE_TEST_FAILED'}
+          & go vet -mod=readonly ./internal/paperweb ./cmd/ktrade-paper-web ./tools/graphify/g35_typecalls
+          if($LASTEXITCODE -ne 0){throw 'G36_FOCUSED_VET_FAILED'}
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g35.exe') ./tools/graphify/g35_typecalls
+          if($LASTEXITCODE -ne 0){throw 'G36_REUSED_ANALYZER_BUILD_FAILED'}
+          Write-Host 'G36_AFFECTED_WEB_COMMAND_TEST_VET_AND_REUSED_ANALYZER_BUILD=PASS'
+      - name: Bound G36 six-root analysis and preserve G35 four-root counts
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'g35.exe'
+          function Invoke-Bounded {
+            param([string]$Group,[string]$Packages)
+            $raw=Join-Path $env:RUNNER_TEMP ('g35-private-'+$Group+'-'+$env:GITHUB_RUN_ID+'.json')
+            if(Test-Path -LiteralPath $raw){throw 'G35_RAW_REPORT_COLLISION'}
+            $psi=[System.Diagnostics.ProcessStartInfo]::new($exe)
+            $psi.WorkingDirectory=(Get-Location).Path
+            $psi.UseShellExecute=$false
+            $psi.RedirectStandardOutput=$true
+            $psi.RedirectStandardError=$true
+            [void]$psi.ArgumentList.Add('--repo=.')
+            [void]$psi.ArgumentList.Add(('--base='+$env:G35_BASE))
+            [void]$psi.ArgumentList.Add(('--source='+$env:G35_SOURCE))
+            [void]$psi.ArgumentList.Add(('--packages='+$Packages))
+            [void]$psi.ArgumentList.Add(('--out='+$raw))
+            if($psi.ArgumentList.Count -ne 5){throw 'G35_ARGUMENT_VECTOR_FAILED'}
+            $watch=[System.Diagnostics.Stopwatch]::StartNew()
+            $proc=[System.Diagnostics.Process]::Start($psi)
+            if($null -eq $proc){throw 'G35_START_FAILED'}
+            $stdoutTask=$proc.StandardOutput.ReadToEndAsync()
+            $stderrTask=$proc.StandardError.ReadToEndAsync()
+            $peak=[long]0
+            while(-not $proc.HasExited){
+              try{
+                $m=[long]$proc.PeakWorkingSet64
+                if($m -le 0){$m=[long]$proc.WorkingSet64}
+                if($m -gt $peak){$peak=$m}
+              }catch{}
+              Start-Sleep -Milliseconds 50
+            }
+            $proc.WaitForExit()
+            $cpuMs=[long]$proc.TotalProcessorTime.TotalMilliseconds
+            $std=$stdoutTask.GetAwaiter().GetResult()
+            $err=$stderrTask.GetAwaiter().GetResult()
+            $watch.Stop()
+            if($proc.ExitCode -ne 0){
+              if($err){Write-Host $err}
+              throw ('G35_'+$Group+'_CHECK_FAILED_'+$proc.ExitCode)
+            }
+            if(-not(Test-Path -LiteralPath $raw)){throw 'G35_RAW_OUTPUT_ABSENT'}
+            if($peak -le 0 -or $peak -gt 536870912){throw ('G35_RSS_CAP_'+$Group+'_'+$peak)}
+            if($watch.Elapsed.TotalSeconds -gt 120){throw ('G36_WALL_TIME_CAP_'+$Group)}
+            if($cpuMs -gt 120000){throw ('G36_CPU_TIME_CAP_'+$Group)}
+            $d=Get-Content -LiteralPath $raw -Raw|ConvertFrom-Json
+            if($d.Schema -cne 'graphify.g35.type-checked-cross-package.v1' -or
+               $d.SourceCommit -cne $env:G35_SOURCE -or $d.SourceTree -cne $env:G35_TREE -or
+               $d.BaseCommit -cne $env:G35_BASE){throw ('G35_INVALID_REPORT_ID_'+$Group)}
+            if($d.CallSites -le 0 -or $d.CallSites -gt 20000 -or
+               $d.SourceFileCount -gt 36 -or $d.SelectedSourceBytes -gt 3145728 -or
+               $d.CallSites -ne ($d.ResolvedDirect+$d.ResolvedConcreteMethods+$d.ResolvedExternal+$d.Unresolved) -or
+               @($d.TypeCheckedEdges).Count -ne ($d.CallSites-$d.Unresolved)){
+              throw ('G35_NONCONSERVATIVE_COUNTS_'+$Group)
+            }
+            foreach($edge in $d.TypeCheckedEdges){
+              if($edge.Confidence -cne 'go_types_static_object'){throw 'G35_UNJUSTIFIED_EDGE_CONFIDENCE'}
+            }
+            Write-Host ('G35_'+$Group+'_REPORT_SHA256='+(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant())
+            Write-Host ('G35_'+$Group+'_PEAK_RSS_BYTES='+$peak)
+            Write-Host ('G35_'+$Group+'_WALL_MS='+([long]$watch.Elapsed.TotalMilliseconds))
+            Write-Host ('G35_'+$Group+'_CALL_SITES='+$d.CallSites)
+            Write-Host ('G35_'+$Group+'_CROSS_PACKAGE='+$d.CrossPackageStaticEdges)
+            Write-Host ('G36_'+$Group+'_CPU_MS='+$cpuMs)
+            return [pscustomobject]@{d=$d;raw=$raw;peak=$peak;wall=[long]$watch.Elapsed.TotalMilliseconds;cpu=$cpuMs}
+          }
+          $extended=Invoke-Bounded -Group 'EXPANDED' -Packages 'internal/papertrading,internal/paperproposal,internal/paperreconcile,internal/durableupgrade,internal/paperweb,cmd/ktrade-paper-web'
+          $x=$extended.d
+          $oldPaths=@('ktrade/internal/papertrading','ktrade/internal/paperproposal','ktrade/internal/paperreconcile','ktrade/internal/durableupgrade')
+          $newPaths=@('ktrade/internal/paperweb','ktrade/cmd/ktrade-paper-web')
+          $old=@($x.Packages|Where-Object {$_.Package -cin $oldPaths})
+          $new=@($x.Packages|Where-Object {$_.Package -cin $newPaths})
+          $oldCalls=0;$oldResolved=0;$oldUnknown=0
+          foreach($p in $old){
+            $oldCalls+=$p.CallSites
+            $oldResolved+=($p.TypeCheckedDirect+$p.TypeCheckedConcreteMethods+$p.TypeCheckedExternal)
+            $oldUnknown+=$p.AmbiguousOrUnresolved
+          }
+          if(@($x.SelectedPackages).Count -ne 6 -or @($x.Packages).Count -ne 6 -or
+             $old.Count -ne 4 -or $new.Count -ne 2 -or
+             $x.SourceFileCount -ne 12 -or
+             $oldCalls -ne 976 -or $oldResolved -ne 800 -or $oldUnknown -ne 176){
+            throw 'G36_G35_FROZEN_FOUR_PACKAGE_SLICE_DRIFT'
+          }
+          $newCalls=0;foreach($p in $new){$newCalls+=$p.CallSites}
+          if($newCalls -le 0 -or $x.CallSites -le 976 -or $x.CrossPackageStaticEdges -le 6 -or
+             $x.Unresolved -lt 176){throw 'G36_NO_AUTHENTIC_NEW_PACKAGE_EVIDENCE'}
+          $webToTrading=@($x.TypeCheckedEdges|Where-Object {
+            $_.Caller -like 'ktrade/internal/paperweb::*' -and
+            $_.Callee -like 'ktrade/internal/papertrading.*'
+          })
+          $cmdToWeb=@($x.TypeCheckedEdges|Where-Object {
+            $_.Caller -like 'ktrade/cmd/ktrade-paper-web::*' -and
+            $_.Callee -like 'ktrade/internal/paperweb.*'
+          })
+          if($webToTrading.Count -lt 1 -or $cmdToWeb.Count -lt 1){
+            throw 'G36_CROSS_PACKAGE_INTERFACE_TARGET_NOT_PROVEN'
+          }
+          Write-Host ('G36_NEW_APPLICATION_CALLS='+$newCalls)
+          Write-Host ('G36_CROSS_PACKAGE_STATIC_EDGES='+$x.CrossPackageStaticEdges)
+          Write-Host ('G36_UNRESOLVED_CALLS='+$x.Unresolved)
+          Write-Host ('G36_NEW_WEB_TO_TRADING='+$webToTrading.Count)
+          Write-Host ('G36_NEW_CMD_TO_WEB='+$cmdToWeb.Count)
+          Write-Host 'G36_G35_IDENTITY_REUSED_NEW_BOUNDARIES_QUALIFIED=PASS'
+      - name: Seal sanitized G36-only prospective extension evidence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=Join-Path $env:RUNNER_TEMP ('g35-private-EXPANDED-'+$env:GITHUB_RUN_ID+'.json')
+          $d=Get-Content -LiteralPath $raw -Raw|ConvertFrom-Json
+          $receipt=[ordered]@{
+            schema='graphify.g36.app-boundary-qualification.v1'
+            source_sha=$env:G35_SOURCE
+            source_tree=$env:G35_TREE
+            generator_blob='277da4a2e3c4fe8920f4ed6a3fc8e12d592b8e31'
+            qualification_workflow_commit=$env:GITHUB_SHA
+            qualification_run_id=$env:GITHUB_RUN_ID
+            reused_g35=[ordered]@{
+              workflow_run_id=39223337488
+              qualified_source_sha='6bc27d9b23af784632f6d45d43aa33c9c7c27b6d'
+              qualified_tree='671d911779f5a13a7a527d508ae8325a0d58c51b'
+              original_package_calls=976
+              original_resolved=800
+              original_unresolved=176
+              original_cross_package_static=6
+              synthetics_replayed=$false
+            }
+            added_immutable_blobs=@(
+              'dd0d52621f7267db487527024cda91530a09ab5e',
+              '5f0c5d57d97a09d7bd995b5f63477e9fbbefaf6f'
+            )
+            prospect=[ordered]@{
+              selected_roots=$d.SelectedPackages
+              import_closure_packages=@($d.Packages).Count
+              source_files=$d.SourceFileCount
+              source_bytes=$d.SelectedSourceBytes
+              total_calls=$d.CallSites
+              direct=$d.ResolvedDirect
+              concrete_methods=$d.ResolvedConcreteMethods
+              external=$d.ResolvedExternal
+              unresolved=$d.Unresolved
+              cross_package_static=$d.CrossPackageStaticEdges
+              peak_go_alloc_sys_bytes=$d.PeakGoAllocSysBytes
+              generator_elapsed_ms=$d.ElapsedMillis
+              complete_report_sha256=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+            }
+            process_cpu_limit_ms=120000
+            process_wall_limit_ms=120000
+            process_rss_limit_bytes=536870912
+            changed_application_files=0
+            changed_analyzer_files=0
+            full_regression_replayed=$false
+            live_trading_authorized=$false
+            raw_edges_uploaded=$false
+          }
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $dir -Force|Out-Null
+          $file=Join-Path $dir 'g36-sanitized-receipt.json'
+          $receipt|ConvertTo-Json -Depth 8|Set-Content -LiteralPath $file -Encoding utf8
+          $hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          ($hash+'  g36-sanitized-receipt.json')|Set-Content -LiteralPath (Join-Path $dir 'g36-sanitized-receipt.sha256') -Encoding ascii
+          Write-Host ('G36_SANITIZED_RECEIPT_SHA256='+$hash)
+          Write-Host 'G36_PROSPECTIVE_SIX_PACKAGE_SANITIZED_RECEIPT=PASS'
+      - name: Verify checkout remained immutable
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:G35_SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:G35_TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G35_POST_CHECK_SOURCE_MUTATED'}
+          Write-Host 'G35B_APP_SOURCE_UNMODIFIED=PASS'
+      - name: Upload sanitized G36-only proof
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g36-app-boundary-typeaware-sanitized
+          path: |
+            evidence/g36-sanitized-receipt.json
+            evidence/g36-sanitized-receipt.sha256
+          retention-days: 90
+          if-no-files-found: error
+      - name: Remove private checkout and raw type report
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -LiteralPath $env:RUNNER_TEMP -File -Filter 'g35-*' -ErrorAction SilentlyContinue|Remove-Item -Force
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g35.exe') -Force -ErrorAction SilentlyContinue
+          if(Test-Path -LiteralPath $root){throw 'G35_SOURCE_CLEANUP_FAILED'}
+          Write-Host 'G35_PRIVATE_SOURCE_AND_RAW_REPORT_CLEAN=PASS'
