@@ -126,9 +126,84 @@ jobs:
           [void]$psi.ArgumentList.Add('--packages=internal/paperauthority,internal/paperapp')
           [void]$psi.ArgumentList.Add(('--out='+$raw))
           if($psi.ArgumentList.Count -ne 5){throw 'G37_ARGUMENT_VECTOR_FAILED'}
+          # A Windows Job Object constrains all descendants (including
+          # go list, compile and cgo) to the existing 512 MiB budget, and
+          # accounts CPU across exited child processes. No increased limits.
+          $jobCSharp=@'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class G37ProcessTreeBudget {
+            [StructLayout(LayoutKind.Sequential)] public struct BasicLimit {
+              public long PerProcessUserTimeLimit, PerJobUserTimeLimit;
+              public uint LimitFlags;
+              public UIntPtr MinimumWorkingSetSize, MaximumWorkingSetSize;
+              public uint ActiveProcessLimit;
+              public UIntPtr Affinity;
+              public uint PriorityClass, SchedulingClass;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct IoCounters {
+              public ulong ReadOperations, WriteOperations, OtherOperations;
+              public ulong ReadBytes, WriteBytes, OtherBytes;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct ExtendedLimit {
+              public BasicLimit BasicLimitInformation;
+              public IoCounters IoInfo;
+              public UIntPtr ProcessMemoryLimit, JobMemoryLimit;
+              public UIntPtr PeakProcessMemoryUsed, PeakJobMemoryUsed;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct Accounting {
+              public long TotalUserTime, TotalKernelTime;
+              public long ThisPeriodTotalUserTime, ThisPeriodTotalKernelTime;
+              public uint TotalPageFaultCount, TotalProcesses;
+              public uint ActiveProcesses, TotalTerminatedProcesses;
+            }
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern IntPtr CreateJobObject(IntPtr attributes, string name);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool SetInformationJobObject(IntPtr job,int kind,ref ExtendedLimit data,uint size);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool QueryInformationJobObject(IntPtr job,int kind,out ExtendedLimit data,uint size,out uint result);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool QueryInformationJobObject(IntPtr job,int kind,out Accounting data,uint size,out uint result);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool AssignProcessToJobObject(IntPtr job,IntPtr process);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool CloseHandle(IntPtr handle);
+            static Exception Fail(string s){return new InvalidOperationException(s+": "+Marshal.GetLastWin32Error());}
+            public static IntPtr Create(ulong limit){
+              IntPtr job=CreateJobObject(IntPtr.Zero,null);
+              if(job==IntPtr.Zero)throw Fail("G37_JOB_CREATE");
+              var x=new ExtendedLimit();
+              x.BasicLimitInformation.LimitFlags=0x00000200|0x00002000;
+              x.JobMemoryLimit=new UIntPtr(limit);
+              if(!SetInformationJobObject(job,9,ref x,(uint)Marshal.SizeOf<ExtendedLimit>())){
+                CloseHandle(job);throw Fail("G37_JOB_SET_LIMIT");
+              }
+              return job;
+            }
+            public static void Attach(IntPtr job,IntPtr process){
+              if(!AssignProcessToJobObject(job,process))throw Fail("G37_JOB_ATTACH");
+            }
+            public static double[] Read(IntPtr job){
+              ExtendedLimit x;
+              Accounting a;
+              uint returned;
+              if(!QueryInformationJobObject(job,9,out x,(uint)Marshal.SizeOf<ExtendedLimit>(),out returned))
+                throw Fail("G37_JOB_MEMORY_READ");
+              if(!QueryInformationJobObject(job,1,out a,(uint)Marshal.SizeOf<Accounting>(),out returned))
+                throw Fail("G37_JOB_CPU_READ");
+              return new double[]{(a.TotalUserTime+a.TotalKernelTime)/10000.0,
+                  x.PeakJobMemoryUsed.ToUInt64(),a.TotalProcesses};
+            }
+            public static void Close(IntPtr job){if(job!=IntPtr.Zero)CloseHandle(job);}
+          }
+          '@
+          Add-Type -TypeDefinition $jobCSharp -ErrorAction Stop
+          $job=[G37ProcessTreeBudget]::Create([ulong]536870912)
           $watch=[System.Diagnostics.Stopwatch]::StartNew()
           $p=[System.Diagnostics.Process]::Start($psi)
-          if($null -eq $p){throw 'G37_EXEC_START_FAILURE'}
+          if($null -eq $p){[G37ProcessTreeBudget]::Close($job);throw 'G37_EXEC_START_FAILURE'}
+          [G37ProcessTreeBudget]::Attach($job,$p.Handle)
           $stdout=$p.StandardOutput.ReadToEndAsync()
           $stderr=$p.StandardError.ReadToEndAsync()
           $rss=[long]0
@@ -139,6 +214,15 @@ jobs:
           }
           $p.WaitForExit()
           $cpu=[long]$p.TotalProcessorTime.TotalMilliseconds
+          $treeMetrics=[G37ProcessTreeBudget]::Read($job)
+          [G37ProcessTreeBudget]::Close($job)
+          $treeCpuMs=[long][Math]::Ceiling($treeMetrics[0])
+          $treePeakBytes=[long]$treeMetrics[1]
+          $treeProcesses=[long]$treeMetrics[2]
+          if($treeProcesses -lt 2 -or $treeCpuMs -gt 120000 -or
+             $treePeakBytes -le 0 -or $treePeakBytes -gt 536870912){
+             throw 'G37_TREE_CPU_MEMORY_HARD_LIMIT_OR_ACCOUNTING_FAILED'
+          }
           $out=$stdout.GetAwaiter().GetResult()
           $err=$stderr.GetAwaiter().GetResult()
           $watch.Stop()
@@ -180,6 +264,10 @@ jobs:
           Write-Host ('G37_PROCESS_CPU_MS='+$cpu)
           Write-Host ('G37_PROCESS_RSS_BYTES='+$rss)
           Write-Host ('G37_WALL_MS='+([long]$watch.Elapsed.TotalMilliseconds))
+          Write-Host ('G37_TREE_PROCESS_COUNT='+$treeProcesses)
+          Write-Host ('G37_TREE_TOTAL_CPU_MS='+$treeCpuMs)
+          Write-Host ('G37_TREE_PEAK_COMMITTED_BYTES='+$treePeakBytes)
+          Write-Host 'G37_WINDOWS_JOB_MEMORY_LIMIT_512M=ENFORCED'
           Write-Host 'G37_PINNED_SQLITE_BOUNDARY_QUALIFIED=PASS'
           $receipt=[ordered]@{
             schema='graphify.g37.sqlite-qualified.v1'
@@ -192,6 +280,10 @@ jobs:
             call_sites=$d.CallSites; static_cross_package=$d.CrossPackageStaticEdges
             unresolved=$d.Unresolved; cpu_ms=$cpu; rss_bytes=$rss
             wall_ms=[long]$watch.Elapsed.TotalMilliseconds
+            process_tree_count=$treeProcesses
+            process_tree_total_cpu_ms=$treeCpuMs
+            process_tree_peak_committed_bytes=$treePeakBytes
+            process_tree_memory_cap_enforced=$true
             private_report_sha256=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
             user_data_touched=$false; full_app_regression_repeated=$false
             trading_or_release_authorized=$false; private_edges_uploaded=$false
