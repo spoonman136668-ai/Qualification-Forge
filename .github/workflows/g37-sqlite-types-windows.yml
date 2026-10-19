@@ -115,10 +115,12 @@ jobs:
           $psi.UseShellExecute=$false
           $psi.RedirectStandardOutput=$true
           $psi.RedirectStandardError=$true
-          foreach($arg in @('--repo=.','--base='+$env:BASE,'--source='+$env:SOURCE,
-            '--packages=internal/paperauthority,internal/paperapp','--out='+$raw)){
-            [void]$psi.ArgumentList.Add($arg)
-          }
+          [void]$psi.ArgumentList.Add('--repo=.')
+          [void]$psi.ArgumentList.Add(('--base='+$env:BASE))
+          [void]$psi.ArgumentList.Add(('--source='+$env:SOURCE))
+          [void]$psi.ArgumentList.Add('--packages=internal/paperauthority,internal/paperapp')
+          [void]$psi.ArgumentList.Add(('--out='+$raw))
+          if($psi.ArgumentList.Count -ne 5){throw 'G37_ARGUMENT_VECTOR_FAILED'}
           $watch=[System.Diagnostics.Stopwatch]::StartNew()
           $p=[System.Diagnostics.Process]::Start($psi)
           if($null -eq $p){throw 'G37_EXEC_START_FAILURE'}
