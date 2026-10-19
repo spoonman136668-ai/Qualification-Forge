@@ -48,9 +48,9 @@ jobs:
              (git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
              @(git status --porcelain).Count -ne 0){throw 'G47_SOURCE_DRIFT'}
           $expected=@(
-            'tools/graphify/g47_browser/main.go',
-            'tools/graphify/g47_browser/main_test.go',
-            'tools/graphify/g47_browser/README.md'
+            'tools/graphify/g45_browser/main.go',
+            'tools/graphify/g45_browser/main_test.go',
+            'tools/graphify/g45_browser/README.md'
           )|Sort-Object
           $actual=@(git diff --name-only $env:BASE $env:SOURCE)|Sort-Object
           if($actual.Count -ne 3 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G47_SCOPE_DRIFT'}
@@ -107,13 +107,13 @@ jobs:
           }
           # Source changed at SQLite compiler-concurrency boundary; never reuse
           # focused evidence from the previous, different SHA.
-          & go test -mod=readonly -count=1 ./tools/graphify/g47_browser
+          & go test -mod=readonly -count=1 ./tools/graphify/g45_browser
           if($LASTEXITCODE -ne 0){throw 'G47_FOCUSED_TEST_FAILURE'}
-          & go vet -mod=readonly ./tools/graphify/g47_browser
+          & go vet -mod=readonly ./tools/graphify/g45_browser
           if($LASTEXITCODE -ne 0){throw 'G47_VET_FAILURE'}
           # G43 generator was independently qualified at exact unchanged blob.
           # Do not repeat its 512 MiB-bounded private graph computation here.
-          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g47-browser.exe') ./tools/graphify/g47_browser
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g47-browser.exe') ./tools/graphify/g45_browser
           if($LASTEXITCODE -ne 0){throw 'G47_BROWSER_BUILD_FAILURE'}
           & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g47-generator.exe') ./tools/graphify/g35_typecalls
           if($LASTEXITCODE -ne 0){throw 'G47_GENERATOR_BUILD_FAILURE'}
