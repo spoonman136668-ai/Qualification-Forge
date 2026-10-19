@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      SOURCE: 'd4f0e07348fc554932e04718168d49bb402ad270'
-      TREE: 'a23f6c999470f4e1bd111cd2f757be23152db12c'
+      SOURCE: '5ab492676eadd74dad242c4b5d09caee4db65712'
+      TREE: '7951b17a3c3f168b6d94ddb90c3ffa0e18d72ebb'
       BASE: '4c767e79fedb60a38862ba98917d97bc70dd0984'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/KTRADE
-          ref: d4f0e07348fc554932e04718168d49bb402ad270
+          ref: 5ab492676eadd74dad242c4b5d09caee4db65712
           fetch-depth: 0
           path: source
           persist-credentials: false
