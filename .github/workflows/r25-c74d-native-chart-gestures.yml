@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      SOURCE_SHA: '86d68f4e4baaffce8d7b790c3ce7707607a331e0'
-      SOURCE_TREE: '5a857ecd184c305f4ac306c7b628cf22370e3d69'
+      SOURCE_SHA: '7435a5e7bb8ec45b1cc3b748115bf87e04b88fd2'
+      SOURCE_TREE: '8e7061c6f39c2b8458cb6fe0db63a7cc90f406f1'
       BASE_SHA: '88e6ca18d7434c53da1f2fb3abcc7a8abec949ba'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 86d68f4e4baaffce8d7b790c3ce7707607a331e0
+          ref: 7435a5e7bb8ec45b1cc3b748115bf87e04b88fd2
           fetch-depth: 0
           path: source
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -57,8 +57,11 @@ jobs:
           $expected=@(
             'cmd/ktrade/operator_recovery_full.go',
             'cmd/ktrade/operator_navigation_acceptance_full.go',
+            'cmd/ktrade/operator_chart_navigation_full.go',
             'cmd/ktrade/operator_navigation_c74d_full_test.go',
             'recovery/operator-bridge/operator-navigation-acceptance.js',
+            'recovery/operator-bridge/operator-chart-navigation.js',
+            'recovery/operator-bridge/operator-chart-navigation.js',
             'docs/R25_C74D_ORIGINAL_CHART_ACCEPTANCE.md'
           )|Sort-Object
           $actual=@(& git diff --name-only $env:BASE_SHA $env:SOURCE_SHA | Sort-Object)
