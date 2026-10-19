@@ -95,9 +95,9 @@ jobs:
           $ErrorActionPreference='Stop'
           $log=Join-Path $env:RUNNER_TEMP 'r25c72-focused-private.log'
           & go test -mod=readonly -count=1 -run '^TestR25C72' ./internal/durableupgrade *> $log
-          if($LASTEXITCODE -ne 0){throw 'R25_C72_ACCOUNTING_TESTS_FAIL_CLOSED'}
+          if($LASTEXITCODE -ne 0){Get-Content -LiteralPath $log -TotalCount 65 | ForEach-Object {Write-Host $_};throw 'R25_C72_ACCOUNTING_TESTS_FAIL_CLOSED'}
           & go test -mod=readonly -tags=ktrade_full -count=1 -run '^TestR25C72' ./cmd/ktrade *> $log
-          if($LASTEXITCODE -ne 0){throw 'R25_C72_ACTUAL_FULL_APP_HTTP_ROUTE_TESTS_FAIL_CLOSED'}
+          if($LASTEXITCODE -ne 0){Get-Content -LiteralPath $log -TotalCount 65 | ForEach-Object {Write-Host $_};throw 'R25_C72_ACTUAL_FULL_APP_HTTP_ROUTE_TESTS_FAIL_CLOSED'}
           & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade ./internal/durableupgrade *> $log
           if($LASTEXITCODE -ne 0){throw 'R25_C72_SOURCE_VET_FAILED'}
           Write-Host 'R25_C72_HISTORICAL_ACCOUNTING_NO_DOUBLE_COUNT=PASS'
