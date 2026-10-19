@@ -2,6 +2,7 @@
 // R25-C28 genuine installed Electron renderer check. No orders or external hosts.
 // Only a disposable Windows NSIS installation under independently enforced egress denial.
 const assert=require("node:assert/strict");
+(async()=>{
 const port=Number(process.argv[2]);
 assert.ok(Number.isInteger(port)&&port>1024&&port<=65535);
 const endpoint="http://127.0.0.1:"+port+"/json/list";
@@ -72,3 +73,4 @@ try{
   try{await request("Browser.close")}catch{}
   console.log("R25C28_ELECTRON_BROWSER_CLOSE_REQUESTED=TRUE");
 }finally{ws.close()}
+})().catch(error=>{console.error('R25C28_CDP_DIAGNOSTIC='+String(error&&error.message||error));process.exitCode=1;});
