@@ -144,7 +144,7 @@ jobs:
           )
           $summaries=@()
           foreach($r in $runs){
-            $raw=& go run -mod=readonly ./tools/graphify/g32_delta --repo=. --base=$r.base --target=$r.target
+            $raw=& go run -mod=readonly ./tools/graphify/g32_delta --repo=. --base=$($r.base) --target=$($r.target)
             if($LASTEXITCODE -ne 0){throw ('G32C5_INTEGRATED_ANALYZER_FAILED_'+$r.name)}
             $json=($raw|Out-String)
             $v=$json|ConvertFrom-Json -ErrorAction Stop
