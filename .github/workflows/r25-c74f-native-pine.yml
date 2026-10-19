@@ -1,0 +1,188 @@
+name: R25-C74F KTRADE authentic isolated operator browser qualification
+on:
+  push:
+    branches: [qualification/r25-c74f-pine-20261019]
+    paths: [.github/workflows/r25-c74f-pine.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c74f-pine-qualification
+  cancel-in-progress: false
+jobs:
+  authentic-operator:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      SOURCE_SHA: '17e9b8e38877f1739c94e2005ba3eb29585d34b8'
+      SOURCE_TREE: '91c6dd98eb01693124aa6cfbae7baf2bc5af8a31'
+      BASE_SHA: 'e4376b68894c2e6232f225ab036c90e5107f2cbb'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Gate GitHub-hosted paper-only Windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or
+             $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+             throw 'R25_C74F_NOT_ISOLATED_WINDOWS_PAPER'
+          }
+          Write-Host 'R25_C74F_HOSTED_WINDOWS_NONRESEARCH=PASS'
+      - name: Checkout exact KTRADE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 17e9b8e38877f1739c94e2005ba3eb29585d34b8
+          fetch-depth: 0
+          path: source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Check exact commit tree and bounded delta
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+             (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:SOURCE_TREE -or
+             @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+             throw 'R25_C74F_SOURCE_DRIFT'
+          }
+          $expected=@(
+            'cmd/ktrade/operator_pine_preview_c74f_full.go',
+            'cmd/ktrade/operator_pine_preview_c74f_full_test.go',
+            'cmd/ktrade/operator_recovery_full.go',
+            'docs/R25_C74F_FUNCTIONAL_RECOVERY_STAGE1.md'
+          )|Sort-Object
+          $actual=@(& git diff --name-only $env:BASE_SHA $env:SOURCE_SHA | Sort-Object)
+          if($actual.Count -ne $expected.Count -or @(Compare-Object $expected $actual).Count -ne 0){
+            throw 'R25_C74F_DELTA_OUTSIDE_AUTHORIZED_SCOPE'
+          }
+          foreach($file in @(
+            'cmd/ktrade/main_full.go','electron/main.js',
+            'internal/durableupgrade/historical_readonly_view.go',
+            'internal/durableupgrade/durable_upgrade.go',
+            'recovery/operator-donor-v11110/strategy.html',
+            'recovery/operator-donor-v11110/app.js',
+            'recovery/operator-donor-v11110/app.css'
+          )){
+            if((& git rev-parse ($env:BASE_SHA+':'+$file)).Trim() -cne
+               (& git rev-parse ($env:SOURCE_SHA+':'+$file)).Trim()){
+              throw 'R25_C74F_IMMUTABLE_SOURCE_DRIFT'
+            }
+          }
+          Write-Host 'R25_C74F_SOURCE_AND_DONOR_IDENTITY=PASS'
+      - name: Pinned Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.12'
+          cache: false
+      - name: Focused original operator and historic custody tests
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c74f-focused.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=4m -run '^TestR25C74F' ./cmd/ktrade *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log -TotalCount 70 | ForEach-Object {Write-Host $_}
+            throw 'R25_C74F_FOCUSED_TESTS_FAIL_CLOSED'
+          }
+          & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log -TotalCount 70 | ForEach-Object {Write-Host $_}
+            throw 'R25_C74F_VET_FAIL_CLOSED'
+          }
+          Write-Host 'R25_C74F_AUTHENTIC_HISTORY_AND_SAFETY_FOCUSED=PASS'
+      - name: One required complete Go regression and vet
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c74f-full.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./... *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log -TotalCount 90 | ForEach-Object {Write-Host $_}
+            throw 'R25_C74F_FULL_REGRESSION_FAIL_CLOSED'
+          }
+          & go vet -mod=readonly -tags=ktrade_full ./... *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log -TotalCount 90 | ForEach-Object {Write-Host $_}
+            throw 'R25_C74F_FULL_VET_FAIL_CLOSED'
+          }
+          Write-Host 'R25_C74F_ONE_FULL_REGRESSION_AND_VET=PASS'
+      - name: Build and assemble original operator assets
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'r25c74f-full-app'
+          if(Test-Path -LiteralPath $out){throw 'R25_C74F_OUTPUT_COLLISION'}
+          $null=New-Item -Path $out -ItemType Directory
+          $log=Join-Path $env:RUNNER_TEMP 'r25c74f-build.log'
+          & go build -mod=readonly -tags=ktrade_full -o (Join-Path $out 'ktrade.exe') ./cmd/ktrade *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log -TotalCount 70 | ForEach-Object {Write-Host $_}
+            throw 'R25_C74F_BUILD_FAILED'
+          }
+          foreach($folder in @('static','templates','strategies','recovery')){
+            Copy-Item -LiteralPath $folder -Destination $out -Recurse -ErrorAction Stop
+          }
+          foreach($file in @(
+            'static/recovery_history.html',
+            'recovery/operator-donor-v11110/strategy.html',
+            'recovery/operator-donor-v11110/app.js',
+            'recovery/operator-bridge/historical-review.js',
+            'recovery/operator-bridge/operator-navigation-acceptance.js',
+            'recovery/operator-bridge/operator-chart-navigation.js',
+            'recovery/operator-bridge/operator-control-review.js'
+          )){
+            if(!(Test-Path -LiteralPath (Join-Path $out $file) -PathType Leaf)){
+              throw 'R25_C74F_ASSET_PACKAGING_MISSING'
+            }
+          }
+          Write-Host 'R25_C74F_PACKAGED_REAL_GO_EXE_AND_OPERATOR_DONOR=PASS'
+      - name: Genuine Chromium original product zoom pan interval and restored workspace
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:KTRADE_R25C74D_APP_EXE=Join-Path (Join-Path $env:RUNNER_TEMP 'r25c74f-full-app') 'ktrade.exe'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c74f-browser.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=5m -run '^TestR25C74DPackagedRealBrowserChartGestures$' ./cmd/ktrade *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log -TotalCount 90 | ForEach-Object {Write-Host $_}
+            throw 'R25_C74F_REAL_GESTURES_OR_WORKSPACE_RESTORE_FAILED'
+          }
+          Write-Host 'R25_C74F_ORIGINAL_CANVAS_ZOOM_PAN_AND_TIMEFRAME=PASS'
+          Write-Host 'R25_C74F_DISPOSABLE_BROWSER_PROFILE_RESTART_RESTORE=PASS'
+          Write-Host 'R25_C74F_VERIFIED_CANDLE_SOURCE_NO_LIVE_ORDER=PASS'
+          Write-Host 'R25_C74F_OWNER_ACCOUNT_DATA_USED=FALSE'
+      - name: Verify no tracked mutation and clean private logs
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if(Test-Path -LiteralPath $root -PathType Container){
+            Push-Location $root
+            try{
+              if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+                 @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+                throw 'R25_C74F_SOURCE_MUTATED'
+              }
+            }finally{Pop-Location}
+          }
+          foreach($name in @('r25c74f-focused.log','r25c74f-build.log','r25c74f-browser.log')){
+            $file=Join-Path $env:RUNNER_TEMP $name
+            if(Test-Path -LiteralPath $file){Remove-Item -LiteralPath $file -Force}
+          }
+          Write-Host 'R25_C74F_SOURCE_CLEAN=PASS'
+          Write-Host 'R25_C74F_PRIVATE_ARTIFACT_UPLOAD=FALSE'
+          Write-Host 'R25_C74F_PRODUCTION_RELEASE_AND_BROKER=FALSE'
