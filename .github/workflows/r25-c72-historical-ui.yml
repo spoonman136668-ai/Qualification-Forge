@@ -132,7 +132,7 @@ jobs:
           Write-Host 'R25_C72_AUTHENTIC_FULL_KTRADE_BUILD=PASS'
           Write-Host 'R25_C72_HISTORICAL_VIEW_PACKAGED_WITH_CHART=PASS'
           Write-Host 'R25_C72_PRODUCTION_INSTALLED_OR_RESTARTED=FALSE'
-      - name: Launch the actual isolated ktrade.exe and verify historical PnL from synthetic custody
+      - name: Start authentic isolated KTRADE executable against synthetic historical custody
         shell: pwsh
         working-directory: source
         run: |
@@ -142,31 +142,7 @@ jobs:
             throw 'R25_C72_PACKAGED_EXE_MISSING'
           }
           $log=Join-Path $env:RUNNER_TEMP 'r25c72-e2e-private.log'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=2m -run '^TestR25C72PackagedFullApplicationStartupAndHistoricalPnL
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
-          if(Test-Path -LiteralPath $root -PathType Container){
-            Push-Location $root
-            try{
-              if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
-                 @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
-                throw 'R25_C72_SOURCE_MUTATED'
-              }
-            }finally{Pop-Location}
-          }
-          foreach($file in @('r25c72-focused-private.log','r25c72-build-private.log','r25c72-e2e-private.log')){
-            $path=Join-Path $env:RUNNER_TEMP $file
-            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force}
-          }
-          Write-Host 'R25_C72_TRACKED_SOURCE_UNCHANGED=PASS'
-          Write-Host 'R25_C72_REAL_OWNER_FINANCIAL_DATA_READ=FALSE'
-          Write-Host 'R25_C72_PRIVATE_ARTIFACT_UPLOAD=FALSE'
-          Write-Host 'R25_C72_APP_AUTORESTART_ORDER_OR_BROKER_ACCESS=FALSE'
-          Write-Host 'R25_C72_MIGRATION_AND_RELEASE_AUTHORIZED=FALSE'
- ./cmd/ktrade *> $log
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=2m -run '^TestR25C72PackagedFullApplicationStartupAndHistoricalPnL$' ./cmd/ktrade *> $log
           if($LASTEXITCODE -ne 0){
             Get-Content -LiteralPath $log -TotalCount 65 | ForEach-Object {Write-Host $_}
             throw 'R25_C72_PACKAGED_REAL_PROCESS_HTTP_INTEGRATION_FAILED'
@@ -191,7 +167,7 @@ jobs:
               }
             }finally{Pop-Location}
           }
-          foreach($file in @('r25c72-focused-private.log','r25c72-build-private.log')){
+          foreach($file in @('r25c72-focused-private.log','r25c72-build-private.log','r25c72-e2e-private.log')){
             $path=Join-Path $env:RUNNER_TEMP $file
             if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force}
           }
