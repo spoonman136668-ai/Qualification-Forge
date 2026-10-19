@@ -1,0 +1,354 @@
+name: G41 compiler-typed package initializer call qualification
+on:
+  push:
+    branches: [qualification/g41-package-initializers-20261019]
+    paths: [.github/workflows/g41-package-initializers-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: g41-package-initializers-20261019
+  cancel-in-progress: false
+jobs:
+  qualification:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      SOURCE: 'e412d13b14c35a01ae215d492ffbb7805fa0073d'
+      TREE: '4265a29063c1dc42efdcf355086897a2e63c9332'
+      BASE: '780723e87e51e6595634a708ad740d0cfc36316d'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout exact private source without retained credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: e412d13b14c35a01ae215d492ffbb7805fa0073d
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact source and narrow three-file tooling delta
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'G41_UNSAFE_PLATFORM_OR_AUTHORITY'
+          }
+          if((git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G41_SOURCE_DRIFT'}
+          $expected=@(
+            'tools/graphify/g35_typecalls/main.go',
+            'tools/graphify/g35_typecalls/g41_initializers_test.go',
+            'tools/graphify/g35_typecalls/G41.md'
+          )|Sort-Object
+          $actual=@(git diff --name-only $env:BASE $env:SOURCE)|Sort-Object
+          if($actual.Count -ne 3 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G41_SCOPE_DRIFT'}
+          $srcMod=(git rev-parse ($env:SOURCE+':go.mod')).Trim()
+          $baseMod=(git rev-parse ($env:BASE+':go.mod')).Trim()
+          if($srcMod -cne $baseMod){throw 'G41_GO_MOD_DRIFT'}
+          if((git rev-parse ($env:SOURCE+':go.sum')).Trim() -cne '69585a34b570b18b077a232985e0bd116adaecd3'){
+            throw 'G41_GO_SUM_DRIFT'
+          }
+          $g35files=@('tools/graphify/g35_typecalls/main_test.go','tools/graphify/g35_typecalls/README.md',
+            'tools/graphify/g35_typecalls/sqlite_external.go','tools/graphify/g35_typecalls/sqlite_external_test.go',
+            'tools/graphify/g35_typecalls/g39_closure_test.go','tools/graphify/g35_typecalls/G39.md')
+          foreach($f in $g35files){
+            if((git rev-parse ($env:BASE+':'+$f)).Trim() -cne (git rev-parse ($env:SOURCE+':'+$f)).Trim()){
+              throw 'G41_UNCHANGED_G35_FOUNDATION_DRIFT'
+            }
+          }
+          Write-Host 'G41_EXACT_THREE_TOOLING_FILES_ONLY=PASS'
+      - name: Use frozen Go 1.23 Windows toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Authenticate pinned SQLite module in disposable Go cache
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=& go mod download -json github.com/mattn/go-sqlite3@v1.14.18 | ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $p.Path -cne 'github.com/mattn/go-sqlite3' -or
+             $p.Version -cne 'v1.14.18' -or
+             $p.Sum -cne 'h1:JL0eqdCOq6DJVNPSvArO/bIV9/P7fbGrV00LZHc+5aI=' -or
+             $p.GoModSum -cne 'h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S2DGjv9HUNg='){
+            throw 'G41_SQLITE_GO_MODULE_AUTH_FAILURE'
+          }
+          & go mod verify
+          if($LASTEXITCODE -ne 0){throw 'G41_DEPENDENCY_CACHE_VERIFY_FAILED'}
+          Write-Host 'G41_SQLITE_EXACT_MODULE_SOURCE_VERIFIED=PASS'
+      - name: Qualify bounded new compiler concurrency and affected tool interfaces
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $v=(& go version)
+          if($LASTEXITCODE -ne 0 -or $v -cne 'go version go1.23.12 windows/amd64'){
+            throw 'G41_TOOLCHAIN_DRIFT'
+          }
+          # Source changed at SQLite compiler-concurrency boundary; never reuse
+          # focused evidence from the previous, different SHA.
+          & go test -mod=readonly -count=1 ./tools/graphify/g35_typecalls ./internal/paperauthority ./internal/paperapp
+          if($LASTEXITCODE -ne 0){throw 'G41_FOCUSED_TEST_FAILURE'}
+          & go vet -mod=readonly ./tools/graphify/g35_typecalls ./internal/paperauthority ./internal/paperapp
+          if($LASTEXITCODE -ne 0){throw 'G41_VET_FAILURE'}
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g41.exe') ./tools/graphify/g35_typecalls
+          if($LASTEXITCODE -ne 0){throw 'G41_BUILD_FAILURE'}
+          Write-Host 'G41_NEW_SHA_FOCUSED_TEST_VET_BUILD=PASS'
+      - name: Measure bounded authenticated type-resolution experiment
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=Join-Path $env:RUNNER_TEMP ('g41-private-'+$env:GITHUB_RUN_ID+'.json')
+          if(Test-Path -LiteralPath $raw){throw 'G41_RAW_COLLISION'}
+          $exe=Join-Path $env:RUNNER_TEMP 'g41.exe'
+          $psi=[System.Diagnostics.ProcessStartInfo]::new($exe)
+          $psi.WorkingDirectory=(Get-Location).Path
+          $psi.UseShellExecute=$false
+          $psi.RedirectStandardOutput=$true
+          $psi.RedirectStandardError=$true
+          [void]$psi.ArgumentList.Add('--repo=.')
+          [void]$psi.ArgumentList.Add(('--base='+$env:BASE))
+          [void]$psi.ArgumentList.Add(('--source='+$env:SOURCE))
+          [void]$psi.ArgumentList.Add('--packages=internal/paperauthority,internal/paperapp')
+          [void]$psi.ArgumentList.Add(('--out='+$raw))
+          if($psi.ArgumentList.Count -ne 5){throw 'G41_ARGUMENT_VECTOR_FAILED'}
+          # A Windows Job Object constrains all descendants (including
+          # go list, compile and cgo) to the existing 512 MiB budget, and
+          # accounts CPU across exited child processes. No increased limits.
+          $jobCSharp=@'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class G41ProcessTreeBudget {
+            [StructLayout(LayoutKind.Sequential)] public struct BasicLimit {
+              public long PerProcessUserTimeLimit, PerJobUserTimeLimit;
+              public uint LimitFlags;
+              public UIntPtr MinimumWorkingSetSize, MaximumWorkingSetSize;
+              public uint ActiveProcessLimit;
+              public UIntPtr Affinity;
+              public uint PriorityClass, SchedulingClass;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct IoCounters {
+              public ulong ReadOperations, WriteOperations, OtherOperations;
+              public ulong ReadBytes, WriteBytes, OtherBytes;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct ExtendedLimit {
+              public BasicLimit BasicLimitInformation;
+              public IoCounters IoInfo;
+              public UIntPtr ProcessMemoryLimit, JobMemoryLimit;
+              public UIntPtr PeakProcessMemoryUsed, PeakJobMemoryUsed;
+            }
+            [StructLayout(LayoutKind.Sequential)] public struct Accounting {
+              public long TotalUserTime, TotalKernelTime;
+              public long ThisPeriodTotalUserTime, ThisPeriodTotalKernelTime;
+              public uint TotalPageFaultCount, TotalProcesses;
+              public uint ActiveProcesses, TotalTerminatedProcesses;
+            }
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern IntPtr CreateJobObject(IntPtr attributes, string name);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool SetInformationJobObject(IntPtr job,int kind,ref ExtendedLimit data,uint size);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool QueryInformationJobObject(IntPtr job,int kind,out ExtendedLimit data,uint size,out uint result);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool QueryInformationJobObject(IntPtr job,int kind,out Accounting data,uint size,out uint result);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool AssignProcessToJobObject(IntPtr job,IntPtr process);
+            [DllImport("kernel32.dll", SetLastError=true)]
+            static extern bool CloseHandle(IntPtr handle);
+            static Exception Fail(string s){return new InvalidOperationException(s+": "+Marshal.GetLastWin32Error());}
+            public static IntPtr Create(ulong limit){
+              IntPtr job=CreateJobObject(IntPtr.Zero,null);
+              if(job==IntPtr.Zero)throw Fail("G41_JOB_CREATE");
+              var x=new ExtendedLimit();
+              x.BasicLimitInformation.LimitFlags=0x00000200|0x00002000;
+              x.JobMemoryLimit=new UIntPtr(limit);
+              if(!SetInformationJobObject(job,9,ref x,(uint)Marshal.SizeOf<ExtendedLimit>())){
+                CloseHandle(job);throw Fail("G41_JOB_SET_LIMIT");
+              }
+              return job;
+            }
+            public static void Attach(IntPtr job,IntPtr process){
+              if(!AssignProcessToJobObject(job,process))throw Fail("G41_JOB_ATTACH");
+            }
+            public static double[] Read(IntPtr job){
+              ExtendedLimit x;
+              Accounting a;
+              uint returned;
+              if(!QueryInformationJobObject(job,9,out x,(uint)Marshal.SizeOf<ExtendedLimit>(),out returned))
+                throw Fail("G41_JOB_MEMORY_READ");
+              if(!QueryInformationJobObject(job,1,out a,(uint)Marshal.SizeOf<Accounting>(),out returned))
+                throw Fail("G41_JOB_CPU_READ");
+              return new double[]{(a.TotalUserTime+a.TotalKernelTime)/10000.0,
+                  x.PeakJobMemoryUsed.ToUInt64(),a.TotalProcesses};
+            }
+            public static void Close(IntPtr job){if(job!=IntPtr.Zero)CloseHandle(job);}
+          }
+          '@
+          Add-Type -TypeDefinition $jobCSharp -ErrorAction Stop
+          $job=[G41ProcessTreeBudget]::Create([ulong]536870912)
+          $watch=[System.Diagnostics.Stopwatch]::StartNew()
+          $p=[System.Diagnostics.Process]::Start($psi)
+          if($null -eq $p){[G41ProcessTreeBudget]::Close($job);throw 'G41_EXEC_START_FAILURE'}
+          [G41ProcessTreeBudget]::Attach($job,$p.Handle)
+          $stdout=$p.StandardOutput.ReadToEndAsync()
+          $stderr=$p.StandardError.ReadToEndAsync()
+          $rss=[long]0
+          while(-not $p.HasExited){
+            try{$m=[long]$p.PeakWorkingSet64;if($m -gt $rss){$rss=$m}}catch{}
+            if($watch.Elapsed.TotalSeconds -gt 120){$p.Kill();throw 'G41_120_SECOND_WALL_LIMIT'}
+            Start-Sleep -Milliseconds 50
+          }
+          $p.WaitForExit()
+          $cpu=[long]$p.TotalProcessorTime.TotalMilliseconds
+          $treeMetrics=[G41ProcessTreeBudget]::Read($job)
+          [G41ProcessTreeBudget]::Close($job)
+          $treeCpuMs=[long][Math]::Ceiling($treeMetrics[0])
+          $treePeakBytes=[long]$treeMetrics[1]
+          $treeProcesses=[long]$treeMetrics[2]
+          Write-Host ('G41_JOB_OBSERVED_PROCESSES='+$treeProcesses)
+          Write-Host ('G41_JOB_OBSERVED_CPU_MS='+$treeCpuMs)
+          Write-Host ('G41_JOB_OBSERVED_PEAK_COMMIT='+$treePeakBytes)
+          if($treeProcesses -lt 2 -or $treeCpuMs -gt 120000 -or
+             $treePeakBytes -le 0 -or $treePeakBytes -gt 536870912){
+             throw 'G41_TREE_CPU_MEMORY_HARD_LIMIT_OR_ACCOUNTING_FAILED'
+          }
+          $out=$stdout.GetAwaiter().GetResult()
+          $err=$stderr.GetAwaiter().GetResult()
+          $watch.Stop()
+          if($p.ExitCode -ne 0){throw ('G41_GENERATOR_FAILED_'+$p.ExitCode+': '+$err)}
+          if($cpu -gt 120000 -or $rss -le 0 -or $rss -gt 536870912 -or
+             $watch.Elapsed.TotalSeconds -gt 120){throw 'G41_CPU_RSS_WALL_CAP'}
+          $d=Get-Content -LiteralPath $raw -Raw|ConvertFrom-Json
+          if($d.SourceCommit -cne $env:SOURCE -or $d.SourceTree -cne $env:TREE -or
+             $d.Schema -cne 'graphify.g41.type-checked-package-initializers.v1' -or
+             $d.CallSites -le 1003 -or $d.CallSites -gt 20000 -or
+             $d.PackageInitializerCallSites -lt 2 -or
+             ($d.CallSites - $d.PackageInitializerCallSites) -ne 1003 -or
+             $d.NestedClosureCallSites -ne 276 -or $d.ClosureStaticEdges -ne 220 -or
+             $d.SourceFileCount -gt 36 -or $d.SelectedSourceBytes -gt 3145728 -or
+             $d.CallSites -ne ($d.ResolvedDirect+$d.ResolvedConcreteMethods+$d.ResolvedExternal+$d.Unresolved) -or
+             @($d.TypeCheckedEdges).Count -ne ($d.CallSites-$d.Unresolved)){
+            throw 'G41_CONSERVATION_OR_SOURCE_BOUNDARY_FAILED'
+          }
+          $expected=@('ktrade/internal/paperauthority','ktrade/internal/paperapp')
+          foreach($pkg in $expected){if(@($d.Packages|Where-Object {$_.Package -ceq $pkg}).Count -ne 1){
+             throw ('G41_NEW_PACKAGE_ABSENT_'+$pkg)
+          }}
+          # Preserve the qualified G39 denominator. The two real 
+          # application init expressions are now counted once each.
+          $previewInit=@($d.TypeCheckedEdges|Where-Object {
+            $_.Caller -like 'ktrade/internal/paperapp::package_init@*' -and
+            $_.Callee -ceq 'regexp.MustCompile'
+          })
+          $authorityInit=@($d.TypeCheckedEdges|Where-Object {
+            $_.Caller -like 'ktrade/internal/paperauthority::package_init@*' -and
+            $_.Callee -ceq 'regexp.MustCompile'
+          })
+          $falseAlias=@($d.TypeCheckedEdges|Where-Object {
+            $_.Caller -like '*::package_init@*' -and
+            $_.Callee -like '*ErrRecoveryRequiresReview*'
+          })
+          $closureEdges=@($d.TypeCheckedEdges|Where-Object {
+            $_.Caller -like 'ktrade/internal/paperapp::closure@*' -and
+            $_.Callee -like 'ktrade/internal/paperauthority.*'
+          })
+          if($previewInit.Count -ne 1 -or $authorityInit.Count -ne 1 -or
+             $falseAlias.Count -ne 0 -or $d.PackageInitializerStaticEdges -lt 2 -or
+             $d.CrossPackageStaticEdges -lt 18 -or $d.SourceFileCount -ne 11 -or
+             $d.Unresolved -lt 206 -or $closureEdges.Count -lt 6){
+            throw 'G41_REAL_INITIALIZER_OR_FROZEN_G39_CONTROL_FAILED'
+          }
+          Write-Host ('G41_PAPERAPP_REGEXP_INITIALIZER='+$previewInit.Count)
+          Write-Host ('G41_PAPERAUTHORITY_REGEXP_INITIALIZER='+$authorityInit.Count)
+          Write-Host ('G41_NONCALL_ALIAS_FALSE_POSITIVES='+$falseAlias.Count)
+          Write-Host ('G41_PACKAGE_INITIALIZER_CALLS='+$d.PackageInitializerCallSites)
+          Write-Host ('G41_PACKAGE_INITIALIZER_STATIC='+$d.PackageInitializerStaticEdges)
+          Write-Host ('G41_G39_CLOSURE_EDGE_WITNESSES='+$closureEdges.Count)
+          Write-Host 'G41_G39_FROZEN_CONTROL=1003_CALLS_276_CLOSURE_220_CLOSURE_STATIC_18_CROSS_206_UNRESOLVED'
+          foreach($edge in $d.TypeCheckedEdges){
+            if($edge.Confidence -cne 'go_types_static_object'){throw 'G41_FABRICATED_CONFIDENCE'}
+          }
+          Write-Host ('G41_NEW_PACKAGE_CALL_SITES='+$d.CallSites)
+          Write-Host ('G41_STATIC_CROSS_PACKAGE_EDGES='+$d.CrossPackageStaticEdges)
+          Write-Host ('G41_UNRESOLVED='+$d.Unresolved)
+          Write-Host ('G41_SOURCE_FILE_COUNT='+$d.SourceFileCount)
+          Write-Host ('G41_PROCESS_CPU_MS='+$cpu)
+          Write-Host ('G41_PROCESS_RSS_BYTES='+$rss)
+          Write-Host ('G41_WALL_MS='+([long]$watch.Elapsed.TotalMilliseconds))
+          Write-Host ('G41_TREE_PROCESS_COUNT='+$treeProcesses)
+          Write-Host ('G41_TREE_TOTAL_CPU_MS='+$treeCpuMs)
+          Write-Host ('G41_TREE_PEAK_COMMITTED_BYTES='+$treePeakBytes)
+          Write-Host 'G41_WINDOWS_JOB_MEMORY_LIMIT_512M=ENFORCED'
+          Write-Host 'G41_PINNED_SQLITE_BOUNDARY_QUALIFIED=PASS'
+          $receipt=[ordered]@{
+            schema='graphify.g41.package-initializer-qualified.v1'
+            source_sha=$env:SOURCE; source_tree=$env:TREE; source_parent=$env:BASE
+            runner_workflow_sha=$env:GITHUB_SHA; run_id=$env:GITHUB_RUN_ID
+            sqlite_module='github.com/mattn/go-sqlite3'; sqlite_version='v1.14.18'
+            sqlite_sum='h1:JL0eqdCOq6DJVNPSvArO/bIV9/P7fbGrV00LZHc+5aI='
+            selected_packages=$d.SelectedPackages
+            source_files=$d.SourceFileCount; source_bytes=$d.SelectedSourceBytes
+            call_sites=$d.CallSites; static_cross_package=$d.CrossPackageStaticEdges
+            nested_closure_sites=$d.NestedClosureCallSites
+            closure_static_edges=$d.ClosureStaticEdges
+            initializer_sites=$d.PackageInitializerCallSites
+            initializer_static_edges=$d.PackageInitializerStaticEdges
+            paperapp_initializer_witnesses=$previewInit.Count
+            paperauthority_initializer_witnesses=$authorityInit.Count
+            noncall_alias_false_positives=$falseAlias.Count
+            g39_paperapp_to_authority_closure_edges=$closureEdges.Count
+            frozen_g39_calls=1003; frozen_g39_closure_sites=276
+            frozen_g39_closure_edges=220; frozen_g39_unknown=206; frozen_g39_cross_package=18
+            unresolved=$d.Unresolved; cpu_ms=$cpu; rss_bytes=$rss
+            wall_ms=[long]$watch.Elapsed.TotalMilliseconds
+            process_tree_count=$treeProcesses
+            process_tree_total_cpu_ms=$treeCpuMs
+            process_tree_peak_committed_bytes=$treePeakBytes
+            process_tree_memory_cap_enforced=$true
+            private_report_sha256=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+            user_data_touched=$false; full_app_regression_repeated=$false
+            trading_or_release_authorized=$false; private_edges_uploaded=$false
+          }
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -ItemType Directory -Path $dir -Force|Out-Null
+          $receipt|ConvertTo-Json -Depth 7|Set-Content -LiteralPath (Join-Path $dir 'g41-sanitized.json') -Encoding utf8
+          Write-Host ('G41_SANITIZED_SHA256='+(Get-FileHash -LiteralPath (Join-Path $dir 'g41-sanitized.json') -Algorithm SHA256).Hash.ToLowerInvariant())
+      - name: Check immutable source and upload sanitized receipt only
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G41_POST_QUAL_SOURCE_MUTATION'}
+          Write-Host 'G41_SOURCE_IMMUTABLE=PASS'
+      - name: Upload sanitized qualification
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g41-sqlite-qualified-sanitized
+          path: evidence/g41-sanitized.json
+          retention-days: 90
+          if-no-files-found: error
+      - name: Remove private source and generated reports
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -LiteralPath $env:RUNNER_TEMP -File -Filter 'g41-*' -ErrorAction SilentlyContinue|Remove-Item -Force
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g41.exe') -Force -ErrorAction SilentlyContinue
+          if(Test-Path -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source')){throw 'G41_CLEANUP_FAILED'}
+          Write-Host 'G41_PRIVATE_CLEANUP=PASS'
