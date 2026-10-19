@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      SOURCE: '7119785a5650227c94f895bc1e0dec6d11a2237e'
-      TREE: '86997dbbfbbf1291ed25708b92fa46dea25fb619'
+      SOURCE: '9c39f4e1bc68e7a69dadeb66a981df53d47dedd5'
+      TREE: 'f293669d05e952613a936bb6057cc762711fc9f5'
       BASE: '5e34b0e8e32e43e7f93e82c931b008078a895100'
       GOFLAGS: '-p=1'
       GOMAXPROCS: '1'
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/KTRADE
-          ref: 7119785a5650227c94f895bc1e0dec6d11a2237e
+          ref: 9c39f4e1bc68e7a69dadeb66a981df53d47dedd5
           fetch-depth: 0
           path: source
           persist-credentials: false
@@ -58,13 +58,14 @@ jobs:
           $expected=@(
             'tools/graphify/g35_typecalls/main.go',
             'tools/graphify/g35_typecalls/g55_caller_receiver_test.go',
+            'tools/graphify/g35_typecalls/main_test.go',
             'tools/graphify/g35_typecalls/G55.md',
             'tools/graphify/g45_browser/main.go',
             'tools/graphify/g45_browser/g55_caller_validation_test.go',
             'tools/graphify/g45_browser/main_test.go'
           )|Sort-Object
           $actual=@(git diff --name-only $env:BASE $env:SOURCE)|Sort-Object
-          if($actual.Count -ne 6 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G55_SCOPE_DRIFT'}
+          if($actual.Count -ne 7 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G55_SCOPE_DRIFT'}
           $srcMod=(git rev-parse ($env:SOURCE+':go.mod')).Trim()
           $baseMod=(git rev-parse ($env:BASE+':go.mod')).Trim()
           if($srcMod -cne $baseMod){throw 'G55_GO_MOD_DRIFT'}
@@ -72,7 +73,6 @@ jobs:
             throw 'G55_GO_SUM_DRIFT'
           }
           $g35files=@(
-            'tools/graphify/g35_typecalls/main_test.go',
             'tools/graphify/g35_typecalls/sqlite_external.go',
             'tools/graphify/g35_typecalls/sqlite_external_test.go',
             'tools/graphify/g35_typecalls/g39_closure_test.go',
@@ -85,7 +85,7 @@ jobs:
               throw 'G55_UNCHANGED_G35_SUPPORT_DRIFT'
             }
           }
-          Write-Host 'G55_EXACT_SIX_GRAPHIFY_TOOLING_FILES_ONLY=PASS'
+          Write-Host 'G55_EXACT_SEVEN_GRAPHIFY_TOOLING_FILES_ONLY=PASS'
       - name: Use frozen Go 1.23 Windows toolchain
         uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
         with:
@@ -140,7 +140,7 @@ jobs:
           }
           $generatorBlob=(git rev-parse ($env:SOURCE+':tools/graphify/g35_typecalls/main.go')).Trim()
           $browserBlob=(git rev-parse ($env:SOURCE+':tools/graphify/g45_browser/main.go')).Trim()
-          if($generatorBlob -cne '21dc95878632b341ed8422e83ac3eccd9255ac37' -or
+          if($generatorBlob -cne '59d68200ea2a8deefd169baf35dce238965abba4' -or
              $browserBlob -cne '1c733b0a410f47388987d0963ddbcf3fd586a49d'){
              throw 'G55_QUALIFIED_GENERATOR_OR_BROWSER_BLOB_DRIFT'
           }
