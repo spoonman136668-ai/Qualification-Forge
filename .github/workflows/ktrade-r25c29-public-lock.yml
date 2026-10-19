@@ -1,0 +1,74 @@
+name: R25-C29 public npm dependency lock generation
+on:
+  push:
+    branches: [qualification/ktrade-r25c29-public-lock-20261018]
+    paths: [.github/workflows/ktrade-r25c29-public-lock.yml]
+permissions:
+  contents: write
+jobs:
+  lock:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Resolve public dependencies without private KTRADE checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qualification/r25c29-public-dependency-lock
+          cd qualification/r25c29-public-dependency-lock
+          cat > package.json <<'EOF'
+          {
+            "name": "ktrade",
+            "version": "1.0.0",
+            "license": "MIT",
+            "dependencies": {
+              "electron-log": "^5.0.0",
+              "electron-updater": "^6.1.0"
+            },
+            "devDependencies": {
+              "electron": "^28.0.0",
+              "electron-builder": "^24.9.0",
+              "cross-env": "^7.0.3",
+              "monaco-editor": "0.45.0",
+              "lightweight-charts": "4.1.0"
+            }
+          }
+          EOF
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
+          node - <<'NODE'
+          const fs=require('fs');
+          const lock=JSON.parse(fs.readFileSync('package-lock.json','utf8'));
+          const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));
+          if(lock.lockfileVersion!==3)throw Error('wrong lock version');
+          for(const [k,v] of Object.entries(pkg.dependencies))if(lock.packages[''].dependencies[k]!==v)throw Error('dependency mismatch');
+          for(const [k,v] of Object.entries(pkg.devDependencies))if(lock.packages[''].devDependencies[k]!==v)throw Error('dev dependency mismatch');
+          for(const [k,v] of [['monaco-editor','0.45.0'],['lightweight-charts','4.1.0']]){
+            if(lock.packages['node_modules/'+k].version!==v)throw Error('vendor locked version mismatch '+k);
+          }
+          if(!fs.existsSync('node_modules/monaco-editor/min/vs/loader.js')||!fs.existsSync('node_modules/lightweight-charts/dist/lightweight-charts.standalone.production.js'))throw Error('offline assets absent');
+          for(const [key,p] of Object.entries(lock.packages)){if(p.resolved&&!/^https:\/\/registry\.npmjs\.org\//.test(p.resolved))throw Error('non-public package source '+key);}
+          console.log('R25C29_PUBLIC_ONLY_DEPENDENCY_LOCK=PASS');
+          console.log('R25C29_NODE_MODULES_OFFLINE_ASSETS=PASS');
+          NODE
+          sha256sum package-lock.json
+          rm -rf node_modules package.json
+      - name: Commit public-only dependency lock to isolated qualification branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git branch --show-current)" = "qualification/ktrade-r25c29-public-lock-20261018"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add qualification/r25c29-public-dependency-lock/package-lock.json
+          git diff --cached --name-only | grep -x 'qualification/r25c29-public-dependency-lock/package-lock.json'
+          git commit -m 'R25-C29: freeze public npm dependency integrity manifest'
+          git push origin HEAD:qualification/ktrade-r25c29-public-lock-20261018
+          echo 'R25C29_PUBLIC_LOCK_COMMITTED=PASS'
