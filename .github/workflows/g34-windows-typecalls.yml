@@ -1,0 +1,184 @@
+name: G34 bounded type-aware call qualification
+on:
+  push:
+    branches: [qualification/g34-type-aware-20261019]
+    paths: [.github/workflows/g34-windows-typecalls.yml]
+permissions:
+  contents: read
+concurrency:
+  group: g34-typeaware-windows-20261019
+  cancel-in-progress: false
+jobs:
+  qualification:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      G34_SOURCE: '78a35f0744b6eba8288e6ce003f42972c7b07f81'
+      G34_TREE: '4294125ab15094f5b77c5d7edbd1b535b969c823'
+      G34_BASE: '2e3f3f02850fa0733d4a854ff7544d7867251ff9'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Checkout private exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/KTRADE
+          ref: 78a35f0744b6eba8288e6ce003f42972c7b07f81
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source and scope
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'G34_UNSAFE_PLATFORM_OR_AUTHORITY'
+          }
+          if((git rev-parse HEAD).Trim() -cne $env:G34_SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:G34_TREE){throw 'G34_SOURCE_DRIFT'}
+          $expected=@('tools/graphify/g34_typecalls/README.md','tools/graphify/g34_typecalls/main.go','tools/graphify/g34_typecalls/main_test.go')|Sort-Object
+          $actual=@(git diff --name-only $env:G34_BASE $env:G34_SOURCE)|Sort-Object
+          if($actual.Count -ne 3 -or @(Compare-Object $expected $actual).Count -ne 0){throw 'G34_DELTA_SCOPE_DRIFT'}
+          if(@(git status --porcelain).Count -ne 0){throw 'G34_CHECKOUT_DIRTY'}
+          Write-Host 'G34_EXACT_THREE_TOOLING_FILES_ONLY=PASS'
+      - name: Install existing Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.x'
+          cache: false
+      - name: Qualify typed and adversarial synthetic controls
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -v ./tools/graphify/g34_typecalls
+          if($LASTEXITCODE -ne 0){throw 'G34_FOCUSED_TEST_FAILED'}
+          & go vet -mod=readonly ./tools/graphify/g34_typecalls
+          if($LASTEXITCODE -ne 0){throw 'G34_FOCUSED_VET_FAILED'}
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g34.exe') ./tools/graphify/g34_typecalls
+          if($LASTEXITCODE -ne 0){throw 'G34_BUILD_FAILED'}
+          Write-Host 'G34_POSITIVE_NEGATIVE_TESTS_VET_BUILD=PASS'
+      - name: Run real Go typechecker with bounded Windows memory and CPU
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=Join-Path $env:RUNNER_TEMP ('g34-private-'+$env:GITHUB_RUN_ID+'.json')
+          $std=Join-Path $env:RUNNER_TEMP 'g34-stdout.txt'
+          $err=Join-Path $env:RUNNER_TEMP 'g34-stderr.txt'
+          $argsList=@('--repo=.','--base='+$env:G34_BASE,'--source='+$env:G34_SOURCE,'--packages=tools/graphify/g33_atlas,tools/graphify/g32_delta','--out='+$raw)
+          $sw=[System.Diagnostics.Stopwatch]::StartNew()
+          $proc=Start-Process -FilePath (Join-Path $env:RUNNER_TEMP 'g34.exe') -ArgumentList $argsList -Wait -PassThru -NoNewWindow -RedirectStandardOutput $std -RedirectStandardError $err
+          $sw.Stop()
+          if($proc.ExitCode -ne 0){
+            Get-Content -LiteralPath $err -ErrorAction SilentlyContinue
+            throw ('G34_TYPED_SOURCE_RUN_FAILED_'+$proc.ExitCode)
+          }
+          if(-not(Test-Path -LiteralPath $raw)){throw 'G34_TYPED_REPORT_MISSING'}
+          $peak=[long]$proc.PeakWorkingSet64
+          if($peak -le 0 -or $peak -gt 536870912){throw ('G34_UNVERIFIED_OR_OVER_512MB_RSS_'+$peak)}
+          if($sw.Elapsed.TotalSeconds -gt 120){throw 'G34_120_SECOND_BUDGET_EXCEEDED'}
+          Get-Content -LiteralPath $std
+          Write-Host ('G34_WINDOWS_PEAK_WORKING_SET_BYTES='+$peak)
+          Write-Host ('G34_WINDOWS_WALL_TIME_MS='+([long]$sw.Elapsed.TotalMilliseconds))
+          Write-Host 'G34_REAL_TYPECHECK_WITHIN_COST_BOUND=PASS'
+      - name: Seal sanitized type resolution evidence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $raw=Join-Path $env:RUNNER_TEMP ('g34-private-'+$env:GITHUB_RUN_ID+'.json')
+          $d=Get-Content -LiteralPath $raw -Raw|ConvertFrom-Json
+          if($d.Schema -cne 'graphify.g34.type-checked-calls.v1' -or
+             $d.SourceCommit -cne $env:G34_SOURCE -or $d.SourceTree -cne $env:G34_TREE -or
+             $d.BaseCommit -cne $env:G34_BASE -or
+             @($d.SelectedPackages).Count -ne 2 -or
+             $d.SelectedPackages[0] -cne 'tools/graphify/g33_atlas' -or
+             $d.SelectedPackages[1] -cne 'tools/graphify/g32_delta' -or
+             $d.SourceFileCount -lt 2 -or $d.SourceFileCount -gt 36 -or
+             $d.SelectedSourceBytes -gt 3145728 -or
+             $d.CallSites -le 0 -or $d.CallSites -gt 20000 -or
+             $d.ResolvedConcreteMethods -le 0 -or
+             $d.G33SyntacticCandidates -le 0 -or
+             @($d.TypeCheckedEdges).Count -ne ($d.CallSites - $d.Unresolved) -or
+             $d.CallSites -ne ($d.ResolvedDirect + $d.ResolvedConcreteMethods + $d.ResolvedExternal + $d.Unresolved) -or
+             $d.PeakGoAllocSysBytes -gt 536870912 -or $d.ElapsedMillis -gt 120000){
+            throw 'G34_TYPEAWARE_COVERAGE_OR_COST_INVARIANT_FAILED'
+          }
+          foreach($edge in $d.TypeCheckedEdges){
+            if($edge.Confidence -cne 'go_types_static_object'){throw 'G34_UNSUPPORTED_EDGE_CONFIDENCE'}
+          }
+          $hash=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
+          $receipt=[ordered]@{
+            schema='graphify.g34.type-checked.calls.qualification.v1'
+            source_sha=$env:G34_SOURCE
+            source_tree=$env:G34_TREE
+            base_sha=$env:G34_BASE
+            qualification_workflow_commit=$env:GITHUB_SHA
+            qualification_run_id=$env:GITHUB_RUN_ID
+            selected_packages=$d.SelectedPackages
+            selected_source_files=$d.SourceFileCount
+            selected_source_bytes=$d.SelectedSourceBytes
+            same_scope_g33_syntax_candidates=$d.G33SyntacticCandidates
+            total_call_sites=$d.CallSites
+            typed_direct=$d.ResolvedDirect
+            typed_concrete_methods=$d.ResolvedConcreteMethods
+            typed_external=$d.ResolvedExternal
+            unresolved=$d.Unresolved
+            shadowed_syntax_candidates=$d.ShadowedSyntacticCandidates
+            allocator_sys_bytes=$d.PeakGoAllocSysBytes
+            generator_wall_ms=$d.ElapsedMillis
+            raw_private_report_sha256=$hash
+            raw_private_report_uploaded=$false
+            full_regression_replayed=$false
+            live_trading_authorized=$false
+          }
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
+          New-Item -Path $dir -ItemType Directory -Force|Out-Null
+          $file=Join-Path $dir 'g34-sanitized-receipt.json'
+          $receipt|ConvertTo-Json -Depth 5|Set-Content -LiteralPath $file -Encoding utf8
+          $digest=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+          ($digest+'  g34-sanitized-receipt.json')|Set-Content -LiteralPath (Join-Path $dir 'g34-sanitized-receipt.sha256') -Encoding ascii
+          Write-Host ('G34_SANITIZED_RECEIPT_SHA256='+$digest)
+          Write-Host ('G34_MATCHED_SCOPE_TYPED_DIRECT='+$d.ResolvedDirect)
+          Write-Host ('G34_MATCHED_SCOPE_TYPED_CONCRETE_METHODS='+$d.ResolvedConcreteMethods)
+          Write-Host ('G34_MATCHED_SCOPE_UNRESOLVED='+$d.Unresolved)
+          Write-Host 'G34_PRIVACY_SAFE_TYPE_RESOLUTION_SEAL=PASS'
+      - name: Verify checkout remained immutable
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((git rev-parse HEAD).Trim() -cne $env:G34_SOURCE -or
+             (git rev-parse 'HEAD^{tree}').Trim() -cne $env:G34_TREE -or
+             @(git status --porcelain).Count -ne 0){throw 'G34_POST_CHECK_SOURCE_MUTATED'}
+          Write-Host 'G34_SOURCE_UNMODIFIED=PASS'
+      - name: Upload sanitized proof only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: g34-typeaware-sanitized-qualification
+          path: |
+            evidence/g34-sanitized-receipt.json
+            evidence/g34-sanitized-receipt.sha256
+          retention-days: 90
+          if-no-files-found: error
+      - name: Remove private checkout and raw type report
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -LiteralPath $env:RUNNER_TEMP -File -Filter 'g34-*' -ErrorAction SilentlyContinue|Remove-Item -Force
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g34.exe') -Force -ErrorAction SilentlyContinue
+          if(Test-Path -LiteralPath $root){throw 'G34_SOURCE_CLEANUP_FAILED'}
+          Write-Host 'G34_PRIVATE_SOURCE_AND_RAW_REPORT_CLEAN=PASS'
