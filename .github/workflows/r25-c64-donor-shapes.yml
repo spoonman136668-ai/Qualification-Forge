@@ -1,0 +1,131 @@
+name: R25-C64 donor-shaped historical state compatibility on hosted Windows
+on:
+  push:
+    branches: [qualification/r25-c64-donor-shapes-20261019]
+    paths: [.github/workflows/r25-c64-donor-shapes.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c64-hosted-donor-shapes
+  cancel-in-progress: false
+jobs:
+  compatibility:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      SOURCE: 'd05d8c36d62bd6cb30e9ba6dea0213dc39ace73c'
+      TREE: '4c8376c6afc1bf7bff60f3cd85ffeb88b9f2f320'
+      BASE: '9e994de60e1aec5e4698665d367f2e1a398583be'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Reject local runner and privileged execution
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+              $env:RUNNER_OS -cne 'Windows' -or
+              $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+              $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'R25_C64_NOT_HOSTED_OR_PAPER_ONLY'
+          }
+          Write-Host 'R25_C64_GITHUB_HOSTED_WINDOWS=PASS'
+          Write-Host 'R25_C64_FORGE_LOCAL_RUNNER_USED=FALSE'
+      - name: Checkout frozen KTRADE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: d05d8c36d62bd6cb30e9ba6dea0213dc39ace73c
+          path: source
+          persist-credentials: false
+          fetch-depth: 0
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact two-file change and preserved predecessor
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $head=(& git rev-parse HEAD).Trim()
+          $tree=(& git rev-parse 'HEAD^{tree}').Trim()
+          if($head -cne $env:SOURCE -or $tree -cne $env:TREE -or
+             @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+            throw 'R25_C64_SOURCE_IDENTITY_DRIFT'
+          }
+          $want=@(
+            'internal/durableupgrade/historical_document_shape.go',
+            'internal/durableupgrade/historical_document_shape_test.go'
+          )|Sort-Object
+          $got=@(& git diff --name-only $env:BASE $env:SOURCE | Sort-Object)
+          if($got.Count -ne 2 -or @(Compare-Object $want $got).Count -ne 0){
+            throw 'R25_C64_UNQUALIFIED_SOURCE_SCOPE'
+          }
+          foreach($path in @(
+            'internal/durableupgrade/durable_upgrade.go',
+            'internal/durableupgrade/selected_recovery_portability.go',
+            'internal/durableupgrade/selected_custody_admission.go',
+            'cmd/ktrade/main_full.go'
+          )){
+            if ((& git rev-parse ($env:BASE+':'+$path)).Trim() -cne
+                (& git rev-parse ($env:SOURCE+':'+$path)).Trim()) {
+              throw 'R25_C64_EXISTING_SOURCE_CHANGED'
+            }
+          }
+          Write-Host 'R25_C64_TWO_FILE_DELTA_PINNED=PASS'
+          Write-Host 'R25_C64_DURABLE_MIGRATION_UNCHANGED=PASS'
+          Write-Host 'R25_C64_FULL_APPLICATION_ROUTES_UNCHANGED=PASS'
+      - name: Frozen Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.12'
+          cache: false
+      - name: Focused C64 tests against donor-shaped synthetic JSON
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c64-private-go.log'
+          & go test -mod=readonly -count=1 -run '^TestR25C64' ./internal/durableupgrade *> $log
+          if($LASTEXITCODE -ne 0) {throw 'R25_C64_FOCUSED_TEST_FAILED'}
+          & go vet -mod=readonly ./internal/durableupgrade ./cmd/ktrade-custody-review *> $log
+          if($LASTEXITCODE -ne 0) {throw 'R25_C64_VET_FAILED'}
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'r25c64-review.exe') ./cmd/ktrade-custody-review *> $log
+          if($LASTEXITCODE -ne 0) {throw 'R25_C64_CUSTODY_REVIEW_BUILD_FAILED'}
+          Write-Host 'R25_C64_SYNTHETIC_STRATEGY_SETTINGS_STATE=PASS'
+          Write-Host 'R25_C64_SYNTHETIC_FIFO_FEES_RECEIPT_SHAPE=PASS'
+          Write-Host 'R25_C64_TYPED_TRADING_PAIRS_CONTRACT=PASS'
+          Write-Host 'R25_C64_DUPLICATE_KEYS_BAD_SCHEMA_MONEY_REJECTED=PASS'
+          Write-Host 'R25_C64_FOCUSED_TEST_VET_BUILD=PASS'
+          Write-Host 'R25_C64_DONOR_LEDGER_VALIDATORS_EXECUTED=FALSE'
+          Write-Host 'R25_C64_REAL_HISTORICAL_VALUES_PROCESSED=FALSE'
+          Write-Host 'R25_C64_REAL_PNL_RECONCILED=FALSE'
+          Write-Host 'R25_C64_HISTORICAL_APP_RECOVERY=UNQUALIFIED'
+          Write-Host 'R25_C64_MIGRATION_AUTHORIZED=FALSE'
+          Write-Host 'R25_C64_RELEASE_AUTHORIZED=FALSE'
+      - name: Final source immutability and private-log disposal
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $repo=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if(Test-Path -LiteralPath $repo -PathType Container){
+            Push-Location $repo
+            try{
+              if((& git rev-parse HEAD).Trim() -cne $env:SOURCE -or
+                 @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) {
+                throw 'R25_C64_SOURCE_AFTER_TEST_DRIFT'
+              }
+            }finally{Pop-Location}
+          }
+          $log=Join-Path $env:RUNNER_TEMP 'r25c64-private-go.log'
+          if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
+          Write-Host 'R25_C64_TRACKED_SOURCE_UNCHANGED=PASS'
+          Write-Host 'R25_C64_ORIGINAL_FILES_UNTOUCHED=PASS'
+          Write-Host 'R25_C64_PRIVATE_USER_DATA_UPLOAD=FALSE'
