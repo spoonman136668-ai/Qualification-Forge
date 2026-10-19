@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      G34_SOURCE: '78a35f0744b6eba8288e6ce003f42972c7b07f81'
-      G34_TREE: '4294125ab15094f5b77c5d7edbd1b535b969c823'
+      G34_SOURCE: '4082191a62382dfe7d9e8adf604c8893759faf2e'
+      G34_TREE: 'a10092e88ab11797acce843ef7927afffa807ba9'
       G34_BASE: '2e3f3f02850fa0733d4a854ff7544d7867251ff9'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/KTRADE
-          ref: 78a35f0744b6eba8288e6ce003f42972c7b07f81
+          ref: 4082191a62382dfe7d9e8adf604c8893759faf2e
           fetch-depth: 0
           path: source
           persist-credentials: false
@@ -67,7 +67,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'G34_FOCUSED_VET_FAILED'}
           & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g34.exe') ./tools/graphify/g34_typecalls
           if($LASTEXITCODE -ne 0){throw 'G34_BUILD_FAILED'}
-          Write-Host 'G34_POSITIVE_NEGATIVE_TESTS_VET_BUILD=PASS'
+          Write-Host 'G34_FIVE_POSITIVE_NEGATIVE_TESTS_VET_BUILD=PASS'
       - name: Run real Go typechecker with bounded Windows memory and CPU
         shell: pwsh
         working-directory: source
