@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 30
     env:
-      SOURCE: '99b0067a91d37e0a7093826a537dca5cd8040917'
-      TREE: '35325ee9c6a800cc4e5873d06f7b3f2b3b668f08'
+      SOURCE: '9e994de60e1aec5e4698665d367f2e1a398583be'
+      TREE: 'd6840dc56f74fc23692797b0fe5f5ad1c56a8da5'
       BASE: '3dd0c45f0e480af02f4d5f746c8d0ca7eccbbab6'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -38,7 +38,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 99b0067a91d37e0a7093826a537dca5cd8040917
+          ref: 9e994de60e1aec5e4698665d367f2e1a398583be
           fetch-depth: 0
           persist-credentials: false
           path: source
@@ -97,7 +97,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $sandbox=Join-Path ([IO.Path]::GetTempPath()) ('ktrade-r25c60-synthetic-'+$env:GITHUB_RUN_ID)
+          $sandbox=Join-Path $env:RUNNER_TEMP ('ktrade-r25c60-synthetic-'+$env:GITHUB_RUN_ID)
           if(Test-Path -LiteralPath $sandbox){throw 'R25_C60_SYNTHETIC_TEMP_COLLISION'}
           $null=New-Item -ItemType Directory -Path $sandbox
           try{
