@@ -368,8 +368,8 @@ jobs:
           if($htmlBytes -le 1024 -or $htmlBytes -gt 25165824){throw 'G45_PRIVATE_HTML_SIZE_BOUNDARY'}
           $privateHtml=(Get-Content -LiteralPath $htmlPath -Raw)
           if(-not $privateHtml.Contains('Content-Security-Policy') -or
-             -not $privateHtml.Contains('connect-src &#39;none&#39;') -and
-             -not $privateHtml.Contains("connect-src 'none'") -or
+             (-not $privateHtml.Contains('connect-src &#39;none&#39;') -and
+              -not $privateHtml.Contains("connect-src 'none'")) -or
              -not $privateHtml.Contains('compiler-qualified') -or
              -not $privateHtml.Contains('::package_init@')){
              throw 'G45_PRIVATE_NAVIGATOR_SEMANTIC_BOUNDARY'
@@ -413,7 +413,7 @@ jobs:
             process_tree_memory_cap_enforced=$true
             private_report_sha256=(Get-FileHash -LiteralPath $raw -Algorithm SHA256).Hash.ToLowerInvariant()
             user_data_touched=$false; full_app_regression_repeated=$false
-            trading_or_release_authorized=$false; private_edges_uploaded=$false; private_html_uploaded=$false
+            trading_or_release_authorized=$false; private_edges_uploaded=$false
           }
           $dir=Join-Path $env:GITHUB_WORKSPACE 'evidence'
           New-Item -ItemType Directory -Path $dir -Force|Out-Null
