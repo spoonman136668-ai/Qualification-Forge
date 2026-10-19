@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 35
     env:
-      SOURCE_SHA: '7435a5e7bb8ec45b1cc3b748115bf87e04b88fd2'
-      SOURCE_TREE: '8e7061c6f39c2b8458cb6fe0db63a7cc90f406f1'
+      SOURCE_SHA: 'a69aeb38c45a7d20ef6a5b8063589513b59eb0f2'
+      SOURCE_TREE: '5c8725582c55a21b8e201963ded1c2bc33642423'
       BASE_SHA: '88e6ca18d7434c53da1f2fb3abcc7a8abec949ba'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 7435a5e7bb8ec45b1cc3b748115bf87e04b88fd2
+          ref: a69aeb38c45a7d20ef6a5b8063589513b59eb0f2
           fetch-depth: 0
           path: source
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
