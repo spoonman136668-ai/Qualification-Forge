@@ -101,12 +101,15 @@ try {
  if($pages.Count -eq 1 -and $pages[0] -is [array]){$pages=@($pages[0])}
  $matches=@($pages|Where-Object {$_.type -eq 'page' -and $_.webSocketDebuggerUrl})
  if($matches.Count -lt 1){throw 'G53_CDP_PAGE_NOT_DISCOVERED'}
- $endpoint=@($matches[0].webSocketDebuggerUrl)[0]
- if($endpoint -isnot [string] -or $endpoint -notmatch '^ws://127\\.0\\.0\\.1:[0-9]+/devtools/page/'){
+ $endpoint=[string](@($matches[0].webSocketDebuggerUrl)[0])
+ if(!$endpoint){throw 'G53_BROWSER_PAGE_WEBSOCKET_ENDPOINT_EMPTY'}
+ $wsUri=[Uri]::new($endpoint)
+ if($wsUri.Scheme -cne 'ws' -or $wsUri.Host -cne '127.0.0.1' -or
+   $wsUri.AbsolutePath -notlike '/devtools/page/*' -or $wsUri.Port -ne $port){
   throw 'G53_BROWSER_PAGE_WEBSOCKET_ENDPOINT_INVALID'
  }
  $script:ws=[System.Net.WebSockets.ClientWebSocket]::new()
- $script:ws.ConnectAsync([Uri]::new([string]$endpoint),$token).GetAwaiter().GetResult()
+ $script:ws.ConnectAsync($wsUri,$token).GetAwaiter().GetResult()
  [void](Invoke-G53CDP 'Page.enable')
  [void](Invoke-G53CDP 'Runtime.enable')
  $fileUri=([Uri]::new([System.IO.Path]::GetFullPath($PrivateHtml))).AbsoluteUri
