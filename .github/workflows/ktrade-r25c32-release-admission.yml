@@ -11,8 +11,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 15
     env:
-      SOURCE_SHA: '464f93a5d64c77af0c46636509dfa43a018a30f9'
-      SOURCE_TREE: 'd0431442598d21140ecf4dfdd9b755c864cb0988'
+      SOURCE_SHA: '8e135326572a5c5a7b1e78778bdbb5a16fb3fcf7'
+      SOURCE_TREE: 'f3cf628bd99014f80678884cc20d0dc5bfe915af'
       QUALIFIED_MAIN: 'ec4f6e67d4aec59c1682149015ffa5c53cd516b9'
       KTRADE_CI_COINBASE_ALLOWED: '0'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -24,8 +24,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 464f93a5d64c77af0c46636509dfa43a018a30f9
-          fetch-depth: 4
+          ref: 8e135326572a5c5a7b1e78778bdbb5a16fb3fcf7
+          fetch-depth: 5
           path: source
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
           persist-credentials: false
@@ -40,7 +40,7 @@ jobs:
              $env:KTRADE_RECOVERY_ISOLATED -cne '1'){throw 'R25C32_UNSAFE_QUALIFICATION'}
           if((& git -C $dir rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
              (& git -C $dir rev-parse 'HEAD^{tree}').Trim() -cne $env:SOURCE_TREE -or
-             (& git -C $dir rev-parse HEAD~3).Trim() -cne $env:QUALIFIED_MAIN -or
+             (& git -C $dir rev-parse HEAD~4).Trim() -cne $env:QUALIFIED_MAIN -or
              @(& git -C $dir status --porcelain).Count -ne 0){throw 'R25C32_SOURCE_IDENTITY_DRIFT'}
           $paths=@(& git -C $dir diff --name-only $env:QUALIFIED_MAIN HEAD|Sort-Object)
           $expected=@('docs/R25_C32_RELEASE_ADMISSION.md','scripts/Test-R25C32-ReleaseAdmission.ps1','tests/Test-R25C32-ReleaseAdmission.ps1')|Sort-Object
