@@ -219,6 +219,9 @@ jobs:
           $treeCpuMs=[long][Math]::Ceiling($treeMetrics[0])
           $treePeakBytes=[long]$treeMetrics[1]
           $treeProcesses=[long]$treeMetrics[2]
+          Write-Host ('G37_JOB_OBSERVED_PROCESSES='+$treeProcesses)
+          Write-Host ('G37_JOB_OBSERVED_CPU_MS='+$treeCpuMs)
+          Write-Host ('G37_JOB_OBSERVED_PEAK_COMMIT='+$treePeakBytes)
           if($treeProcesses -lt 2 -or $treeCpuMs -gt 120000 -or
              $treePeakBytes -le 0 -or $treePeakBytes -gt 536870912){
              throw 'G37_TREE_CPU_MEMORY_HARD_LIMIT_OR_ACCOUNTING_FAILED'
