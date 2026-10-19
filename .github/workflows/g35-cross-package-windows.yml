@@ -86,7 +86,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'G35_FOCUSED_TEST_FAILED'}
           & go vet -mod=readonly ./tools/graphify/g35_typecalls
           if($LASTEXITCODE -ne 0){throw 'G35_FOCUSED_VET_FAILED'}
-          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g34.exe') ./tools/graphify/g35_typecalls
+          & go build -mod=readonly -o (Join-Path $env:RUNNER_TEMP 'g35.exe') ./tools/graphify/g35_typecalls
           if($LASTEXITCODE -ne 0){throw 'G35_BUILD_FAILED'}
           Write-Host 'G35_SEVEN_POSITIVE_NEGATIVE_TESTS_VET_BUILD=PASS'
       - name: Run frozen G34-B control and prospective G35 source-bound closure
@@ -264,6 +264,6 @@ jobs:
           $root=Join-Path $env:GITHUB_WORKSPACE 'source'
           Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
           Get-ChildItem -LiteralPath $env:RUNNER_TEMP -File -Filter 'g35-*' -ErrorAction SilentlyContinue|Remove-Item -Force
-          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g34.exe') -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'g35.exe') -Force -ErrorAction SilentlyContinue
           if(Test-Path -LiteralPath $root){throw 'G35_SOURCE_CLEANUP_FAILED'}
           Write-Host 'G35_PRIVATE_SOURCE_AND_RAW_REPORT_CLEAN=PASS'
