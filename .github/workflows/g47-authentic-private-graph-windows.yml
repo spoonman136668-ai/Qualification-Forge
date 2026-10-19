@@ -130,11 +130,12 @@ jobs:
           }
           $generatorBlob=(git rev-parse ($env:SOURCE+':tools/graphify/g35_typecalls/main.go')).Trim()
           $browserBlob=(git rev-parse ($env:SOURCE+':tools/graphify/g45_browser/main.go')).Trim()
-          foreach($path in @('tools/graphify/g35_typecalls/main.go','tools/graphify/g45_browser/main.go')){
-            $sourceBlob=(git rev-parse ($env:SOURCE+':'+$path)).Trim()
-            $baseBlob=(git rev-parse ($env:BASE+':'+$path)).Trim()
-            if($sourceBlob -cne $baseBlob){throw ('G47_UNQUALIFIED_GENERATOR_OR_BROWSER_DRIFT_'+$path)}
+          if($generatorBlob -cne 'c1a16a5f08f5116ef9ad6f4d4528accba7051d32' -or
+             $browserBlob -cne '55e8b560b36ea7aa834173226058f4f31f158e6f'){
+             throw 'G47_QUALIFIED_GENERATOR_OR_BROWSER_BLOB_DRIFT'
           }
+          $baseGeneratorBlob=(git rev-parse ($env:BASE+':tools/graphify/g35_typecalls/main.go')).Trim()
+          if($generatorBlob -cne $baseGeneratorBlob){throw 'G47_EXISTING_G43_GENERATOR_DRIFT'}
           # Independently authenticated REAL source packages, not synthetic data.
           # paperproposal -> papertrading; paperreconcile -> paperproposal.
           # No SQLite importer is needed for these local package selections.
