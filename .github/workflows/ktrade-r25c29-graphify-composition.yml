@@ -1,0 +1,105 @@
+name: R25-C29 consolidated KTRADE and Graphify focused verification
+on:
+  push:
+    branches: [qualification/ktrade-r25c29-graphify-composition-20261018]
+    paths: [.github/workflows/ktrade-r25c29-graphify-composition.yml]
+permissions:
+  contents: read
+jobs:
+  exact-merge:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      SOURCE: '1c3db132499ca6a60b28a826c4a3f40fe8f6cd63'
+      TREE: '04872917316d9d608ca7d83f615e6a5861d811e0'
+      OLD_HEAD: '65d6c4b55eb9fd4c77a2d5d5b06ee3c57b2abb39'
+      GRAPHIFY_MAIN: '20a39cc874f2c83713f5096d48ada82a9c9445c8'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+    steps:
+      - name: Checkout source exact commit without persistent credentials
+        uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 1c3db132499ca6a60b28a826c4a3f40fe8f6cd63
+          fetch-depth: 4
+          path: source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify Graphify and KTRADE merge ancestry, exact source and limited delta
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if($env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:RUNNER_OS -cne 'Windows' -or
+             $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'R25C29_UNSAFE_RUNNER'}
+          $sha=(& git -C $r rev-parse HEAD).Trim()
+          $tree=(& git -C $r rev-parse 'HEAD^{tree}').Trim()
+          $p1=(& git -C $r rev-parse HEAD^1).Trim()
+          $p2=(& git -C $r rev-parse HEAD^2).Trim()
+          if($sha -cne $env:SOURCE -or $tree -cne $env:TREE -or $p1 -cne $env:OLD_HEAD -or
+             $p2 -cne $env:GRAPHIFY_MAIN -or @(& git -C $r status --porcelain).Count -ne 0){
+            throw 'R25C29_EXACT_HEAD_OR_MERGE_PARENT_DRIFT'
+          }
+          $delta=@(& git -C $r diff --name-only HEAD^2 HEAD|Sort-Object)
+          $expected=@('electron/main.js','package-lock.json','package.json',
+            'scripts/stage_offline_vendor.cjs','static/ide.html','static/ide.js',
+            'static/trading.html','templates/chart.tmpl',
+            'tests/historical_pine_editor_chart_wiring.test.cjs')|Sort-Object
+          if($LASTEXITCODE -ne 0 -or $delta.Count -ne 9 -or @(Compare-Object $delta $expected).Count -ne 0){
+            throw ('R25C29_NINE_FILE_SCOPE_DRIFT='+($delta -join ','))
+          }
+          foreach($p in @('tools/graphify/g32_delta/main.go','tools/graphify/g32_delta/main_test.go')){
+            $old=(& git -C $r rev-parse ('HEAD^2:'+$p)).Trim()
+            $current=(& git -C $r rev-parse ('HEAD:'+$p)).Trim()
+            if($old -cne $current){throw ('R25C29_GRAPHIFY_BLOB_DRIFT_'+$p)}
+          }
+          foreach($p in @('electron/main.js','package-lock.json','package.json',
+            'scripts/stage_offline_vendor.cjs','templates/chart.tmpl')){
+            $old=(& git -C $r rev-parse ('HEAD^1:'+$p)).Trim()
+            $current=(& git -C $r rev-parse ('HEAD:'+$p)).Trim()
+            if($old -cne $current){throw ('R25C29_QUALIFIED_ELECTRON_BLOB_DRIFT_'+$p)}
+          }
+          Write-Output 'R25C29_GRAPHIFY_UNCHANGED=PASS'
+          Write-Output 'R25C29_OLD_QUALIFIED_ELECTRON_BLOBS_UNCHANGED=PASS'
+          Write-Output 'R25C29_EXACT_COMBINED_TREE=PASS'
+      - name: Execute one affected historical UI source test only
+        working-directory: source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & node --test tests/historical_pine_editor_chart_wiring.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'R25C29_FOCUSED_HISTORICAL_UI_TEST_FAILURE'}
+          & node --check electron/main.js
+          if($LASTEXITCODE -ne 0){throw 'R25C29_ELECTRON_PARSE_FAILURE'}
+          & node --check scripts/stage_offline_vendor.cjs
+          if($LASTEXITCODE -ne 0){throw 'R25C29_VENDOR_STAGE_PARSE_FAILURE'}
+          Write-Output 'R25C29_FOCUSED_OFFLINE_UI_SOURCE_TEST=PASS'
+          Write-Output 'R25C29_NO_REDUNDANT_GO_REGRESSION=TRUE'
+      - name: Seal sanitized source-evidence receipt
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          New-Item -ItemType Directory -Path evidence -Force|Out-Null
+          $obj=[ordered]@{schema='ktrade.r25c29.graphify-composition.v1';source_sha=$env:SOURCE;tree=$env:TREE;graphify_parent=$env:GRAPHIFY_MAIN;candidate_parent=$env:OLD_HEAD;offline_installed_acceptance_run=39183737561;go_regression_rerun=$false;merge_authorized=$false;production_promotion=$false;broker_used=$false;installed_user_data_touched=$false;approved_product_icon=$false}
+          $file='evidence/r25c29-composition.json'
+          $obj|ConvertTo-Json|Set-Content -LiteralPath $file -Encoding utf8
+          Write-Output ('R25C29_COMPOSITION_RECEIPT_SHA256='+(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant())
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ktrade-r25c29-composed-source-evidence
+          path: evidence/r25c29-composition.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Cleanup source
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'source') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output 'R25C29_PRIVATE_SOURCE_CLEANUP_ATTEMPTED=TRUE'
