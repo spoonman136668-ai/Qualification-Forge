@@ -163,7 +163,7 @@ try {
  Write-Host ('G53_BROWSER_JOB_PEAK_COMMITTED_BYTES='+$peak)
  Write-Host ('G53_TOTAL_JOB_CPU_MS='+$combined)
  Write-Host 'G53_PRIVATE_HTML_GRAPH_PROFILE_NOT_UPLOADED=PASS'
- return [pscustomobject]@{engine='Chromium';browser_job_cpu_ms=$cpu;browser_peak_committed_bytes=$peak;combined_cpu_ms=$combined;real_mouse_keyboard_pass=$true;authentic_static_rows=$identity.rows;qualified_pair_count=$identity.pairs;selected_pair_edges=$pair.count}
+ return [pscustomobject]@{engine='Chromium';browser_job_cpu_ms=$cpu;browser_peak_committed_bytes=$peak;combined_cpu_ms=$combined;browser_wall_ms=$browserWatch.ElapsedMilliseconds;real_mouse_keyboard_pass=$true;authentic_static_rows=$identity.rows;qualified_pair_count=$identity.pairs;selected_pair_edges=$pair.count}
 }finally{
  if($script:ws){try{$script:ws.Dispose()}catch{}}
  if($browserProcess){
