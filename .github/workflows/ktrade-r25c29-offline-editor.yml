@@ -32,7 +32,7 @@ jobs:
           path: source
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-          fetch-depth: 4
+          fetch-depth: 32
       - name: Checkout qualification-only installed-window CDP test script
         uses: actions/checkout@v4
         with:
@@ -53,6 +53,8 @@ jobs:
           $base='1b5c7c51d433d61dd0180b937264b471a9d3545c'
           $delta=@(git -C $root diff --name-only $base HEAD|Sort-Object)
           $expected=@('electron/main.js','package-lock.json','package.json','scripts/stage_offline_vendor.cjs','templates/chart.tmpl')|Sort-Object
+          Write-Output ('R25C29_ACTUAL_DELTA_PATHS='+($delta -join ','))
+          Write-Output ('R25C29_GIT_DIFF_EXIT='+$LASTEXITCODE)
           if($LASTEXITCODE -ne 0 -or $delta.Count -ne 5 -or
              @(Compare-Object $expected $delta).Count -ne 0){throw 'R25C29_CANDIDATE_DELTA_SCOPE_DRIFT'}
           Write-Output 'R25C29_EXACT_FIVE_FILE_CANDIDATE=PASS'
