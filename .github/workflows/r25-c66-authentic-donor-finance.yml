@@ -1,0 +1,140 @@
+name: R25-C66 original donor settlement validation (hosted Windows)
+# Real original CKB Go accounting code, synthetic source-authenticated tests.
+# Not an installed-data, broker, order or KTRADE source mutation workflow.
+on:
+  push:
+    branches: [qualification/r25-c66-authentic-donor-finance-20261019]
+    paths: [.github/workflows/r25-c66-authentic-donor-finance.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c66-authentic-donor-hosted
+  cancel-in-progress: false
+jobs:
+  donor:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      DONOR_SHA: 'bab89cb800731e66cfbf304b8192bc17b0ba43e9'
+      DONOR_TREE: '8db0b0271d6177de1353b0b2696a6cc07f9db843'
+      KTRADE_QUALIFIED_PAIR_SHA: 'efd9c95149f1a6abde2fb3dd20a94c1a6916f83f'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Verify ephemeral hosted Windows paper-only boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_OS -cne 'Windows' -or
+              $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+              $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+              $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'R25_C66_HOST_OR_AUTHORITY_DRIFT'
+          }
+          Write-Host 'R25_C66_HOSTED_WINDOWS_PAPER_ONLY=PASS'
+          Write-Host 'R25_C66_SELF_HOSTED_RESEARCH_RUNNERS_USED=FALSE'
+      - name: Checkout frozen original CKB donor (not KTRADE) without retained token
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: bab89cb800731e66cfbf304b8192bc17b0ba43e9
+          fetch-depth: 1
+          persist-credentials: false
+          path: donor
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Authenticate donor commit and original source blobs
+        shell: pwsh
+        working-directory: donor
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git rev-parse HEAD).Trim() -cne $env:DONOR_SHA -or
+              (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:DONOR_TREE -or
+              @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) {
+            throw 'R25_C66_DONOR_SOURCE_IDENTITY_DRIFT'
+          }
+          $fixed=[ordered]@{
+            'pkg/risk.go'='adee03fcff26feb089c286c6712985d000275c92'
+            'pkg/accounting.go'='168d2d37bb1c3bd185bbbe881d1714798ad6df3c'
+            'pkg/strategy_types.go'='e2c52b3cd05e30e4b8a2b893b53e37a6aa5f03f2'
+            'pkg/filled_settlement_finalization_stage_a_test.go'='cc1ae4d077de16585633cc2510731148f0105db9'
+            'pkg/tradeguard_settlement_lineage_stage_a_test.go'='f16c290476b5de904b51e2b43ebe33a4912bada3'
+          }
+          foreach ($path in $fixed.Keys) {
+            if ((& git rev-parse ("HEAD:"+$path)).Trim() -cne $fixed[$path]) {
+              throw 'R25_C66_ORIGINAL_DONOR_BLOB_DRIFT'
+            }
+          }
+          $module=(Get-Content -LiteralPath go.mod -TotalCount 1).Trim()
+          if ($module -cne 'module ckb') {
+            throw 'R25_C66_DONOR_NOT_ORIGINAL_CKB_MODULE'
+          }
+          Write-Host 'R25_C66_ORIGINAL_CKB_DONOR_SHA_TREE=PASS'
+          Write-Host 'R25_C66_GENUINE_DONOR_RISK_ACCOUNTING_BLOBS=PASS'
+          Write-Host 'R25_C66_DONOR_CODE_MODIFIED=FALSE'
+      - name: Frozen Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.12'
+          cache: false
+      - name: Execute original donor settlement and TradeGuard adversarial tests
+        shell: pwsh
+        working-directory: donor
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c66-original-donor-private.jsonl'
+          $rx='^(TestV1111StageAFilledSettlement|TestV1112StageATradeGuard|TestV1112StageAReplacement)'
+          & go test -mod=readonly -json -count=1 -timeout 10m -run $rx ./pkg *> $log
+          if($LASTEXITCODE -ne 0) {throw 'R25_C66_ORIGINAL_DONOR_TEST_FAILURE_PRIVATE_OUTPUT_RETAINED_LOCALLY_ONLY'}
+          $records=@(Get-Content -LiteralPath $log | ForEach-Object {
+            try { $_ | ConvertFrom-Json } catch { $null }
+          } | Where-Object { $_ })
+          $pass=@($records | Where-Object {
+             $_.Action -ceq 'pass' -and $_.Test -match $rx
+          })
+          $skip=@($records | Where-Object {
+             $_.Action -ceq 'skip' -and $_.Test -match $rx
+          })
+          $bad=@($records | Where-Object {
+             $_.Action -ceq 'fail'
+          })
+          $unique=@($pass|Select-Object -ExpandProperty Test -Unique)
+          if ($bad.Count -ne 0 -or $skip.Count -ne 0 -or $unique.Count -lt 8) {
+             throw 'R25_C66_TEST_COVERAGE_TOO_WEAK'
+          }
+          Write-Host 'R25_C66_REAL_DONOR_FINANCIAL_SETTLEMENT_TESTS=PASS'
+          Write-Host ('R25_C66_REAL_DONOR_TESTS_PASSED='+$unique.Count)
+          Write-Host 'R25_C66_DONOR_NEGATIVE_SETTLEMENT_PATHS=PASS'
+          Write-Host 'R25_C66_DONOR_ORIGINAL_SOURCE_EXECUTED=TRUE'
+          Write-Host 'R25_C66_HISTORICAL_USER_STATE_TESTED=FALSE'
+          Write-Host 'R25_C66_PRIVATE_BROKER_RECORDS_IMPORTED=FALSE'
+          Write-Host 'R25_C66_PNL_CUSTODY_RECONCILED=FALSE'
+          Write-Host 'R25_C66_STRATEGY_RESTART_AUTHORIZED=FALSE'
+          Write-Host 'R25_C66_MIGRATION_AUTHORIZED=FALSE'
+          Write-Host 'R25_C66_RELEASE_AUTHORIZED=FALSE'
+      - name: Verify donor tree unchanged and discard private test log
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'donor'
+          if(Test-Path -LiteralPath $root -PathType Container) {
+            Push-Location $root
+            try {
+              if ((& git rev-parse HEAD).Trim() -cne $env:DONOR_SHA -or
+                  @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0) {
+                throw 'R25_C66_DONOR_TRACKED_FILES_CHANGED'
+              }
+            } finally {Pop-Location}
+          }
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c66-original-donor-private.jsonl'
+          if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
+          Write-Host 'R25_C66_DONOR_SOURCE_UNCHANGED=PASS'
+          Write-Host 'R25_C66_USER_PRIVATE_ARTIFACT_UPLOAD=FALSE'
