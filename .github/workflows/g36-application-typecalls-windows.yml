@@ -64,9 +64,9 @@ jobs:
             @{p='internal/paperreconcile/risk_replay.go';sha='5c0b07ace7dc7789d4aa8d20f0661dd9eee92dac'},
             @{p='internal/paperreconcile/settlement_review.go';sha='09de943e8a95834790bc8f7803bdf261a9dce844'},
             @{p='internal/paperreconcile/windows_fs_capability_shadow_windows.go';sha='503f4af107eadcd1fce3abbbd7d7ac011c216b77'},
-            @{p='internal/papertrading/ledger.go';sha='d44341253e7d4b51d31b03cea26a77cbbb534f7b'}
-            ,@{p='internal/paperweb/server.go';sha='dd0d52621f7267db487527024cda91530a09ab5e'}
-            ,@{p='cmd/ktrade-paper-web/main.go';sha='5f0c5d57d97a09d7bd995b5f63477e9fbbefaf6f'}
+            @{p='internal/papertrading/ledger.go';sha='d44341253e7d4b51d31b03cea26a77cbbb534f7b'},
+            @{p='internal/paperweb/server.go';sha='dd0d52621f7267db487527024cda91530a09ab5e'},
+            @{p='cmd/ktrade-paper-web/main.go';sha='5f0c5d57d97a09d7bd995b5f63477e9fbbefaf6f'}
           )
           foreach($src in $sourceWitnesses){
             $found=(& git hash-object -- $src.p).Trim()
