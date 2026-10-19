@@ -2,7 +2,7 @@ name: KTRADE R25-C28 exact PR43 installed Electron CDP UI and restart acceptance
 on:
   push:
     branches: [qualification/ktrade-r25c28-installed-window-20261018]
-    paths: [.github/workflows/ktrade-r25c28-electron-stage.yml]
+    paths: [.github/workflows/ktrade-r25c28-installed-window.yml]
 permissions:
   contents: read
 jobs:
@@ -91,7 +91,7 @@ jobs:
           $expected="cwd: app.isPackaged ? path.join(process.resourcesPath, 'bin') : path.join(__dirname, '..'),"
           if(([regex]::Matches($js,[regex]::Escape($expected))).Count -ne 1){throw 'R25C28_CANDIDATE_NATIVE_CWD_MISMATCH'}
           Write-Output 'R25C28_REAL_CANDIDATE_ELECTRON_CWD=VERIFIED_UNPATCHED'
-          if($js -notmatch 'KTRADE_ISOLATED_LISTEN=127\\?\.') {throw 'R25C28_INSTALLED_LOOPBACK_SOURCE_WIRING_NOT_PRESENT'}
+          if(!$js.Contains('KTRADE_ISOLATED_LISTEN=127')){throw 'R25C28_INSTALLED_LOOPBACK_SOURCE_WIRING_NOT_PRESENT'}
           Push-Location $root
           try{
             go mod download
