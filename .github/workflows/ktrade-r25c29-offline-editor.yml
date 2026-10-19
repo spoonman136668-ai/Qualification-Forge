@@ -2,7 +2,7 @@ name: KTRADE R25-C29 exact PR43 offline Monaco installed Chromium acceptance
 on:
   push:
     branches: [qualification/ktrade-r25c29-offline-pine-20261018]
-    paths: [.github/workflows/ktrade-r25c29-installed-window.yml]
+    paths: [.github/workflows/ktrade-r25c29-offline-editor.yml]
 permissions:
   contents: read
 jobs:
