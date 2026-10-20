@@ -209,54 +209,7 @@ jobs:
           $log=Join-Path $env:RUNNER_TEMP 'c74f5-original-c12.log'
           Push-Location $root
           try{
-            & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=7m -v -run '^TestR25C12HistoricalGovernanceJSONWire        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f15n3-full-windows.log'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./... *> $log
-          $code=$LASTEXITCODE
-          if($code -ne 0){
-            Get-Content -LiteralPath $log | Where-Object {$_ -match 'FAIL|Error:|panic:|\.go:[0-9]+:|# ktrade/' } |
-              Select-Object -First 80 | ForEach-Object {Write-Host $_}
-            Write-Host 'C74F15N3_FULL_WINDOWS_NEGATIVE_EVIDENCE_RETAINED_IN_RUN=TRUE'
-            throw 'C74F15N3_FULL_WINDOWS_REGRESSION_FAILED'
-          }
-          Write-Host 'C74F15N3_ONE_COMPLETE_WINDOWS_GO_REGRESSION=PASS'
-      - name: Go vet entire fully tagged candidate
-        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          & go vet -mod=readonly -tags=ktrade_full ./...
-          if($LASTEXITCODE -ne 0){throw 'C74F15N3_FULL_WINDOWS_VET_FAILED'}
-          Write-Host 'C74F15N3_WINDOWS_VET=PASS'
-      - name: Build stopped paper-only Windows executable
-        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          $exe=Join-Path $env:RUNNER_TEMP 'c74f15n3-review-only-NEVER-LAUNCHED.exe'
-          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
-          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){throw 'C74F15N3_WINDOWS_BUILD_FAILED'}
-          Write-Host 'C74F15N3_WINDOWS_EXE_BUILD_ONLY_NO_RUN=PASS'
-      - name: Assert no tracked source mutation or release authority
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          foreach($x in @(@{Path='donor';SHA=$env:DONOR_SHA},@{Path='candidate';SHA=$env:KTRADE_SHA})){
-            if(Test-Path -LiteralPath (Join-Path $x.Path '.git')){
-              if((& git -C $x.Path rev-parse HEAD).Trim() -cne $x.SHA -or
-                 @(& git -C $x.Path diff --name-only HEAD --).Count -ne 0){
-                throw ('C74F15N3_TRACKED_MUTATION_'+$x.Path)
-              }
-            }
-          }
-          Write-Host 'C74F15N3_CKB_PLANE_CONTROLLER_USED=FALSE'
-          Write-Host 'C74F15N3_OWNER_PROFILE_READ=FALSE'
-          Write-Host 'C74F15N3_TRADING_OR_MERGE_AUTHORITY=FALSE'
- ./pkg *> $log
+            & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=7m -v -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
             if($LASTEXITCODE -ne 0){
               Get-Content -LiteralPath $log | Where-Object {
                 $_ -match '^# ktrade/' -or $_ -match '^--- FAIL:' -or $_ -match '^.*_test.go:[0-9]+'
@@ -277,54 +230,7 @@ jobs:
           if($records.Count -ne 55){throw ('C74F5_INCOMPLETE_PARENT_INVENTORY_'+$records.Count)}
           foreach($id in $records.Keys){
             $entry=$records[$id]
-            if($entry.Count -ne 2 -or $entry['SHA256'] -cnotmatch '^[a-f0-9]{64}        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f15n3-full-windows.log'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./... *> $log
-          $code=$LASTEXITCODE
-          if($code -ne 0){
-            Get-Content -LiteralPath $log | Where-Object {$_ -match 'FAIL|Error:|panic:|\.go:[0-9]+:|# ktrade/' } |
-              Select-Object -First 80 | ForEach-Object {Write-Host $_}
-            Write-Host 'C74F15N3_FULL_WINDOWS_NEGATIVE_EVIDENCE_RETAINED_IN_RUN=TRUE'
-            throw 'C74F15N3_FULL_WINDOWS_REGRESSION_FAILED'
-          }
-          Write-Host 'C74F15N3_ONE_COMPLETE_WINDOWS_GO_REGRESSION=PASS'
-      - name: Go vet entire fully tagged candidate
-        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          & go vet -mod=readonly -tags=ktrade_full ./...
-          if($LASTEXITCODE -ne 0){throw 'C74F15N3_FULL_WINDOWS_VET_FAILED'}
-          Write-Host 'C74F15N3_WINDOWS_VET=PASS'
-      - name: Build stopped paper-only Windows executable
-        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          $exe=Join-Path $env:RUNNER_TEMP 'c74f15n3-review-only-NEVER-LAUNCHED.exe'
-          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
-          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){throw 'C74F15N3_WINDOWS_BUILD_FAILED'}
-          Write-Host 'C74F15N3_WINDOWS_EXE_BUILD_ONLY_NO_RUN=PASS'
-      - name: Assert no tracked source mutation or release authority
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          foreach($x in @(@{Path='donor';SHA=$env:DONOR_SHA},@{Path='candidate';SHA=$env:KTRADE_SHA})){
-            if(Test-Path -LiteralPath (Join-Path $x.Path '.git')){
-              if((& git -C $x.Path rev-parse HEAD).Trim() -cne $x.SHA -or
-                 @(& git -C $x.Path diff --name-only HEAD --).Count -ne 0){
-                throw ('C74F15N3_TRACKED_MUTATION_'+$x.Path)
-              }
-            }
-          }
-          Write-Host 'C74F15N3_CKB_PLANE_CONTROLLER_USED=FALSE'
-          Write-Host 'C74F15N3_OWNER_PROFILE_READ=FALSE'
-          Write-Host 'C74F15N3_TRADING_OR_MERGE_AUTHORITY=FALSE'
-){
+            if($entry.Count -ne 2 -or $entry['SHA256'] -cnotmatch '^[a-f0-9]{64}$'){
               throw 'C74F5_PARENT_RECEIPT_MALFORMED'
             }
             $raw=[Convert]::FromBase64String($entry['COLLISIONS_B64'])
@@ -342,54 +248,7 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:R25C12_ORIGINAL_MODE -eq '1'){throw 'C74F5_CANDIDATE_IN_ORIGINAL_MODE'}
           $log=Join-Path $env:RUNNER_TEMP 'c74f5-repaired-c12.log'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=7m -run '^TestR25C12HistoricalGovernanceJSONWire        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f15n3-full-windows.log'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./... *> $log
-          $code=$LASTEXITCODE
-          if($code -ne 0){
-            Get-Content -LiteralPath $log | Where-Object {$_ -match 'FAIL|Error:|panic:|\.go:[0-9]+:|# ktrade/' } |
-              Select-Object -First 80 | ForEach-Object {Write-Host $_}
-            Write-Host 'C74F15N3_FULL_WINDOWS_NEGATIVE_EVIDENCE_RETAINED_IN_RUN=TRUE'
-            throw 'C74F15N3_FULL_WINDOWS_REGRESSION_FAILED'
-          }
-          Write-Host 'C74F15N3_ONE_COMPLETE_WINDOWS_GO_REGRESSION=PASS'
-      - name: Go vet entire fully tagged candidate
-        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          & go vet -mod=readonly -tags=ktrade_full ./...
-          if($LASTEXITCODE -ne 0){throw 'C74F15N3_FULL_WINDOWS_VET_FAILED'}
-          Write-Host 'C74F15N3_WINDOWS_VET=PASS'
-      - name: Build stopped paper-only Windows executable
-        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          $exe=Join-Path $env:RUNNER_TEMP 'c74f15n3-review-only-NEVER-LAUNCHED.exe'
-          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
-          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){throw 'C74F15N3_WINDOWS_BUILD_FAILED'}
-          Write-Host 'C74F15N3_WINDOWS_EXE_BUILD_ONLY_NO_RUN=PASS'
-      - name: Assert no tracked source mutation or release authority
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          foreach($x in @(@{Path='donor';SHA=$env:DONOR_SHA},@{Path='candidate';SHA=$env:KTRADE_SHA})){
-            if(Test-Path -LiteralPath (Join-Path $x.Path '.git')){
-              if((& git -C $x.Path rev-parse HEAD).Trim() -cne $x.SHA -or
-                 @(& git -C $x.Path diff --name-only HEAD --).Count -ne 0){
-                throw ('C74F15N3_TRACKED_MUTATION_'+$x.Path)
-              }
-            }
-          }
-          Write-Host 'C74F15N3_CKB_PLANE_CONTROLLER_USED=FALSE'
-          Write-Host 'C74F15N3_OWNER_PROFILE_READ=FALSE'
-          Write-Host 'C74F15N3_TRADING_OR_MERGE_AUTHORITY=FALSE'
- ./pkg *> $log
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=7m -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
           if($LASTEXITCODE -ne 0){
             Get-Content -LiteralPath $log | Where-Object {
               $_ -match '^# ktrade/' -or $_ -match '^--- FAIL:' -or $_ -match '^.*_test.go:[0-9]+'
@@ -429,54 +288,7 @@ jobs:
           if($records.Count -ne 17){throw ('C74F5_MIXED_PARENT_COUNT_'+$records.Count)}
           foreach($id in $records.Keys){
             $v=$records[$id]
-            if($v.Count -ne 2 -or $v['SHA256'] -cnotmatch '^[a-f0-9]{64}        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f15n3-full-windows.log'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./... *> $log
-          $code=$LASTEXITCODE
-          if($code -ne 0){
-            Get-Content -LiteralPath $log | Where-Object {$_ -match 'FAIL|Error:|panic:|\.go:[0-9]+:|# ktrade/' } |
-              Select-Object -First 80 | ForEach-Object {Write-Host $_}
-            Write-Host 'C74F15N3_FULL_WINDOWS_NEGATIVE_EVIDENCE_RETAINED_IN_RUN=TRUE'
-            throw 'C74F15N3_FULL_WINDOWS_REGRESSION_FAILED'
-          }
-          Write-Host 'C74F15N3_ONE_COMPLETE_WINDOWS_GO_REGRESSION=PASS'
-      - name: Go vet entire fully tagged candidate
-        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          & go vet -mod=readonly -tags=ktrade_full ./...
-          if($LASTEXITCODE -ne 0){throw 'C74F15N3_FULL_WINDOWS_VET_FAILED'}
-          Write-Host 'C74F15N3_WINDOWS_VET=PASS'
-      - name: Build stopped paper-only Windows executable
-        shell: pwsh
-        working-directory: candidate
-        run: |
-          $ErrorActionPreference='Stop'
-          $exe=Join-Path $env:RUNNER_TEMP 'c74f15n3-review-only-NEVER-LAUNCHED.exe'
-          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
-          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){throw 'C74F15N3_WINDOWS_BUILD_FAILED'}
-          Write-Host 'C74F15N3_WINDOWS_EXE_BUILD_ONLY_NO_RUN=PASS'
-      - name: Assert no tracked source mutation or release authority
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          foreach($x in @(@{Path='donor';SHA=$env:DONOR_SHA},@{Path='candidate';SHA=$env:KTRADE_SHA})){
-            if(Test-Path -LiteralPath (Join-Path $x.Path '.git')){
-              if((& git -C $x.Path rev-parse HEAD).Trim() -cne $x.SHA -or
-                 @(& git -C $x.Path diff --name-only HEAD --).Count -ne 0){
-                throw ('C74F15N3_TRACKED_MUTATION_'+$x.Path)
-              }
-            }
-          }
-          Write-Host 'C74F15N3_CKB_PLANE_CONTROLLER_USED=FALSE'
-          Write-Host 'C74F15N3_OWNER_PROFILE_READ=FALSE'
-          Write-Host 'C74F15N3_TRADING_OR_MERGE_AUTHORITY=FALSE'
-){
+            if($v.Count -ne 2 -or $v['SHA256'] -cnotmatch '^[a-f0-9]{64}$'){
               throw 'C74F5_INCOMPLETE_MIXED_PARENT_RECORD'
             }
             $objects=ConvertFrom-Json -InputObject ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($v['FIELDS_B64'])))
