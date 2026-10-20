@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 55
     env:
-      VERIFIED_SHA: '359acfc6b66df909033bfa7ab800069d02f2c58f'
-      VERIFIED_TREE: '1ec42f75ae9785a16ec469722fae3e0bb6d90029'
+      VERIFIED_SHA: '4596347289c8a92eba72148ab4ed2bd211520508'
+      VERIFIED_TREE: '3886755b153320b207abed838e8199c211989d69'
       PARENT_SHA: '41be1497f49aaabdb0024e85aeddbe2ede52c5fe'
       ORIGINAL_SHA: 'd892d5902f6c19105c4395bf6b71bfb112b22a62'
       ORIGINAL_TREE: '95846811b88a0cb538dd6d494bb771ef3cd8102b'
@@ -47,7 +47,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 359acfc6b66df909033bfa7ab800069d02f2c58f
+          ref: 4596347289c8a92eba72148ab4ed2bd211520508
           path: candidate
           fetch-depth: 0
           persist-credentials: false
@@ -65,10 +65,11 @@ jobs:
              'cmd/ktrade/operator_recovery_full.go',
              'cmd/ktrade/operator_paper_status_full.go',
              'cmd/ktrade/operator_paper_status_full_test.go',
-             'recovery/operator-bridge/operator-paper-status.js'
+             'recovery/operator-bridge/operator-paper-status.js',
+             'package.json'
           )|Sort-Object
           $actual=@(& git -C candidate diff --name-only $env:PARENT_SHA $env:VERIFIED_SHA | Sort-Object)
-          if($actual.Count -ne 4 -or @(Compare-Object $expected $actual).Count -ne 0){
+          if($actual.Count -ne 5 -or @(Compare-Object $expected $actual).Count -ne 0){
             throw 'C75A_SOURCE_SCOPE_NOT_ONLY_OPERATOR_AND_PAPER_STATUS'
           }
           Write-Host 'C75A_ORIGINAL_OPERATOR_PAPER_STATUS_FUNCTIONAL_DELTA=PASS'
@@ -92,9 +93,12 @@ jobs:
           }
           $passes=@(Select-String -LiteralPath $log -Pattern '^--- PASS: TestR25C75')
           $proof=@(Select-String -LiteralPath $log -SimpleMatch 'C75_ORIGINAL_OPERATOR_TO_REAL_STOPPED_PAPER_STATUS_ROUTE=PASS')
-          if($passes.Count -ne 2 -or $proof.Count -ne 1){throw 'C75A_FOCUSED_PROOFS_INCOMPLETE'}
+          if($passes.Count -ne 3 -or $proof.Count -ne 1){throw 'C75A_FOCUSED_PROOFS_INCOMPLETE'}
           $passes | ForEach-Object {Write-Host $_.Line}
           $proof | ForEach-Object {Write-Host $_.Line}
+          $pack=@(Select-String -LiteralPath $log -SimpleMatch 'C75_ORIGINAL_OPERATOR_UI_ASSETS_PACKAGED_NEXT_TO_BACKEND=PASS')
+          if($pack.Count -ne 1){throw 'C75A_WINDOWS_PACKAGING_RESOURCE_SCOPE_MISSING'}
+          Write-Host $pack[0].Line
           Write-Host 'C75A_OPERATOR_ORIGINAL_UI_TO_PAPER_STATUS_ROUTE=PASS'
       - name: Checkout original pre-repair C12 source exactly
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
