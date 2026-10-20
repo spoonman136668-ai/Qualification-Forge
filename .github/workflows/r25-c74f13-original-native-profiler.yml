@@ -16,9 +16,9 @@ jobs:
     env:
       DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
-      SOURCE_SHA: '0ea7d020155666242ba48c3200e41880aff1704e'
-      SOURCE_TREE: '7de0e1681ee4781555b525ba8352975d775f7335'
-      PARENT_SHA: '0092774e6da3e603f84eef27fb8477c725f50f78'
+      SOURCE_SHA: '55ffbe6e140621ec00fbd6a954d9c53179aa0832'
+      SOURCE_TREE: '3b56e28c9a28667ae61929e80cf2b348558b34f0'
+      PARENT_SHA: '0ea7d020155666242ba48c3200e41880aff1704e'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
       GOWORK: 'off'
@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 0ea7d020155666242ba48c3200e41880aff1704e
+          ref: 55ffbe6e140621ec00fbd6a954d9c53179aa0832
           fetch-depth: 0
           path: source
           persist-credentials: false
@@ -73,8 +73,8 @@ jobs:
             }
           }
           $want=@(
-            'docs/R25_C74F11_NATIVE_REPLAY_SCALING.md',
-            'tests/donor-shadow/native_c74f11_scaling_test.go'
+            'docs/R25_C74F13_NATIVE_CPU_ALLOCATION.md',
+            'tests/donor-shadow/native_c74f13_profile_test.go'
           )|Sort-Object
           $diff=@(& git -C $source diff --name-only $env:PARENT_SHA $env:SOURCE_SHA | Sort-Object)
           if($diff.Count -ne $want.Count -or @(Compare-Object $want $diff).Count -ne 0){
@@ -150,7 +150,8 @@ jobs:
             'midwrite_process_kill_test.go','windows_fs_capability_test.go',
             'paper_sqlite_commit_test.go','paper_sqlite_commit_windows_test.go',
             'native_vwap_c74f2_test.go','native_vwap_c74f3_test.go',
-            'native_vwap_c74f8_test.go','native_c74f10_latency_test.go','native_c74f11_scaling_test.go'
+            'native_vwap_c74f8_test.go','native_c74f10_latency_test.go','native_c74f11_scaling_test.go',
+            'native_c74f13_profile_test.go'
           )
           foreach($name in $testFiles){
             Copy-Item -LiteralPath (Join-Path $source ('tests/donor-shadow/'+$name)) -Destination (Join-Path $testDir $name) -ErrorAction Stop
@@ -170,8 +171,10 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'R25_C74F11_DISPOSABLE_SQLITE_DEPENDENCY_BLOCKED'}
           $cpu=Join-Path $env:RUNNER_TEMP 'f13-native-cpu.pprof'
           $mem=Join-Path $env:RUNNER_TEMP 'f13-native-alloc.pprof'
-          if((Test-Path $cpu) -or (Test-Path $mem)){throw 'R25_C74F13_EXISTING_PROFILE_NOT_DISPOSABLE'}
-          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=8m -v -run '^TestC74F11NativeVWAPReplayScaling$' -cpuprofile=$cpu -memprofile=$mem ./internal/shadowqual *> $log
+          if((Test-Path -LiteralPath $cpu) -or (Test-Path -LiteralPath $mem)){
+            throw 'R25_C74F13_PROFILING_FILE_ALREADY_PRESENT'
+          }
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=8m -v -run '^TestC74F13OriginalNativeVWAPCPUMemoryProfile$' -cpuprofile=f13-native-cpu.pprof -memprofile=f13-native-alloc.pprof -outputdir=$env:RUNNER_TEMP ./internal/shadowqual *> $log
           if($LASTEXITCODE -ne 0){
             Get-Content -LiteralPath $log | Where-Object {
               $_ -match '^# ktrade/' -or $_ -match '^--- FAIL: ' -or
@@ -180,36 +183,33 @@ jobs:
             throw 'R25_C74F11_NATIVE_PAPER_TRIAL_FAIL_CLOSED'
           }
           foreach($bars in @(425,850,1275)){
-            $line=@(Select-String -LiteralPath $log -SimpleMatch ('R25_C74F11_METRIC schema=ktrade.r25-c74f11.native-history-scaling.v1 bars='+$bars+' '))
-            if($line.Count -ne 1){throw ('R25_C74F11_SCALING_METRIC_MISSING_'+$bars)}
+            $line=@(Select-String -LiteralPath $log -SimpleMatch ('R25_C74F13_PROFILE_SOURCE bars='+$bars+' '))
+            if($line.Count -ne 1){throw ('R25_C74F13_PROFILE_SOURCE_MISSING_'+$bars)}
             Write-Host $line[0].Line
           }
-          foreach($label in @('R25_C74F11_SCALE ','C74F11_UNMODIFIED_ORIGINAL_NATIVE_VWAP_HISTORY_SCALING=PASS','C74F11_OWNER_RECONCILIATION_AND_REAL_ORDER_TIMING=NOT_MEASURED')){
-            $item=@(Select-String -LiteralPath $log -SimpleMatch $label)
-            if($item.Count -ne 1){throw ('R25_C74F11_EVIDENCE_MISSING_'+$label)}
-            Write-Host $item[0].Line
-          }
-          Write-Host 'R25_C74F13_IDENTICAL_425_850_1275_SOURCE_REPLAY=PASS'
+          $pass=@(Select-String -LiteralPath $log -SimpleMatch 'C74F13_ORIGINAL_NATIVE_REPLAY_CPU_ALLOCATION_PROFILE_SOURCE=PASS')
+          if($pass.Count -ne 1){throw 'R25_C74F13_ORIGINAL_VWAP_PROFILE_SOURCE_MISSING'}
+          Write-Host $pass[0].Line
           foreach($profile in @($cpu,$mem)){
             $found=Test-Path -LiteralPath $profile -PathType Leaf
-            $size=if($found){(Get-Item -LiteralPath $profile).Length}else{0}
-            $kind=if($profile -ceq $cpu){'CPU'}else{'ALLOCATION'}
-            Write-Host ('R25_C74F13_PROFILE_FILE kind='+$kind+' found='+$found+' bytes='+$size)
-            if(!$found -or $size -lt 64){throw ('R25_C74F13_'+$kind+'_PROFILE_UNAVAILABLE')}
+            $bytes=if($found){(Get-Item -LiteralPath $profile).Length}else{0}
+            $kind=if($profile -ceq $cpu){'CPU'}else{'ALLOC'}
+            Write-Host ('R25_C74F13_PROFILE_FILE type='+$kind+' found='+$found+' bytes='+$bytes)
+            if(!$found -or $bytes -lt 64){throw ('R25_C74F13_'+$kind+'_PROFILE_UNAVAILABLE')}
           }
           $cpuTop=@(& go tool pprof -top -nodecount=25 $cpu)
-          if($LASTEXITCODE -ne 0 -or @($cpuTop).Count -lt 5){throw 'R25_C74F13_CPU_PROFILE_INVALID'}
+          if($LASTEXITCODE -ne 0 -or @($cpuTop).Count -lt 5){throw 'R25_C74F13_CPU_TOP_INVALID'}
           $allocTop=@(& go tool pprof -top -nodecount=25 -sample_index=alloc_space $mem)
-          if($LASTEXITCODE -ne 0 -or @($allocTop).Count -lt 5){throw 'R25_C74F13_ALLOCATION_PROFILE_INVALID'}
+          if($LASTEXITCODE -ne 0 -or @($allocTop).Count -lt 5){throw 'R25_C74F13_ALLOC_TOP_INVALID'}
           Write-Host 'R25_C74F13_CPU_TOP_BEGIN'
-          $cpuTop|Select-Object -First 35|ForEach-Object {Write-Host $_}
+          $cpuTop | Select-Object -First 35 | ForEach-Object {Write-Host $_}
           Write-Host 'R25_C74F13_CPU_TOP_END'
-          Write-Host 'R25_C74F13_ALLOCATION_TOP_BEGIN'
-          $allocTop|Select-Object -First 35|ForEach-Object {Write-Host $_}
-          Write-Host 'R25_C74F13_ALLOCATION_TOP_END'
+          Write-Host 'R25_C74F13_ALLOC_TOP_BEGIN'
+          $allocTop | Select-Object -First 35 | ForEach-Object {Write-Host $_}
+          Write-Host 'R25_C74F13_ALLOC_TOP_END'
           Remove-Item -LiteralPath $cpu,$mem -Force
-          Write-Host 'R25_C74F13_ORIGINAL_NATIVE_CPU_AND_ALLOCATION_PROFILE=PASS'
-          Write-Host 'R25_C74F13_OWNER_HISTORY_AND_LIVE_ORDER_PATH=NOT_MEASURED'
+          Write-Host 'R25_C74F13_PROFILE_CALLED_UNCHANGED_DONOR_AND_RELEASED_TEMP_OUTPUT=PASS'
+          Write-Host 'R25_C74F13_ACTUAL_OWNER_AND_ORDER_EXECUTION=NOT_MEASURED'
       - name: Verify private source and zero production mutation
         if: always()
         shell: pwsh
