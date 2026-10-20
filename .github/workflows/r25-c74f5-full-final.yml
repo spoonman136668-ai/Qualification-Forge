@@ -1,0 +1,341 @@
+name: R25-C74F5 full Windows regression with source-born C12 custody and Chromium
+on:
+  push:
+    branches: [qualification/r25-c74f5-full-final-20261020]
+    paths: [.github/workflows/r25-c74f5-full-final.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c74f5-full-final
+  cancel-in-progress: false
+jobs:
+  original-governance:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      ORIGINAL_SHA: 'd892d5902f6c19105c4395bf6b71bfb112b22a62'
+      ORIGINAL_TREE: '95846811b88a0cb538dd6d494bb771ef3cd8102b'
+      VERIFIED_SHA: 'b37b88ac83008e2b687f34047e2cd0331842b5a5'
+      VERIFIED_TREE: '47cf68088dc0a0366a40b83218ceeb12d35cc983'
+      C12_TEST_BLOB: '8813b0db1c5591db5b136dc32b568d8773cbc4e6'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Require isolated hosted nonresearch Windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or
+             $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'C74F5_ORIGINAL_GOVERNANCE_ISOLATION_FAILED'
+          }
+          Write-Host 'C74F5_INDEPENDENT_HOSTED_WINDOWS=PASS'
+      - name: Checkout original pre-repair C12 source exactly
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: d892d5902f6c19105c4395bf6b71bfb112b22a62
+          fetch-depth: 0
+          path: original
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact recovered original UI source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b37b88ac83008e2b687f34047e2cd0331842b5a5
+          fetch-depth: 0
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Check two independent immutable source trees and test identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($x in @(
+            @{Name='original';Sha=$env:ORIGINAL_SHA;Tree=$env:ORIGINAL_TREE},
+            @{Name='candidate';Sha=$env:VERIFIED_SHA;Tree=$env:VERIFIED_TREE}
+          )){
+            $p=Join-Path $env:GITHUB_WORKSPACE $x.Name
+            if((& git -C $p rev-parse HEAD).Trim() -cne $x.Sha -or
+               (& git -C $p rev-parse 'HEAD^{tree}').Trim() -cne $x.Tree -or
+               @(& git -C $p status --porcelain=v1 --untracked-files=all).Count -ne 0){
+              throw ('C74F5_ORIGINAL_GOVERNANCE_SOURCE_DRIFT_'+$x.Name)
+            }
+          }
+          $p=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          if((& git -C $p rev-parse 'HEAD:pkg/r25c12_governance_wire_compat_test.go').Trim() -cne $env:C12_TEST_BLOB){
+            throw 'C74F5_C12_INDEPENDENT_TEST_IDENTITY_DRIFT'
+          }
+          $old=Join-Path $env:GITHUB_WORKSPACE 'original/pkg/r25c12_governance_wire_compat_test.go'
+          if(Test-Path -LiteralPath $old){throw 'C74F5_TEST_ALREADY_PRESENT_IN_ORIGINAL'}
+          Write-Host 'C74F5_PRE_REPAIR_ORIGINAL_AND_REPAIRED_SOURCE=PASS'
+      - name: Verify minimal 11-file regression contract reconciliation
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='798be4d4650afd04125c3c70e26b19c8024e10ea'
+          $paths=@(
+            'pkg/p19a_closeout_electron_desktop_surface_gate_test.go',
+            'pkg/p19a_t06_electron_desktop_deterministic_runtime_surface_test.go',
+            'pkg/p20a_closeout_desktop_packaging_route_acceptance_gate_test.go',
+            'pkg/p20a_closeout_desktop_packaging_surface_gate_test.go',
+            'pkg/p20a_t04_desktop_packaging_entry_contract_test.go',
+            'pkg/p20a_t06_desktop_packaging_deterministic_runtime_surface_test.go',
+            'pkg/p21a_closeout_desktop_release_update_surface_gate_test.go',
+            'pkg/p21a_t04_desktop_release_update_entry_contract_test.go',
+            'pkg/p21a_t06_desktop_release_update_deterministic_surface_test.go',
+            'pkg/r25c74f5_original_electron_safety_test.go',
+            'docs/R25_C74F5_ORIGINAL_CONTRACT_RECONCILIATION.md'
+          )|Sort-Object
+          $got=@(& git diff --name-only $base $env:VERIFIED_SHA | Sort-Object)
+          if($got.Count -ne $paths.Count -or @(Compare-Object $paths $got).Count -ne 0){
+            throw 'C74F5_NONTEST_CODE_OR_RELEASE_DELTA'
+          }
+          foreach($f in @('electron/main.js','package.json','pkg/r25c12_governance_wire_compat_test.go')){
+            if((& git rev-parse ('HEAD:'+$f)).Trim() -cne (& git rev-parse ($base+':'+$f)).Trim()){
+              throw 'C74F5_ORIGINAL_LAUNCHER_OR_GOVERNANCE_DRIFT'
+            }
+          }
+          Write-Host 'C74F5_EXACT_TEST_ONLY_RECONCILIATION=PASS'
+      - name: Pinned original Windows Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.12'
+          cache: false
+      - name: Capture source-born unmodified parent governance evidence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'original'
+          $candidate=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $dst=Join-Path $root 'pkg/r25c12_governance_wire_compat_test.go'
+          Copy-Item -LiteralPath (Join-Path $candidate 'pkg/r25c12_governance_wire_compat_test.go') -Destination $dst
+          $content=(Get-Content -LiteralPath $dst -Raw -Encoding utf8)
+          if(!$content.Contains('R25C12_ORIGINAL_MODE') -or !$content.Contains('R25C12_PARENT_')){
+            throw 'C74F5_PINNED_TEST_NOT_ORIGINAL_EVIDENCE_CAPABLE'
+          }
+          $env:R25C12_ORIGINAL_MODE='1'
+          $log=Join-Path $env:RUNNER_TEMP 'c74f5-original-c12.log'
+          Push-Location $root
+          try{
+            & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=7m -v -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
+            if($LASTEXITCODE -ne 0){
+              Get-Content -LiteralPath $log | Where-Object {
+                $_ -match '^# ktrade/' -or $_ -match '^--- FAIL:' -or $_ -match '^.*_test.go:[0-9]+'
+              } | Select-Object -First 18 | ForEach-Object {Write-Host $_}
+              throw 'C74F5_ORIGINAL_GOVERNANCE_TEST_FAILED'
+            }
+          }finally{Pop-Location}
+          $lines=Get-Content -LiteralPath $log
+          $records=@{}
+          foreach($line in $lines){
+            if($line -match 'R25C12_PARENT_(T[0-9]{3})_(COLLISIONS_B64|SHA256)=([A-Za-z0-9+/=]+)'){
+              $id=$Matches[1];$kind=$Matches[2];$value=$Matches[3]
+              if(!$records.ContainsKey($id)){$records[$id]=@{}}
+              if($records[$id].ContainsKey($kind)){throw 'C74F5_DUPLICATE_PARENT_RECEIPT'}
+              $records[$id][$kind]=$value
+            }
+          }
+          if($records.Count -ne 55){throw ('C74F5_INCOMPLETE_PARENT_INVENTORY_'+$records.Count)}
+          foreach($id in $records.Keys){
+            $entry=$records[$id]
+            if($entry.Count -ne 2 -or $entry['SHA256'] -cnotmatch '^[a-f0-9]{64}$'){
+              throw 'C74F5_PARENT_RECEIPT_MALFORMED'
+            }
+            $raw=[Convert]::FromBase64String($entry['COLLISIONS_B64'])
+            $objects=ConvertFrom-Json -InputObject ([Text.Encoding]::UTF8.GetString($raw))
+            if(@($objects).Count -lt 2){throw 'C74F5_EMPTY_PARENT_COLLISIONS'}
+            Add-Content -LiteralPath $env:GITHUB_ENV -Value ('R25C12_'+$id+'_COLLISIONS_B64='+$entry['COLLISIONS_B64']) -Encoding utf8
+            Add-Content -LiteralPath $env:GITHUB_ENV -Value ('R25C12_'+$id+'_SHA256='+$entry['SHA256']) -Encoding utf8
+          }
+          Remove-Item Env:R25C12_ORIGINAL_MODE -ErrorAction SilentlyContinue
+          Write-Host 'C74F5_55_INDEPENDENT_PRE_REPAIR_PARENT_RECEIPTS=PASS'
+      - name: Validate same 55 receipts against repaired C74F3 source
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:R25C12_ORIGINAL_MODE -eq '1'){throw 'C74F5_CANDIDATE_IN_ORIGINAL_MODE'}
+          $log=Join-Path $env:RUNNER_TEMP 'c74f5-repaired-c12.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=7m -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log | Where-Object {
+              $_ -match '^# ktrade/' -or $_ -match '^--- FAIL:' -or $_ -match '^.*_test.go:[0-9]+'
+            } | Select-Object -First 24 | ForEach-Object {Write-Host $_}
+            throw 'C74F5_CANDIDATE_ORIGINAL_JSON_GOVERNANCE_FAILURE'
+          }
+          Write-Host 'C74F5_ALL_55_AUTHENTIC_PARENT_WIRE_AND_COLLISION_CONTRACTS=PASS'
+      - name: Focused reconciled P19 P20 P21 and stronger isolation tests
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $pattern='^(TestR25C74F5|TestPhase19_P19A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase19_P19A_Integration_T06_DeterministicBackendLaunchPathPinned|TestPhase20_P20A_Closeout_RouteRegistrationAndHandlerSurface|TestPhase20_P20A_Closeout_RequestResponseContractSurface|TestPhase20_P20A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase20_P20A_Integration_T04_PackageScriptsAndBuildSurface|TestPhase20_P20A_Integration_T06_PackagedAndDevelopmentExecutableResolutionPinned|TestPhase20_P20A_Integration_T06_DeterministicBackendLaunchAndShutdownPinned|TestPhase21_P21A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase21_P21A_Integration_T04_EntryAndMetadataSurface|TestPhase21_P21A_Integration_T06_DeterministicRuntimeAndExecutableSurface)
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($item in @(
+            @{Name='original';Sha=$env:ORIGINAL_SHA},
+            @{Name='candidate';Sha=$env:VERIFIED_SHA}
+          )){
+            $path=Join-Path $env:GITHUB_WORKSPACE $item.Name
+            if(Test-Path -LiteralPath $path){
+              if((& git -C $path rev-parse HEAD).Trim() -cne $item.Sha -or
+                 @(& git -C $path diff --name-only HEAD --).Count -ne 0){
+                throw ('C74F5_ORIGINAL_SOURCE_MUTATED_'+$item.Name)
+              }
+            }
+          }
+          Write-Host 'C74F5_NO_OWNER_DATA_AND_NO_TRADING_ACCESS=PASS'
+
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=5m -run $pattern ./pkg
+          if($LASTEXITCODE -ne 0){throw 'C74F5_RECONCILED_LEGACY_AND_MODERN_SAFETY_FOCUSED_FAILED'}
+          Write-Host 'C74F5_ALL_RECONCILED_ELECTRON_CONTRACTS=PASS'
+      - name: One complete Windows regression with original C12 fingerprints
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:R25C12_T298_SHA256 -cnotmatch '^[a-f0-9]{64}
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($item in @(
+            @{Name='original';Sha=$env:ORIGINAL_SHA},
+            @{Name='candidate';Sha=$env:VERIFIED_SHA}
+          )){
+            $path=Join-Path $env:GITHUB_WORKSPACE $item.Name
+            if(Test-Path -LiteralPath $path){
+              if((& git -C $path rev-parse HEAD).Trim() -cne $item.Sha -or
+                 @(& git -C $path diff --name-only HEAD --).Count -ne 0){
+                throw ('C74F5_ORIGINAL_SOURCE_MUTATED_'+$item.Name)
+              }
+            }
+          }
+          Write-Host 'C74F5_NO_OWNER_DATA_AND_NO_TRADING_ACCESS=PASS'
+ -or
+             $env:R25C12_T373_SHA256 -cnotmatch '^[a-f0-9]{64}
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($item in @(
+            @{Name='original';Sha=$env:ORIGINAL_SHA},
+            @{Name='candidate';Sha=$env:VERIFIED_SHA}
+          )){
+            $path=Join-Path $env:GITHUB_WORKSPACE $item.Name
+            if(Test-Path -LiteralPath $path){
+              if((& git -C $path rev-parse HEAD).Trim() -cne $item.Sha -or
+                 @(& git -C $path diff --name-only HEAD --).Count -ne 0){
+                throw ('C74F5_ORIGINAL_SOURCE_MUTATED_'+$item.Name)
+              }
+            }
+          }
+          Write-Host 'C74F5_NO_OWNER_DATA_AND_NO_TRADING_ACCESS=PASS'
+){
+            throw 'C74F5_PARENT_SOURCE_EVIDENCE_NOT_INSTALLED'
+          }
+          $log=Join-Path $env:RUNNER_TEMP 'r25c74f5-full.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./... *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log | Where-Object {
+              $_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or
+              $_ -match '^FAIL\\s' -or $_ -match '^.*_test\\.go:[0-9]+'
+            } | Select-Object -First 55 | ForEach-Object {Write-Host $_}
+            throw 'C74F5_FULL_WINDOWS_REGRESSION_NOT_ACCEPTED'
+          }
+          Write-Host 'C74F5_COMPLETE_WINDOWS_REGRESSION_AND_PARENT_C12=PASS'
+          Remove-Item -LiteralPath $log -Force
+      - name: Complete original Windows Go vet
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_full ./...
+          if($LASTEXITCODE -ne 0){throw 'C74F5_COMPLETE_WINDOWS_VET_FAILED'}
+          Write-Host 'C74F5_COMPLETE_WINDOWS_VET=PASS'
+      - name: Assemble isolated full original operator executable
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'r25c74f5-qualified-app'
+          if(Test-Path -LiteralPath $out){throw 'C74F5_EXECUTABLE_COLLISION'}
+          New-Item -ItemType Directory -Path $out|Out-Null
+          & go build -mod=readonly -tags=ktrade_full -o (Join-Path $out 'ktrade.exe') ./cmd/ktrade
+          if($LASTEXITCODE -ne 0){throw 'C74F5_EXE_BUILD_FAILED'}
+          foreach($folder in @('static','templates','strategies','recovery')){
+            Copy-Item -LiteralPath $folder -Destination $out -Recurse -ErrorAction Stop
+          }
+          foreach($p in @(
+            'static/recovery_history.html',
+            'recovery/operator-donor-v11110/strategy.html',
+            'recovery/operator-donor-v11110/app.js',
+            'recovery/operator-bridge/historical-review.js',
+            'recovery/operator-bridge/operator-navigation-acceptance.js',
+            'recovery/operator-bridge/operator-chart-navigation.js',
+            'recovery/operator-bridge/operator-control-review.js'
+          )){
+            if(!(Test-Path -LiteralPath (Join-Path $out $p) -PathType Leaf)){
+              throw 'C74F5_ORIGINAL_OPERATOR_ASSET_MISSING'
+            }
+          }
+          Write-Host 'C74F5_ORIGINAL_EXE_AND_OPERATOR_ASSETS=PASS'
+      - name: Real isolated Chromium chart and disabled order acceptance
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:KTRADE_R25C74D_APP_EXE=Join-Path (Join-Path $env:RUNNER_TEMP 'r25c74f5-qualified-app') 'ktrade.exe'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=6m -run '^TestR25C74DPackagedRealBrowserChartGestures
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($item in @(
+            @{Name='original';Sha=$env:ORIGINAL_SHA},
+            @{Name='candidate';Sha=$env:VERIFIED_SHA}
+          )){
+            $path=Join-Path $env:GITHUB_WORKSPACE $item.Name
+            if(Test-Path -LiteralPath $path){
+              if((& git -C $path rev-parse HEAD).Trim() -cne $item.Sha -or
+                 @(& git -C $path diff --name-only HEAD --).Count -ne 0){
+                throw ('C74F5_ORIGINAL_SOURCE_MUTATED_'+$item.Name)
+              }
+            }
+          }
+          Write-Host 'C74F5_NO_OWNER_DATA_AND_NO_TRADING_ACCESS=PASS'
+ ./cmd/ktrade
+          if($LASTEXITCODE -ne 0){throw 'C74F5_ORIGINAL_GENUINE_CHROMIUM_FAILED'}
+          Write-Host 'C74F5_REAL_ORIGINAL_OPERATOR_CHROMIUM=PASS'
+          Write-Host 'C74F5_ACCOUNT_SOURCE_IN_CI=FALSE'
+          Write-Host 'C74F5_PAPER_AND_LIVE_BROKER_ACTIVATION=FALSE'
+      - name: Verify only untracked test staged on frozen original
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($item in @(
+            @{Name='original';Sha=$env:ORIGINAL_SHA},
+            @{Name='candidate';Sha=$env:VERIFIED_SHA}
+          )){
+            $path=Join-Path $env:GITHUB_WORKSPACE $item.Name
+            if(Test-Path -LiteralPath $path){
+              if((& git -C $path rev-parse HEAD).Trim() -cne $item.Sha -or
+                 @(& git -C $path diff --name-only HEAD --).Count -ne 0){
+                throw ('C74F5_ORIGINAL_SOURCE_MUTATED_'+$item.Name)
+              }
+            }
+          }
+          Write-Host 'C74F5_NO_OWNER_DATA_AND_NO_TRADING_ACCESS=PASS'
