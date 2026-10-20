@@ -124,6 +124,17 @@ jobs:
           $app=Join-Path $base 'CKB/Application'
           $custody=Join-Path $base 'R25-C47-selected'
           $script=Join-Path $env:GITHUB_WORKSPACE 'source/scripts/r25-c74f6-owner-readonly-preflight.ps1'
+          $metadata=Join-Path $custody 'R25-C47-private-manifest.json'
+          try{
+            $raw=[IO.File]::ReadAllBytes($metadata)
+            Write-Host ('C74F6_SYNTHETIC_MANIFEST_SIZE='+$raw.Length)
+            $parsed=ConvertFrom-Json -InputObject ([Text.Encoding]::UTF8.GetString([byte[]]$raw))
+            Write-Host ('C74F6_SYNTHETIC_MANIFEST_PARSE_COUNT='+@($parsed.source_files).Count)
+          }catch{
+            Write-Host ('C74F6_SYNTHETIC_PARSE_ERROR_TYPE='+$_.Exception.GetType().Name)
+            Write-Host ('C74F6_SYNTHETIC_PARSE_ERROR_MESSAGE='+$_.Exception.Message.Substring(0,[Math]::Min(250,$_.Exception.Message.Length)))
+            throw
+          }
           function InvokeQualified {
             $txt=& $script -OriginalApplicationRoot $app -CustodyRoot $custody -AppStopped
             if($LASTEXITCODE -ne 0){throw 'C74F6_SCRIPT_EXIT_NONZERO'}
