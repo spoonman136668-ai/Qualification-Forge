@@ -16,8 +16,8 @@ jobs:
     env:
       DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
-      SOURCE_SHA: '55ffbe6e140621ec00fbd6a954d9c53179aa0832'
-      SOURCE_TREE: '3b56e28c9a28667ae61929e80cf2b348558b34f0'
+      SOURCE_SHA: '69245b3bd1d1c7df3d8ba9b5e8a8c8692d238c6f'
+      SOURCE_TREE: 'cda2a15a6f7818951fea52a20cebb23553d50d69'
       PARENT_SHA: '0ea7d020155666242ba48c3200e41880aff1704e'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 55ffbe6e140621ec00fbd6a954d9c53179aa0832
+          ref: 69245b3bd1d1c7df3d8ba9b5e8a8c8692d238c6f
           fetch-depth: 0
           path: source
           persist-credentials: false
@@ -174,7 +174,7 @@ jobs:
           if((Test-Path -LiteralPath $cpu) -or (Test-Path -LiteralPath $mem)){
             throw 'R25_C74F13_PROFILING_FILE_ALREADY_PRESENT'
           }
-          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=8m -v -run '^TestC74F13OriginalNativeVWAPCPUMemoryProfile$' -cpuprofile=f13-native-cpu.pprof -memprofile=f13-native-alloc.pprof -outputdir=$env:RUNNER_TEMP ./internal/shadowqual *> $log
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=8m -v -run '^TestC74F13OriginalNativeVWAPCPUMemoryProfile$' ./internal/shadowqual *> $log
           if($LASTEXITCODE -ne 0){
             Get-Content -LiteralPath $log -Tail 28 | ForEach-Object {Write-Host $_}
             throw 'R25_C74F13_PROFILER_SOURCE_OR_RUN_FAILED'
