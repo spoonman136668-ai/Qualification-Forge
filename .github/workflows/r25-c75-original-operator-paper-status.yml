@@ -301,13 +301,9 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          foreach($x in @(@{Path='donor';SHA=$env:DONOR_SHA},@{Path='candidate';SHA=$env:KTRADE_SHA})){
-            if(Test-Path -LiteralPath (Join-Path $x.Path '.git')){
-              if((& git -C $x.Path rev-parse HEAD).Trim() -cne $x.SHA -or
-                 @(& git -C $x.Path diff --name-only HEAD --).Count -ne 0){
-                throw ('C75A_TRACKED_MUTATION_'+$x.Path)
-              }
-            }
+          if((& git -C candidate rev-parse HEAD).Trim() -cne $env:VERIFIED_SHA -or
+             @(& git -C candidate diff --name-only HEAD --).Count -ne 0){
+            throw 'C75A_KTRADE_TRACKED_MUTATION'
           }
           Write-Host 'C75A_CKB_PLANE_CONTROLLER_USED=FALSE'
           Write-Host 'C75A_OWNER_PROFILE_READ=FALSE'
