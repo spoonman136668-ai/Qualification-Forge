@@ -16,12 +16,12 @@ jobs:
     env:
       DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
-      KTRADE_SHA: '0ac239e80eeb39b4b65f0246388f706db968caa9'
-      KTRADE_TREE: '1e9130374f5799f9986804ac4d529335cbcbf51c'
+      KTRADE_SHA: '9a4901cb8ade967a0cb8586cda42247f5d0b60a6'
+      KTRADE_TREE: '2922e93e9a45a6f3408f0203e84a04a14282dd78'
       PARENT_SHA: '41be1497f49aaabdb0024e85aeddbe2ede52c5fe'
       N2_BLOB: 'b5af4aa6b85e7be40bd989f34d9d9f25119b8035'
       F14_BLOB: '42b44f4e846860d8a2fb43279fcd519ad7e22a21'
-      F17_BLOB: '6acb72d560a461020b09d19fee1b123d647de61c'
+      F17_BLOB: '571b91a8bd4875adc09d42f9fb250fbe36280a41'
       F16_BLOB: '5277209ef337fb6b46856f18f8e22d80ca4993ef'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -33,8 +33,8 @@ jobs:
       MIXED_PARENT_SHA: '2af730f8a7bed15370d86d2ce0ced060c56beed2'
       MIXED_PARENT_TREE: '89cc720ff3d6da6cec12d583a23682584f473ac6'
       MIXED_TEST_BLOB: '00d8cabd7077f84e8b9d39d36cd5f8eb9b658206'
-      VERIFIED_SHA: '0ac239e80eeb39b4b65f0246388f706db968caa9'
-      VERIFIED_TREE: '1e9130374f5799f9986804ac4d529335cbcbf51c'
+      VERIFIED_SHA: '9a4901cb8ade967a0cb8586cda42247f5d0b60a6'
+      VERIFIED_TREE: '2922e93e9a45a6f3408f0203e84a04a14282dd78'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
       GOWORK: 'off'
@@ -66,7 +66,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 0ac239e80eeb39b4b65f0246388f706db968caa9
+          ref: 9a4901cb8ade967a0cb8586cda42247f5d0b60a6
           path: candidate
           fetch-depth: 0
           persist-credentials: false
