@@ -73,9 +73,10 @@ jobs:
             }
           }
           $want=@(
-            'docs/R25_C74F3_NATIVE_TRADEGUARD_PAPER_TRIAL.md',
-            'tests/donor-native-vwap/native_vwap_bridge_c74f2.go',
-            'tests/donor-shadow/native_vwap_c74f2_test.go'
+            'docs/R25_C74F3_AUTHENTICATED_NATIVE_SOURCE.md',
+            'internal/durableupgrade/authenticated_native_vwap_source.go',
+            'tests/donor-native-vwap/c74f3_source_fixture.go',
+            'tests/donor-shadow/native_vwap_c74f3_test.go'
           )|Sort-Object
           $diff=@(& git -C $source diff --name-only $env:PARENT_SHA $env:SOURCE_SHA | Sort-Object)
           if($diff.Count -ne $want.Count -or @(Compare-Object $want $diff).Count -ne 0){
