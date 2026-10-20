@@ -278,6 +278,10 @@ jobs:
           if($childExit -ne 1){throw 'C74F6_OWNER_SCRIPT_UNEXPECTED_EXIT'}
 
           Write-Host 'C74F6_POWER_SHELL_OWNER_GUARD_AND_REDACTED_RECEIPTS=PASS'
+          # GitHub pwsh wraps native process exit code. This child is
+          # EXPECTED to deny hosted owner-data access with exit 1; after
+          # verifying that exact denial, return a successful check result.
+          exit 0
       - name: Owner acceptance is forbidden on hosted runner
         shell: pwsh
         working-directory: candidate
