@@ -137,7 +137,7 @@ jobs:
           }
           function InvokeQualified {
             $txt=& $script -OriginalApplicationRoot $app -CustodyRoot $custody -AppStopped
-            if($LASTEXITCODE -ne 0){throw 'C74F6_SCRIPT_EXIT_NONZERO'}
+            if(-not $?) {throw 'C74F6_SCRIPT_INVOKE_FAILED'}
             return ($txt|ConvertFrom-Json)
           }
           $a=InvokeQualified
