@@ -91,7 +91,7 @@ jobs:
           $donor=Join-Path $env:GITHUB_WORKSPACE 'donor'
           $files=@{
             'internal/paperproposal'=@('proposal.go')
-            'internal/paperauthority'=@('authority.go','commit_trial_shadow.go')
+            'internal/paperauthority'=@('authority.go','commit_trial_shadow.go','read_only.go')
             'internal/paperreconcile'=@(
               'reconcile.go','risk_replay.go','settlement_review.go',
               'original_risk_custody.go','commit_protocol_shadow.go',
