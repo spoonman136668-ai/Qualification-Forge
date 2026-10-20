@@ -171,7 +171,7 @@ jobs:
           $cpu=Join-Path $env:RUNNER_TEMP 'f13-native-cpu.pprof'
           $mem=Join-Path $env:RUNNER_TEMP 'f13-native-alloc.pprof'
           if((Test-Path $cpu) -or (Test-Path $mem)){throw 'R25_C74F13_EXISTING_PROFILE_NOT_DISPOSABLE'}
-          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=8m -v -run '^TestC74F11NativeVWAPReplayScaling
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=8m -v -run '^TestC74F11NativeVWAPReplayScaling$' -cpuprofile=$cpu -memprofile=$mem ./internal/shadowqual *> $log
           if($LASTEXITCODE -ne 0){
             Get-Content -LiteralPath $log | Where-Object {
               $_ -match '^# ktrade/' -or $_ -match '^--- FAIL: ' -or
@@ -192,73 +192,21 @@ jobs:
           Write-Host 'R25_C74F13_IDENTICAL_425_850_1275_SOURCE_REPLAY=PASS'
           foreach($profile in @($cpu,$mem)){
             if(!(Test-Path -LiteralPath $profile -PathType Leaf) -or
-               (Get-Item -LiteralPath $profile).Length -lt 512){
-              throw 'R25_C74F13_PROFILING_BYTES_UNAVAILABLE'
-            }
+               (Get-Item -LiteralPath $profile).Length -lt 512){throw 'R25_C74F13_PROFILE_UNAVAILABLE'}
           }
           $cpuTop=@(& go tool pprof -top -nodecount=25 $cpu)
-          if($LASTEXITCODE -ne 0 -or @($cpuTop).Count -lt 5){
-            throw 'R25_C74F13_ORIGINAL_CPU_PROFILE_NOT_READABLE'
-          }
+          if($LASTEXITCODE -ne 0 -or @($cpuTop).Count -lt 5){throw 'R25_C74F13_CPU_PROFILE_INVALID'}
           $allocTop=@(& go tool pprof -top -nodecount=25 -sample_index=alloc_space $mem)
-          if($LASTEXITCODE -ne 0 -or @($allocTop).Count -lt 5){
-            throw 'R25_C74F13_ORIGINAL_ALLOCATION_PROFILE_NOT_READABLE'
-          }
+          if($LASTEXITCODE -ne 0 -or @($allocTop).Count -lt 5){throw 'R25_C74F13_ALLOCATION_PROFILE_INVALID'}
           Write-Host 'R25_C74F13_CPU_TOP_BEGIN'
-          $cpuTop| Select-Object -First 35 | ForEach-Object {Write-Host $_}
+          $cpuTop|Select-Object -First 35|ForEach-Object {Write-Host $_}
           Write-Host 'R25_C74F13_CPU_TOP_END'
           Write-Host 'R25_C74F13_ALLOCATION_TOP_BEGIN'
-          $allocTop| Select-Object -First 35 | ForEach-Object {Write-Host $_}
+          $allocTop|Select-Object -First 35|ForEach-Object {Write-Host $_}
           Write-Host 'R25_C74F13_ALLOCATION_TOP_END'
           Remove-Item -LiteralPath $cpu,$mem -Force
-          Write-Host 'R25_C74F13_ACTUAL_NATIVE_CPU_AND_ALLOCATION_PROFILE=PASS'
+          Write-Host 'R25_C74F13_ORIGINAL_NATIVE_CPU_AND_ALLOCATION_PROFILE=PASS'
           Write-Host 'R25_C74F13_OWNER_HISTORY_AND_LIVE_ORDER_PATH=NOT_MEASURED'
-      - name: Verify private source and zero production mutation
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $source=Join-Path $env:GITHUB_WORKSPACE 'source'
-          $donor=Join-Path $env:GITHUB_WORKSPACE 'donor'
-          if(Test-Path -LiteralPath (Join-Path $source '.git')){
-            if((& git -C $source rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
-               @(& git -C $source status --porcelain=v1 --untracked-files=all).Count -ne 0){
-               throw 'R25_C74F11_KTRADE_TRACKED_SOURCE_MUTATED'
-            }
-          }
-          if(Test-Path -LiteralPath (Join-Path $donor '.git')){
-            if((& git -C $donor rev-parse HEAD).Trim() -cne $env:DONOR_SHA){
-              throw 'R25_C74F11_ORIGINAL_DONOR_COMMIT_CHANGED'
-            }
-            $tracked=@(& git -C $donor diff --name-only HEAD --)
-            if(@($tracked|Where-Object {$_ -cnotin @('go.mod','go.sum')}).Count -ne 0){
-              throw 'R25_C74F11_ORIGINAL_DONOR_TRACKED_SOURCE_CHANGED'
-            }
-          }
-          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f10-native.log'
-          if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
-          Write-Host 'R25_C74F11_NO_OWNER_FILES_AND_BROKER=PASS'
-          Write-Host 'R25_C74F11_PAPER_ADMISSION=FALSE'
-          Write-Host 'R25_C74F11_RELEASE_AND_ACCEPTED_REF=FALSE'
- -cpuprofile=$cpu -memprofile=$mem ./internal/shadowqual *> $log
-          if($LASTEXITCODE -ne 0){
-            Get-Content -LiteralPath $log | Where-Object {
-              $_ -match '^# ktrade/' -or $_ -match '^--- FAIL: ' -or
-              $_ -match '^.*\.go:[0-9]+(:[0-9]+)?: ' -or $_ -match '^FAIL[\s]'
-            } | Select-Object -First 22 | ForEach-Object {Write-Host $_}
-            throw 'R25_C74F11_NATIVE_PAPER_TRIAL_FAIL_CLOSED'
-          }
-          foreach($bars in @(425,850,1275)){
-            $line=@(Select-String -LiteralPath $log -SimpleMatch ('R25_C74F11_METRIC schema=ktrade.r25-c74f11.native-history-scaling.v1 bars='+$bars+' '))
-            if($line.Count -ne 1){throw ('R25_C74F11_SCALING_METRIC_MISSING_'+$bars)}
-            Write-Host $line[0].Line
-          }
-          foreach($label in @('R25_C74F11_SCALE ','C74F11_UNMODIFIED_ORIGINAL_NATIVE_VWAP_HISTORY_SCALING=PASS','C74F11_OWNER_RECONCILIATION_AND_REAL_ORDER_TIMING=NOT_MEASURED')){
-            $item=@(Select-String -LiteralPath $log -SimpleMatch $label)
-            if($item.Count -ne 1){throw ('R25_C74F11_EVIDENCE_MISSING_'+$label)}
-            Write-Host $item[0].Line
-          }
-          Write-Host 'R25_C74F11_THREE_SOURCE_BOUND_HISTORY_SIZES=PASS'
       - name: Verify private source and zero production mutation
         if: always()
         shell: pwsh
