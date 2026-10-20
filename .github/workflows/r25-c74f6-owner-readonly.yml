@@ -100,7 +100,7 @@ jobs:
           }
           $m=Join-Path $custody 'R25-C47-private-manifest.json'
           $mr=($manifest | ConvertTo-Json -Depth 10 -Compress)
-          [IO.File]::WriteAllText($m,$mr,[Text.Encoding]::UTF8)
+          [IO.File]::WriteAllText($m,$mr,[Text.UTF8Encoding]::new($false))
           $sha=(Get-FileHash -LiteralPath $m -Algorithm SHA256).Hash.ToLowerInvariant()
           $receipt=[ordered]@{
             schema='ktrade.r25-c47.selected-receipt.v1'
@@ -113,7 +113,7 @@ jobs:
             migration_authorized=$false
             release_authorized=$false
           }
-          [IO.File]::WriteAllText((Join-Path $custody 'R25-C47-receipt.json'),($receipt|ConvertTo-Json -Depth 5 -Compress),[Text.Encoding]::UTF8)
+          [IO.File]::WriteAllText((Join-Path $custody 'R25-C47-receipt.json'),($receipt|ConvertTo-Json -Depth 5 -Compress),[Text.UTF8Encoding]::new($false))
           Write-Host 'C74F6_695_SOURCE_AND_SNAPSHOT_SYNTHETIC_FIXTURE=PASS'
       - name: Verify fully authentic-format byte matching, original drift and no writes
         shell: pwsh
