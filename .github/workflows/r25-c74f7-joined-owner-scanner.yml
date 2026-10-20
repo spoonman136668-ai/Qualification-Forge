@@ -1,7 +1,7 @@
 name: R25-C74F7 exact original and snapshot read-only owner verifier
 on:
   push:
-    branches: [qualification/r25-c74f7-owner-readonly-20261020]
+    branches: [qualification/r25-c74f7-joined-owner-scanner-20261020]
     paths: [.github/workflows/r25-c74f7-joined-owner-scanner.yml]
 permissions:
   contents: read
