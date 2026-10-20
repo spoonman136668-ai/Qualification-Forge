@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 55
     env:
-      VERIFIED_SHA: '61917bd9998d9767b639e67e338d8138582d7377'
-      VERIFIED_TREE: '467f56a0dd9e47c1762ae220089a9166bcfa692f'
+      VERIFIED_SHA: 'dc51102f13b3b6cfb872d7c62381690535695448'
+      VERIFIED_TREE: '343f06b7c9cec396ffc60b9112914839f6f6bc99'
       PARENT_SHA: 'bb9ba8a4abc4ad46102168f7f0a5a6b01d82c6c4'
       DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 61917bd9998d9767b639e67e338d8138582d7377
+          ref: dc51102f13b3b6cfb872d7c62381690535695448
           path: candidate
           fetch-depth: 0
           persist-credentials: false
@@ -68,11 +68,12 @@ jobs:
             'cmd/ktrade/operator_native_evaluator_c75c_full_test.go',
             'cmd/ktrade/operator_recovery_full.go',
             'recovery/operator-bridge/operator-control-review.js',
+            'package.json',
             'tests/donor-native-vwap/c75c_native_evaluator_sidecar.go',
             'tests/donor-shadow/native_vwap_c75c_sidecar_test.go'
           )|Sort-Object
           $actual=@(& git -C candidate diff --name-only $env:PARENT_SHA $env:VERIFIED_SHA | Sort-Object)
-          if($actual.Count -ne 6 -or @(Compare-Object $expected $actual).Count -ne 0){
+          if($actual.Count -ne 7 -or @(Compare-Object $expected $actual).Count -ne 0){
             throw 'C75C_NATIVE_EXE_SOURCE_SCOPE_DRIFT'
           }
           Write-Host 'C75A_ORIGINAL_OPERATOR_PAPER_STATUS_FUNCTIONAL_DELTA=PASS'
@@ -217,7 +218,7 @@ jobs:
           }
           $passes=@(Select-String -LiteralPath $log -Pattern '^--- PASS: TestR25C75')
           $proof=@(Select-String -LiteralPath $log -SimpleMatch 'C75_ORIGINAL_OPERATOR_TO_REAL_STOPPED_PAPER_STATUS_ROUTE=PASS')
-          if($passes.Count -ne 5 -or $proof.Count -ne 1){throw 'C75A_FOCUSED_PROOFS_INCOMPLETE'}
+          if($passes.Count -ne 6 -or $proof.Count -ne 1){throw 'C75A_FOCUSED_PROOFS_INCOMPLETE'}
           $passes | ForEach-Object {Write-Host $_.Line}
           $proof | ForEach-Object {Write-Host $_.Line}
           $pack=@(Select-String -LiteralPath $log -SimpleMatch 'C75_ORIGINAL_OPERATOR_UI_ASSETS_PACKAGED_NEXT_TO_BACKEND=PASS')
@@ -228,6 +229,9 @@ jobs:
           if($native.Count -ne 1 -or $control.Count -ne 1){throw 'C75C_REAL_APPLICATION_NATIVE_EVALUATION_NOT_PROVEN'}
           Write-Host $native[0].Line
           Write-Host $control[0].Line
+          $pack=@(Select-String -LiteralPath $log -SimpleMatch 'C75C_WINDOWS_PACKAGING_REQUIRES_PINNED_NATIVE_COMPANION=PASS')
+          if($pack.Count -ne 1){throw 'C75C_WINDOWS_NATIVE_COMPANION_PACKAGING_CONTRACT_FAILED'}
+          Write-Host $pack[0].Line
           Write-Host 'C75C_SHIPPING_APP_NATIVE_HISTORICAL_EVALUATION=PASS'
           Write-Host 'C75A_OPERATOR_ORIGINAL_UI_TO_PAPER_STATUS_ROUTE=PASS'
       - name: Checkout original pre-repair C12 source exactly
@@ -426,10 +430,30 @@ jobs:
         working-directory: candidate
         run: |
           $ErrorActionPreference='Stop'
-          $exe=Join-Path $env:RUNNER_TEMP 'c75a-review-only-NEVER-LAUNCHED.exe'
-          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
-          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){throw 'C75A_WINDOWS_BUILD_FAILED'}
-          Write-Host 'C75A_WINDOWS_EXE_BUILD_ONLY_NO_RUN=PASS'
+          $exe=Join-Path $env:RUNNER_TEMP 'c75c-shipping-readonly-NEVER-LAUNCHED.exe'
+          $native=$env:C75C_TEST_NATIVE_EXE
+          $digest=$env:C75C_NATIVE_SHA256
+          if(!(Test-Path -LiteralPath $native) -or $digest -notmatch '^[0-9a-f]{64}$'){
+            throw 'C75C_ORIGINAL_EVALUATOR_BINARY_NOT_QUALIFIED_FOR_PACKAGE'
+          }
+          $actual=(Get-FileHash -LiteralPath $native -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($actual -cne $digest){throw 'C75C_EVALUATOR_DIGEST_CHANGED_AFTER_FOCUSED_QUALIFICATION'}
+          & go build -mod=readonly -tags=ktrade_full -ldflags "-X main.c75cEvaluatorPinnedSHA256=$digest" -o $exe ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){
+            throw 'C75C_PINNED_WINDOWS_BACKEND_BUILD_FAILED'
+          }
+          $companion=Join-Path (Get-Location) 'ktrade-native-vwap.exe'
+          if(Test-Path -LiteralPath $companion){throw 'C75C_EXISTING_COMPANION_MUST_NOT_BE_OVERWRITTEN'}
+          try{
+            Copy-Item -LiteralPath $native -Destination $companion -ErrorAction Stop
+            if((Get-FileHash -LiteralPath $companion -Algorithm SHA256).Hash.ToLowerInvariant() -cne $digest){
+              throw 'C75C_PACKAGING_STAGED_EXECUTABLE_DIGEST_MISMATCH'
+            }
+            Write-Host 'C75C_SHIPPING_WINDOWS_BACKEND_PINNED_TO_EXACT_ORIGINAL_NATIVE_COMPANION=PASS'
+          }finally{
+            if(Test-Path -LiteralPath $companion){Remove-Item -LiteralPath $companion -Force}
+          }
+          Write-Host 'C75C_WINDOWS_BACKEND_BUILD_ONLY_NO_RUN_OR_INSTALL=PASS'
       - name: Assert no tracked source mutation or release authority
         if: always()
         shell: pwsh
