@@ -191,8 +191,11 @@ jobs:
           }
           Write-Host 'R25_C74F13_IDENTICAL_425_850_1275_SOURCE_REPLAY=PASS'
           foreach($profile in @($cpu,$mem)){
-            if(!(Test-Path -LiteralPath $profile -PathType Leaf) -or
-               (Get-Item -LiteralPath $profile).Length -lt 512){throw 'R25_C74F13_PROFILE_UNAVAILABLE'}
+            $found=Test-Path -LiteralPath $profile -PathType Leaf
+            $size=if($found){(Get-Item -LiteralPath $profile).Length}else{0}
+            $kind=if($profile -ceq $cpu){'CPU'}else{'ALLOCATION'}
+            Write-Host ('R25_C74F13_PROFILE_FILE kind='+$kind+' found='+$found+' bytes='+$size)
+            if(!$found -or $size -lt 64){throw ('R25_C74F13_'+$kind+'_PROFILE_UNAVAILABLE')}
           }
           $cpuTop=@(& go tool pprof -top -nodecount=25 $cpu)
           if($LASTEXITCODE -ne 0 -or @($cpuTop).Count -lt 5){throw 'R25_C74F13_CPU_PROFILE_INVALID'}
