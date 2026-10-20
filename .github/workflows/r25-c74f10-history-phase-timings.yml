@@ -16,8 +16,8 @@ jobs:
     env:
       DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
-      SOURCE_SHA: 'cfa214d749ba51615383313d8871321ef2acfbf6'
-      SOURCE_TREE: '6491e393cf55438b5e923980770c8ce9eeb08162'
+      SOURCE_SHA: '0d84f34c25c5e1a4a4a28349a26c97fba6779af7'
+      SOURCE_TREE: '555a996ed3b8f823833280e747400f287056917b'
       PARENT_SHA: '885a7c95742343bf8c36768b896a32fd3132f894'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: cfa214d749ba51615383313d8871321ef2acfbf6
+          ref: 0d84f34c25c5e1a4a4a28349a26c97fba6779af7
           fetch-depth: 0
           path: source
           persist-credentials: false
