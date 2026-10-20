@@ -156,7 +156,7 @@ jobs:
             Copy-Item -LiteralPath (Join-Path $source ('tests/donor-shadow/'+$name)) -Destination (Join-Path $testDir $name) -ErrorAction Stop
           }
           Write-Host 'R25_C74F10_TEST_ONLY_STAGING=PASS'
-      - name: Authenticated R25-C47 settings and candles to exact original native VWAP
+      - name: Measure original source and VWAP benchmark phases
         shell: pwsh
         working-directory: donor
         run: |
@@ -167,57 +167,26 @@ jobs:
             $env:GOFLAGS=''
             & go get github.com/mattn/go-sqlite3@v1.14.18 *> $log
           }finally{$env:GOFLAGS=$prior}
-          if($LASTEXITCODE -ne 0){throw 'R25_C74F10_DISPOSABLE_SQLITE_DEPENDENCY_BLOCKED'}
+          if($LASTEXITCODE -ne 0){throw 'R25_C74F10_DISPOSABLE_DEPENDENCY_BLOCKED'}
           & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=8m -v -run '^TestC74F10' ./internal/shadowqual *> $log
           if($LASTEXITCODE -ne 0){
             Get-Content -LiteralPath $log | Where-Object {
               $_ -match '^# ktrade/' -or $_ -match '^--- FAIL: ' -or
               $_ -match '^.*\.go:[0-9]+(:[0-9]+)?: ' -or $_ -match '^FAIL[\s]'
-            } | Select-Object -First 22 | ForEach-Object {Write-Host $_}
-            throw 'R25_C74F10_NATIVE_PAPER_TRIAL_FAIL_CLOSED'
+            } | Select-Object -First 24 | ForEach-Object {Write-Host $_}
+            throw 'R25_C74F10_PHASE_BENCHMARK_FAILED'
           }
-          $a=@(Select-String -LiteralPath $log -Pattern 'C74F10_ORIGINAL_SOURCE_PHASE_ATTRIBUTION=PASS')
-          if($a.Count -lt 1){throw 'R25_C74F10_TEST_RECEIPT_MISSING'}
-          $a | ForEach-Object {Write-Host $_.Line}
-          $metrics=@(Select-String -LiteralPath $log -Pattern '^R25_C74F10_METRIC .*synthetic_only=true
-          Write-Host 'R25_C74F10_NATIVE_SIGNAL_TRADEGUARD_SQLITE_TRIAL=PASS'
-      - name: Verify private source and zero production mutation
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $source=Join-Path $env:GITHUB_WORKSPACE 'source'
-          $donor=Join-Path $env:GITHUB_WORKSPACE 'donor'
-          if(Test-Path -LiteralPath (Join-Path $source '.git')){
-            if((& git -C $source rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
-               @(& git -C $source status --porcelain=v1 --untracked-files=all).Count -ne 0){
-               throw 'R25_C74F10_KTRADE_TRACKED_SOURCE_MUTATED'
-            }
-          }
-          if(Test-Path -LiteralPath (Join-Path $donor '.git')){
-            if((& git -C $donor rev-parse HEAD).Trim() -cne $env:DONOR_SHA){
-              throw 'R25_C74F10_ORIGINAL_DONOR_COMMIT_CHANGED'
-            }
-            $tracked=@(& git -C $donor diff --name-only HEAD --)
-            if(@($tracked|Where-Object {$_ -cnotin @('go.mod','go.sum')}).Count -ne 0){
-              throw 'R25_C74F10_ORIGINAL_DONOR_TRACKED_SOURCE_CHANGED'
-            }
-          }
-          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f10-bottleneck-metrics.log'
-          if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
-          Write-Host 'R25_C74F10_NO_OWNER_FILES_AND_BROKER=PASS'
-          Write-Host 'R25_C74F10_PAPER_ADMISSION=FALSE'
-          Write-Host 'R25_C74F10_RELEASE_AND_ACCEPTED_REF=FALSE'
-)
+          $passed=@(Select-String -LiteralPath $log -Pattern 'C74F10_ORIGINAL_SOURCE_PHASE_ATTRIBUTION=PASS')
+          $metrics=@(Select-String -LiteralPath $log -Pattern '^R25_C74F10_METRIC .*synthetic_only=true$')
           $ratios=@(Select-String -LiteralPath $log -Pattern '^R25_C74F10_RATIO ')
-          if($metrics.Count -ne 7 -or $ratios.Count -ne 1){
-            throw 'R25_C74F10_PHASE_METRIC_COUNT_OR_RATIO_MISSING'
+          if($passed.Count -lt 1 -or $metrics.Count -ne 7 -or $ratios.Count -ne 1){
+            throw 'R25_C74F10_PHASE_RECEIPTS_INCOMPLETE'
           }
+          $passed | ForEach-Object {Write-Host $_.Line}
           $metrics | ForEach-Object {Write-Host $_.Line}
           $ratios | ForEach-Object {Write-Host $_.Line}
           Write-Host 'R25_C74F10_PHASE_SIMULATION_METRICS=PASS'
           Write-Host 'R25_C74F10_OWNER_DATA_AND_PAPER_ORDER_NOT_MEASURED=TRUE'
-          Write-Host 'R25_C74F10_NATIVE_SIGNAL_TRADEGUARD_SQLITE_TRIAL=PASS'
       - name: Verify private source and zero production mutation
         if: always()
         shell: pwsh
@@ -240,7 +209,7 @@ jobs:
               throw 'R25_C74F10_ORIGINAL_DONOR_TRACKED_SOURCE_CHANGED'
             }
           }
-          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f10-bottleneck-metrics.log'
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f8-native.log'
           if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
           Write-Host 'R25_C74F10_NO_OWNER_FILES_AND_BROKER=PASS'
           Write-Host 'R25_C74F10_PAPER_ADMISSION=FALSE'
