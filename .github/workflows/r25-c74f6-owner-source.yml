@@ -16,8 +16,8 @@ jobs:
     env:
       ORIGINAL_SHA: 'd892d5902f6c19105c4395bf6b71bfb112b22a62'
       ORIGINAL_TREE: '95846811b88a0cb538dd6d494bb771ef3cd8102b'
-      VERIFIED_SHA: '1620bf31455aac86d9d69d9357c2754d0d38e5c9'
-      VERIFIED_TREE: 'd96c9f305cdab3e009919e275a582282c09d314e'
+      VERIFIED_SHA: 'b8f92e75d760f020c3cd0c8c6beaa56dbcccac7e'
+      VERIFIED_TREE: '90f8ae3a2d2424632c91893c9960ab0351d20051'
       C12_TEST_BLOB: '8813b0db1c5591db5b136dc32b568d8773cbc4e6'
       MIXED_PARENT_SHA: '2af730f8a7bed15370d86d2ce0ced060c56beed2'
       MIXED_PARENT_TREE: '89cc720ff3d6da6cec12d583a23682584f473ac6'
@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1620bf31455aac86d9d69d9357c2754d0d38e5c9
+          ref: b8f92e75d760f020c3cd0c8c6beaa56dbcccac7e
           fetch-depth: 0
           path: candidate
           persist-credentials: false
@@ -111,7 +111,8 @@ jobs:
           $base='b37b88ac83008e2b687f34047e2cd0331842b5a5'
           $paths=@(
             'cmd/ktrade/operator_owner_parity_f6_full_test.go',
-            'docs/R25_C74F6_ACTUAL_OWNER_READONLY_ACCEPTANCE.md'
+            'docs/R25_C74F6_ACTUAL_OWNER_READONLY_ACCEPTANCE.md',
+            'qualification/R25_C74F6_Owner_ReadOnly_Acceptance.ps1'
           )|Sort-Object
           $got=@(& git diff --name-only $base $env:VERIFIED_SHA | Sort-Object)
           if($got.Count -ne $paths.Count -or @(Compare-Object $paths $got).Count -ne 0){
@@ -251,6 +252,29 @@ jobs:
           & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=5m -run $testnames ./pkg
           if($LASTEXITCODE -ne 0){throw 'C74F5_RECONCILED_LEGACY_AND_MODERN_SAFETY_FOCUSED_FAILED'}
           Write-Host 'C74F5_ALL_RECONCILED_ELECTRON_CONTRACTS=PASS'
+      - name: Verify owner-only PowerShell acceptance is syntactically valid and cannot access hosted user data
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $script=Join-Path (Get-Location) 'qualification/R25_C74F6_Owner_ReadOnly_Acceptance.ps1'
+          $tokens=$null
+          $parseErrors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($script,[ref]$tokens,[ref]$parseErrors)
+          if(@($parseErrors).Count -ne 0){throw 'C74F6_WINDOWS_OWNER_SCRIPT_PARSE_FAILURE'}
+          $code=Get-Content -LiteralPath $script -Raw -Encoding utf8
+          if(!$code.Contains("Get-Process -Name 'ckb','ktrade'") -or
+             !$code.Contains("ExpectedSourceSha") -or
+             !$code.Contains("C74F6_OWNER_ORIGINAL_INSTALLED_DATA_MATCHES_RETAINED_SELECTED_SOURCE=PASS")){
+            throw 'C74F6_OWNER_STOPPED_PROFILE_SOURCE_GUARD_MISSING'
+          }
+          try{
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -ExpectedSourceSha $env:VERIFIED_SHA *> $null
+            throw 'C74F6_HOSTED_OWNER_SCRIPT_INCORRECTLY_ADMITTED'
+          }catch{
+            if($_.Exception.Message -match 'INCORRECTLY_ADMITTED'){throw}
+          }
+          Write-Host 'C74F6_POWER_SHELL_OWNER_GUARD_AND_REDACTED_RECEIPTS=PASS'
       - name: Owner acceptance is forbidden on hosted runner
         shell: pwsh
         working-directory: candidate
