@@ -16,8 +16,8 @@ jobs:
     env:
       ORIGINAL_SHA: 'd892d5902f6c19105c4395bf6b71bfb112b22a62'
       ORIGINAL_TREE: '95846811b88a0cb538dd6d494bb771ef3cd8102b'
-      VERIFIED_SHA: '81f704a32fe1a7f1d414c3300f40a957696d6cac'
-      VERIFIED_TREE: 'bac0b1df58da837989c50a04b85b29e232ca833d'
+      VERIFIED_SHA: 'a7e607ae4d0d1df394d96a5fce0b4a4e80aa5160'
+      VERIFIED_TREE: '542ca083592d2aa75a30026a61a661125043ade7'
       C12_TEST_BLOB: '8813b0db1c5591db5b136dc32b568d8773cbc4e6'
       MIXED_PARENT_SHA: '2af730f8a7bed15370d86d2ce0ced060c56beed2'
       MIXED_PARENT_TREE: '89cc720ff3d6da6cec12d583a23682584f473ac6'
@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 81f704a32fe1a7f1d414c3300f40a957696d6cac
+          ref: a7e607ae4d0d1df394d96a5fce0b4a4e80aa5160
           fetch-depth: 0
           path: candidate
           persist-credentials: false
