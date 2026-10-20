@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 55
     env:
-      VERIFIED_SHA: '7dfeb859e28b94b9f2abac4bb6f34689c4b9ae8b'
-      VERIFIED_TREE: '77ae2f74803ef48d4a66d8aefe6ea7d5ead088c0'
+      VERIFIED_SHA: 'b196354d59eed2706dc745a7509f8379ea70d900'
+      VERIFIED_TREE: 'e16010ba02e95c5eecfcde555a98d5e1bd5b3eb2'
       PARENT_SHA: 'bb9ba8a4abc4ad46102168f7f0a5a6b01d82c6c4'
       DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 7dfeb859e28b94b9f2abac4bb6f34689c4b9ae8b
+          ref: b196354d59eed2706dc745a7509f8379ea70d900
           path: candidate
           fetch-depth: 0
           persist-credentials: false
@@ -70,10 +70,11 @@ jobs:
             'recovery/operator-bridge/operator-control-review.js',
             'package.json',
             'tests/donor-native-vwap/c75c_native_evaluator_sidecar.go',
+            'tests/donor-native-vwap/c75c_replay_asof_patch.ps1',
             'tests/donor-shadow/native_vwap_c75c_sidecar_test.go'
           )|Sort-Object
           $actual=@(& git -C candidate diff --name-only $env:PARENT_SHA $env:VERIFIED_SHA | Sort-Object)
-          if($actual.Count -ne 7 -or @(Compare-Object $expected $actual).Count -ne 0){
+          if($actual.Count -ne 8 -or @(Compare-Object $expected $actual).Count -ne 0){
             throw 'C75C_NATIVE_EXE_SOURCE_SCOPE_DRIFT'
           }
           Write-Host 'C75A_ORIGINAL_OPERATOR_PAPER_STATUS_FUNCTIONAL_DELTA=PASS'
@@ -179,6 +180,14 @@ jobs:
           if($a.Count -lt 2){throw 'C75B1_TEST_RECEIPT_MISSING'}
           $a | ForEach-Object {Write-Host $_.Line}
           Write-Host 'C75B1_NATIVE_SETTINGS_SIGNAL_TRADEGUARD_STOP_AND_RESTART=PASS'
+      - name: Bind stopped read-only historical VWAP replay to immutable candle as-of
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $script=Join-Path $env:GITHUB_WORKSPACE 'candidate/tests/donor-native-vwap/c75c_replay_asof_patch.ps1'
+          if(!(Test-Path -LiteralPath $script -PathType Leaf)){throw 'C75C_REPLAY_CLOCK_PATCH_SOURCE_MISSING'}
+          & $script -DonorRoot (Join-Path $env:GITHUB_WORKSPACE 'donor')
+          Write-Host 'C75C_NATIVE_DONOR_REPLAY_CLOCK_LIVE_GUARD_PRESERVED=PASS'
       - name: Compile and invoke exact original native VWAP in separate stopped executable
         shell: pwsh
         working-directory: donor
@@ -198,6 +207,9 @@ jobs:
           }
           $proof=@(Select-String -LiteralPath $log -SimpleMatch 'C75C_FROZEN_ORIGINAL_NATIVE_VWAP_EXE_SOURCE_AND_NEGATIVES=PASS')
           if($proof.Count -ne 1 -or !(Test-Path -LiteralPath $fixture)){throw 'C75C_NATIVE_DECISION_OR_SOURCE_FIXTURE_MISSING'}
+          $stale=@(Select-String -LiteralPath $log -SimpleMatch 'C75C_STALE_HISTORICAL_REPLAY_SOURCE_NATIVE_PARITY=PASS')
+          if($stale.Count -ne 1){throw 'C75C_STALE_HISTORICAL_REPLAY_PARITY_UNQUALIFIED'}
+          Write-Host $stale[0].Line
           Add-Content -LiteralPath $env:GITHUB_ENV -Value ('C75C_TEST_NATIVE_EXE='+$exe)
           Add-Content -LiteralPath $env:GITHUB_ENV -Value ('C75C_TEST_NATIVE_FIXTURE='+$fixture)
           $hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
