@@ -1,12 +1,12 @@
 name: R25-C74F-3 authenticated settings and candles to native VWAP
 on:
   push:
-    branches: [qualification/r25-c74f3-native-paper-20261019]
-    paths: [.github/workflows/r25-c74f3-native-paper.yml]
+    branches: [qualification/r25-c74f3-source-native-20261019]
+    paths: [.github/workflows/r25-c74f3-source-native.yml]
 permissions:
   contents: read
 concurrency:
-  group: r25-c74f3-native-paper
+  group: r25-c74f3-source-native
   cancel-in-progress: false
 jobs:
   native-paper-trial:
