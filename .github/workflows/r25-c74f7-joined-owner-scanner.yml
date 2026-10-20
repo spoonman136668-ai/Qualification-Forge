@@ -1,0 +1,200 @@
+name: R25-C74F7 exact original and snapshot read-only owner verifier
+on:
+  push:
+    branches: [qualification/r25-c74f7-owner-readonly-20261020]
+    paths: [.github/workflows/r25-c74f7-joined-owner-scanner.yml]
+permissions:
+  contents: read
+jobs:
+  original-source-compare:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      KTRADE_SHA: '194b6d7cfabbd46a2c08342747b80df22a1a2948'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_C74F7_SYNTHETIC_ONLY: '1'
+    steps:
+      - name: Require GitHub-hosted Windows and paper-only
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0'){
+            throw 'C74F7_UNQUALIFIED_RUNNER_OR_BROKER'
+          }
+          Write-Host 'C74F7_HOSTED_SOURCE_SCOPE=PASS'
+      - name: Checkout exact test-only owner source verification
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 194b6d7cfabbd46a2c08342747b80df22a1a2948
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact source and bounded two-file delta
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:KTRADE_SHA -or
+             @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'C74F7_EXACT_SOURCE_DRIFT'
+          }
+          $expected=@(
+            'docs/R25_C74F7_CONSOLIDATED_OWNER_READONLY.md',
+            'qualification/R25_C74F6_Owner_ReadOnly_Acceptance.ps1',
+            'scripts/r25-c74f7-owner-integrity.ps1'
+          )|Sort-Object
+          $got=@(& git diff --name-only b8f92e75d760f020c3cd0c8c6beaa56dbcccac7e HEAD | Sort-Object)
+          if(@(Compare-Object $expected $got).Count -ne 0){throw 'C74F7_NONREADONLY_PRODUCT_DIFF'}
+          Write-Host 'C74F7_TWO_READONLY_SOURCE_FILES=PASS'
+      - name: Produce complete synthetic original and selected source snapshot
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base=Join-Path $env:RUNNER_TEMP 'c74f7-fixture-v2'
+          if(Test-Path -LiteralPath $base){throw 'C74F7_SYNTHETIC_TREE_COLLISION'}
+          $app=Join-Path $base 'CKB/Application'
+          $custody=Join-Path $base 'R25-C47-selected'
+          New-Item -ItemType Directory -Path $app -Force|Out-Null
+          New-Item -ItemType Directory -Path $custody -Force|Out-Null
+          $relative=@(
+            'Application/data/config.json',
+            'Application/data/strategy_settings_BTC_USDC.json',
+            'Application/data/strategy_state_BTC_USDC.json',
+            'Application/data/tradeguard-risk-continuity.json',
+            'Application/data/execution.journal.jsonl',
+            'Application/data/history/legacy-log.dat',
+            'Application/data/browser/workspace.dat'
+          )
+          for($n=0;$n -lt 688;$n++){
+            $relative+=('Application/data/browser/cache-{0:d3}.dat' -f $n)
+          }
+          if($relative.Count -ne 695){throw 'C74F7_SYNTHETIC_CATALOG_COUNT_ERROR'}
+          $members=[Collections.Generic.List[object]]::new()
+          [long]$expectedBytes=164194320L
+          foreach($n in 0..694){
+            $rel=$relative[$n]
+            $source=Join-Path $app ($rel.Substring('Application/'.Length).Replace('/',[IO.Path]::DirectorySeparatorChar))
+            $copy=Join-Path $custody ($rel.Replace('/',[IO.Path]::DirectorySeparatorChar))
+            $null=New-Item -Path (Split-Path -Parent $source) -ItemType Directory -Force
+            $null=New-Item -Path (Split-Path -Parent $copy) -ItemType Directory -Force
+            $length=[long]1
+            if($n -eq 694){$length=$expectedBytes-694L}
+            $handle=[IO.File]::Open($source,[IO.FileMode]::CreateNew,[IO.FileAccess]::Write,[IO.FileShare]::None)
+            try{$handle.SetLength($length)}finally{$handle.Dispose()}
+            [IO.File]::Copy($source,$copy,$false)
+            $digest=(Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash.ToLowerInvariant()
+            $members.Add([ordered]@{path=$rel;bytes=$length;sha256=$digest;last_write_utc='2026-10-19T09:03:58.0000000Z'})
+          }
+          $manifest=[ordered]@{
+            schema='ktrade.r25-c47.selected-user-data-snapshot.v1'
+            application_version='1.5.7'
+            source='CKB/Application'
+            copied_file_count=695
+            copied_bytes=164194320L
+            complete_historical_preservation=$false
+            migration_authorized=$false
+            source_files=$members.ToArray()
+          }
+          $m=Join-Path $custody 'R25-C47-private-manifest.json'
+          $mr=($manifest | ConvertTo-Json -Depth 10 -Compress)
+          [IO.File]::WriteAllText($m,$mr,[Text.UTF8Encoding]::new($false))
+          $sha=(Get-FileHash -LiteralPath $m -Algorithm SHA256).Hash.ToLowerInvariant()
+          $receipt=[ordered]@{
+            schema='ktrade.r25-c47.selected-receipt.v1'
+            manifest_sha256=$sha
+            snapshot_file_count=695
+            snapshot_bytes=164194320L
+            snapshot_sha256_file_verification='PASS'
+            complete_historical_preservation=$false
+            isolated_restore_verified=$false
+            migration_authorized=$false
+            release_authorized=$false
+          }
+          [IO.File]::WriteAllText((Join-Path $custody 'R25-C47-receipt.json'),($receipt|ConvertTo-Json -Depth 5 -Compress),[Text.UTF8Encoding]::new($false))
+          Write-Host 'C74F7_695_SOURCE_AND_SNAPSHOT_SYNTHETIC_FIXTURE=PASS'
+      - name: Verify fully authentic-format byte matching, original drift and no writes
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $base=Join-Path $env:RUNNER_TEMP 'c74f7-fixture-v2'
+          $app=Join-Path $base 'CKB/Application'
+          $custody=Join-Path $base 'R25-C47-selected'
+          $script=Join-Path $env:GITHUB_WORKSPACE 'source/scripts/r25-c74f7-owner-integrity.ps1'
+          $metadata=Join-Path $custody 'R25-C47-private-manifest.json'
+          try{
+            $raw=[IO.File]::ReadAllBytes($metadata)
+            Write-Host ('C74F7_SYNTHETIC_MANIFEST_SIZE='+$raw.Length)
+            $parsed=ConvertFrom-Json -InputObject ([Text.Encoding]::UTF8.GetString([byte[]]$raw))
+            Write-Host ('C74F7_SYNTHETIC_MANIFEST_PARSE_COUNT='+@($parsed.source_files).Count)
+          }catch{
+            Write-Host ('C74F7_SYNTHETIC_PARSE_ERROR_TYPE='+$_.Exception.GetType().Name)
+            Write-Host ('C74F7_SYNTHETIC_PARSE_ERROR_MESSAGE='+$_.Exception.Message.Substring(0,[Math]::Min(250,$_.Exception.Message.Length)))
+            throw
+          }
+          function InvokeQualified {
+            $txt=& $script -OriginalApplicationRoot $app -CustodyRoot $custody -AppStopped -SyntheticFixture
+            if(-not $?) {throw 'C74F7_SCRIPT_INVOKE_FAILED'}
+            return ($txt|ConvertFrom-Json)
+          }
+          $a=InvokeQualified
+          if($a.result -cne 'SOURCE_SNAPSHOT_BYTE_IDENTITY_PASS' -or
+             $a.original_custody_files_verified -ne 695 -or
+             $a.original_custody_bytes_verified -ne 164194320 -or
+             $a.original_source_files_unchanged -ne 695 -or
+             $a.native_1m_candle_manifest_present -ne $false -or
+             $a.start_stop_save_authorized -ne $false){
+            throw 'C74F7_SYNTHETIC_POSITIVE_RESULT_NOT_QUALIFIED'
+          }
+          Write-Host 'C74F7_ALL_695_SOURCE_BYTES_MATCH=PASS'
+          Write-Host 'C74F7_MISSING_NATIVE_CANDLES_NOT_FABRICATED=PASS'
+          $changed=Join-Path $app 'data/history/legacy-log.dat'
+          [IO.File]::WriteAllBytes($changed,[byte[]]@(1))
+          $denied=$false
+          try{$null=InvokeQualified}catch{
+            $denied=("$($_.Exception.Message)" -like '*R25_C74F7_STOP_ORIGINAL_INSTALL_DIFFERS_FROM_PRESERVED_CUSTODY*')
+          }
+          if(-not $denied){throw 'C74F7_ORIGINAL_SOURCE_DRIFT_WAS_NOT_HARD_DENIED'}
+          Write-Host 'C74F7_ORIGINAL_SOURCE_DRIFT_HARD_BLOCKED=PASS'
+          $snap=Join-Path $custody 'Application/data/history/legacy-log.dat'
+          [IO.File]::WriteAllBytes($snap,[byte[]]@(1))
+          $caught=$false
+          try{$null=InvokeQualified}catch{$caught=$true}
+          if(-not $caught){throw 'C74F7_SNAPSHOT_TAMPER_ADMITTED'}
+          Write-Host 'C74F7_SELECTED_SNAPSHOT_TAMPER_DENIED=PASS'
+          $caught=$false
+          try{& $script -OriginalApplicationRoot $app -CustodyRoot $custody|Out-Null}catch{$caught=$true}
+          if(-not $caught){throw 'C74F7_APP_RUNNING_ATTESTATION_BYPASSED'}
+          Write-Host 'C74F7_UNATTESTED_APP_DENIED=PASS'
+          $caught=$false
+          try{
+            & $script -OriginalApplicationRoot $app -CustodyRoot $custody -AppStopped | Out-Null
+          }catch{
+            $caught=("$($_.Exception.Message)" -like '*R25_C74F7_STOP_NOT_REAL_OWNING_WINDOWS_PROFILE*')
+          }
+          if(-not $caught){throw 'C74F7_HOSTED_CONTEXT_TREATED_AS_ACTUAL_OWNER'}
+          Write-Host 'C74F7_OWNER_PROFILE_IMPERSONATION_DENIED=PASS'
+          $ownerScript=Join-Path $env:GITHUB_WORKSPACE 'source/qualification/R25_C74F6_Owner_ReadOnly_Acceptance.ps1'
+          $tokens=$null;$errors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($ownerScript,[ref]$tokens,[ref]$errors)
+          if(@($errors).Count -ne 0){throw 'C74F7_ORIGINAL_OWNER_WRAPPER_SYNTAX_FAILED'}
+          Write-Host 'C74F7_COMBINED_OWNER_WRAPPER_SYNTAX=PASS'
+      - name: Ensure working source and owner data untouched
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $s=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if((Test-Path (Join-Path $s '.git')) -and
+             ((& git -C $s rev-parse HEAD).Trim() -cne $env:KTRADE_SHA -or
+             @(& git -C $s status --porcelain=v1 --untracked-files=no).Count -ne 0)){
+            throw 'C74F7_PRODUCT_SOURCE_MODIFICATION'
+          }
+          Write-Host 'C74F7_REAL_OWNER_PROFILE_MOUNTED=FALSE'
+          Write-Host 'C74F7_OWNER_ACCOUNT_ORIGINAL_MODIFIED=FALSE'
+          Write-Host 'C74F7_PAPER_ORDER_AND_LIVE_BROKER_AUTHORITY=FALSE'
