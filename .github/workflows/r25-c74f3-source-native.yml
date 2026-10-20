@@ -16,8 +16,8 @@ jobs:
     env:
       DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
-      SOURCE_SHA: 'f76533e224b28d9c233bd8b3deec11e1da19e8a2'
-      SOURCE_TREE: '1697c751277ecf2cdf54985e983af8179c4d282c'
+      SOURCE_SHA: '798be4d4650afd04125c3c70e26b19c8024e10ea'
+      SOURCE_TREE: '6c7fad1f690ba7738891ab76282b3ba7de195414'
       PARENT_SHA: 'a2cfce8d1aead08d3251ae461e6dc66d57892ea4'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
@@ -73,6 +73,9 @@ jobs:
             }
           }
           $want=@(
+            'cmd/ktrade/operator_native_source_f3_full.go',
+            'cmd/ktrade/operator_native_source_f3_full_test.go',
+            'cmd/ktrade/operator_recovery_full.go',
             'docs/R25_C74F3_AUTHENTICATED_NATIVE_SOURCE.md',
             'internal/durableupgrade/authenticated_native_vwap_source.go',
             'tests/donor-native-vwap/c74f3_source_fixture.go',
@@ -179,6 +182,14 @@ jobs:
           if($a.Count -lt 2){throw 'R25_C74F3_TEST_RECEIPT_MISSING'}
           $a | ForEach-Object {Write-Host $_.Line}
           Write-Host 'R25_C74F3_NATIVE_SIGNAL_TRADEGUARD_SQLITE_TRIAL=PASS'
+      - name: Focused isolated operator source-readiness contract
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=6m -run '^TestR25C74F3' ./cmd/ktrade
+          if($LASTEXITCODE -ne 0){throw 'R25_C74F3_ISOLATED_SOURCE_ROUTE_NOT_QUALIFIED'}
+          Write-Host 'R25_C74F3_ISOLATED_SOURCE_ROUTE=PASS'
       - name: Verify private source and zero production mutation
         if: always()
         shell: pwsh
