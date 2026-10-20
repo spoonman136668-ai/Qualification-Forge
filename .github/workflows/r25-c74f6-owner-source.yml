@@ -268,12 +268,15 @@ jobs:
              !$code.Contains("C74F6_OWNER_ORIGINAL_INSTALLED_DATA_MATCHES_RETAINED_SELECTED_SOURCE=PASS")){
             throw 'C74F6_OWNER_STOPPED_PROFILE_SOURCE_GUARD_MISSING'
           }
+          $prior=$ErrorActionPreference
           try{
+            $ErrorActionPreference='Continue'
             & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $script -ExpectedSourceSha $env:VERIFIED_SHA *> $null
-            throw 'C74F6_HOSTED_OWNER_SCRIPT_INCORRECTLY_ADMITTED'
-          }catch{
-            if($_.Exception.Message -match 'INCORRECTLY_ADMITTED'){throw}
-          }
+            $childExit=$LASTEXITCODE
+          }finally{$ErrorActionPreference=$prior}
+          if($childExit -eq 0){throw 'C74F6_HOSTED_OWNER_SCRIPT_INCORRECTLY_ADMITTED'}
+          if($childExit -ne 1){throw 'C74F6_OWNER_SCRIPT_UNEXPECTED_EXIT'}
+
           Write-Host 'C74F6_POWER_SHELL_OWNER_GUARD_AND_REDACTED_RECEIPTS=PASS'
       - name: Owner acceptance is forbidden on hosted runner
         shell: pwsh
