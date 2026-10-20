@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 55
     env:
-      VERIFIED_SHA: 'dc51102f13b3b6cfb872d7c62381690535695448'
-      VERIFIED_TREE: '343f06b7c9cec396ffc60b9112914839f6f6bc99'
+      VERIFIED_SHA: '94633f50a715c0178b84a2e15966e27b19f4d478'
+      VERIFIED_TREE: '1cce0b038a6b352f6b8d2d6d8958b5ebdb509f50'
       PARENT_SHA: 'bb9ba8a4abc4ad46102168f7f0a5a6b01d82c6c4'
       DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: dc51102f13b3b6cfb872d7c62381690535695448
+          ref: 94633f50a715c0178b84a2e15966e27b19f4d478
           path: candidate
           fetch-depth: 0
           persist-credentials: false
