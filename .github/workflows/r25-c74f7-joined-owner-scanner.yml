@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 20
     env:
-      KTRADE_SHA: '194b6d7cfabbd46a2c08342747b80df22a1a2948'
+      KTRADE_SHA: '8b884b833ce10465551f11e05d975753909ee5ef'
       KTRADE_CI_PAPER_ONLY: '1'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_C74F7_SYNTHETIC_ONLY: '1'
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 194b6d7cfabbd46a2c08342747b80df22a1a2948
+          ref: 8b884b833ce10465551f11e05d975753909ee5ef
           path: source
           fetch-depth: 0
           persist-credentials: false
