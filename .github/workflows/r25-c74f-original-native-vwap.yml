@@ -43,7 +43,7 @@ jobs:
           ref: 520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc
           fetch-depth: 0
           path: donor
-          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
           persist-credentials: false
       - name: Checkout exact KTRADE review-only test source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
