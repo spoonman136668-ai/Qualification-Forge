@@ -124,13 +124,15 @@ jobs:
             }
           }
           $upgrade=Join-Path $donor 'internal/durableupgrade'
-          if(Test-Path -LiteralPath $upgrade){throw 'R25_C74F3_DURABLE_READER_COLLISION'}
-          New-Item -ItemType Directory -Path $upgrade -Force|Out-Null
+          if(!(Test-Path -LiteralPath $upgrade -PathType Container)){throw 'R25_C74F3_DONOR_DURABLE_PACKAGE_MISSING'}
+          # Preserve the original donor's durable_upgrade.go; add only the
+          # bounded recovered source verifier files to its isolated checkout.
           foreach($name in @(
             'selected_recovery_portability.go','selected_custody_admission.go',
             'historical_document_shape.go','historical_readonly_view.go',
             'historical_candle_review.go','authenticated_native_vwap_source.go'
           )){
+            if(Test-Path -LiteralPath (Join-Path $upgrade $name)){throw 'R25_C74F3_EXISTING_DONOR_SOURCE_OVERLAP'}
             Copy-Item -LiteralPath (Join-Path $source ('internal/durableupgrade/'+$name)) -Destination (Join-Path $upgrade $name) -ErrorAction Stop
           }
           Copy-Item -LiteralPath (Join-Path $source 'tests/donor-native-vwap/c74f3_source_fixture.go') -Destination (Join-Path $upgrade 'c74f3_source_fixture_shadow.go') -ErrorAction Stop
