@@ -178,35 +178,7 @@ jobs:
             throw 'R25_C74F12_PAPER_REVIEW_PHASE_FAILED'
           }
           $passed=@(Select-String -LiteralPath $log -Pattern 'C74F12_SQLITE_LOCK_CONTENTION_CAUSAL_DELAY_AND_TIMEOUT=PASS')
-          $timing=@(Select-String -LiteralPath $log -Pattern '^R25_C74F12_CONTENTION .*source=synthetic review_only=true
-      - name: Verify private source and zero production mutation
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $source=Join-Path $env:GITHUB_WORKSPACE 'source'
-          $donor=Join-Path $env:GITHUB_WORKSPACE 'donor'
-          if(Test-Path -LiteralPath (Join-Path $source '.git')){
-            if((& git -C $source rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
-               @(& git -C $source status --porcelain=v1 --untracked-files=all).Count -ne 0){
-               throw 'R25_C74F12_KTRADE_TRACKED_SOURCE_MUTATED'
-            }
-          }
-          if(Test-Path -LiteralPath (Join-Path $donor '.git')){
-            if((& git -C $donor rev-parse HEAD).Trim() -cne $env:DONOR_SHA){
-              throw 'R25_C74F12_ORIGINAL_DONOR_COMMIT_CHANGED'
-            }
-            $tracked=@(& git -C $donor diff --name-only HEAD --)
-            if(@($tracked|Where-Object {$_ -cnotin @('go.mod','go.sum')}).Count -ne 0){
-              throw 'R25_C74F12_ORIGINAL_DONOR_TRACKED_SOURCE_CHANGED'
-            }
-          }
-          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f8-native.log'
-          if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
-          Write-Host 'R25_C74F12_NO_OWNER_FILES_AND_BROKER=PASS'
-          Write-Host 'R25_C74F12_PAPER_ADMISSION=FALSE'
-          Write-Host 'R25_C74F12_RELEASE_AND_ACCEPTED_REF=FALSE'
-)
+          $timing=@(Select-String -LiteralPath $log -Pattern '^R25_C74F12_CONTENTION .*source=synthetic review_only=true$')
           if($passed.Count -ne 1 -or $timing.Count -ne 3){throw 'R25_C74F12_CONTENDED_SQLITE_RECEIPTS_INCOMPLETE'}
           $passed | ForEach-Object {Write-Host $_.Line}
           $timing | ForEach-Object {Write-Host $_.Line}
@@ -234,7 +206,7 @@ jobs:
               throw 'R25_C74F12_ORIGINAL_DONOR_TRACKED_SOURCE_CHANGED'
             }
           }
-          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f8-native.log'
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f12-stopped-risk-sqlite.log'
           if(Test-Path -LiteralPath $log){Remove-Item -LiteralPath $log -Force}
           Write-Host 'R25_C74F12_NO_OWNER_FILES_AND_BROKER=PASS'
           Write-Host 'R25_C74F12_PAPER_ADMISSION=FALSE'
