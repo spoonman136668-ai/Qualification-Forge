@@ -71,6 +71,9 @@ jobs:
           }
           Write-Host 'R25_C74F3_PREEXISTING_ELECTRON_AND_GOVERNANCE_FAILURES=CONFIRMED'
           Remove-Item -LiteralPath $log -Force
+          # An intentionally failing predecessor test is the expected witness.
+          # Return success only after all three exact failures were observed.
+          exit 0
       - name: Verify original parent unchanged and no owner files
         if: always()
         shell: pwsh
