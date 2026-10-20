@@ -1,0 +1,181 @@
+name: R25-C74F15N3 native filled reconciliation and Windows qualification
+on:
+  push:
+    branches: [qualification/r25-c74f15n3-native-filled-reconcile-20261020]
+    paths: [.github/workflows/r25-c74f15n3-native-filled-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c74f15n3-native-filled-qualification
+  cancel-in-progress: false
+jobs:
+  original-native-and-full:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
+      DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
+      KTRADE_SHA: '6d982eff596fae3ba7db041e5b30cdb70497329d'
+      KTRADE_TREE: 'a3c196456d6d706a4c3d8e2078e63a54568d7252'
+      PARENT_SHA: 'ad6314c87d8d3a8fc916deec95e38695acc7dd8c'
+      N2_BLOB: 'b5af4aa6b85e7be40bd989f34d9d9f25119b8035'
+      F14_BLOB: '42b44f4e846860d8a2fb43279fcd519ad7e22a21'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Prove independent hosted Windows and paper-only boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r25-c74f15n3-native-filled-reconcile-20261020' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+             $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'C74F15N3_HOST_AND_AUTHORITY_DRIFT'
+          }
+          Write-Host 'C74F15N3_KTRADE_QUALIFICATION_FORGE_NO_CKB_PLANE=PASS'
+      - name: Checkout frozen original donor with no persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc
+          path: donor
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Checkout private exact test-only KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 6d982eff596fae3ba7db041e5b30cdb70497329d
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Pin donor and candidate identity and one-file test-only delta
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($x in @(
+            @{ Path='donor'; SHA=$env:DONOR_SHA; Tree=$env:DONOR_TREE },
+            @{ Path='candidate'; SHA=$env:KTRADE_SHA; Tree=$env:KTRADE_TREE }
+          )){
+            if((& git -C $x.Path rev-parse HEAD).Trim() -cne $x.SHA -or
+               (& git -C $x.Path rev-parse 'HEAD^{tree}').Trim() -cne $x.Tree -or
+               @(& git -C $x.Path status --porcelain=v1 --untracked-files=all).Count -ne 0){
+              throw ('C74F15N3_SOURCE_DRIFT_'+$x.Path)
+            }
+          }
+          $expected='tests/donor-native-vwap/c74f15n2_native_filled_reconcile_test.go'
+          $diff=@(& git -C candidate diff --name-only $env:PARENT_SHA $env:KTRADE_SHA)
+          if($diff.Count -ne 1 -or $diff[0] -cne $expected){throw 'C74F15N3_NONTEST_OR_UNBOUNDED_DELTA'}
+          if((& git -C candidate rev-parse ('HEAD:'+$expected)).Trim() -cne $env:N2_BLOB -or
+             (& git -C candidate rev-parse 'HEAD:tests/donor-native-vwap/c74f14_pending_broker_latency_test.go').Trim() -cne $env:F14_BLOB){
+            throw 'C74F15N3_TEST_FILE_IDENTITY_DRIFT'
+          }
+          foreach($p in @(
+            @{Path='pkg/strategy_engine.go'; SHA='13c3282ed13564bbd57b6bfed859956f2e9c4fd0'},
+            @{Path='pkg/strategy_types.go'; SHA='e2c52b3cd05e30e4b8a2b893b53e37a6aa5f03f2'},
+            @{Path='pkg/atomicfile.go'; SHA='ad47c114881702072613544cfe2142b64d6157a6'},
+            @{Path='pkg/filled_settlement_finalization_stage_a_test.go'; SHA='d72fde56ee117c58c1b16c98374a57bf319c734b'}
+          )){
+            if((& git -C donor rev-parse ('HEAD:'+$p.Path)).Trim() -cne $p.SHA){
+              throw ('C74F15N3_ORIGINAL_DONOR_BLOB_DRIFT_'+$p.Path)
+            }
+          }
+          Write-Host 'C74F15N3_EXACT_DONOR_AND_TEST_ONLY_CANDIDATE_IDENTITY=PASS'
+      - name: Pin Go 1.24 for exact original N2 candidate
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Focused unchanged original reconciliation and accounting proof
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=(Get-Location).Path
+          foreach($f in @('c74f14_pending_broker_latency_test.go','c74f15n2_native_filled_reconcile_test.go')){
+            $from=Join-Path $root ('candidate/tests/donor-native-vwap/'+$f)
+            $to=Join-Path $root ('donor/pkg/'+$f)
+            if(Test-Path -LiteralPath $to){throw 'C74F15N3_TEST_OVERLAY_COLLISION'}
+            Copy-Item -LiteralPath $from -Destination $to -ErrorAction Stop
+          }
+          if((& git -C donor hash-object -- 'pkg/c74f14_pending_broker_latency_test.go').Trim() -cne $env:F14_BLOB -or
+             (& git -C donor hash-object -- 'pkg/c74f15n2_native_filled_reconcile_test.go').Trim() -cne $env:N2_BLOB){
+            throw 'C74F15N3_OVERLAY_BYTES_DRIFT'
+          }
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f15n3-native-focused.log'
+          Push-Location (Join-Path $root 'donor')
+          try{
+            & go test -mod=readonly -tags=ktrade_donor_shadow -run '^TestC74F15N2' -count=1 -timeout=10m -v ./pkg *> $log
+            $code=$LASTEXITCODE
+          }finally{Pop-Location}
+          $lines=Get-Content -LiteralPath $log
+          if($code -ne 0){
+            $lines | Where-Object {$_ -match 'FAIL|Error:|panic:|\.go:[0-9]+:|# ktrade/' } | Select-Object -First 80 | ForEach-Object { Write-Host $_ }
+            Write-Host 'C74F15N3_FOCUSED_NEGATIVE_EVIDENCE_RETAINED_IN_RUN=TRUE'
+            throw 'C74F15N3_NATIVE_FOCUSED_FAIL'
+          }
+          if(@($lines | Where-Object { $_ -match '^--- PASS: TestC74F15N2' }).Count -ne 4){
+            throw 'C74F15N3_INCOMPLETE_NATIVE_TEST_SET'
+          }
+          @($lines | Where-Object {$_ -match 'C74F15N2_NATIVE_SYNTHETIC_FILLED|^--- PASS: TestC74F15N2'}) |
+            ForEach-Object {Write-Host $_}
+          Write-Host 'C74F15N3_FULL_NATIVE_RECONCILE_FILL_SETTLEMENT_AND_REPLAY=PASS'
+      - name: One complete candidate Windows regression after focused PASS
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c74f15n3-full-windows.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./... *> $log
+          $code=$LASTEXITCODE
+          if($code -ne 0){
+            Get-Content -LiteralPath $log | Where-Object {$_ -match 'FAIL|Error:|panic:|\.go:[0-9]+:|# ktrade/' } |
+              Select-Object -First 80 | ForEach-Object {Write-Host $_}
+            Write-Host 'C74F15N3_FULL_WINDOWS_NEGATIVE_EVIDENCE_RETAINED_IN_RUN=TRUE'
+            throw 'C74F15N3_FULL_WINDOWS_REGRESSION_FAILED'
+          }
+          Write-Host 'C74F15N3_ONE_COMPLETE_WINDOWS_GO_REGRESSION=PASS'
+      - name: Go vet entire fully tagged candidate
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_full ./...
+          if($LASTEXITCODE -ne 0){throw 'C74F15N3_FULL_WINDOWS_VET_FAILED'}
+          Write-Host 'C74F15N3_WINDOWS_VET=PASS'
+      - name: Build stopped paper-only Windows executable
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'c74f15n3-review-only-NEVER-LAUNCHED.exe'
+          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){throw 'C74F15N3_WINDOWS_BUILD_FAILED'}
+          Write-Host 'C74F15N3_WINDOWS_EXE_BUILD_ONLY_NO_RUN=PASS'
+      - name: Assert no tracked source mutation or release authority
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($x in @(@{Path='donor';SHA=$env:DONOR_SHA},@{Path='candidate';SHA=$env:KTRADE_SHA})){
+            if(Test-Path -LiteralPath (Join-Path $x.Path '.git')){
+              if((& git -C $x.Path rev-parse HEAD).Trim() -cne $x.SHA -or
+                 @(& git -C $x.Path diff --name-only HEAD --).Count -ne 0){
+                throw ('C74F15N3_TRACKED_MUTATION_'+$x.Path)
+              }
+            }
+          }
+          Write-Host 'C74F15N3_CKB_PLANE_CONTROLLER_USED=FALSE'
+          Write-Host 'C74F15N3_OWNER_PROFILE_READ=FALSE'
+          Write-Host 'C74F15N3_TRADING_OR_MERGE_AUTHORITY=FALSE'
