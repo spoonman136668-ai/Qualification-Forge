@@ -179,8 +179,14 @@ jobs:
             Get-Content -LiteralPath $log | Where-Object {
               $_ -match '^# ktrade/' -or $_ -match '^--- FAIL: ' -or
               $_ -match '^.*\.go:[0-9]+(:[0-9]+)?: ' -or $_ -match '^FAIL[\s]'
-            } | Select-Object -First 22 | ForEach-Object {Write-Host $_}
-            throw 'R25_C74F11_NATIVE_PAPER_TRIAL_FAIL_CLOSED'
+              -or $_ -match '^go:' -or $_ -match '^flag ' -or
+              $_ -match '^unknown flag' -or $_ -match '^usage:' -or
+              $_ -match '^.*Error:' -or $_ -match '^.*_test.go:[0-9]+:'
+            } | Select-Object -First 28 | ForEach-Object {Write-Host $_}
+            # The sealed fixture contains no private owner input. The last few
+            # Go lines distinguish CLI flag errors from source/compile errors.
+            Get-Content -LiteralPath $log -Tail 18 | ForEach-Object {Write-Host $_}
+            throw 'R25_C74F13_PROFILER_SOURCE_OR_RUN_FAILED'
           }
           foreach($bars in @(425,850,1275)){
             $line=@(Select-String -LiteralPath $log -SimpleMatch ('R25_C74F13_PROFILE_SOURCE bars='+$bars+' '))
