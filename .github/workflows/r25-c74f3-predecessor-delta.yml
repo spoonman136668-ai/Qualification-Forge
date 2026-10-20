@@ -1,0 +1,84 @@
+name: R25-C74F3 predecessor only baseline failure attribution
+on:
+  push:
+    branches: [qualification/r25-c74f3-predecessor-delta-20261019]
+    paths: [.github/workflows/r25-c74f3-predecessor-delta.yml]
+permissions:
+  contents: read
+jobs:
+  original-baseline:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      SOURCE_SHA: 'a2cfce8d1aead08d3251ae461e6dc66d57892ea4'
+      SOURCE_TREE: 'de08a40a308b029eabcda4109053521385f74076'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+    steps:
+      - name: Host-only historical baseline admission
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0'){
+            throw 'R25_C74F3_UNQUALIFIED_BASELINE_ENVIRONMENT'
+          }
+          Write-Host 'R25_C74F3_BASELINE_HOSTED_ISOLATION=PASS'
+      - name: Checkout exact unchanged C74F2 predecessor
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a2cfce8d1aead08d3251ae461e6dc66d57892ea4
+          path: predecessor
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify source tree and no product edits
+        shell: pwsh
+        working-directory: predecessor
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+             (& git rev-parse 'HEAD^{tree}').Trim() -cne $env:SOURCE_TREE -or
+             @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'R25_C74F3_BASELINE_SOURCE_DRIFT'
+          }
+          Write-Host 'R25_C74F3_PREDECESSOR_IDENTITY=PASS'
+      - name: Original Go 1.23.12
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.23.12'
+          cache: false
+      - name: Determine original failures on unchanged parent, not new source
+        shell: pwsh
+        working-directory: predecessor
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'predecessor-existing-issues.log'
+          $regex='^(TestPhase19_P19A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase20_P20A_Closeout_RouteRegistrationAndHandlerSurface|TestR25C12HistoricalGovernanceJSONWire)$'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=5m -run $regex ./pkg *> $log
+          if($LASTEXITCODE -eq 0){throw 'R25_C74F3_PREDECESSOR_DID_NOT_REPRODUCE_OLD_DEFECTS'}
+          $raw=Get-Content -LiteralPath $log -Raw
+          foreach($failure in @(
+             '--- FAIL: TestPhase19_P19A_Closeout_DeterministicRuntimeSurfacePinned',
+             '--- FAIL: TestPhase20_P20A_Closeout_RouteRegistrationAndHandlerSurface',
+             '--- FAIL: TestR25C12HistoricalGovernanceJSONWire'
+          )){
+            if(!$raw.Contains($failure)){throw 'R25_C74F3_PREDECESSOR_FAILURE_CLASS_NOT_REPRODUCED'}
+          }
+          Write-Host 'R25_C74F3_PREEXISTING_ELECTRON_AND_GOVERNANCE_FAILURES=CONFIRMED'
+          Remove-Item -LiteralPath $log -Force
+      - name: Verify original parent unchanged and no owner files
+        if: always()
+        shell: pwsh
+        working-directory: predecessor
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+             @(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){
+            throw 'R25_C74F3_PREDECESSOR_MODIFIED'
+          }
+          Write-Host 'R25_C74F3_OWNER_DATA_AND_BROKER_ACCESS=FALSE'
