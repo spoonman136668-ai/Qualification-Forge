@@ -1,0 +1,89 @@
+name: R25-C74F6 owner-local custody preflight Windows fail-closed qualification
+on:
+  push:
+    branches: [qualification/r25-c74f6-owner-readonly-20261020]
+    paths: [.github/workflows/r25-c74f6-owner-readonly.yml]
+permissions:
+  contents: read
+jobs:
+  owner-preflight:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      SHA: 'a6b0a58ec19519decb450b4d6a6909b6e17d53d0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+    steps:
+      - name: Prohibit owner data and nonhosted runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0'){
+            throw 'C74F6_PRIVATE_RUNNER_OR_LIVE_AUTHORITY'
+          }
+          Write-Host 'C74F6_WINDOWS_HOSTED_PAPER_ONLY=PASS'
+      - name: Checkout exact bounded KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a6b0a58ec19519decb450b4d6a6909b6e17d53d0
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify two-file read-only source delta and immutable originals
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:SHA){throw 'C74F6_WRONG_SOURCE'}
+          $d=@(& git diff --name-only b37b88ac83008e2b687f34047e2cd0331842b5a5 $env:SHA | Sort-Object)
+          $e=@('docs/R25_C74F6_OWNER_ACTUAL_DATA_GATE.md','scripts/r25-c74f6-owner-readonly-preflight.ps1')
+          if(@(Compare-Object $e $d).Count -ne 0){throw 'C74F6_UNQUALIFIED_CODE_DELTA'}
+          Write-Host 'C74F6_EXACT_TWO_FILE_READONLY_SCOPE=PASS'
+      - name: Negative read-only Windows contracts
+        shell: pwsh
+        working-directory: source
+        run: |
+          $ErrorActionPreference='Stop'
+          $script=Join-Path (Get-Location) 'scripts/r25-c74f6-owner-readonly-preflight.ps1'
+          $temp=Join-Path $env:RUNNER_TEMP 'c74f6-synthetic-owner'
+          if(Test-Path -LiteralPath $temp){throw 'C74F6_FIXTURE_COLLISION'}
+          New-Item -Path $temp -ItemType Directory|Out-Null
+          $src=Join-Path $temp 'source'
+          $cust=Join-Path $temp 'custody'
+          New-Item -Path $src -ItemType Directory|Out-Null
+          New-Item -Path $cust -ItemType Directory|Out-Null
+          function MustReject([string]$case,[scriptblock]$block){
+            $caught=$false
+            try{ & $block | Out-Null }catch{$caught=$true}
+            if(!$caught){throw ('C74F6_FAIL_OPEN_'+$case)}
+            Write-Host ('C74F6_DENIED_'+$case+'=PASS')
+          }
+          MustReject 'UNATTESTED_RUNNING_APP' {& $script -SourceRoot $src -CustodyRoot $cust}
+          MustReject 'MISSING_SOURCE_RECEIPT' {& $script -SourceRoot $src -CustodyRoot $cust -AppStopped}
+          $manifest=Join-Path $cust 'R25-C47-private-manifest.json'
+          $receipt=Join-Path $cust 'R25-C47-receipt.json'
+          [IO.File]::WriteAllText($manifest,'{"source_files":[],"copied_file_count":695}')
+          [IO.File]::WriteAllText($receipt,'{"manifest_sha256":"0","snapshot_file_count":695}')
+          MustReject 'UNAUTHENTICATED_RECEIPT' {& $script -SourceRoot $src -CustodyRoot $cust -AppStopped}
+          if((Get-Content -LiteralPath $manifest -Raw) -cne '{"source_files":[],"copied_file_count":695}'){
+            throw 'C74F6_OWNER_METADATA_MUTATED'
+          }
+          Write-Host 'C74F6_NO_PROFILE_WRITE_AND_FAILCLOSED=PASS'
+      - name: Recheck original KTRADE source unchanged
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if(Test-Path -LiteralPath (Join-Path $root '.git')){
+            if((& git -C $root rev-parse HEAD).Trim() -cne $env:SHA -or
+               @(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){
+              throw 'C74F6_SOURCE_MUTATION'
+            }
+          }
+          Write-Host 'C74F6_ACTUAL_OWNER_DATA_PRESENT=FALSE'
+          Write-Host 'C74F6_RELEASE_PAPER_AND_LIVE_AUTHORITY=FALSE'
