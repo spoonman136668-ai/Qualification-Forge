@@ -174,90 +174,36 @@ jobs:
             throw 'C74F5_CANDIDATE_ORIGINAL_JSON_GOVERNANCE_FAILURE'
           }
           Write-Host 'C74F5_ALL_55_AUTHENTIC_PARENT_WIRE_AND_COLLISION_CONTRACTS=PASS'
-      - name: Focused reconciled P19 P20 P21 and stronger isolation tests
+      - name: Focused P19 P20 P21 and stronger isolated desktop safety assertions
         shell: pwsh
         working-directory: candidate
         run: |
           $ErrorActionPreference='Stop'
-          $pattern='^(TestR25C74F5|TestPhase19_P19A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase19_P19A_Integration_T06_DeterministicBackendLaunchPathPinned|TestPhase20_P20A_Closeout_RouteRegistrationAndHandlerSurface|TestPhase20_P20A_Closeout_RequestResponseContractSurface|TestPhase20_P20A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase20_P20A_Integration_T04_PackageScriptsAndBuildSurface|TestPhase20_P20A_Integration_T06_PackagedAndDevelopmentExecutableResolutionPinned|TestPhase20_P20A_Integration_T06_DeterministicBackendLaunchAndShutdownPinned|TestPhase21_P21A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase21_P21A_Integration_T04_EntryAndMetadataSurface|TestPhase21_P21A_Integration_T06_DeterministicRuntimeAndExecutableSurface)
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          foreach($item in @(
-            @{Name='original';Sha=$env:ORIGINAL_SHA},
-            @{Name='candidate';Sha=$env:VERIFIED_SHA}
-          )){
-            $path=Join-Path $env:GITHUB_WORKSPACE $item.Name
-            if(Test-Path -LiteralPath $path){
-              if((& git -C $path rev-parse HEAD).Trim() -cne $item.Sha -or
-                 @(& git -C $path diff --name-only HEAD --).Count -ne 0){
-                throw ('C74F5_ORIGINAL_SOURCE_MUTATED_'+$item.Name)
-              }
-            }
-          }
-          Write-Host 'C74F5_NO_OWNER_DATA_AND_NO_TRADING_ACCESS=PASS'
-
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=5m -run $pattern ./pkg
+          $testnames='TestR25C74F5|TestPhase19_P19A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase19_P19A_Integration_T06_DeterministicBackendLaunchPathPinned|TestPhase20_P20A_Closeout_RouteRegistrationAndHandlerSurface|TestPhase20_P20A_Closeout_RequestResponseContractSurface|TestPhase20_P20A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase20_P20A_Integration_T04_PackageScriptsAndBuildSurface|TestPhase20_P20A_Integration_T06_PackagedAndDevelopmentExecutableResolutionPinned|TestPhase20_P20A_Integration_T06_DeterministicBackendLaunchAndShutdownPinned|TestPhase21_P21A_Closeout_DeterministicRuntimeSurfacePinned|TestPhase21_P21A_Integration_T04_EntryAndMetadataSurface|TestPhase21_P21A_Integration_T06_DeterministicRuntimeAndExecutableSurface'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=5m -run $testnames ./pkg
           if($LASTEXITCODE -ne 0){throw 'C74F5_RECONCILED_LEGACY_AND_MODERN_SAFETY_FOCUSED_FAILED'}
           Write-Host 'C74F5_ALL_RECONCILED_ELECTRON_CONTRACTS=PASS'
-      - name: One complete Windows regression with original C12 fingerprints
+      - name: One complete Windows regression with authentic original C12 fingerprints
         shell: pwsh
         working-directory: candidate
         run: |
           $ErrorActionPreference='Stop'
-          if($env:R25C12_T298_SHA256 -cnotmatch '^[a-f0-9]{64}
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          foreach($item in @(
-            @{Name='original';Sha=$env:ORIGINAL_SHA},
-            @{Name='candidate';Sha=$env:VERIFIED_SHA}
-          )){
-            $path=Join-Path $env:GITHUB_WORKSPACE $item.Name
-            if(Test-Path -LiteralPath $path){
-              if((& git -C $path rev-parse HEAD).Trim() -cne $item.Sha -or
-                 @(& git -C $path diff --name-only HEAD --).Count -ne 0){
-                throw ('C74F5_ORIGINAL_SOURCE_MUTATED_'+$item.Name)
-              }
-            }
-          }
-          Write-Host 'C74F5_NO_OWNER_DATA_AND_NO_TRADING_ACCESS=PASS'
- -or
-             $env:R25C12_T373_SHA256 -cnotmatch '^[a-f0-9]{64}
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          foreach($item in @(
-            @{Name='original';Sha=$env:ORIGINAL_SHA},
-            @{Name='candidate';Sha=$env:VERIFIED_SHA}
-          )){
-            $path=Join-Path $env:GITHUB_WORKSPACE $item.Name
-            if(Test-Path -LiteralPath $path){
-              if((& git -C $path rev-parse HEAD).Trim() -cne $item.Sha -or
-                 @(& git -C $path diff --name-only HEAD --).Count -ne 0){
-                throw ('C74F5_ORIGINAL_SOURCE_MUTATED_'+$item.Name)
-              }
-            }
-          }
-          Write-Host 'C74F5_NO_OWNER_DATA_AND_NO_TRADING_ACCESS=PASS'
-){
-            throw 'C74F5_PARENT_SOURCE_EVIDENCE_NOT_INSTALLED'
+          if($env:R25C12_T298_SHA256.Length -ne 64 -or
+             $env:R25C12_T373_SHA256.Length -ne 64){
+             throw 'C74F5_ORIGINAL_PARENT_EVIDENCE_MISSING'
           }
           $log=Join-Path $env:RUNNER_TEMP 'r25c74f5-full.log'
           & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./... *> $log
           if($LASTEXITCODE -ne 0){
             Get-Content -LiteralPath $log | Where-Object {
-              $_ -match '^# ktrade/' -or $_ -match '^--- FAIL: Test' -or
-              $_ -match '^FAIL\\s' -or $_ -match '^.*_test\\.go:[0-9]+'
-            } | Select-Object -First 55 | ForEach-Object {Write-Host $_}
+              $_ -match 'FAIL:' -or $_ -match 'FAIL ' -or $_ -match 'go: ' -or
+              $_ -match '_test.go:'
+            } | Select-Object -First 60 | ForEach-Object {Write-Host $_}
             throw 'C74F5_FULL_WINDOWS_REGRESSION_NOT_ACCEPTED'
           }
           Write-Host 'C74F5_COMPLETE_WINDOWS_REGRESSION_AND_PARENT_C12=PASS'
           Remove-Item -LiteralPath $log -Force
-      - name: Complete original Windows Go vet
+      - name: Go vet original fully tagged application
         shell: pwsh
         working-directory: candidate
         run: |
@@ -265,20 +211,20 @@ jobs:
           & go vet -mod=readonly -tags=ktrade_full ./...
           if($LASTEXITCODE -ne 0){throw 'C74F5_COMPLETE_WINDOWS_VET_FAILED'}
           Write-Host 'C74F5_COMPLETE_WINDOWS_VET=PASS'
-      - name: Assemble isolated full original operator executable
+      - name: Isolated Windows executable and original UI packaging
         shell: pwsh
         working-directory: candidate
         run: |
           $ErrorActionPreference='Stop'
-          $out=Join-Path $env:RUNNER_TEMP 'r25c74f5-qualified-app'
-          if(Test-Path -LiteralPath $out){throw 'C74F5_EXECUTABLE_COLLISION'}
-          New-Item -ItemType Directory -Path $out|Out-Null
+          $out=Join-Path $env:RUNNER_TEMP 'r25c74f5-original-app'
+          if(Test-Path -LiteralPath $out){throw 'C74F5_BUILD_OUTPUT_COLLISION'}
+          New-Item -ItemType Directory -Path $out | Out-Null
           & go build -mod=readonly -tags=ktrade_full -o (Join-Path $out 'ktrade.exe') ./cmd/ktrade
-          if($LASTEXITCODE -ne 0){throw 'C74F5_EXE_BUILD_FAILED'}
+          if($LASTEXITCODE -ne 0){throw 'C74F5_WINDOWS_EXE_FAILED'}
           foreach($folder in @('static','templates','strategies','recovery')){
             Copy-Item -LiteralPath $folder -Destination $out -Recurse -ErrorAction Stop
           }
-          foreach($p in @(
+          foreach($name in @(
             'static/recovery_history.html',
             'recovery/operator-donor-v11110/strategy.html',
             'recovery/operator-donor-v11110/app.js',
@@ -287,40 +233,22 @@ jobs:
             'recovery/operator-bridge/operator-chart-navigation.js',
             'recovery/operator-bridge/operator-control-review.js'
           )){
-            if(!(Test-Path -LiteralPath (Join-Path $out $p) -PathType Leaf)){
-              throw 'C74F5_ORIGINAL_OPERATOR_ASSET_MISSING'
+            if(!(Test-Path -LiteralPath (Join-Path $out $name) -PathType Leaf)){
+              throw 'C74F5_ORIGINAL_BROWSER_ASSET_MISSING'
             }
           }
-          Write-Host 'C74F5_ORIGINAL_EXE_AND_OPERATOR_ASSETS=PASS'
-      - name: Real isolated Chromium chart and disabled order acceptance
+          Write-Host 'C74F5_WINDOWS_EXE_ORIGINAL_OPERATOR=PASS'
+      - name: Chromium original interaction and blocked trading controls
         shell: pwsh
         working-directory: candidate
         run: |
           $ErrorActionPreference='Stop'
-          $env:KTRADE_R25C74D_APP_EXE=Join-Path (Join-Path $env:RUNNER_TEMP 'r25c74f5-qualified-app') 'ktrade.exe'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=6m -run '^TestR25C74DPackagedRealBrowserChartGestures
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          foreach($item in @(
-            @{Name='original';Sha=$env:ORIGINAL_SHA},
-            @{Name='candidate';Sha=$env:VERIFIED_SHA}
-          )){
-            $path=Join-Path $env:GITHUB_WORKSPACE $item.Name
-            if(Test-Path -LiteralPath $path){
-              if((& git -C $path rev-parse HEAD).Trim() -cne $item.Sha -or
-                 @(& git -C $path diff --name-only HEAD --).Count -ne 0){
-                throw ('C74F5_ORIGINAL_SOURCE_MUTATED_'+$item.Name)
-              }
-            }
-          }
-          Write-Host 'C74F5_NO_OWNER_DATA_AND_NO_TRADING_ACCESS=PASS'
- ./cmd/ktrade
-          if($LASTEXITCODE -ne 0){throw 'C74F5_ORIGINAL_GENUINE_CHROMIUM_FAILED'}
-          Write-Host 'C74F5_REAL_ORIGINAL_OPERATOR_CHROMIUM=PASS'
-          Write-Host 'C74F5_ACCOUNT_SOURCE_IN_CI=FALSE'
-          Write-Host 'C74F5_PAPER_AND_LIVE_BROKER_ACTIVATION=FALSE'
+          $env:KTRADE_R25C74D_APP_EXE=Join-Path (Join-Path $env:RUNNER_TEMP 'r25c74f5-original-app') 'ktrade.exe'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=6m -run 'TestR25C74DPackagedRealBrowserChartGestures' ./cmd/ktrade
+          if($LASTEXITCODE -ne 0){throw 'C74F5_ORIGINAL_CHROMIUM_FAILED'}
+          Write-Host 'C74F5_GENUINE_ORIGINAL_CHROMIUM=PASS'
+          Write-Host 'C74F5_OWNER_DATA_PRESENT=FALSE'
+          Write-Host 'C74F5_PAPER_AND_LIVE_ORDER_AUTHORITY=FALSE'
       - name: Verify only untracked test staged on frozen original
         if: always()
         shell: pwsh
