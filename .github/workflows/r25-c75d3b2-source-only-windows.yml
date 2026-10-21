@@ -1,0 +1,114 @@
+name: R25-C75D3B2 source-only Windows compile and regression (donor blocked)
+on:
+  push:
+    branches: [qualification/r25-c75d3b2-source-only-windows-20261021]
+    paths: [.github/workflows/r25-c75d3b2-source-only-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c75d3b2-source-only-windows
+  cancel-in-progress: false
+jobs:
+  source-only-review:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      VERIFIED_SHA: '94c7fdb6944ac8a30681101ffa8fb25ac2ced1c0'
+      VERIFIED_TREE: '5435e444f133ba2d386eaac648889de2ea6a0f5e'
+      PARENT_SHA: '1d343b8551fcf8d6135fb4473851b125eca82811'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Require exact Windows source-only no-trading qualification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r25-c75d3b2-source-only-windows-20261021' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'C75D3B2_SOURCE_REVIEW_AUTHORITY_DRIFT'
+          }
+      - name: Checkout exact immutable private candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 94c7fdb6944ac8a30681101ffa8fb25ac2ced1c0
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          path: candidate
+      - name: Assert exact SHA tree and two-file bounded delta
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git -C candidate rev-parse HEAD).Trim() -cne $env:VERIFIED_SHA -or
+             (& git -C candidate rev-parse 'HEAD^{tree}').Trim() -cne $env:VERIFIED_TREE -or
+             @(& git -C candidate status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'C75D3B2_EXACT_SOURCE_DRIFT'
+          }
+          $want=@(
+            'internal/paperlifecycle/native_source_binding.go',
+            'tests/donor-shadow/c75d3b2_native_bound_lifecycle_test.go'
+          )|Sort-Object
+          $got=@(& git -C candidate diff --name-only $env:PARENT_SHA $env:VERIFIED_SHA | Sort-Object)
+          if($got.Count -ne 2 -or @(Compare-Object $want $got).Count -ne 0){
+            throw 'C75D3B2_DELTA_OUTSIDE_SOURCE_SCOPE'
+          }
+          Write-Host 'C75D3B2_EXACT_TWO_FILE_SOURCE_DELTA=PASS'
+      - name: Install frozen Windows Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Focused compiled shipping app source and native binding
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=8m -run '^(TestR25C75D3|TestR25C75C)' ./cmd/ktrade ./internal/paperlifecycle ./internal/durableupgrade
+          if($LASTEXITCODE -ne 0){throw 'C75D3B2_SOURCE_FOCUSED_BUILD_FAILED'}
+          Write-Host 'C75D3B2_SHIPPING_GO_COMPILATION_AND_FOCUSED=PASS'
+      - name: One complete Windows source regression
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=12m ./...
+          if($LASTEXITCODE -ne 0){throw 'C75D3B2_WINDOWS_FULL_REGRESSION_FAILED'}
+          Write-Host 'C75D3B2_WINDOWS_COMPLETE_SOURCE_REGRESSION=PASS'
+      - name: Go vet entire candidate
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          & go vet -mod=readonly -tags=ktrade_full ./...
+          if($LASTEXITCODE -ne 0){throw 'C75D3B2_WINDOWS_VET_FAILED'}
+          Write-Host 'C75D3B2_WINDOWS_VET=PASS'
+      - name: Stopped executable compile only
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade.exe'
+          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){
+            throw 'C75D3B2_WINDOWS_STOPPED_EXECUTABLE_BUILD_FAILED'
+          }
+          Write-Host 'C75D3B2_WINDOWS_EXECUTABLE_BUILD_NOT_LAUNCHED=PASS'
+      - name: Source-only conclusion never authorizes native donor execution
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if(@(& git -C candidate status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'C75D3B2_SOURCE_TREE_MUTATED'
+          }
+          Write-Host 'C75D3B2_DONOR_NATIVE_QUALIFICATION=BLOCKED_CREDENTIAL'
+          Write-Host 'C75D3B2_CURRENT_STRATEGY_EXECUTION_ALLOWED=FALSE'
+          Write-Host 'C75D3B2_ACCEPTED_REF_MUTATION_ALLOWED=FALSE'
