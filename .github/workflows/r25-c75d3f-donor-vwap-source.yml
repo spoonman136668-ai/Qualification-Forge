@@ -1,0 +1,133 @@
+name: R25-C75D3F original native VWAP observer source boundary
+on:
+  push:
+    branches: [qualification/r25-c75d3f-donor-observer-source-20261021]
+    paths: [.github/workflows/r25-c75d3f-donor-vwap-source.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c75d3f-original-native-source
+  cancel-in-progress: false
+jobs:
+  source-only:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      SOURCE_SHA: 'fde31f0da47de47ecc3c2693e52f6127bbabde7c'
+      PARENT_SHA: 'c1375aee7d87b24ce494eaf40c050c42f8e27384'
+      SHIM_BLOB: '70a912177ba86fb71d059d440a3b1b39ee70674d'
+      SIDECAR_BLOB: '20db84bbfefe06c8ab5f7f2b895d5e896eaf2b45'
+      NATIVE_TEST_BLOB: '1975b048e9743a54326664923fc369a9f43b006f'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Enforce hosted Windows paper-only source boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r25-c75d3f-donor-observer-source-20261021' -or
+             $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+             $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'C75D3F_UNQUALIFIED_RUNNER_OR_AUTHORITY'
+          }
+          Write-Host 'C75D3F_PAPER_SOURCE_BOUNDARY=PASS'
+      - name: Checkout exact private KTRADE source using its existing credential
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: fde31f0da47de47ecc3c2693e52f6127bbabde7c
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Pin original donor-shim sources and exact three-file addition
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA){throw 'C75D3F_CANDIDATE_SHA_DRIFT'}
+          $want=@(
+            'tests/donor-native-vwap/c75d3f_native_current_vwap.go',
+            'tests/donor-native-vwap/c75d3f_native_current_sidecar.go',
+            'tests/donor-native-vwap/c75d3f_native_current_donor_test.go'
+          ) | Sort-Object
+          $actual=@(& git diff --name-only $env:PARENT_SHA $env:SOURCE_SHA | Sort-Object)
+          if($actual.Count -ne 3 -or @(Compare-Object $want $actual).Count -ne 0){
+            throw 'C75D3F_SOURCE_SCOPE_DRIFT'
+          }
+          $shim=(& git rev-parse 'HEAD:tests/donor-native-vwap/c75d3f_native_current_vwap.go').Trim()
+          $sidecar=(& git rev-parse 'HEAD:tests/donor-native-vwap/c75d3f_native_current_sidecar.go').Trim()
+          $test=(& git rev-parse 'HEAD:tests/donor-native-vwap/c75d3f_native_current_donor_test.go').Trim()
+          if($shim -cne $env:SHIM_BLOB -or $sidecar -cne $env:SIDECAR_BLOB -or
+             $test -cne $env:NATIVE_TEST_BLOB){throw 'C75D3F_ORIGINAL_NATIVE_SOURCE_BLOB_DRIFT'}
+          if(@(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'C75D3F_CHECKOUT_DIRTY'
+          }
+          Write-Host 'C75D3F_EXACT_THREE_FILE_SOURCE=PASS'
+      - name: Pin Windows Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Parse all three donor-native Go source files, no donor compilation claimed
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($name in @('c75d3f_native_current_vwap.go','c75d3f_native_current_sidecar.go','c75d3f_native_current_donor_test.go')){
+            $path=Join-Path 'tests/donor-native-vwap' $name
+            & gofmt -e -d $path | Out-Null
+            if($LASTEXITCODE -ne 0){throw ('C75D3F_GO_SYNTAX_ERROR:'+ $name)}
+          }
+          Write-Host 'C75D3F_NATIVE_DONOR_SHIM_SYNTAX=PASS'
+          Write-Host 'C75D3F_ACTUAL_ORIGINAL_DONOR_NATIVE_COMPILE=NOT_RUN'
+      - name: Focused already-qualified current source and input contracts
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -timeout=5m ./internal/papersource
+          if($LASTEXITCODE -ne 0){throw 'C75D3F_CURRENT_SOURCE_REGRESSION_FAIL'}
+          & go test -mod=readonly -count=1 -timeout=7m -run '^TestC75D3E' ./internal/paperlifecycle
+          if($LASTEXITCODE -ne 0){throw 'C75D3F_CURRENT_NATIVE_BINDING_REGRESSION_FAIL'}
+          Write-Host 'C75D3F_CURRENT_SOURCE_AND_ORIGINAL_INPUT_CONTRACTS=PASS'
+      - name: Vet full stopped build source
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_full ./...
+          if($LASTEXITCODE -ne 0){throw 'C75D3F_FULL_TAGGED_GO_VET_FAIL'}
+          Write-Host 'C75D3F_WINDOWS_FULL_TAG_VET=PASS'
+      - name: Build stopped executable
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade-c75d3f-stopped.exe'
+          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or !(Test-Path $exe -PathType Leaf)){
+            throw 'C75D3F_STOPPED_WINDOWS_EXE_BUILD_FAIL'
+          }
+          Write-Host 'C75D3F_STOPPED_WINDOWS_EXE=PASS'
+      - name: Preserve strict separation of source-only and donor-native results
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if(@(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'C75D3F_SOURCE_MUTATED'
+          }
+          Write-Host 'C75D3F_SOURCE_ONLY_WINDOWS=PASS'
+          Write-Host 'C75D3F_ORIGINAL_DONOR_COMPILATION=NOT_RUN'
+          Write-Host 'C75D3F_NATIVE_SIGNAL_DECISION=NOT_IMPLEMENTED'
+          Write-Host 'C75D3F_FULL_WINDOWS_DONOR_INTEGRATION=NOT_RUN'
+          Write-Host 'C75D3F_CURRENT_PAPER_ORDER_AUTHORITY=FALSE'
