@@ -1,0 +1,134 @@
+name: R25-C75D3D isolated current market-source focused Windows engineering check
+on:
+  push:
+    branches: [qualification/r25-c75d3d-operator-readonly-focused-20261021]
+    paths: [.github/workflows/r25-c75d3d-operator-readonly-focused.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c75d3d-operator-focused
+  cancel-in-progress: false
+jobs:
+  source-focused:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      SOURCE_SHA: 'd29c4fc3cfc0bea8cfa02dc200f135fed7bdd187'
+      PARENT_SHA: '9304f7065c9b090e40b6138337eb52b7d1617f13'
+      SOURCE_BLOB: '5494589bbc68970e6e066b4905766616cf70df8d'
+      TEST_BLOB: 'd5fe687150e3d68729e8eb06cffa7c35cecd409a'
+      BRIDGE_BLOB: '115580e8c385ae7d175e084af6eb39fdcb943c90'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Assert source-only Windows and no-trading authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r25-c75d3d-operator-readonly-focused-20261021' -or
+             $env:RUNNER_OS -cne 'Windows' -or
+             $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+             $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+             throw 'C75D3D_PAPER_ONLY_RUNNER_OR_AUTHORITY_DRIFT'
+          }
+          Write-Host 'C75D3D_SOURCE_ONLY_WINDOWS_AUTHORITY=PASS'
+      - name: Checkout frozen KTRADE child candidate with existing source credential
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: d29c4fc3cfc0bea8cfa02dc200f135fed7bdd187
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Freeze exact source identity and only three changed files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          if((& git -C $root rev-parse HEAD).Trim() -cne $env:SOURCE_SHA){
+            throw 'C75D3D_SOURCE_COMMIT_DRIFT'
+          }
+          $want=@(
+            'cmd/ktrade/operator_current_candles_c75d3d_full.go',
+            'cmd/ktrade/operator_current_candles_c75d3d_full_test.go',
+            'cmd/ktrade/operator_recovery_full.go'
+          ) | Sort-Object
+          $got=@(& git -C $root diff --name-only $env:PARENT_SHA $env:SOURCE_SHA | Sort-Object)
+          if($got.Count -ne 3 -or @(Compare-Object $want $got).Count -ne 0){
+            throw 'C75D3D_SOURCE_DELTA_DRIFT'
+          }
+          $src=(& git -C $root rev-parse 'HEAD:cmd/ktrade/operator_current_candles_c75d3d_full.go').Trim()
+          $test=(& git -C $root rev-parse 'HEAD:cmd/ktrade/operator_current_candles_c75d3d_full_test.go').Trim()
+          $bridge=(& git -C $root rev-parse 'HEAD:cmd/ktrade/operator_recovery_full.go').Trim()
+          if($src -cne $env:SOURCE_BLOB -or $test -cne $env:TEST_BLOB -or $bridge -cne $env:BRIDGE_BLOB){
+            throw 'C75D3D_GIT_BLOB_DRIFT'
+          }
+          if(@(& git -C $root status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'C75D3D_SOURCE_CHECKOUT_DIRTY'
+          }
+          Write-Host 'C75D3D_EXACT_THREE_FILE_GIT_DELTA=PASS'
+      - name: Pin Windows Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Focused current Coinbase source regression
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -timeout=5m ./internal/papersource
+          if($LASTEXITCODE -ne 0){throw 'C75D3D_CURRENT_SOURCE_FOCUSED_FAIL'}
+          Write-Host 'C75D3D_CURRENT_SOURCE_FOCUSED_PASS'
+      - name: Focused full-tagged native operator handler and security regression
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=7m -v -run '^TestR25C75D3D' ./cmd/ktrade
+          if($LASTEXITCODE -ne 0){throw 'C75D3D_OPERATOR_ENDPOINT_SECURITY_OR_BUILD_FAIL'}
+          Write-Host 'C75D3D_OPERATOR_ENDPOINT_WINDOWS_FOCUSED=PASS'
+      - name: Vet complete compilation graph
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_full ./...
+          if($LASTEXITCODE -ne 0){throw 'C75D3D_WINDOWS_VET_FAIL'}
+          Write-Host 'C75D3D_WINDOWS_GO_VET=PASS'
+      - name: Build stopped source candidate, never launch
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade-c75d3d-stopped.exe'
+          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe -PathType Leaf)){
+            throw 'C75D3D_STOPPED_EXECUTABLE_BUILD_FAIL'
+          }
+          Write-Host 'C75D3D_STOPPED_WINDOWS_EXECUTABLE_BUILD=PASS'
+      - name: Report bounded source qualification only
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if(@(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'C75D3D_GIT_SOURCE_MUTATED'
+          }
+          Write-Host 'C75D3D_FOCUSED_ENGINEERING_STATUS=PASS'
+          Write-Host 'C75D3D_FULL_WINDOWS_REGRESSION=NOT_RUN_IN_THIS_GATE'
+          Write-Host 'C75D3D_NATIVE_DONOR_INTEGRATION=NOT_QUALIFIED'
+          Write-Host 'C75D3D_CURRENT_STRATEGY_AUTHORITY=FALSE'
+          Write-Host 'C75D3D_BROKER_ACCESS=FALSE'
+          Write-Host 'C75D3D_PROMOTION_AUTHORITY=FALSE'
