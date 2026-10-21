@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: aad39213504ed2b903c193a55d3d10e47bbc5400
+          ref: 94c7fdb6944ac8a30681101ffa8fb25ac2ced1c0
           path: candidate
           fetch-depth: 0
           persist-credentials: false
