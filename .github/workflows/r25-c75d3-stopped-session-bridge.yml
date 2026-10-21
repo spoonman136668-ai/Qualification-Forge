@@ -14,8 +14,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 55
     env:
-      VERIFIED_SHA: '0c4ed855d95c8f746d96bf8259dae8088d4fcb24'
-      VERIFIED_TREE: '46d1596bb3d6e919dafe54744ddb5afaf7adb7a3'
+      VERIFIED_SHA: 'a015265bd167f0c10430fbe25d44bffc9fde3a6e'
+      VERIFIED_TREE: 'a6d2a2b133b35a7952d8ee6f278d6e14beb9b182'
       PARENT_SHA: 'bb9ba8a4abc4ad46102168f7f0a5a6b01d82c6c4'
       DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
       DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 0c4ed855d95c8f746d96bf8259dae8088d4fcb24
+          ref: a015265bd167f0c10430fbe25d44bffc9fde3a6e
           path: candidate
           fetch-depth: 0
           persist-credentials: false
@@ -239,7 +239,9 @@ jobs:
           foreach($marker in @(
             'C75D3_UNCLEAN_WINDOWS_PROCESS_PAPER_FILL_RECOVERED_STOPPED=PASS',
             'C75D3_ORIGINAL_DONOR_FRESH_GUARD_REARM_DENIED=PASS',
-            'C75D3_UNVERIFIED_CRASH_KILL_NOT_FABRICATED=PASS'
+            'C75D3_UNVERIFIED_CRASH_KILL_NOT_FABRICATED=PASS',
+            'C75D3_STATUS_GET_CANNOT_STOP_ACTIVE_DONOR=PASS',
+            'C75D3_STOPPED_READONLY_SQLITE_AND_WITNESSED_RISK=PASS'
           )){
             $proof=@(Select-String -LiteralPath $log -SimpleMatch $marker)
             if($proof.Count -ne 1){throw ('C75D3_MISSING_PROCESS_RECEIPT_'+$marker)}
