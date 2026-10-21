@@ -75,8 +75,8 @@ jobs:
           }
           $body=Get-Content -LiteralPath $path -Raw
           foreach($required in @('GOPROXY','GOSUMDB','--no-local','--no-checkout',
-             'D3G_REAL_DONOR_NATIVE_TESTS','D3G_REAL_DONOR_VET',
-             'D3G_REAL_DONOR_SIDECAR_BUILD','D3G_NO_BROKER_NO_PROMOTION')){
+             "Run-Go 'REAL_DONOR_NATIVE_TESTS'","Run-Go 'REAL_DONOR_VET'",
+             "Run-Go 'REAL_DONOR_SIDECAR_BUILD'",'D3G_NO_BROKER_NO_PROMOTION')){
             if(-not $body.Contains($required)){throw ('D3G_MISSING_BOUNDARY_'+$required)}
           }
           Write-Host 'D3G_WINDOWS_POWERSHELL_PARSE_AND_STATIC_POLICY=PASS'
