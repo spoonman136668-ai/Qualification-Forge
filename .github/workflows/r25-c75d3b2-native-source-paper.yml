@@ -102,7 +102,7 @@ jobs:
           fetch-depth: 0
           path: donor
           persist-credentials: false
-          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP || secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Stage only known recovered paper authority and test files
         shell: pwsh
         run: |
