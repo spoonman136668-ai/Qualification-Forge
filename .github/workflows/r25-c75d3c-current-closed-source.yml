@@ -1,0 +1,130 @@
+name: R25-C75D3C source-only closed Coinbase candles Windows qualification
+on:
+  push:
+    branches: [qualification/r25-c75d3c-current-closed-source-20261021]
+    paths: [.github/workflows/r25-c75d3c-current-closed-source.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c75d3c-closed-candles
+  cancel-in-progress: false
+jobs:
+  windows-source-only:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 65
+    env:
+      SOURCE_SHA: '9304f7065c9b090e40b6138337eb52b7d1617f13'
+      BASE_SHA: '94c7fdb6944ac8a30681101ffa8fb25ac2ced1c0'
+      SOURCE_BLOB: '28f2f4d41acfe8ec326e55547ad92ed2c8741ec4'
+      TEST_BLOB: '66569b173db3e68a8ed84dbca34538a0a2e53fbb'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Require immutable GitHub-hosted paper-only Windows source qualification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:RUNNER_OS -cne 'Windows' -or
+             $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r25-c75d3c-current-closed-source-20261021' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+             $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'C75D3C_SOURCE_ONLY_AUTHORITY_OR_RUNNER_DRIFT'
+          }
+          Write-Host 'C75D3C_WINDOWS_SOURCE_ONLY_NO_BROKER_NO_CONTROLLER=PASS'
+      - name: Checkout exact immutable private KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9304f7065c9b090e40b6138337eb52b7d1617f13
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify frozen SHA original parent and exact two-file source scope
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          if((& git -C $root rev-parse HEAD).Trim() -cne $env:SOURCE_SHA){
+            throw 'C75D3C_CANDIDATE_SHA_DRIFT'
+          }
+          $actual=@(& git -C $root diff --name-only $env:BASE_SHA $env:SOURCE_SHA | Sort-Object)
+          $expected=@(
+            'internal/papersource/coinbase_closed.go',
+            'internal/papersource/coinbase_closed_test.go'
+          ) | Sort-Object
+          if($actual.Count -ne 2 -or @(Compare-Object $expected $actual).Count -ne 0){
+            throw 'C75D3C_SOURCE_SCOPE_DRIFT'
+          }
+          $source=(& git -C $root rev-parse 'HEAD:internal/papersource/coinbase_closed.go').Trim()
+          $tests=(& git -C $root rev-parse 'HEAD:internal/papersource/coinbase_closed_test.go').Trim()
+          if($source -cne $env:SOURCE_BLOB -or $tests -cne $env:TEST_BLOB){
+            throw 'C75D3C_SOURCE_OR_TEST_BLOB_IDENTITY_DRIFT'
+          }
+          $dirty=@(& git -C $root status --porcelain=v1 --untracked-files=all)
+          if($dirty.Count -ne 0){throw 'C75D3C_DIRTY_SOURCE_CHECKOUT'}
+          Write-Host 'C75D3C_EXACT_IMMUTABLE_TWO_FILE_SOURCE=PASS'
+      - name: Pin existing Windows Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Focused fail-closed completed candle source regression
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -count=1 -timeout=5m -v ./internal/papersource
+          if($LASTEXITCODE -ne 0){throw 'C75D3C_COMPLETED_CANDLE_FOCUSED_FAIL'}
+          Write-Host 'C75D3C_COMPLETED_CANDLE_FOCUSED_WINDOWS=PASS'
+      - name: One complete Windows application regression
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./...
+          if($LASTEXITCODE -ne 0){throw 'C75D3C_FULL_WINDOWS_REGRESSION_FAIL'}
+          Write-Host 'C75D3C_FULL_WINDOWS_REGRESSION=PASS'
+      - name: Vet complete Windows application
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_full ./...
+          if($LASTEXITCODE -ne 0){throw 'C75D3C_FULL_WINDOWS_VET_FAIL'}
+          Write-Host 'C75D3C_FULL_WINDOWS_VET=PASS'
+      - name: Build stopped Windows executable without broker authority
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade-c75d3c-stopped.exe'
+          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe -PathType Leaf)){
+            throw 'C75D3C_STOPPED_EXE_BUILD_FAIL'
+          }
+          $sum=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
+          if($sum -notmatch '^[A-F0-9]{64}$'){throw 'C75D3C_EXE_HASH_INVALID'}
+          Write-Host 'C75D3C_STOPPED_EXECUTABLE_BUILD=PASS'
+      - name: Preserve no-execution and unmerged conclusion
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if(@(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'C75D3C_QUALIFICATION_SOURCE_MUTATED'
+          }
+          Write-Host 'C75D3C_CURRENT_PAPER_EXECUTION_AUTHORIZED=FALSE'
+          Write-Host 'C75D3C_DONOR_INTEGRATION_QUALIFIED=FALSE'
+          Write-Host 'C75D3C_GIT_MERGE_OR_RELEASE_AUTHORITY=FALSE'
+          Write-Host 'C75D3C_BROKER_ACCESS=FALSE'
