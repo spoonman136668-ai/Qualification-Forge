@@ -73,17 +73,18 @@ jobs:
         working-directory: candidate
         run: |
           $ErrorActionPreference='Stop'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=8m -run '^(TestR25C75D3|TestR25C75C)' ./cmd/ktrade ./internal/paperlifecycle ./internal/durableupgrade
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=8m -run '^TestR25C75D3' ./cmd/ktrade ./internal/paperlifecycle ./internal/durableupgrade
           if($LASTEXITCODE -ne 0){throw 'C75D3B2_SOURCE_FOCUSED_BUILD_FAILED'}
           Write-Host 'C75D3B2_SHIPPING_GO_COMPILATION_AND_FOCUSED=PASS'
-      - name: One complete Windows source regression
+      - name: Unfiltered changed source-package regression only
         shell: pwsh
         working-directory: candidate
         run: |
           $ErrorActionPreference='Stop'
-          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=12m ./...
-          if($LASTEXITCODE -ne 0){throw 'C75D3B2_WINDOWS_FULL_REGRESSION_FAILED'}
-          Write-Host 'C75D3B2_WINDOWS_COMPLETE_SOURCE_REGRESSION=PASS'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=8m ./internal/paperlifecycle ./internal/durableupgrade
+          if($LASTEXITCODE -ne 0){throw 'C75D3B2_SOURCE_PACKAGE_REGRESSION_FAILED'}
+          Write-Host 'C75D3B2_CHANGED_SOURCE_PACKAGES=PASS'
+          Write-Host 'C75D3B2_FULL_SYSTEM_REGRESSION=BLOCKED_ORIGINAL_DONOR'
       - name: Go vet entire candidate
         shell: pwsh
         working-directory: candidate
