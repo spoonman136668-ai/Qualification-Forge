@@ -1,0 +1,483 @@
+name: R25-C75D1 source-bound inert native VWAP paper proposal
+on:
+  push:
+    branches: [qualification/r25-c75d1-native-paper-proposal-20261020]
+    paths: [.github/workflows/r25-c75d1-native-proposal-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c75d1-native-proposal
+  cancel-in-progress: false
+jobs:
+  ktrade-paper-only-functional:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      VERIFIED_SHA: '7a2345f70f84c869a43abccbf1183b2ff9158837'
+      VERIFIED_TREE: 'c5e52dde9181cc4090bfe167a2536855a6c25852'
+      PARENT_SHA: 'bb9ba8a4abc4ad46102168f7f0a5a6b01d82c6c4'
+      DONOR_SHA: '520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
+      DONOR_TREE: 'b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
+      ORIGINAL_SHA: 'd892d5902f6c19105c4395bf6b71bfb112b22a62'
+      ORIGINAL_TREE: '95846811b88a0cb538dd6d494bb771ef3cd8102b'
+      C12_TEST_BLOB: '8813b0db1c5591db5b136dc32b568d8773cbc4e6'
+      MIXED_PARENT_SHA: '2af730f8a7bed15370d86d2ce0ced060c56beed2'
+      MIXED_PARENT_TREE: '89cc720ff3d6da6cec12d583a23682584f473ac6'
+      MIXED_TEST_BLOB: '00d8cabd7077f84e8b9d39d36cd5f8eb9b658206'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Pin isolated Windows paper-only authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r25-c75d1-native-paper-proposal-20261020' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'C75A_UNQUALIFIED_RUNNER_OR_TRADING_AUTHORITY'
+          }
+          Write-Host 'C75A_KTRADE_WINDOWS_PAPER_ONLY_NO_CONTROLLER=PASS'
+      - name: Checkout exact private KTRADE functional candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7a2345f70f84c869a43abccbf1183b2ff9158837
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify only intended original operator paper status integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git -C candidate rev-parse HEAD).Trim() -cne $env:VERIFIED_SHA -or
+             (& git -C candidate rev-parse 'HEAD^{tree}').Trim() -cne $env:VERIFIED_TREE -or
+             @(& git -C candidate status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'C75A_KTRADE_SOURCE_DRIFT'
+          }
+          $expected=@(
+            'cmd/ktrade/operator_native_evaluator_c75c_full.go',
+            'cmd/ktrade/operator_native_evaluator_c75c_full_test.go',
+            'cmd/ktrade/operator_recovery_full.go',
+            'recovery/operator-bridge/operator-control-review.js',
+            'package.json',
+            'tests/donor-native-vwap/c75c_native_evaluator_sidecar.go',
+            'tests/donor-native-vwap/c75c_replay_asof_patch.ps1',
+            'tests/donor-shadow/native_vwap_c75c_sidecar_test.go'
+          )|Sort-Object
+          $actual=@(& git -C candidate diff --name-only $env:PARENT_SHA $env:VERIFIED_SHA | Sort-Object)
+          if($actual.Count -ne 8 -or @(Compare-Object $expected $actual).Count -ne 0){
+            throw 'C75C_NATIVE_EXE_SOURCE_SCOPE_DRIFT'
+          }
+          Write-Host 'C75A_ORIGINAL_OPERATOR_PAPER_STATUS_FUNCTIONAL_DELTA=PASS'
+      - name: Pin Windows Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Checkout exact genuine donor for TradeGuard and native VWAP
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ckb
+          ref: 520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc
+          fetch-depth: 0
+          path: donor
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+      - name: Stage only known recovered paper authority and test files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $source=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $donor=Join-Path $env:GITHUB_WORKSPACE 'donor'
+          $files=@{
+            'internal/paperproposal'=@('proposal.go')
+            'internal/paperauthority'=@('authority.go','commit_trial_shadow.go','read_only.go')
+            'internal/paperreconcile'=@(
+              'reconcile.go','risk_replay.go','settlement_review.go',
+              'original_risk_custody.go','commit_protocol_shadow.go',
+              'windows_fs_capability_shadow_windows.go'
+            )
+          }
+          foreach($dir in $files.Keys){
+            $target=Join-Path $donor $dir
+            if(Test-Path -LiteralPath $target){throw ('C75B1_DONOR_COLLISION_'+$dir)}
+            New-Item -ItemType Directory -Path $target -Force|Out-Null
+            foreach($name in $files[$dir]){
+              Copy-Item -LiteralPath (Join-Path (Join-Path $source $dir) $name) -Destination (Join-Path $target $name) -ErrorAction Stop
+            }
+          }
+          $upgrade=Join-Path $donor 'internal/durableupgrade'
+          if(!(Test-Path -LiteralPath $upgrade -PathType Container)){throw 'C75B1_DONOR_DURABLE_PACKAGE_MISSING'}
+          # Preserve the original donor's durable_upgrade.go; add only the
+          # bounded recovered source verifier files to its isolated checkout.
+          foreach($name in @(
+            'selected_recovery_portability.go','selected_custody_admission.go',
+            'historical_document_shape.go','historical_readonly_view.go',
+            'historical_candle_review.go','authenticated_native_vwap_source.go',
+            'original_canonical_15s_vwap.go'
+          )){
+            if(Test-Path -LiteralPath (Join-Path $upgrade $name)){throw 'C75B1_EXISTING_DONOR_SOURCE_OVERLAP'}
+            Copy-Item -LiteralPath (Join-Path $source ('internal/durableupgrade/'+$name)) -Destination (Join-Path $upgrade $name) -ErrorAction Stop
+          }
+          Copy-Item -LiteralPath (Join-Path $source 'tests/donor-native-vwap/c74f3_source_fixture.go') -Destination (Join-Path $upgrade 'c74f3_source_fixture_shadow.go') -ErrorAction Stop
+          Copy-Item -LiteralPath (Join-Path $source 'tests/donor-native-vwap/c74f8_canonical_fixture.go') -Destination (Join-Path $upgrade 'c74f8_canonical_fixture_shadow.go') -ErrorAction Stop
+          $pkg=Join-Path $donor 'pkg/native_vwap_c74f2_shadow.go'
+          if(Test-Path -LiteralPath $pkg){throw 'C75B1_NATIVE_BRIDGE_COLLISION'}
+          Copy-Item -LiteralPath (Join-Path $source 'tests/donor-native-vwap/native_vwap_bridge_c74f2.go') -Destination $pkg
+          $testDir=Join-Path $donor 'internal/shadowqual'
+          if(Test-Path -LiteralPath $testDir){throw 'C75B1_TEST_COLLISION'}
+          New-Item -ItemType Directory -Path $testDir -Force|Out-Null
+          $testFiles=@(
+            'shadow_test.go','proposal_test.go','reconcile_test.go',
+            'risk_replay_test.go','settlement_review_test.go',
+            'original_risk_custody_test.go','commit_order_fault_test.go',
+            'commit_protocol_test.go','real_process_kill_test.go',
+            'midwrite_process_kill_test.go','windows_fs_capability_test.go',
+            'paper_sqlite_commit_test.go','paper_sqlite_commit_windows_test.go',
+            'native_vwap_c74f2_test.go','native_vwap_c74f3_test.go',
+            'native_vwap_c74f8_test.go','c75b_paper_lifecycle_test.go',
+            'native_vwap_c75c_sidecar_test.go'
+          )
+          foreach($name in $testFiles){
+            Copy-Item -LiteralPath (Join-Path $source ('tests/donor-shadow/'+$name)) -Destination (Join-Path $testDir $name) -ErrorAction Stop
+          }
+          $sidecarDir=Join-Path $donor 'cmd/ktrade-native-vwap'
+          if(Test-Path -LiteralPath $sidecarDir){throw 'C75C_DONOR_NATIVE_SIDECAR_COLLISION'}
+          New-Item -ItemType Directory -Path $sidecarDir -Force|Out-Null
+          Copy-Item -LiteralPath (Join-Path $source 'tests/donor-native-vwap/c75c_native_evaluator_sidecar.go') -Destination (Join-Path $sidecarDir 'main.go') -ErrorAction Stop
+          Write-Host 'C75C_EXACT_ORIGINAL_DONOR_NATIVE_SIDECAR_STAGED=PASS'
+          Write-Host 'C75B1_TEST_ONLY_STAGING=PASS'
+      - name: Authenticated R25-C47 settings and candles to exact original native VWAP
+        shell: pwsh
+        working-directory: donor
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c75b-native.log'
+          $prior=$env:GOFLAGS
+          try{
+            $env:GOFLAGS=''
+            & go get github.com/mattn/go-sqlite3@v1.14.18 *> $log
+          }finally{$env:GOFLAGS=$prior}
+          if($LASTEXITCODE -ne 0){throw 'C75B1_DISPOSABLE_SQLITE_DEPENDENCY_BLOCKED'}
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=8m -v -run '^TestC75B' ./internal/shadowqual *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log | Where-Object {
+              $_ -match '^# ktrade/' -or $_ -match '^--- FAIL: ' -or
+              $_ -match '^.*\.go:[0-9]+(:[0-9]+)?: ' -or $_ -match '^FAIL[\s]'
+            } | Select-Object -First 22 | ForEach-Object {Write-Host $_}
+            throw 'C75B1_NATIVE_PAPER_TRIAL_FAIL_CLOSED'
+          }
+          $a=@(Select-String -LiteralPath $log -Pattern 'C75B_.*=PASS')
+          if($a.Count -lt 2){throw 'C75B1_TEST_RECEIPT_MISSING'}
+          $a | ForEach-Object {Write-Host $_.Line}
+          Write-Host 'C75B1_NATIVE_SETTINGS_SIGNAL_TRADEGUARD_STOP_AND_RESTART=PASS'
+      - name: Bind stopped read-only historical VWAP replay to immutable candle as-of
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $script=Join-Path $env:GITHUB_WORKSPACE 'candidate/tests/donor-native-vwap/c75c_replay_asof_patch.ps1'
+          if(!(Test-Path -LiteralPath $script -PathType Leaf)){throw 'C75C_REPLAY_CLOCK_PATCH_SOURCE_MISSING'}
+          & $script -DonorRoot (Join-Path $env:GITHUB_WORKSPACE 'donor')
+          Write-Host 'C75C_NATIVE_DONOR_REPLAY_CLOCK_LIVE_GUARD_PRESERVED=PASS'
+      - name: Compile and invoke exact original native VWAP in separate stopped executable
+        shell: pwsh
+        working-directory: donor
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade-native-vwap.exe'
+          $fixture=Join-Path $env:RUNNER_TEMP 'c75c-source-synthetic.json'
+          & go build -mod=readonly -tags=ktrade_donor_shadow -o $exe ./cmd/ktrade-native-vwap
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){throw 'C75C_NATIVE_ORIGINAL_EXECUTABLE_BUILD_FAILED'}
+          $env:C75C_TEST_NATIVE_EXE=$exe
+          $env:C75C_TEST_NATIVE_FIXTURE=$fixture
+          $log=Join-Path $env:RUNNER_TEMP 'c75c-original-exe-negative-positive.log'
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=6m -v -run '^TestC75COriginalNativeEvaluatorExecutable$' ./internal/shadowqual *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log | Where-Object {$_ -match 'FAIL|panic:|\.go:[0-9]+:|# ktrade/'} | Select-Object -First 70 | ForEach-Object {Write-Host $_}
+            throw 'C75C_FROZEN_NATIVE_EXECUTABLE_FAILED'
+          }
+          $proof=@(Select-String -LiteralPath $log -SimpleMatch 'C75C_FROZEN_ORIGINAL_NATIVE_VWAP_EXE_SOURCE_AND_NEGATIVES=PASS')
+          if($proof.Count -ne 1 -or !(Test-Path -LiteralPath $fixture)){throw 'C75C_NATIVE_DECISION_OR_SOURCE_FIXTURE_MISSING'}
+          $stale=@(Select-String -LiteralPath $log -SimpleMatch 'C75C_STALE_HISTORICAL_REPLAY_SOURCE_NATIVE_PARITY=PASS')
+          if($stale.Count -ne 1){throw 'C75C_STALE_HISTORICAL_REPLAY_PARITY_UNQUALIFIED'}
+          Write-Host $stale[0].Line
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value ('C75C_TEST_NATIVE_EXE='+$exe)
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value ('C75C_TEST_NATIVE_FIXTURE='+$fixture)
+          $hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Add-Content -LiteralPath $env:GITHUB_ENV -Value ('C75C_NATIVE_SHA256='+$hash)
+          Write-Host 'C75C_PINNED_ORIGINAL_NATIVE_VWAP_EXECUTABLE_AND_NEGATIVES=PASS'
+      - name: Focused actual original-operator to paper-custody HTTP integration
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'c75a-focused-functional.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=8m -v -run '^TestR25C75' ./cmd/ktrade *> $log
+          $code=$LASTEXITCODE
+          if($code -ne 0){
+            Get-Content -LiteralPath $log | Where-Object {$_ -match '^# |\.go:[0-9]+:|FAIL|panic:'} | Select-Object -First 60 | ForEach-Object {Write-Host $_}
+            Write-Host 'C75A_FOCUSED_FAILED_EVIDENCE_RETAINED_IN_RUN=TRUE'
+            throw 'C75A_FUNCTIONAL_UI_AND_PAPER_REVIEW_NOT_QUALIFIED'
+          }
+          $passes=@(Select-String -LiteralPath $log -Pattern '^--- PASS: TestR25C75')
+          $proof=@(Select-String -LiteralPath $log -SimpleMatch 'C75_ORIGINAL_OPERATOR_TO_REAL_STOPPED_PAPER_STATUS_ROUTE=PASS')
+          if($passes.Count -ne 6 -or $proof.Count -ne 1){throw 'C75A_FOCUSED_PROOFS_INCOMPLETE'}
+          $passes | ForEach-Object {Write-Host $_.Line}
+          $proof | ForEach-Object {Write-Host $_.Line}
+          $pack=@(Select-String -LiteralPath $log -SimpleMatch 'C75_ORIGINAL_OPERATOR_UI_ASSETS_PACKAGED_NEXT_TO_BACKEND=PASS')
+          if($pack.Count -ne 1){throw 'C75A_WINDOWS_PACKAGING_RESOURCE_SCOPE_MISSING'}
+          Write-Host $pack[0].Line
+          $native=@(Select-String -LiteralPath $log -SimpleMatch 'C75C_SHIPPING_KTRADE_CALLS_PINNED_ORIGINAL_NATIVE_EXE_HISTORICAL_ONLY=PASS')
+          $control=@(Select-String -LiteralPath $log -SimpleMatch 'C75C_ORIGINAL_CONTROLS_AND_BROKER_POST_FAIL_CLOSED=PASS')
+          if($native.Count -ne 1 -or $control.Count -ne 1){throw 'C75C_REAL_APPLICATION_NATIVE_EVALUATION_NOT_PROVEN'}
+          Write-Host $native[0].Line
+          Write-Host $control[0].Line
+          $typed=@(Select-String -LiteralPath $log -SimpleMatch 'C75D1_SHIPPING_NATIVE_VWAP_TO_TYPED_INERT_PAPER_PROPOSAL=PASS')
+          if($typed.Count -ne 1){throw 'C75D1_SOURCE_BOUND_PAPER_PROPOSAL_NOT_PROVEN'}
+          Write-Host $typed[0].Line
+          $pack=@(Select-String -LiteralPath $log -SimpleMatch 'C75C_WINDOWS_PACKAGING_REQUIRES_PINNED_NATIVE_COMPANION=PASS')
+          if($pack.Count -ne 1){throw 'C75C_WINDOWS_NATIVE_COMPANION_PACKAGING_CONTRACT_FAILED'}
+          Write-Host $pack[0].Line
+          Write-Host 'C75C_SHIPPING_APP_NATIVE_HISTORICAL_EVALUATION=PASS'
+          Write-Host 'C75A_OPERATOR_ORIGINAL_UI_TO_PAPER_STATUS_ROUTE=PASS'
+      - name: Checkout original pre-repair C12 source exactly
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: d892d5902f6c19105c4395bf6b71bfb112b22a62
+          fetch-depth: 0
+          path: original
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact pre-repair mixed Phase9 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2af730f8a7bed15370d86d2ce0ced060c56beed2
+          fetch-depth: 0
+          path: mixed-parent
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Check two independent immutable source trees and test identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($x in @(
+            @{Name='original';Sha=$env:ORIGINAL_SHA;Tree=$env:ORIGINAL_TREE},
+            @{Name='mixed-parent';Sha=$env:MIXED_PARENT_SHA;Tree=$env:MIXED_PARENT_TREE},
+            @{Name='candidate';Sha=$env:VERIFIED_SHA;Tree=$env:VERIFIED_TREE}
+          )){
+            $p=Join-Path $env:GITHUB_WORKSPACE $x.Name
+            if((& git -C $p rev-parse HEAD).Trim() -cne $x.Sha -or
+               (& git -C $p rev-parse 'HEAD^{tree}').Trim() -cne $x.Tree -or
+               @(& git -C $p status --porcelain=v1 --untracked-files=all).Count -ne 0){
+              throw ('C74F5_ORIGINAL_GOVERNANCE_SOURCE_DRIFT_'+$x.Name)
+            }
+          }
+          $p=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          if((& git -C $p rev-parse 'HEAD:pkg/r25c12_governance_wire_compat_test.go').Trim() -cne $env:C12_TEST_BLOB){
+            throw 'C74F5_C12_INDEPENDENT_TEST_IDENTITY_DRIFT'
+          }
+          $old=Join-Path $env:GITHUB_WORKSPACE 'original/pkg/r25c12_governance_wire_compat_test.go'
+          if(Test-Path -LiteralPath $old){throw 'C74F5_TEST_ALREADY_PRESENT_IN_ORIGINAL'}
+          Write-Host 'C74F5_PRE_REPAIR_ORIGINAL_AND_REPAIRED_SOURCE=PASS'
+      - name: Check independently born mixed contract test identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $candidate=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $mixed=Join-Path $env:GITHUB_WORKSPACE 'mixed-parent'
+          if((& git -C $candidate rev-parse 'HEAD:pkg/r25c12_mixed_phase9_wire_compat_test.go').Trim() -cne $env:MIXED_TEST_BLOB){
+            throw 'C74F5_MIXED_TEST_BLOB_DRIFT'
+          }
+          if(Test-Path -LiteralPath (Join-Path $mixed 'pkg/r25c12_mixed_phase9_wire_compat_test.go')){
+            throw 'C74F5_MIXED_TEST_NOT_FROM_SOURCE_BOUND_CHILD'
+          }
+          Write-Host 'C74F5_EXACT_MIXED_SOURCE_AND_TEST_IDENTITY=PASS'
+      - name: Capture source-born unmodified parent governance evidence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'original'
+          $candidate=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $dst=Join-Path $root 'pkg/r25c12_governance_wire_compat_test.go'
+          Copy-Item -LiteralPath (Join-Path $candidate 'pkg/r25c12_governance_wire_compat_test.go') -Destination $dst
+          $content=(Get-Content -LiteralPath $dst -Raw -Encoding utf8)
+          if(!$content.Contains('R25C12_ORIGINAL_MODE') -or !$content.Contains('R25C12_PARENT_')){
+            throw 'C74F5_PINNED_TEST_NOT_ORIGINAL_EVIDENCE_CAPABLE'
+          }
+          $env:R25C12_ORIGINAL_MODE='1'
+          $log=Join-Path $env:RUNNER_TEMP 'c74f5-original-c12.log'
+          Push-Location $root
+          try{
+            & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=7m -v -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
+            if($LASTEXITCODE -ne 0){
+              Get-Content -LiteralPath $log | Where-Object {
+                $_ -match '^# ktrade/' -or $_ -match '^--- FAIL:' -or $_ -match '^.*_test.go:[0-9]+'
+              } | Select-Object -First 18 | ForEach-Object {Write-Host $_}
+              throw 'C74F5_ORIGINAL_GOVERNANCE_TEST_FAILED'
+            }
+          }finally{Pop-Location}
+          $lines=Get-Content -LiteralPath $log
+          $records=@{}
+          foreach($line in $lines){
+            if($line -match 'R25C12_PARENT_(T[0-9]{3})_(COLLISIONS_B64|SHA256)=([A-Za-z0-9+/=]+)'){
+              $id=$Matches[1];$kind=$Matches[2];$value=$Matches[3]
+              if(!$records.ContainsKey($id)){$records[$id]=@{}}
+              if($records[$id].ContainsKey($kind)){throw 'C74F5_DUPLICATE_PARENT_RECEIPT'}
+              $records[$id][$kind]=$value
+            }
+          }
+          if($records.Count -ne 55){throw ('C74F5_INCOMPLETE_PARENT_INVENTORY_'+$records.Count)}
+          foreach($id in $records.Keys){
+            $entry=$records[$id]
+            if($entry.Count -ne 2 -or $entry['SHA256'] -cnotmatch '^[a-f0-9]{64}$'){
+              throw 'C74F5_PARENT_RECEIPT_MALFORMED'
+            }
+            $raw=[Convert]::FromBase64String($entry['COLLISIONS_B64'])
+            $objects=ConvertFrom-Json -InputObject ([Text.Encoding]::UTF8.GetString($raw))
+            if(@($objects).Count -lt 2){throw 'C74F5_EMPTY_PARENT_COLLISIONS'}
+            Add-Content -LiteralPath $env:GITHUB_ENV -Value ('R25C12_'+$id+'_COLLISIONS_B64='+$entry['COLLISIONS_B64']) -Encoding utf8
+            Add-Content -LiteralPath $env:GITHUB_ENV -Value ('R25C12_'+$id+'_SHA256='+$entry['SHA256']) -Encoding utf8
+          }
+          Remove-Item Env:R25C12_ORIGINAL_MODE -ErrorAction SilentlyContinue
+          Write-Host 'C74F5_55_INDEPENDENT_PRE_REPAIR_PARENT_RECEIPTS=PASS'
+      - name: Validate same 55 receipts against repaired C74F3 source
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:R25C12_ORIGINAL_MODE -eq '1'){throw 'C74F5_CANDIDATE_IN_ORIGINAL_MODE'}
+          $log=Join-Path $env:RUNNER_TEMP 'c74f5-repaired-c12.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=7m -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg *> $log
+          if($LASTEXITCODE -ne 0){
+            Get-Content -LiteralPath $log | Where-Object {
+              $_ -match '^# ktrade/' -or $_ -match '^--- FAIL:' -or $_ -match '^.*_test.go:[0-9]+'
+            } | Select-Object -First 24 | ForEach-Object {Write-Host $_}
+            throw 'C74F5_CANDIDATE_ORIGINAL_JSON_GOVERNANCE_FAILURE'
+          }
+          Write-Host 'C74F5_ALL_55_AUTHENTIC_PARENT_WIRE_AND_COLLISION_CONTRACTS=PASS'
+      - name: Originate 17 original mixed Boolean and slice field inventories
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base=Join-Path $env:GITHUB_WORKSPACE 'mixed-parent'
+          $candidate=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $target=Join-Path $base 'pkg/r25c12_mixed_phase9_wire_compat_test.go'
+          Copy-Item -LiteralPath (Join-Path $candidate 'pkg/r25c12_mixed_phase9_wire_compat_test.go') -Destination $target -ErrorAction Stop
+          $env:R25C12_MIXED_PARENT_MODE='1'
+          $log=Join-Path $env:RUNNER_TEMP 'c74f5-mixed-parent.log'
+          Push-Location $base
+          try {
+            & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=6m -v -run 'TestR25C12MixedPhase9HistoricalJSONWire' ./pkg *> $log
+            if($LASTEXITCODE -ne 0){
+              Get-Content -LiteralPath $log | Where-Object {
+                $_ -match 'FAIL:' -or $_ -match '_test.go:' -or $_ -match '^# ktrade/'
+              } | Select-Object -First 30 | ForEach-Object {Write-Host $_}
+              throw 'C74F5_AUTHENTIC_MIXED_PARENT_NOT_QUALIFIED'
+            }
+          }finally{Pop-Location}
+          $records=@{}
+          foreach($line in (Get-Content -LiteralPath $log)){
+            if($line -match 'R25C12_MIXED_PARENT_(T[0-9]{2})_(FIELDS_B64|SHA256)=([A-Za-z0-9+/=]+)'){
+              $id=$Matches[1];$kind=$Matches[2];$value=$Matches[3]
+              if(!$records.ContainsKey($id)){$records[$id]=@{}}
+              if($records[$id].ContainsKey($kind)){throw 'C74F5_DUPLICATE_MIXED_PARENT_EVIDENCE'}
+              $records[$id][$kind]=$value
+            }
+          }
+          if($records.Count -ne 17){throw ('C74F5_MIXED_PARENT_COUNT_'+$records.Count)}
+          foreach($id in $records.Keys){
+            $v=$records[$id]
+            if($v.Count -ne 2 -or $v['SHA256'] -cnotmatch '^[a-f0-9]{64}$'){
+              throw 'C74F5_INCOMPLETE_MIXED_PARENT_RECORD'
+            }
+            $objects=ConvertFrom-Json -InputObject ([Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($v['FIELDS_B64'])))
+            if(@($objects).Count -ne 2){throw 'C74F5_MIXED_PARENT_FIELD_COUNT_DRIFT'}
+            Add-Content -LiteralPath $env:GITHUB_ENV -Value ('R25C12_MIXED_'+$id+'_FIELDS_B64='+$v['FIELDS_B64']) -Encoding utf8
+            Add-Content -LiteralPath $env:GITHUB_ENV -Value ('R25C12_MIXED_'+$id+'_SHA256='+$v['SHA256']) -Encoding utf8
+          }
+          Remove-Item Env:R25C12_MIXED_PARENT_MODE -ErrorAction SilentlyContinue
+          Write-Host 'C74F5_17_SOURCE_ORIGINATED_MIXED_PARENT_RECEIPTS=PASS'
+      - name: Qualify repaired source with all 17 authentic mixed receipts
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:R25C12_MIXED_PARENT_MODE -eq '1'){throw 'C74F5_CANDIDATE_IN_MIXED_PARENT_MODE'}
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=6m -run 'TestR25C12MixedPhase9HistoricalJSONWire' ./pkg
+          if($LASTEXITCODE -ne 0){throw 'C74F5_MIXED_CANDIDATE_PRESERVATION_FAILED'}
+          Write-Host 'C74F5_17_AUTHENTIC_MIXED_PHASE9_JSON_WIRE_CONTRACTS=PASS'
+      - name: One complete candidate Windows regression after focused PASS
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25-c75a-full-windows.log'
+          & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=15m ./... *> $log
+          $code=$LASTEXITCODE
+          if($code -ne 0){
+            Get-Content -LiteralPath $log | Where-Object {$_ -match 'FAIL|Error:|panic:|\.go:[0-9]+:|# ktrade/' } |
+              Select-Object -First 80 | ForEach-Object {Write-Host $_}
+            Write-Host 'C75A_FULL_WINDOWS_NEGATIVE_EVIDENCE_RETAINED_IN_RUN=TRUE'
+            throw 'C75A_FULL_WINDOWS_REGRESSION_FAILED'
+          }
+          Write-Host 'C75A_ONE_COMPLETE_WINDOWS_GO_REGRESSION=PASS'
+      - name: Go vet entire fully tagged candidate
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_full ./...
+          if($LASTEXITCODE -ne 0){throw 'C75A_FULL_WINDOWS_VET_FAILED'}
+          Write-Host 'C75A_WINDOWS_VET=PASS'
+      - name: Build stopped paper-only Windows executable
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'c75c-shipping-readonly-NEVER-LAUNCHED.exe'
+          $native=$env:C75C_TEST_NATIVE_EXE
+          $digest=$env:C75C_NATIVE_SHA256
+          if(!(Test-Path -LiteralPath $native) -or $digest -notmatch '^[0-9a-f]{64}$'){
+            throw 'C75C_ORIGINAL_EVALUATOR_BINARY_NOT_QUALIFIED_FOR_PACKAGE'
+          }
+          $actual=(Get-FileHash -LiteralPath $native -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($actual -cne $digest){throw 'C75C_EVALUATOR_DIGEST_CHANGED_AFTER_FOCUSED_QUALIFICATION'}
+          & go build -mod=readonly -tags=ktrade_full -ldflags "-X main.c75cEvaluatorPinnedSHA256=$digest" -o $exe ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){
+            throw 'C75C_PINNED_WINDOWS_BACKEND_BUILD_FAILED'
+          }
+          $companion=Join-Path (Get-Location) 'ktrade-native-vwap.exe'
+          if(Test-Path -LiteralPath $companion){throw 'C75C_EXISTING_COMPANION_MUST_NOT_BE_OVERWRITTEN'}
+          try{
+            Copy-Item -LiteralPath $native -Destination $companion -ErrorAction Stop
+            if((Get-FileHash -LiteralPath $companion -Algorithm SHA256).Hash.ToLowerInvariant() -cne $digest){
+              throw 'C75C_PACKAGING_STAGED_EXECUTABLE_DIGEST_MISMATCH'
+            }
+            Write-Host 'C75C_SHIPPING_WINDOWS_BACKEND_PINNED_TO_EXACT_ORIGINAL_NATIVE_COMPANION=PASS'
+          }finally{
+            if(Test-Path -LiteralPath $companion){Remove-Item -LiteralPath $companion -Force}
+          }
+          Write-Host 'C75C_WINDOWS_BACKEND_BUILD_ONLY_NO_RUN_OR_INSTALL=PASS'
+      - name: Assert no tracked source mutation or release authority
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git -C candidate rev-parse HEAD).Trim() -cne $env:VERIFIED_SHA -or
+             @(& git -C candidate diff --name-only HEAD --).Count -ne 0){
+            throw 'C75A_KTRADE_TRACKED_MUTATION'
+          }
+          Write-Host 'C75A_CKB_PLANE_CONTROLLER_USED=FALSE'
+          Write-Host 'C75A_OWNER_PROFILE_READ=FALSE'
+          Write-Host 'C75A_TRADING_OR_MERGE_AUTHORITY=FALSE'
