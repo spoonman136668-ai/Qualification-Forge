@@ -1,0 +1,99 @@
+name: R25-C75D3G donor qualification script Windows syntax and safety
+on:
+  push:
+    branches: [qualification/r25-c75d3g-donor-script-syntax-20261021]
+    paths: [.github/workflows/r25-c75d3g-donor-script-syntax.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c75d3g-readonly-script-syntax
+  cancel-in-progress: false
+jobs:
+  windows-source-only:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 8
+    env:
+      CANDIDATE_SHA: 'c2d0ac91d132db4255d8c09dde9cdd290a4ec2b0'
+      PARENT_SHA: 'fde31f0da47de47ecc3c2693e52f6127bbabde7c'
+      SCRIPT_BLOB: 'c0eec0ed4e8ebaafd7e9e6d21358a637abb76c51'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Enforce frozen source-only Windows boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r25-c75d3g-donor-script-syntax-20261021' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'D3G_UNQUALIFIED_WINDOWS_SOURCE_BOUNDARY'
+          }
+          Write-Host 'D3G_WINDOWS_SOURCE_ONLY_NO_EXECUTION=PASS'
+      - name: Checkout frozen KTRADE candidate with existing access
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: c2d0ac91d132db4255d8c09dde9cdd290a4ec2b0
+          fetch-depth: 0
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact source path SHA and Git object
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:CANDIDATE_SHA){throw 'D3G_SOURCE_SHA_DRIFT'}
+          $changed=@(& git diff --name-only $env:PARENT_SHA $env:CANDIDATE_SHA)
+          if($changed.Count -ne 1 -or
+             $changed[0] -cne 'scripts/r25-c75d3g-original-native-qualify.ps1'){
+            throw 'D3G_SCRIPT_ONLY_SCOPE_DRIFT'
+          }
+          $blob=(& git rev-parse 'HEAD:scripts/r25-c75d3g-original-native-qualify.ps1').Trim()
+          if($blob -cne $env:SCRIPT_BLOB){throw 'D3G_SCRIPT_BLOB_DRIFT'}
+          if(@(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'D3G_SOURCE_CHECKOUT_DIRTY'
+          }
+          Write-Host 'D3G_FROZEN_SINGLE_SCRIPT_SOURCE=PASS'
+      - name: Validate PowerShell syntax and explicit no-network requirements
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $path=Join-Path $PWD 'scripts/r25-c75d3g-original-native-qualify.ps1'
+          $tokens=$null
+          $issues=$null
+          [System.Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$issues) | Out-Null
+          if($issues.Count -ne 0){
+            $issues | Select-Object -First 5 | ForEach-Object {Write-Host $_.Message}
+            throw 'D3G_POWERSHELL_PARSE_FAILED'
+          }
+          $body=Get-Content -LiteralPath $path -Raw
+          foreach($required in @('GOPROXY','GOSUMDB','--no-local','--no-checkout',
+             'D3G_REAL_DONOR_NATIVE_TESTS','D3G_REAL_DONOR_VET',
+             'D3G_REAL_DONOR_SIDECAR_BUILD','D3G_NO_BROKER_NO_PROMOTION')){
+            if(-not $body.Contains($required)){throw ('D3G_MISSING_BOUNDARY_'+$required)}
+          }
+          Write-Host 'D3G_WINDOWS_POWERSHELL_PARSE_AND_STATIC_POLICY=PASS'
+      - name: Prove missing donor checkout fails before any native qualification
+        working-directory: candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $missing=Join-Path $env:RUNNER_TEMP ('D3G-intentionally-absent-'+[guid]::NewGuid().ToString('N'))
+          $script=Join-Path $PWD 'scripts/r25-c75d3g-original-native-qualify.ps1'
+          $result=(& pwsh -NoLogo -NoProfile -NonInteractive -File $script -CandidateCheckout $PWD.Path -DonorCheckout $missing 2>&1 | Out-String)
+          if($LASTEXITCODE -eq 0 -or -not $result.Contains('D3G_ORIGINAL_DONOR_NOT_A_CHECKOUT')){
+            throw 'D3G_MISSING_DONOR_FAILED_TO_BLOCK'
+          }
+          if(@(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){
+            throw 'D3G_SOURCE_CHANGED_DURING_NEGATIVE_TEST'
+          }
+          Write-Host 'D3G_ABSENT_DONOR_FAIL_CLOSED=PASS'
+          Write-Host 'D3G_ACTUAL_DONOR_NATIVE_EXECUTION=NOT_RUN'
+          Write-Host 'D3G_PAPER_EXECUTION_AUTHORITY=FALSE'
