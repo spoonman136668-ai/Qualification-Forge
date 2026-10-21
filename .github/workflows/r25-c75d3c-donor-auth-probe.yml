@@ -1,0 +1,106 @@
+name: R25-C75D3C read-only original donor auth probe
+on:
+  push:
+    branches: [qualification/r25-c75d3c-donor-readonly-auth-probe-20261021]
+    paths: [.github/workflows/r25-c75d3c-donor-auth-probe.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c75d3c-readonly-donor-auth-probe
+  cancel-in-progress: false
+jobs:
+  verify-readonly-donor-access:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 8
+    env:
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Probe only existing scoped GitHub credentials and exact immutable SHA/tree
+        shell: pwsh
+        env:
+          DONOR_TOKEN: ${{ secrets.KTRADE_CKB_READ_TOKEN_TEMP }}
+          SOURCE_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r25-c75d3c-donor-readonly-auth-probe-20261021' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+             $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'D3C_UNQUALIFIED_RUNNER_OR_AUTHORITY'
+          }
+          function CheckExactCommit([string]$name,[string]$token,[string]$repo,[string]$sha,[string]$tree) {
+            if([string]::IsNullOrWhiteSpace($token)) {
+              Write-Host ('D3C_'+$name+'_SLOT=MISSING')
+              return $false
+            }
+            $uri='https://api.github.com/repos/'+$repo+'/commits/'+$sha
+            $headers=@{
+              Authorization=('Bearer '+$token)
+              Accept='application/vnd.github+json'
+              'User-Agent'='ktrade-immutable-readonly-credential-probe'
+              'X-GitHub-Api-Version'='2022-11-28'
+            }
+            try {
+              $resp=Invoke-WebRequest -Method Get -Uri $uri -Headers $headers -SkipHttpErrorCheck -MaximumRedirection 0 -TimeoutSec 25
+            } catch {
+              Write-Host ('D3C_'+$name+'_SLOT=REQUEST_FAILED')
+              return $false
+            }
+            if([int]$resp.StatusCode -ne 200) {
+              Write-Host ('D3C_'+$name+'_SLOT=HTTP_'+[int]$resp.StatusCode)
+              return $false
+            }
+            try {
+              $body=ConvertFrom-Json -InputObject $resp.Content -ErrorAction Stop
+            } catch {
+              Write-Host ('D3C_'+$name+'_SLOT=INVALID_JSON')
+              return $false
+            }
+            if($body.sha -cne $sha -or $body.commit.tree.sha -cne $tree) {
+              throw ('D3C_'+$name+'_FROZEN_SOURCE_IDENTITY_DRIFT')
+            }
+            Write-Host ('D3C_'+$name+'_EXACT_SHA_TREE_READ=PASS')
+            return $true
+          }
+          $donorSHA='520cfe124fdd7e8dcbf16b6a6f38229b43db7dbc'
+          $donorTree='b74808f35e798b1b72e8fb31a49a5f4664ca87b5'
+          $sourceSHA='9304f7065c9b090e40b6138337eb52b7d1617f13'
+          # CKB donor access, in the two current existing slots; no token logs.
+          $donorSlot=CheckExactCommit 'DONOR_TOKEN_TO_CKB' $env:DONOR_TOKEN 'spoonman136668-ai/ckb' $donorSHA $donorTree
+          $fallbackSlot=CheckExactCommit 'SOURCE_TOKEN_TO_CKB' $env:SOURCE_TOKEN 'spoonman136668-ai/ckb' $donorSHA $donorTree
+          # KTRADE source read access must also exist before full Windows qualification.
+          # Here only the exact commit SHA is asserted; the donor tree is separately pinned.
+          if([string]::IsNullOrWhiteSpace($env:SOURCE_TOKEN)){
+            Write-Host 'D3C_SOURCE_TOKEN_TO_KTRADE=MISSING'
+            throw 'D3C_KTRADE_SOURCE_TOKEN_MISSING'
+          }
+          $headers=@{
+            Authorization=('Bearer '+$env:SOURCE_TOKEN)
+            Accept='application/vnd.github+json'
+            'User-Agent'='ktrade-immutable-readonly-credential-probe'
+          }
+          $uri='https://api.github.com/repos/spoonman136668-ai/ktrade/commits/'+$sourceSHA
+          try {
+            $resp=Invoke-WebRequest -Method Get -Uri $uri -Headers $headers -SkipHttpErrorCheck -MaximumRedirection 0 -TimeoutSec 25
+          } catch {
+            throw 'D3C_KTRADE_SOURCE_REQUEST_FAILED'
+          }
+          if([int]$resp.StatusCode -ne 200){
+            Write-Host ('D3C_SOURCE_TOKEN_TO_KTRADE=HTTP_'+[int]$resp.StatusCode)
+            throw 'D3C_KTRADE_SOURCE_READ_UNVERIFIED'
+          }
+          $source=ConvertFrom-Json -InputObject $resp.Content -ErrorAction Stop
+          if($source.sha -cne $sourceSHA){throw 'D3C_KTRADE_SOURCE_SHA_DRIFT'}
+          Write-Host 'D3C_SOURCE_TOKEN_TO_KTRADE=PASS'
+          if(-not ($donorSlot -or $fallbackSlot)){
+            Write-Host 'D3C_EXISTING_CREDENTIALS_CANNOT_READ_ORIGINAL_DONOR'
+            throw 'D3C_DONOR_AUTH_UNQUALIFIED'
+          }
+          Write-Host 'D3C_DONOR_AND_KTRADE_CREDENTIAL_PREFLIGHT=PASS'
+          Write-Host 'D3C_NATIVE_TESTS_EXECUTED=FALSE'
+          Write-Host 'D3C_TRADE_OR_BROKER_AUTHORITY=FALSE'
