@@ -1,0 +1,111 @@
+name: R18 native Git failure diagnostic library Qualification-Forge
+on:
+  push:
+    branches: [qualification/r18-go-bundle-diagnostics-20261022]
+    paths:
+      - qualification/r18-git-bundle/**
+      - .github/workflows/r18-native-bundle-diagnostics.yml
+permissions:
+  contents: read
+concurrency:
+  group: qforge-r18-native-go-diagnostic-20261022
+  cancel-in-progress: false
+jobs:
+  native:
+    name: source-free native-Go (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    env:
+      GOWORK: 'off'
+      GOTOOLCHAIN: local
+      GOTELEMETRY: 'off'
+      CGO_ENABLED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GIT_TERMINAL_PROMPT: '0'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify independent hosted runner and exact source-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = spoonman136668-ai/Qualification-Forge
+          test "$GITHUB_REF" = refs/heads/qualification/r18-go-bundle-diagnostics-20261022
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          base=8276c47b7231916cb9223fcc8b0fe0a4c40413ba
+          test "$(git merge-base "$base" HEAD)" = "$base"
+          git diff --check "$base" HEAD
+          git diff --name-only "$base" HEAD | sort > "$RUNNER_TEMP/actual-r18.txt"
+          printf '%s\n' .github/workflows/r18-native-bundle-diagnostics.yml qualification/r18-git-bundle/bundle.go qualification/r18-git-bundle/bundle_test.go qualification/r18-git-bundle/go.mod > "$RUNNER_TEMP/expected-r18.txt"
+          diff -u "$RUNNER_TEMP/expected-r18.txt" "$RUNNER_TEMP/actual-r18.txt"
+          echo R18_NATIVE_QFORGE_SOURCE_SCOPE=PASS
+          echo R18_NATIVE_QFORGE_CKB_PLANE_USED=FALSE
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Focused native failure classification
+        shell: bash
+        working-directory: qualification/r18-git-bundle
+        run: |
+          set -euo pipefail
+          go test -p 2 -count=1 -run '^Test04UnresolvedRawSha$' -v ./...
+          echo R18_NATIVE_BUNDLE_FOCUSED=PASS
+      - name: Exactly one full native regression, vet and package build
+        shell: bash
+        working-directory: qualification/r18-git-bundle
+        run: |
+          set -euo pipefail
+          go test -p 2 -count=1 ./...
+          echo R18_NATIVE_BUNDLE_ONE_FULL_REGRESSION=PASS
+          go vet -p 2 ./...
+          echo R18_NATIVE_BUNDLE_VET=PASS
+          go build -p 2 ./...
+          echo R18_NATIVE_BUNDLE_GO_PACKAGE_BUILD=PASS
+          echo R18_NATIVE_BUNDLE_PRIVATE_R18_REGRESSION=NOT_RUN
+          echo R18_NATIVE_BUNDLE_PRODUCTION_CONTROLLER=UNTOUCHED
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Create tightly scoped immutable-source qualification receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          result={
+             'schema':'qualification-forge.r18-native-git-bundle-diagnostic.v1',
+             'result':'PASS',
+             'runner_os':os.environ['RUNNER_OS'],
+             'run_id':os.environ['GITHUB_RUN_ID'],
+             'source_sha':os.environ['GITHUB_SHA'],
+             'native_cases':11,
+             'focused':'PASS','one_full_regression':'PASS','go_vet':'PASS',
+             'go_package_build':'PASS',
+             'private_r18_regression_qualified':False,
+             'private_source_used':False,
+             'controller_accessed':False,
+             'scientific_dispatch':False
+          }
+          Path('evidence/receipt.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n',encoding='utf-8')
+          print('R18_NATIVE_QFORGE_SEALED_SOURCE_RECEIPT=PASS')
+          PY
+      - name: Archive bounded public diagnostic receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: r18-go-bundle-diagnostic-${{ matrix.os }}
+          path: evidence/receipt.json
+          if-no-files-found: error
+          retention-days: 14
