@@ -8,7 +8,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: qforge-r18-offline-bundle-20261022
+  group: qforge-r18-offline-bundle-20261022-v2
   cancel-in-progress: false
 jobs:
   qualify:
