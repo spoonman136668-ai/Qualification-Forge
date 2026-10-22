@@ -131,6 +131,69 @@ class GitFixture(unittest.TestCase):
         self.assertFalse(allowed(config_a, tool_a))
 
 
+    def test_bundle_07_raw_commit_sha_cannot_replace_named_ref(self):
+        repository = self.repository()
+        oid = self.commit(repository, "one")
+        bundle = self.root / "raw-commit.bundle"
+        result = self.git(repository, "bundle", "create", str(bundle), oid, ok=False)
+        self.assertTrue(result.stderr.strip(), "Git must explain the rejected raw SHA selector")
+        self.assertFalse(bundle.is_file() and bundle.stat().st_size > 0)
+        self.git(repository, "bundle", "create", str(bundle), "refs/heads/main")
+        self.git(repository, "bundle", "verify", str(bundle))
+
+    def test_bundle_08_detached_head_without_named_branch(self):
+        repository = self.repository()
+        oid = self.commit(repository, "one")
+        self.git(repository, "checkout", "--detach", oid)
+        self.git(repository, "branch", "-D", "main")
+        self.git(repository, "bundle", "create", str(self.root / "absent-ref.bundle"),
+                 "refs/heads/main", ok=False)
+        # --all can include detached HEAD even when there are no branch refs.
+        bundle = self.root / "head-only.bundle"
+        self.git(repository, "bundle", "create", str(bundle), "--all")
+        self.git(repository, "bundle", "verify", str(bundle))
+        heads = self.git(repository, "bundle", "list-heads", str(bundle)).stdout
+        self.assertIn(oid, heads)
+        self.assertIn("HEAD", heads)
+
+    def test_bundle_09_parent_directory_missing_then_created(self):
+        repository = self.repository()
+        self.commit(repository, "one")
+        target = self.root / "nonexistent" / "nested" / "new.bundle"
+        self.git(repository, "bundle", "create", str(target), "--all", ok=False)
+        target.parent.mkdir(parents=True, exist_ok=False)
+        self.git(repository, "bundle", "create", str(target), "--all")
+        self.git(repository, "bundle", "verify", str(target))
+
+    def test_bundle_10_annotated_tag_is_a_real_portable_ref(self):
+        repository = self.repository()
+        oid = self.commit(repository, "one")
+        self.git(repository, "tag", "-a", "frozen-test", "-m", "frozen test tag")
+        bundle = self.root / "tag-only.bundle"
+        self.git(repository, "bundle", "create", str(bundle), "refs/tags/frozen-test")
+        self.git(repository, "bundle", "verify", str(bundle))
+        clone = self.root / "tag-clone"
+        self.git(self.root, "clone", "--quiet", "--branch", "frozen-test", str(bundle), str(clone))
+        self.assertEqual(self.git(clone, "rev-parse", "HEAD").stdout.strip(), oid)
+
+    def test_bundle_11_incremental_bundle_requires_base_commit(self):
+        repository = self.repository()
+        base = self.commit(repository, "one")
+        tip = self.commit(repository, "two", b"new fixture revision\n")
+        bundle = self.root / "incremental.bundle"
+        self.git(repository, "bundle", "create", str(bundle), "refs/heads/main", "^" + base)
+        self.git(repository, "bundle", "verify", str(bundle))
+        empty = self.repository("empty-verifier")
+        self.git(empty, "bundle", "verify", str(bundle), ok=False)
+        copied = self.root / "base-clone"
+        self.git(self.root, "clone", "--quiet", "--branch", "main",
+                 str(repository), str(copied))
+        self.git(copied, "reset", "--hard", base)
+        self.git(copied, "bundle", "verify", str(bundle))
+        self.assertNotEqual(base, tip)
+
+
+
 if __name__ == "__main__":
     if os.environ.get("RUNNER_OS") not in {"Windows", "Linux"}:
         raise SystemExit("R18_QFORGE_REQUIRES_NATIVE_QUALIFIER_RUNNER")
@@ -141,7 +204,7 @@ if __name__ == "__main__":
     )
     receipt = {
         "schema": SCHEMA,
-        "result": "PASS" if result.wasSuccessful() and result.testsRun == 6 else "FAIL",
+        "result": "PASS" if result.wasSuccessful() and result.testsRun == 11 else "FAIL",
         "cases": result.testsRun,
         "runner_os": os.environ["RUNNER_OS"],
         "private_ckb_plane_source_used": False,
