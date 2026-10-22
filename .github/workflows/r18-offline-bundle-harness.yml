@@ -1,0 +1,84 @@
+name: R18 independent offline Git-bundle diagnostic on Qualification-Forge
+on:
+  push:
+    branches: [qualification/r18-offline-bundle-harness-20261022]
+    paths:
+      - qualification/r18_offline_bundle_harness.py
+      - .github/workflows/r18-offline-bundle-harness.yml
+permissions:
+  contents: read
+concurrency:
+  group: qforge-r18-offline-bundle-20261022
+  cancel-in-progress: false
+jobs:
+  qualify:
+    name: offline-fixture (\${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: \${{ matrix.os }}
+    timeout-minutes: 14
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_TERMINAL_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 4
+      - name: Admit exactly one public source-free fixture and its hosted workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = spoonman136668-ai/Qualification-Forge
+          test "$GITHUB_REF" = refs/heads/qualification/r18-offline-bundle-harness-20261022
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git merge-base 991042e06b95f4846306f8aed6cf74adb952a438 HEAD)" = 991042e06b95f4846306f8aed6cf74adb952a438
+          git diff --check 991042e06b95f4846306f8aed6cf74adb952a438 HEAD
+          git diff --name-only 991042e06b95f4846306f8aed6cf74adb952a438 HEAD | sort > changed.txt
+          printf '%s\n' .github/workflows/r18-offline-bundle-harness.yml qualification/r18_offline_bundle_harness.py > expected.txt
+          diff -u expected.txt changed.txt
+          echo R18_QFORGE_SOURCE_ISOLATION=PASS
+          echo R18_QFORGE_NO_CKB_SOURCE_CHECKOUT=TRUE
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Native focused Git-bundle round-trip
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v qualification.r18_offline_bundle_harness.GitFixture.test_bundle_03_pinned_head_round_trip
+          echo R18_QFORGE_FOCUSED_BUNDLE=PASS
+      - name: One full bounded offline diagnostic regression and sealed receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          python qualification/r18_offline_bundle_harness.py 2>&1 | tee evidence/r18-stdout.log
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          raw=Path('evidence/r18-stdout.log').read_text(encoding='utf-8')
+          matching=[line.partition('R18_QFORGE_OFFLINE_RECEIPT=')[2] for line in raw.splitlines() if 'R18_QFORGE_OFFLINE_RECEIPT=' in line]
+          if len(matching)!=1: raise RuntimeError('R18_RECEIPT_COUNT_NOT_ONE')
+          receipt=json.loads(matching[0])
+          if receipt.get('schema')!='qualification-forge.r18-offline-git-bundle-harness.v1' or receipt.get('result')!='PASS' or receipt.get('cases')!=6 or receipt.get('runner_os')!=os.environ['RUNNER_OS'] or any(receipt[k] for k in ('private_ckb_plane_source_used','live_controller_connected','scientific_dispatch','private_source_acceptance')):
+              raise RuntimeError('R18_OFFLINE_SCOPE_OR_RECEIPT_DRIFT')
+          receipt['run_id']=os.environ['GITHUB_RUN_ID']
+          receipt['source_sha']=os.environ['GITHUB_SHA']
+          receipt['source_only']=True
+          Path('evidence/receipt.json').write_text(json.dumps(receipt,sort_keys=True,indent=2)+'\n',encoding='utf-8')
+          print('R18_QFORGE_FULL_OFFLINE_REGRESSION=PASS')
+          print('R18_QFORGE_RECEIPT_SCOPE=PASS')
+          PY
+      - name: Archive public source-free qualification receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r18-offline-bundle-\${{ matrix.os }}
+          path: evidence/receipt.json
+          retention-days: 14
+          if-no-files-found: ignore
