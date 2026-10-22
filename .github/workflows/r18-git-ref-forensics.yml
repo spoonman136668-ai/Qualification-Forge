@@ -1,0 +1,82 @@
+name: R18 independent source-free bundle-ref forensics
+on:
+  push:
+    branches: [qualification/r18-git-ref-forensics-20261022]
+    paths:
+      - qualification/r18_offline_bundle_harness.py
+      - .github/workflows/r18-git-ref-forensics.yml
+permissions:
+  contents: read
+concurrency:
+  group: qforge-r18-bundle-ref-forensics-20261022
+  cancel-in-progress: false
+jobs:
+  forensic:
+    name: source-free (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GIT_TERMINAL_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Exact independent QForge source-only scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = spoonman136668-ai/Qualification-Forge
+          test "$GITHUB_REF" = refs/heads/qualification/r18-git-ref-forensics-20261022
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          base=1ab1ad58064ea9d3255bda25c3d1b05a563a97df
+          test "$(git merge-base "$base" HEAD)" = "$base"
+          git diff --check "$base" HEAD
+          git diff --name-only "$base" HEAD | sort > "$RUNNER_TEMP/qforge_changed.txt"
+          printf '%s\n' .github/workflows/r18-git-ref-forensics.yml qualification/r18_offline_bundle_harness.py > "$RUNNER_TEMP/qforge_expected.txt"
+          diff -u "$RUNNER_TEMP/qforge_expected.txt" "$RUNNER_TEMP/qforge_changed.txt"
+          echo R18_QFORGE_ONLY_TWO_SOURCE_FREE_FILES=PASS
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Focused raw-commit-SHA failure and named-ref positive control
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m unittest -v qualification.r18_offline_bundle_harness.GitFixture.test_bundle_07_raw_commit_sha_cannot_replace_named_ref
+          echo R18_QFORGE_BUNDLE_REF_FOCUSED=PASS
+      - name: One complete bounded source-free regression and receipt verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          python qualification/r18_offline_bundle_harness.py 2>&1 | tee evidence/suite.log
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          lines=Path('evidence/suite.log').read_text(encoding='utf-8').splitlines()
+          matched=[v.removeprefix('R18_QFORGE_OFFLINE_RECEIPT=') for v in lines if v.startswith('R18_QFORGE_OFFLINE_RECEIPT=')]
+          if len(matched)!=1: raise RuntimeError('R18_RECEIPT_NOT_UNIQUE')
+          result=json.loads(matched[0])
+          if result.get('schema')!='qualification-forge.r18-offline-git-bundle-harness.v1' or result.get('result')!='PASS' or result.get('cases')!=11 or result.get('runner_os')!=os.environ['RUNNER_OS'] or any(result.get(k) is not False for k in ('private_ckb_plane_source_used','live_controller_connected','scientific_dispatch','private_source_acceptance')):
+              raise RuntimeError('R18_RECEIPT_SCOPE_OR_CASES_DRIFT')
+          result.update({'source_sha':os.environ['GITHUB_SHA'],'run_id':os.environ['GITHUB_RUN_ID'],'forensic_scope':'public_synthetic_only','private_R18_roadmap_test_reproduced':False})
+          Path('evidence/receipt.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n',encoding='utf-8')
+          print('R18_QFORGE_11_CASE_SOURCE_FREE_REGRESSION=PASS')
+          print('R18_QFORGE_PRIVATE_R18_ACCEPTANCE=NOT_CLAIMED')
+          PY
+      - name: Archive source-free forensic receipt only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r18-ref-forensic-${{ matrix.os }}
+          path: evidence/receipt.json
+          if-no-files-found: ignore
+          retention-days: 14
