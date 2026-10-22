@@ -1,0 +1,138 @@
+name: R25-C75D3L CGO Windows atomic paper qualification
+on:
+  push:
+    branches: [qualification/r25-c75d3l-cgo-atomic-paper-20261022]
+    paths: [.github/workflows/r25-c75d3l-cgo-atomic-paper.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25-c75d3l-cgo-paper-qualify
+  cancel-in-progress: false
+jobs:
+  native-atomic:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      SOURCE_SHA: '6b666d003a614df038bfb1d3422bb011c24d6903'
+      PARENT_SHA: '795af17de8e371dee995dd89d5ff8c7d04acda0f'
+      BRIDGE_BLOB: 'd0958fc1b24bb069bc650b6f56ef3f170ef6dac8'
+      TEST_BLOB: 'e86cdc45c3f95fa41bb6403673b8a23f6df2a646'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Isolate exact source and paper-only authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r25-c75d3l-cgo-atomic-paper-20261022' -or
+             $env:RUNNER_OS -cne 'Windows' -or
+             $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+             $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+             $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+             $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0'){
+            throw 'D3L_UNQUALIFIED_WINDOWS_CGO_ENVIRONMENT'
+          }
+          Write-Host 'D3L_HOSTED_WINDOWS_PAPER_SOURCE_AUTHORITY=PASS'
+      - name: Read immutable KTRADE candidate through its existing source credential
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 6b666d003a614df038bfb1d3422bb011c24d6903
+          fetch-depth: 0
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact two-file nonshipping source identity
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA){throw 'D3L_SOURCE_SHA_DRIFT'}
+          $d=@(& git diff --name-only $env:PARENT_SHA $env:SOURCE_SHA | Sort-Object)
+          $expected=@('internal/paperlifecycle/native_synthetic_atomic_bridge_shadow.go',
+             'internal/paperlifecycle/native_synthetic_atomic_bridge_shadow_test.go') | Sort-Object
+          if($d.Count -ne 2 -or @(Compare-Object $d $expected).Count -ne 0){
+            throw 'D3L_SOURCE_DELTA_DRIFT'
+          }
+          $bridge=(& git rev-parse 'HEAD:internal/paperlifecycle/native_synthetic_atomic_bridge_shadow.go').Trim()
+          $test=(& git rev-parse 'HEAD:internal/paperlifecycle/native_synthetic_atomic_bridge_shadow_test.go').Trim()
+          $lifecycle=(& git rev-parse 'HEAD:internal/paperlifecycle/authority.go').Trim()
+          $original=(& git rev-parse ($env:PARENT_SHA+':internal/paperlifecycle/authority.go')).Trim()
+          if($bridge -cne $env:BRIDGE_BLOB -or $test -cne $env:TEST_BLOB -or
+             $lifecycle -cne $original){throw 'D3L_ORIGINAL_SQLITE_OR_NEW_SOURCE_BLOB_DRIFT'}
+          if(@(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){throw 'D3L_CHECKOUT_DIRTY'}
+          Write-Host 'D3L_EXACT_TWO_NONSHIPPING_FILES_AND_UNCHANGED_SQLITE=PASS'
+      - name: Pin Windows Go with native CGO
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Require authentic C compiler for SQLite
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& go env CGO_ENABLED).Trim() -cne '1'){throw 'D3L_CGO_DISABLED'}
+          $gcc=Get-Command gcc -ErrorAction SilentlyContinue
+          if(-not $gcc){
+            foreach($path in @('C:\mingw64\bin\gcc.exe','C:\msys64\mingw64\bin\gcc.exe','C:\ProgramData\chocolatey\bin\gcc.exe')){
+              if(Test-Path -LiteralPath $path -PathType Leaf){
+                $env:PATH=([IO.Path]::GetDirectoryName($path))+';'+$env:PATH
+                $gcc=Get-Command gcc -ErrorAction SilentlyContinue
+                if($gcc){break}
+              }
+            }
+          }
+          if(-not $gcc){throw 'D3L_WINDOWS_C_COMPILER_NOT_PRESENT'}
+          & gcc --version | Select-Object -First 1 | ForEach-Object {Write-Host ('D3L_C_COMPILER='+$_)}
+          Write-Host 'D3L_NATIVE_SQLITE_CGO_TOOLCHAIN=PASS'
+      - name: Focused synthetic native paper atomic transactions and recovery
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=8m -v -run '^TestC75D3L' ./internal/paperlifecycle
+          if($LASTEXITCODE -ne 0){throw 'D3L_ATOMIC_NATIVE_SYNTHETIC_TESTS_FAILED'}
+          Write-Host 'D3L_NATIVE_SYNTHETIC_ATOMIC_BUY_SELL_AND_RECOVERY=PASS'
+      - name: One bounded existing paper package regression
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -tags=ktrade_donor_shadow -count=1 -timeout=10m ./internal/paperlifecycle ./internal/paperproposal ./internal/papertrading
+          if($LASTEXITCODE -ne 0){throw 'D3L_EXISTING_FIFO_AND_LEDGER_REGRESSION_FAILED'}
+          Write-Host 'D3L_PAPER_ENGINE_REGRESSION=PASS'
+      - name: Native vet and stopped Windows application build
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_donor_shadow ./internal/paperlifecycle ./internal/paperproposal ./internal/papertrading
+          if($LASTEXITCODE -ne 0){throw 'D3L_PAPER_NATIVE_VET_FAILED'}
+          Write-Host 'D3L_PAPER_NATIVE_VET=PASS'
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade-d3l-stopped.exe'
+          & go build -mod=readonly -tags=ktrade_full -o $exe ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe -PathType Leaf)){
+            throw 'D3L_STOPPED_WINDOWS_BUILD_FAILED'
+          }
+          Write-Host 'D3L_STOPPED_WINDOWS_BUILD=PASS'
+      - name: Seal limited qualification without live or owner authority
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if(@(& git status --porcelain=v1 --untracked-files=all).Count -ne 0){throw 'D3L_SOURCE_CHANGED'}
+          Write-Host 'D3L_SHIPPING_RUNTIME_UNCHANGED=PASS'
+          Write-Host 'D3L_ORIGINAL_DONOR_GUARD_IN_THIS_TRIAL=NOT_USED'
+          Write-Host 'D3L_FULL_DONOR_WINDOWS_REGRESSION=NOT_RUN'
+          Write-Host 'D3L_ORIGINAL_OWNER_ACCOUNT_AUTHENTICATED=FALSE'
+          Write-Host 'D3L_REAL_PAPER_ORDER_AUTHORITY=FALSE'
+          Write-Host 'D3L_PAPER_TEMP_SYNTHETIC_QUALIFICATION=PASS'
