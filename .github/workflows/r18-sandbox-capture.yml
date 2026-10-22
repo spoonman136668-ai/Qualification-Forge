@@ -1,0 +1,109 @@
+name: R18 sandbox Git evidence capture qualification on independent QForge
+on:
+  push:
+    branches: [qualification/r18-sandbox-capture-20261022]
+    paths:
+      - qualification/r18-git-bundle/capture.go
+      - qualification/r18-git-bundle/capture_test.go
+      - .github/workflows/r18-sandbox-capture.yml
+permissions:
+  contents: read
+concurrency:
+  group: qforge-r18-sandbox-capture-20261022
+  cancel-in-progress: false
+jobs:
+  qualify:
+    name: sandbox-capture (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    env:
+      GOWORK: 'off'
+      GOTOOLCHAIN: local
+      GOTELEMETRY: 'off'
+      CGO_ENABLED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GIT_TERMINAL_PROMPT: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Exact independent QForge source-only admission
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = spoonman136668-ai/Qualification-Forge
+          test "$GITHUB_REF" = refs/heads/qualification/r18-sandbox-capture-20261022
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          base=79bcb92cc185e0fc820b74bb8b9d57a7854ae86b
+          test "$(git merge-base "$base" HEAD)" = "$base"
+          git diff --check "$base" HEAD
+          git diff --name-only "$base" HEAD | sort > "$RUNNER_TEMP/qforge-capture-changed.txt"
+          printf '%s\n' .github/workflows/r18-sandbox-capture.yml qualification/r18-git-bundle/capture.go qualification/r18-git-bundle/capture_test.go > "$RUNNER_TEMP/qforge-capture-expected.txt"
+          diff -u "$RUNNER_TEMP/qforge-capture-expected.txt" "$RUNNER_TEMP/qforge-capture-changed.txt"
+          echo R18_SANDBOX_QFORGE_SOURCE_BOUNDARY=PASS
+          echo R18_SANDBOX_NO_CKB_PLANE_SOURCE_OR_CONTROLLER=TRUE
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Focused source-pinned Git capture and negative selectors
+        shell: bash
+        working-directory: qualification/r18-git-bundle
+        run: |
+          set -euo pipefail
+          go test -vet=off -count=1 -run '^Test(19SandboxValidPinnedBundleAndNonAdmission|20SandboxWrongHeadDoesNotWrite|23SandboxUnresolvedRefCategorizedWithoutStderr)$' -v ./...
+          echo R18_SANDBOX_CAPTURE_FOCUSED=PASS
+      - name: One full native Go regression, vet and build
+        shell: bash
+        working-directory: qualification/r18-git-bundle
+        run: |
+          set -euo pipefail
+          go test -p 2 -count=1 ./...
+          echo R18_SANDBOX_CAPTURE_ONE_FULL_26_CASE_REGRESSION=PASS
+          go vet -p 2 ./...
+          echo R18_SANDBOX_CAPTURE_GO_VET=PASS
+          go build -p 2 ./...
+          echo R18_SANDBOX_CAPTURE_GO_BUILD=PASS
+          echo R18_SANDBOX_CAPTURE_PRIVATE_R18_ROOT_CAUSE=UNDETERMINED
+          echo R18_SANDBOX_CAPTURE_REAL_R18_REGRESSION=NOT_RUN
+          echo R18_SANDBOX_CAPTURE_PRODUCTION_CONTROLLER=UNTOUCHED
+      - name: Seal bounded source-only receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          python - <<'PY'
+          import os,json
+          from pathlib import Path
+          result={
+           'schema':'qualification-forge.r18-sandbox-git-evidence-capture.v1',
+           'result':'PASS',
+           'runner_os':os.environ['RUNNER_OS'],
+           'run_id':os.environ['GITHUB_RUN_ID'],
+           'source_sha':os.environ['GITHUB_SHA'],
+           'test_cases':26,
+           'focused':'PASS','full_regression':'PASS','vet':'PASS','build':'PASS',
+           'private_source_accessed':False,
+           'original_r18_regression_qualified':False,
+           'independent_scientific_witness':False,
+           'live_controller_accessed':False,
+           'research_dispatched':False
+          }
+          Path('evidence/receipt.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n',encoding='utf-8')
+          print('R18_SANDBOX_CAPTURE_RECEIPT=PASS')
+          PY
+      - name: Archive only redacted QForge receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: r18-sandbox-capture-${{ matrix.os }}
+          path: evidence/receipt.json
+          if-no-files-found: error
+          retention-days: 14
