@@ -1,0 +1,116 @@
+name: R18 fail-closed original-error evidence admission on Qualification-Forge
+on:
+  push:
+    branches: [qualification/r18-failure-evidence-admission-20261022]
+    paths:
+      - qualification/r18-git-bundle/evidence.go
+      - qualification/r18-git-bundle/evidence_test.go
+      - .github/workflows/r18-evidence-admission.yml
+permissions:
+  contents: read
+concurrency:
+  group: qforge-r18-original-log-evidence-20261022
+  cancel-in-progress: false
+jobs:
+  evidence:
+    name: original-error-boundary (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 18
+    env:
+      GOWORK: 'off'
+      GOTOOLCHAIN: local
+      GOTELEMETRY: 'off'
+      CGO_ENABLED: '0'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Exact independent QForge-only source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = spoonman136668-ai/Qualification-Forge
+          test "$GITHUB_REF" = refs/heads/qualification/r18-failure-evidence-admission-20261022
+          test "$RUNNER_ENVIRONMENT" = github-hosted
+          test "$GITHUB_RUN_ATTEMPT" = 1
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          base=4cba0d375d13bb03dcc768ac94468fc5f4f0920d
+          test "$(git merge-base "$base" HEAD)" = "$base"
+          git diff --check "$base" HEAD
+          git diff --name-only "$base" HEAD | sort > "$RUNNER_TEMP/r18-actual.txt"
+          printf '%s\n' .github/workflows/r18-evidence-admission.yml qualification/r18-git-bundle/evidence.go qualification/r18-git-bundle/evidence_test.go > "$RUNNER_TEMP/r18-expected.txt"
+          diff -u "$RUNNER_TEMP/r18-expected.txt" "$RUNNER_TEMP/r18-actual.txt"
+          echo R18_EVIDENCE_INDEPENDENT_QFORGE_SOURCE_ONLY=PASS
+          echo R18_EVIDENCE_NO_CKB_PLANE_ACCESS=TRUE
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Focused original-error underdetermination and privacy vetoes
+        shell: bash
+        working-directory: qualification/r18-git-bundle
+        run: |
+          set -euo pipefail
+          go test -vet=off -p 2 -count=1 -run '^Test(12LegacyGoExitIsUnderdetermined|16NoRawPrivatePathInReceipt)$' -v ./...
+          echo R18_ORIGINAL_EXIT_STATUS_1_ROOT_CAUSE=UNDETERMINED
+          echo R18_EVIDENCE_FOCUSED_UNDERDETERMINATION=PASS
+      - name: One full Go regression, vet, package build
+        shell: bash
+        working-directory: qualification/r18-git-bundle
+        run: |
+          set -euo pipefail
+          go test -p 2 -count=1 ./...
+          echo R18_EVIDENCE_FULL_18_CASE_REGRESSION=PASS
+          go vet -p 2 ./...
+          echo R18_EVIDENCE_GO_VET=PASS
+          go build -p 2 ./...
+          echo R18_EVIDENCE_PACKAGE_BUILD=PASS
+          echo R18_EVIDENCE_PRIVATE_R18_REGRESSION=NOT_RUN
+          echo R18_EVIDENCE_PRODUCTION_CONTROLLER=UNTOUCHED
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: false
+      - name: Seal precise non-admission receipt with immutable source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          python - <<'PY'
+          import json,os
+          from pathlib import Path
+          doc={
+            'schema':'qualification-forge.r18-original-evidence-admission.v1',
+            'run_id':os.environ['GITHUB_RUN_ID'],
+            'source_sha':os.environ['GITHUB_SHA'],
+            'runner_os':os.environ['RUNNER_OS'],
+            'result':'PASS',
+            'native_cases':18,
+            'one_full_regression':'PASS',
+            'go_vet':'PASS',
+            'package_build':'PASS',
+            'legacy_observation':'git bundle failed: exit status 1',
+            'original_failure_root_cause':'UNDETERMINED',
+            'missing_evidence':['native_bundle_subcommand','native_stderr','source_bound_invocation'],
+            'private_application_regression_qualified':False,
+            'no_private_source_access':True,
+            'no_production_controller_access':True,
+            'no_scientific_dispatch':True
+          }
+          Path('evidence/receipt.json').write_text(json.dumps(doc,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          print('R18_EVIDENCE_FAIL_CLOSED_RECEIPT=PASS')
+          PY
+      - name: Archive non-private receipt only
+        uses: actions/upload-artifact@v4
+        with:
+          name: r18-evidence-intake-${{ matrix.os }}
+          path: evidence/receipt.json
+          if-no-files-found: error
+          retention-days: 14
