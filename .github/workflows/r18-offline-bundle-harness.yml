@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-          fetch-depth: 4
+          fetch-depth: 0
       - name: Admit exactly one public source-free fixture and its hosted workflow
         shell: bash
         run: |
