@@ -1,0 +1,92 @@
+name: R18 CKB-plane private source qualification on dedicated FORGE Qualify
+on:
+  push:
+    branches: [qualification/r18-plane-owned-contract-20261022]
+    paths: [.github/workflows/r18-plane-contract-qualification.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r18-private-contract-qualification-20261022
+  cancel-in-progress: false
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      QUAL_CKB_PLANE_READ: ${{ secrets.CKB_PLANE_SOURCE_READ_TOKEN || secrets.CKB_PLANE_READ_TOKEN || secrets.CKB_PLANE_QUAL_READ_TOKEN }}
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOMEMLIMIT: '1536MiB'
+      GOTOOLCHAIN: local
+      GOWORK: off
+      GOTELEMETRY: off
+    steps:
+      - name: Require hosted independent qualifier and scoped private-source read permission
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:GITHUB_REF -cne 'refs/heads/qualification/r18-plane-owned-contract-20261022' -or
+             $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+             $env:RUNNER_OS -cne 'Windows' -or
+             $env:GITHUB_RUN_ATTEMPT -cne '1'){
+            throw 'R18_QUALIFICATION_FORGE_HOST_IDENTITY_DRIFT'
+          }
+          if([string]::IsNullOrWhiteSpace($env:QUAL_CKB_PLANE_READ)){
+            throw 'R18_QUALIFICATION_FORGE_CKB_PLANE_READ_GRANT_ABSENT'
+          }
+          Write-Host 'R18_QUALIFICATION_FORGE_HOST=PASS'
+          Write-Host 'R18_QUALIFICATION_FORGE_READ_GRANT_PRESENT=TRUE'
+      - uses: actions/checkout@v4
+        with:
+          repository: spoonman136668-ai/ckb-plane
+          ref: 0a51daf495b1116d9b1d4152e48d8b40c7a209c2
+          fetch-depth: 1
+          path: r18-private
+          persist-credentials: false
+          token: ${{ secrets.CKB_PLANE_SOURCE_READ_TOKEN || secrets.CKB_PLANE_READ_TOKEN || secrets.CKB_PLANE_QUAL_READ_TOKEN }}
+      - name: Verify pinned private source and focused negative-control test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'r18-private'
+          $actual=(& git -C $root rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $actual -cne '0a51daf495b1116d9b1d4152e48d8b40c7a209c2'){
+            throw 'R18_QUALIFICATION_FORGE_PRIVATE_SOURCE_SHA_DRIFT'
+          }
+          if(!(Test-Path -LiteralPath (Join-Path $root 'snapshot/source/internal/plane/r18_forge_hosted_qualification_test.go') -PathType Leaf)){
+            throw 'R18_QUALIFICATION_FORGE_PINNED_TEST_MISSING'
+          }
+          Write-Host 'R18_QUALIFICATION_FORGE_SOURCE_IDENTITY=PASS'
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25.5'
+          cache: false
+      - name: Focused native Windows contract acceptance and veto controls
+        shell: pwsh
+        working-directory: r18-private/snapshot/source
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -p 2 -count=1 -run '^TestR18HostedQualificationRejectsContractDrift$' -v ./internal/plane
+          if($LASTEXITCODE -ne 0){throw 'R18_QUALIFICATION_FORGE_FOCUSED_TEST_FAILED'}
+          Write-Host 'R18_QUALIFICATION_FORGE_FOCUSED=PASS'
+      - name: One full Windows regression, vet, then build
+        shell: pwsh
+        working-directory: r18-private/snapshot/source
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -p 2 ./...
+          if($LASTEXITCODE -ne 0){throw 'R18_QUALIFICATION_FORGE_FULL_REGRESSION_FAILED'}
+          Write-Host 'R18_QUALIFICATION_FORGE_WINDOWS_REGRESSION=PASS'
+          & go vet -p 2 ./...
+          if($LASTEXITCODE -ne 0){throw 'R18_QUALIFICATION_FORGE_VET_FAILED'}
+          Write-Host 'R18_QUALIFICATION_FORGE_VET=PASS'
+          $exe=Join-Path $env:RUNNER_TEMP 'R18-qualifier-build.exe'
+          if(Test-Path -LiteralPath $exe){throw 'R18_QUALIFICATION_FORGE_OUTPUT_COLLISION'}
+          & go build -p 2 -o $exe ./cmd/ckb-plane
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe)){throw 'R18_QUALIFICATION_FORGE_BUILD_FAILED'}
+          $hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host ('R18_QUALIFICATION_FORGE_BUILD_SHA256='+$hash)
+          Write-Host 'R18_QUALIFICATION_FORGE_SOURCE_ONLY=TRUE'
+          Write-Host 'R18_QUALIFICATION_FORGE_LIVE_CONTROLLER_UNCHANGED=TRUE'
+          Write-Host 'R18_QUALIFICATION_FORGE_FIRST_USE=NOT_ATTEMPTED'
