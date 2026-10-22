@@ -80,7 +80,7 @@ class GitFixture(unittest.TestCase):
         self.git(repository, "bundle", "create", str(bundle), "refs/heads/main")
         self.git(repository, "bundle", "verify", str(bundle))
         clone = self.root / "clone"
-        self.git(self.root, "clone", "--quiet", str(bundle), str(clone))
+        self.git(self.root, "clone", "--quiet", "--branch", "main", str(bundle), str(clone))
         observed = self.git(clone, "rev-parse", "HEAD").stdout.strip()
         self.assertEqual(observed, frozen, "bundle clone failed to preserve frozen parent")
         self.assertEqual((clone / "first.txt").read_bytes(), b"frozen fixture bytes\n")
@@ -97,7 +97,7 @@ class GitFixture(unittest.TestCase):
         self.git(repository, "bundle", "create", str(bundle), "--all")
         self.git(repository, "bundle", "verify", str(bundle))
         clone = self.root / "long-clone"
-        self.git(self.root, "clone", "--quiet", str(bundle), str(clone))
+        self.git(self.root, "clone", "--quiet", "--branch", "main", str(bundle), str(clone))
         self.assertNotEqual(self.git(clone, "rev-parse", "HEAD").stdout.strip(), first)
         self.git(clone, "fsck", "--no-reflogs", "--full")
 
@@ -110,7 +110,7 @@ class GitFixture(unittest.TestCase):
         self.git(secondary, "bundle", "create", str(bundle), "--all")
         self.git(secondary, "bundle", "verify", str(bundle))
         clone = self.root / "worktree-clone"
-        self.git(self.root, "clone", "--quiet", str(bundle), str(clone))
+        self.git(self.root, "clone", "--quiet", "--branch", "main", str(bundle), str(clone))
         self.assertEqual(self.git(clone, "rev-parse", "HEAD").stdout.strip(), sha)
 
     def test_bundle_06_changed_contract_receipt_is_not_a_pass(self):
