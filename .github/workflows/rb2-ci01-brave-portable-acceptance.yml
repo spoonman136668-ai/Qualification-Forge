@@ -1,0 +1,166 @@
+name: RB2-CI01 genuine portable KTRADE Brave acceptance
+on:
+  push:
+    branches: [qualification/rb2-ci01-cold-recovery-windows-20261023]
+    paths: [.github/workflows/rb2-ci01-brave-portable-acceptance.yml]
+permissions:
+  contents: read
+concurrency:
+  group: rb2-ci01-genuine-brave-acceptance
+  cancel-in-progress: false
+jobs:
+  real-portable-brave:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 65
+    env:
+      SOURCE_SHA: '7acdfa2365f5074527ea6b716fd2e89fdbf30d92'
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Verify hosted Windows and disarmed acceptance authority
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:GITHUB_REF -cne 'refs/heads/qualification/rb2-ci01-cold-recovery-windows-20261023' -or
+              $env:RUNNER_OS -cne 'Windows' -or
+              $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+              $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+              $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'RB2_BRAVE_DISARMED_AUTHORITY_VIOLATED'
+          }
+          Write-Host 'RB2_BRAVE_WINDOWS_ISOLATED_PAPER_ONLY=PASS'
+      - name: Read exact private KTRADE source through existing read token
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7acdfa2365f5074527ea6b716fd2e89fdbf30d92
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Authenticate clean candidate and locked vendor inputs
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+              @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_BRAVE_EXACT_SOURCE_OR_WORKTREE_DRIFT'
+          }
+          foreach($path in @('package-lock.json','windows/Build-KTRADE-Portable.ps1',
+                             'windows/Probe-KTRADE-Portable-HTTP.ps1',
+                             'scripts/probe_brave_chart.cjs','scripts/stage_offline_vendor.cjs')) {
+            if (!(Test-Path -LiteralPath $path -PathType Leaf)) { throw ('RB2_BRAVE_REQUIRED_SOURCE_MISSING_'+$path) }
+          }
+          Write-Host ('RB2_BRAVE_SOURCE_SHA='+$env:SOURCE_SHA)
+      - name: Set up pinned Windows Go and Node toolchains
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Set up Node 22 for authentic CDP WebSocket client
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: candidate/package-lock.json
+      - name: Stage independently locked Monaco and chart assets
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & npm ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_VENDOR_LOCK_INSTALL_FAILED' }
+          & node scripts/stage_offline_vendor.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_LOCKED_VENDOR_STAGING_FAILED' }
+          Write-Host 'RB2_PINNED_OFFLINE_EDITOR_AND_CHART_ASSETS=PASS'
+      - name: Build authentic disposable Windows portable KTRADE package
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path ([IO.Path]::GetTempPath()) ('ktrade-rb2-package-'+[guid]::NewGuid().ToString('N'))
+          "KTRADE_PROBE_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & ./windows/Build-KTRADE-Portable.ps1 -OutputRoot $root
+          if (!(Test-Path -LiteralPath (Join-Path $root 'package-manifest.json') -PathType Leaf)) {
+            throw 'RB2_PACKAGE_MANIFEST_NOT_CREATED'
+          }
+          $p=Get-Content -LiteralPath (Join-Path $root 'package-manifest.json') -Raw | ConvertFrom-Json
+          if ($p.schema -cne 'ktrade.portable.source-qualification.v1' -or
+              $p.source_sha -cne $env:SOURCE_SHA -or $p.live_armed -ne $false -or
+              $p.native_host -cne 'go-brave-app') {
+            throw 'RB2_DISARMED_PACKAGE_MANIFEST_IDENTITY_DRIFT'
+          }
+          Write-Host 'RB2_DISPOSABLE_NATIVE_BRAVE_PACKAGE=PASS'
+      - name: Real binary isolated HTTP, strategy save and cold restart
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & ./windows/Probe-KTRADE-Portable-HTTP.ps1 -OutputRoot $env:KTRADE_PROBE_ROOT
+          Write-Host 'RB2_REAL_EXE_DISPOSABLE_HTTP_AND_RESTART=PASS'
+      - name: Install verified Brave only on disposable hosted Windows machine
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $paths=@(
+            (Join-Path $env:ProgramFiles 'BraveSoftware\Brave-Browser\Application\brave.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'BraveSoftware\Brave-Browser\Application\brave.exe'),
+            (Join-Path $env:LOCALAPPDATA 'BraveSoftware\Brave-Browser\Application\brave.exe')
+          )
+          $brave=@($paths | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}) | Select-Object -First 1
+          if (!$brave) {
+            $choco=Get-Command choco.exe -ErrorAction SilentlyContinue
+            if (!$choco) { throw 'RB2_REAL_BRAVE_NOT_INSTALLED_AND_PACKAGE_MANAGER_UNAVAILABLE' }
+            & $choco.Source install brave --version=1.97.59 --yes --no-progress --limit-output
+            if ($LASTEXITCODE -ne 0) { throw 'RB2_BRAVE_PINNED_HOSTED_INSTALL_FAILED' }
+            $brave=@($paths | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}) | Select-Object -First 1
+          }
+          if (!$brave) { throw 'RB2_REAL_BRAVE_BINARY_NOT_FOUND' }
+          $sign=Get-AuthenticodeSignature -LiteralPath $brave
+          if ($sign.Status -ne 'Valid' -or
+              $sign.SignerCertificate.Subject -notmatch '(?i)brave software') {
+            throw 'RB2_BRAVE_BINARY_SIGNATURE_UNVERIFIED'
+          }
+          Write-Host ('RB2_REAL_BRAVE_SIGNED_BIN_SHA256='+((Get-FileHash -LiteralPath $brave -Algorithm SHA256).Hash.ToLowerInvariant()))
+          Write-Host 'RB2_AUTHENTIC_SIGNED_BRAVE=PASS'
+      - name: Real disposable Brave chart, Monaco Pine save and disarmed review E2E
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & node scripts/probe_brave_chart.cjs $env:KTRADE_PROBE_ROOT
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_GENUINE_BRAVE_OPERATOR_E2E_FAILED' }
+          Write-Host 'RB2_GENUINE_BRAVE_OPERATOR_E2E=PASS'
+      - name: Seal limited browser acceptance without promoting production
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA) {
+            throw 'RB2_BRAVE_POSTQUAL_SOURCE_IDENTITY_DRIFT'
+          }
+          Write-Host ('RB2_BRAVE_SOURCE_SHA='+$env:SOURCE_SHA)
+          Write-Host 'RB2_HISTORICAL_FULL_REGRESSION=STILL_RED'
+          Write-Host 'RB2_OWNER_INSTALLED_DATA=UNTOUCHED'
+          Write-Host 'RB2_NO_REAL_BROKER_ORDERS=TRUE'
+          Write-Host 'RB2_PRODUCTION_RELEASE_NOT_AUTHORIZED=TRUE'
+          Write-Host 'RB2_LIVE_DISARMED=TRUE'
+      - name: Remove disposable app and Brave test profile
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:KTRADE_PROBE_ROOT -and (Test-Path -LiteralPath $env:KTRADE_PROBE_ROOT)) {
+            Remove-Item -LiteralPath $env:KTRADE_PROBE_ROOT -Recurse -Force -ErrorAction SilentlyContinue
+          }
