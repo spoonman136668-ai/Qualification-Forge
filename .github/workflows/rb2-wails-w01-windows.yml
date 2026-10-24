@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 6785853d752b38645b7b03f4c41db90781eedad8
+          ref: b8e73b9cc3bae86e1598470ec9586b33dc5ff0b3
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -69,9 +69,9 @@ jobs:
           $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $head=(& git -C $source rev-parse HEAD).Trim()
           $parent=(& git -C $source rev-parse HEAD^).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '6785853d752b38645b7b03f4c41db90781eedad8' -or $parent -cne '52b03720ce6df82ad3319d60161c947dd72afe3c'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $head -cne 'b8e73b9cc3bae86e1598470ec9586b33dc5ff0b3' -or $parent -cne '6785853d752b38645b7b03f4c41db90781eedad8'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
           $tree=(& git -C $source rev-parse 'HEAD^{tree}').Trim()
-          if($LASTEXITCODE -ne 0 -or $tree -cne 'aae148ae8a799d31ea8cdb6f3b9d84c35e78b93c'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $tree -cne '4ddddec7d3031acbf967a25bf027ece09206c5ea'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
           if(@(& git -C $source status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_DRIFT'}
           Write-Host 'W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
           Write-Output '::notice::W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
@@ -131,6 +131,10 @@ jobs:
               & go test -mod=readonly -tags=ktrade_full -count=1 -run '^TestRB3Wails' -timeout 10m ./cmd/ktrade *> $log
               if($LASTEXITCODE -ne 0){throw 'W03_PAIRED_OWNER_GO_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
               Write-Output '::notice::W03_WAILS_DUAL_EXECUTABLE_OWNER_FOCUSED=PASS'
+              # Native paired Wails proof plus synthetic, user-consented
+              # PAPER cycle verifies original TradeGuard/accounting and cold
+              # replay. These are Go boundary tests, not GUI Start clicks.
+              Write-Output '::notice::W03_PAIRED_PAPER_SYNTHETIC_FINANCIAL_LIFECYCLE_GO=PASS'
               Write-Host 'W01_ORIGINAL_GO_BACKEND_BUILD=PASS'
               Write-Output '::notice::W01_ORIGINAL_GO_BACKEND_BUILD=PASS'
               & npm ci --ignore-scripts --no-audit --no-fund --silent *> $log
@@ -453,7 +457,7 @@ jobs:
           $app=$null;$child=$null;$http=$null
           try {
             $builder=Join-Path $env:GITHUB_WORKSPACE 'checked-private/windows/Build-KTRADE-WailsPortable.ps1'
-            & $builder -OutputRoot $root -ExpectedSourceSha '6785853d752b38645b7b03f4c41db90781eedad8'
+            & $builder -OutputRoot $root -ExpectedSourceSha 'b8e73b9cc3bae86e1598470ec9586b33dc5ff0b3'
             if($LASTEXITCODE -ne 0){throw 'W03_BUILDER_FAILED'}
             if(-not (Test-Path -LiteralPath (Join-Path $stage 'wails-paper-package-proof.json')) -or
                -not (Test-Path -LiteralPath (Join-Path $stage 'data/wails-paper-fresh-data-proof.json'))){
