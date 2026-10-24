@@ -141,11 +141,15 @@ jobs:
               if($LASTEXITCODE -ne 0){throw 'W01_BACKEND_VET_FAILED_PRIVATE_OUTPUT_WITHHELD'}
               Write-Host 'W01_BACKEND_TESTS_AND_VET=PASS'
               Write-Output '::notice::W01_BACKEND_TESTS_AND_VET=PASS'
-              & go build -mod=readonly -tags desktop,production -o (Join-Path $stage 'ktrade-wails-pilot.exe') . *> $log
+              & go build -mod=readonly -tags desktop,production -ldflags '-H windowsgui' -o (Join-Path $stage 'ktrade-wails-pilot.exe') . *> $log
               if($LASTEXITCODE -ne 0){throw 'W01_WAILS_WINDOWS_BUILD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
               Write-Host 'W01_WAILS_WEBVIEW2_EXE_BUILT=PASS'
               Write-Output '::notice::W01_WAILS_WEBVIEW2_EXE_BUILT=PASS'
             } finally {Pop-Location}
+            foreach($binary in @('ktrade-engine.exe','ktrade-wails-pilot.exe')){
+              $digest=(Get-FileHash -LiteralPath (Join-Path $stage $binary) -Algorithm SHA256).Hash.ToLowerInvariant()
+              Write-Host ('W01_BINARY_SHA256 '+$binary+'='+$digest)
+            }
             $exe=Join-Path $stage 'ktrade-wails-pilot.exe'
             $pilotStderr=Join-Path $env:RUNNER_TEMP 'w01-wails-exit-stderr.log'
             $pilotStdout=Join-Path $env:RUNNER_TEMP 'w01-wails-exit-stdout.log'
@@ -182,7 +186,7 @@ jobs:
                 }
                 throw 'W01_WAILS_PROCESS_EXITED_BEFORE_WINDOW'
               }
-              if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+              if($parent.MainWindowHandle -ne [IntPtr]::Zero -and $parent.MainWindowTitle -like 'KTRADE*Wails Read-Only Transport Pilot'){$window=$true;break}
             }
             if(-not $window){throw 'W01_GENUINE_WEBVIEW2_WINDOW_NOT_VISIBLE'}
             Write-Host 'W01_REAL_WINDOWS_DESKTOP_WINDOW=PASS'
@@ -265,6 +269,7 @@ jobs:
           } catch {
             $reason=[regex]::Match($_.Exception.Message,'W01_[A-Z0-9_]+').Value
             if(-not $reason){$reason='W01_UNCLASSIFIED_RUNTIME_ERROR'}
+            if($reason -eq 'W01_WINDOW_CLOSE_FAILED'){$reason+=';exit_code='+[string]$exitCode}
             Write-Output ('::error::'+$reason)
             throw
           } finally {
