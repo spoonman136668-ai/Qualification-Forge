@@ -1,0 +1,143 @@
+name: RB2-CI01 exact-source cold recovery Windows qualification
+on:
+  push:
+    branches: [qualification/rb2-ci01-cold-recovery-windows-20261023]
+    paths: [.github/workflows/rb2-ci01-cold-recovery-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: rb2-ci01-original-windows-qualification
+  cancel-in-progress: false
+jobs:
+  cold-recovery:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 65
+    env:
+      SOURCE_SHA: '7acdfa2365f5074527ea6b716fd2e89fdbf30d92'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+    steps:
+      - name: Enforce exact hosted Windows and non-trading custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:GITHUB_REF -cne 'refs/heads/qualification/rb2-ci01-cold-recovery-windows-20261023' -or
+              $env:RUNNER_OS -cne 'Windows' -or
+              $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+              $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+              $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'RB2_CI01_UNAUTHORIZED_QUALIFICATION_CONTEXT'
+          }
+          Write-Output 'RB2_CI01_INDEPENDENT_WINDOWS_SOURCE_CUSTODY=PASS'
+      - name: Checkout exact private KTRADE commit through existing read-only secret
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7acdfa2365f5074527ea6b716fd2e89fdbf30d92
+          path: candidate
+          fetch-depth: 1
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact committed KTRADE identity and isolated source
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $actual=(& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $actual -cne $env:SOURCE_SHA) {
+            throw 'RB2_CI01_EXACT_KTRADE_SOURCE_IDENTITY_DRIFT'
+          }
+          if (@(& git status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_CI01_DIRTY_SOURCE'
+          }
+          Write-Output ('RB2_CI01_KTRADE_SOURCE_SHA='+$actual)
+          Write-Output 'OWNER_INSTALLED_PROFILE_ACCESSED=FALSE; PAPER_STOPPED=TRUE; LIVE_DISARMED=TRUE'
+      - name: Set up previously qualified Windows Go version
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Verify actual SQLite CGO Windows compiler availability
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& go env CGO_ENABLED).Trim() -cne '1') {
+            throw 'RB2_CI01_CGO_DISABLED'
+          }
+          $gcc=Get-Command gcc -ErrorAction SilentlyContinue
+          if (-not $gcc) {
+            foreach($path in @('C:\mingw64\bin\gcc.exe','C:\msys64\mingw64\bin\gcc.exe','C:\ProgramData\chocolatey\bin\gcc.exe')) {
+              if (Test-Path -LiteralPath $path -PathType Leaf) {
+                $env:PATH=([IO.Path]::GetDirectoryName($path))+';'+$env:PATH
+                $gcc=Get-Command gcc -ErrorAction SilentlyContinue
+                if ($gcc) { break }
+              }
+            }
+          }
+          if (-not $gcc) { throw 'RB2_CI01_SQLITE_C_COMPILER_MISSING' }
+          Write-Output 'RB2_CI01_REAL_WINDOWS_SQLITE_CGO=PASS'
+      - name: Focused full-tagged native operator and Brave safety tests
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -p=1 -count=1 -tags=ktrade_full -timeout=15m -run '^TestRB2' ./pkg/apphost ./cmd/ktrade
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_CI01_FOCUSED_OPERATOR_TESTS_FAILED' }
+          Write-Output 'RB2_CI01_FOCUSED_OPERATOR_TESTS=PASS'
+      - name: Focused immutable cold recovery, original risk and SQLite ledger tests
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -p=1 -count=1 -timeout=15m ./internal/originaltradeguard ./internal/papercustody ./internal/papertrading
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_CI01_COLD_RECOVERY_OR_GUARD_TESTS_FAILED' }
+          Write-Output 'RB2_CI01_COLD_RECOVERY_FOCUSED=PASS'
+      - name: One complete tagged Windows regression
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -p=1 -count=1 -timeout=20m -tags=ktrade_full ./...
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_CI01_FULL_WINDOWS_REGRESSION_FAILED' }
+          Write-Output 'RB2_CI01_FULL_WINDOWS_REGRESSION=PASS'
+      - name: Full tagged vet and stopped real Windows executable
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_full ./...
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_CI01_GO_VET_FAILED' }
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade.exe'
+          & go build -mod=readonly -p=1 -tags=ktrade_full -o $exe ./cmd/ktrade
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe -PathType Leaf)) {
+            throw 'RB2_CI01_WINDOWS_STOPPED_BUILD_FAILED'
+          }
+          $hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Output ('RB2_CI01_STOPPED_EXE_SHA256='+$hash)
+          Write-Output 'RB2_CI01_REAL_WINDOWS_VET_AND_BUILD=PASS'
+      - name: Seal limited source-only evidence, no acceptance or release claim
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+              @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_CI01_POSTQUAL_SOURCE_IDENTITY_DRIFT'
+          }
+          Write-Output ('RB2_CI01_QUALIFIED_SOURCE_SHA='+$env:SOURCE_SHA)
+          Write-Output 'RB2_CI01_REAL_BRAVE_PACKAGED_E2E=NOT_RUN'
+          Write-Output 'RB2_CI01_OWNER_DATA_CUTOVER=NOT_AUTHORIZED'
+          Write-Output 'RB2_CI01_RELEASE_ACCEPTANCE=NOT_CLAIMED'
+          Write-Output 'RB2_CI01_PAPER_STOPPED_LIVE_DISARMED=TRUE'
