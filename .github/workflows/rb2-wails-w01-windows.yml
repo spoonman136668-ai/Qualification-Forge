@@ -49,6 +49,7 @@ jobs:
           if($LASTEXITCODE -ne 0 -or $sha -cne $env:GITHUB_SHA){throw 'W02_WITNESS_SOURCE_SHA_MISMATCH'}
           if(-not (Test-Path -LiteralPath (Join-Path $local '.github/scripts/w02_beacon.cjs'))){throw 'W02_WITNESS_BEACON_MISSING'}
           if(-not (Test-Path -LiteralPath (Join-Path $local '.github/scripts/w02_browser_probe.js'))){throw 'W02_WITNESS_BROWSER_PROBE_MISSING'}
+          if(-not (Test-Path -LiteralPath (Join-Path $local '.github/scripts/w03_browser_probe.js'))){throw 'W03_BROWSER_WITNESS_SOURCE_MISSING'}
           Write-Output '::notice::W02_WITNESS_SCRIPTS_EXACT_SHA=PASS'
 
       - name: Checkout exact private KTRADE review source, no persisted credentials
@@ -471,7 +472,7 @@ jobs:
           $env:TEMP=$env:RUNNER_TEMP
           $root=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[Guid]::NewGuid().ToString('N'))
           $stage=Join-Path $root 'KTRADE-WailsPortable'
-          $app=$null;$child=$null;$http=$null
+          $app=$null;$child=$null;$http=$null;$w03Server=$null
           try {
             $builder=Join-Path $env:GITHUB_WORKSPACE 'checked-private/windows/Build-KTRADE-WailsPortable.ps1'
             & $builder -OutputRoot $root -ExpectedSourceSha 'fb4412d9859834b2141a555db10cb125158c3196'
@@ -483,6 +484,32 @@ jobs:
             $proof=Get-Content -LiteralPath (Join-Path $stage 'wails-paper-package-proof.json') -Raw | ConvertFrom-Json
             if($proof.schema -cne 'ktrade.wails.paper-package.v1' -or
                $proof.live_armed -ne $false){throw 'W03_PAIR_PROOF_INVALID'}
+            # W03 browser witness is injected ONLY into the newly built,
+            # temporary paired package's HTML/static resources. Executable
+            # SHA proofs remain unchanged; no production source is patched.
+            $w03Manifest=Join-Path $root 'w03-beacon.json'
+            $w03Nonce=[guid]::NewGuid().ToString('N')
+            $w03Listener=Join-Path $env:GITHUB_WORKSPACE 'witness-tools/.github/scripts/w02_beacon.cjs'
+            $w03Server=Start-Process -FilePath node -ArgumentList @($w03Listener,$w03Manifest,$w03Nonce) -PassThru -WindowStyle Hidden
+            $w03Deadline=(Get-Date).AddSeconds(12)
+            while(-not (Test-Path -LiteralPath $w03Manifest) -and (Get-Date) -lt $w03Deadline){
+              $w03Server.Refresh()
+              if($w03Server.HasExited){throw 'W03_BROSWER_BEACON_SERVER_EXITED'}
+              Start-Sleep -Milliseconds 250
+            }
+            if(-not (Test-Path -LiteralPath $w03Manifest)){throw 'W03_BROWSER_BEACON_UNAVAILABLE'}
+            $w03Bea=Get-Content -LiteralPath $w03Manifest -Raw | ConvertFrom-Json
+            if($w03Bea.nonce -cne $w03Nonce -or [int]$w03Bea.port -lt 1024){throw 'W03_BROWSER_BEACON_INVALID'}
+            $w03BeaconURL='http://127.0.0.1:'+$w03Bea.port+'/event?nonce='+$w03Nonce
+            $w03JS=Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'witness-tools/.github/scripts/w03_browser_probe.js') -Raw
+            $w03JS=$w03JS.Replace('__W03_BEACON_URL__',$w03BeaconURL)
+            [IO.File]::WriteAllText((Join-Path $stage 'static/w03-browser-probe.js'),$w03JS,[Text.UTF8Encoding]::new($false))
+            $w03HTMLPath=Join-Path $stage 'templates/chart.tmpl'
+            $w03HTML=[IO.File]::ReadAllText($w03HTMLPath)
+            if(@([regex]::Matches($w03HTML,'</body>')).Count -ne 1){throw 'W03_TEMPLATE_SHAPE_INVALID'}
+            $w03HTML=$w03HTML.Replace('</body>','<script src="/static/w03-browser-probe.js"></script></body>')
+            [IO.File]::WriteAllText($w03HTMLPath,$w03HTML,[Text.UTF8Encoding]::new($false))
+            Write-Output '::notice::W03_DISPOSABLE_BROWSER_WITNESS_INSTALLED=PASS'
             $exe=Join-Path $stage 'ktrade.exe'
             $app=Start-Process -FilePath $exe -WorkingDirectory $stage -PassThru
             $null=$app.Handle
@@ -527,6 +554,30 @@ jobs:
               [Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
             if([int]$invalid.StatusCode -eq 200){throw 'W03_UNAUTHORIZED_EMPTY_PAPER_START_ACCEPTED'}
             Write-Output '::notice::W03_FRESH_APP_OWNED_PAPER_NOT_FUNDED_LIVE_DISARMED=PASS'
+            $required=@('w03_script_executed','w03_native_paper_controls','w03_unfunded_guard',
+              'w03_ui_market_selected','w03_ui_pine_durable_save','w03_ui_no_fee_start_refused',
+              'w03_ui_explicit_paper_start','w03_ui_evaluate_clicked','w03_ui_paper_stop',
+              'w03_ui_sealed_archive')
+            $w03Events=@()
+            $limit=(Get-Date).AddSeconds(53)
+            while((Get-Date) -lt $limit){
+              $w03State=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$w03Bea.port+
+                '/status?nonce='+$w03Nonce) -TimeoutSec 3
+              if($w03State.schema -cne 'ktrade.w02.browser-observer.v1'){throw 'W03_BROWSER_WITNESS_SCHEMA_INVALID'}
+              $w03Events=@($w03State.events)
+              if(@($required|Where-Object {$w03Events -cnotcontains $_}).Count -eq 0){break}
+              if(@($w03Events|Where-Object {$_ -eq 'w03_funded_start_not_verified' -or
+                $_ -eq 'w03_witness_exception' -or $_ -eq 'w03_unfunded_guard_failed'}).Count -gt 0){break}
+              Start-Sleep -Milliseconds 400
+            }
+            Write-Output ('::notice::W03_BROWSER_ACTION_RECEIPTS='+(@($w03Events|Sort-Object) -join ','))
+            $missing=@($required|Where-Object {$w03Events -cnotcontains $_})
+            if($missing.Count -gt 0){
+              Write-Output ('::warning::W03_MISSING_BROWSER_ACCEPTANCE='+($missing -join ','))
+              throw 'W03_PACKAGED_UI_FUNDED_PAPER_UNQUALIFIED'
+            }
+            Write-Output '::notice::W03_PACKAGED_UI_FUNDED_START_STOP_ARCHIVE=PASS'
+
             if(-not $app.CloseMainWindow()){throw 'W03_PAIRED_WAILS_CLOSE_REQUEST_FAILED'}
             if(-not $app.WaitForExit(15000) -or $app.ExitCode -ne 0){throw 'W03_PAIRED_WAILS_CLOSE_FAILED'}
             $stale=Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
@@ -534,6 +585,7 @@ jobs:
             Write-Output '::notice::W03_PAIRED_SHELL_OWNED_ENGINE_SHUTDOWN=PASS'
             Write-Output '::notice::W03_NO_FUNDED_PAPER_ORDER_OR_LIVE=PASS'
           }finally{
+            if($w03Server){try{if(-not $w03Server.HasExited){Stop-Process -Id $w03Server.Id -Force -ErrorAction SilentlyContinue}}catch{}}
             if($http){$http.Dispose()}
             if($app){try{if(-not $app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}catch{}}
             if($child){try{Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue}catch{}}

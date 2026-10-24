@@ -2,7 +2,7 @@
 const http=require('node:http'),fs=require('node:fs');
 const [file,nonce]=process.argv.slice(2);
 if(!file||!/^[a-f0-9]{32}$/.test(nonce||''))process.exit(2);
-const events=new Set(),allowed=new Set(['script_executed','chart_dom_present','chart_canvas_live','chart_ws_open','pine_monaco_ready','pine_panel_opened','pine_editor_edited','pine_compiled','pine_compile_refused','pine_compile_failed','timeframe_clicked','probe_exception','deadline']);
+const events=new Set(),allowed=new Set(['script_executed','chart_dom_present','chart_canvas_live','chart_ws_open','pine_monaco_ready','pine_panel_opened','pine_editor_edited','pine_compiled','pine_compile_refused','pine_compile_failed','timeframe_clicked','probe_exception','deadline','w03_script_executed','w03_native_paper_controls','w03_unfunded_guard','w03_unfunded_guard_failed','w03_ui_market_selected','w03_market_selector_failed','w03_editor_failed','w03_ui_pine_durable_save','w03_fee_controls_missing','w03_no_fee_guard_failed','w03_ui_no_fee_start_refused','w03_funded_start_not_verified','w03_ui_explicit_paper_start','w03_funded_authority_invalid','w03_evaluate_control_disabled','w03_ui_evaluate_clicked','w03_stop_live_guard_failed','w03_ui_paper_stop','w03_ui_sealed_archive','w03_archive_unavailable','w03_witness_exception']);
 const app=http.createServer((req,res)=>{
  const url=new URL(req.url,'http://127.0.0.1');
  const deny=()=>{res.writeHead(403);res.end();};
