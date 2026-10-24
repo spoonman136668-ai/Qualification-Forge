@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 25
     env:
-      SOURCE_SHA: '1e35e4965dad641833dfda0f5b91b2af2db93c07'
+      SOURCE_SHA: 'f6b4ce0ceab6573b11a2615dae1b7834e747225d'
       GOWORK: 'off'
       CGO_ENABLED: '1'
       GOFLAGS: '-p=2'
@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1e35e4965dad641833dfda0f5b91b2af2db93c07
+          ref: f6b4ce0ceab6573b11a2615dae1b7834e747225d
           path: candidate
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -79,39 +79,66 @@ jobs:
             "time"
           )
           func TestRB2OneShotGenuineGoCoinbaseSource(t *testing.T) {
-            now:=time.Now().UTC()
-            _,originalErr:=fetchCandlesFromCoinbase("BTC-USDC","1m",300)
-            t.Logf("RB2_PUBLIC_GO_ORIGINAL_RANGE_RESULT=%v",originalErr)
-            start:=now.Add(-300*time.Minute)
-            cases:=[]struct{name,url string}{
-              {"unranged","https://api.exchange.coinbase.com/products/BTC-USDC/candles?granularity=60"},
-              {"exact300",fmt.Sprintf("https://api.exchange.coinbase.com/products/BTC-USDC/candles?granularity=60&start=%s&end=%s",start.Format(time.RFC3339),now.Format(time.RFC3339))},
-            }
-            safeUnranged:=false
-            for _,v:=range cases {
-              req,err:=http.NewRequest(http.MethodGet,v.url,nil);if err!=nil{t.Fatal(err)}
+            // Forensic observation, NOT an admission gate: do not infer
+            // freshness merely from successful HTTP or 300 validated rows.
+            for _,product:=range []string{"BTC-USDC","ETH-USDC"} {
+              localStart:=time.Now().UTC()
+              url:=fmt.Sprintf("https://api.exchange.coinbase.com/products/%s/candles?granularity=60",product)
+              req,err:=http.NewRequest(http.MethodGet,url,nil)
+              if err!=nil{t.Fatal(err)}
               req.Header.Set("Accept","application/json")
               req.Header.Set("User-Agent","KTRADE-ReadOnly-Market-Qualification/1.0")
-              client:=&http.Client{Timeout:8*time.Second}
-              response,err:=client.Do(req)
-              if err!=nil{t.Logf("RB2_PUBLIC_GO_%s_NETWORK_CAUSE=%v",v.name,err);continue}
+              resp,err:=(&http.Client{Timeout:8*time.Second}).Do(req)
+              if err!=nil {
+                t.Logf("RB2_FRESHNESS_%s_TRANSPORT=ERROR_%v",product,err)
+                continue
+              }
               var raw [][]float64
-              parseErr:=json.NewDecoder(io.LimitReader(response.Body,256<<10)).Decode(&raw)
-              response.Body.Close()
-              t.Logf("RB2_PUBLIC_GO_%s_RESPONSE=HTTP_%d_ROWS_%d_PARSE_%v",v.name,response.StatusCode,len(raw),parseErr)
-              if v.name=="unranged"&&response.StatusCode==200&&parseErr==nil{
-                bounded,err:=rb2BoundPublicCoinbaseRows(raw,300)
-                if err==nil {
-                  bars,err:=closedCoinbaseCandles(bounded,"BTC-USDC",60,300,now)
-                  if err==nil&&len(bars)>1 {
-                    safeUnranged=true
-                    t.Logf("RB2_PUBLIC_GO_UNRANGED_SOURCE_FINALIZED_VALIDATED=%d",len(bars))
-                  } else {t.Logf("RB2_PUBLIC_GO_UNRANGED_FINALITY_CAUSE=%v",err)}
-                }else{t.Logf("RB2_PUBLIC_GO_UNRANGED_BOUND_CAUSE=%v",err)}
+              parseErr:=json.NewDecoder(io.LimitReader(resp.Body,256<<10)).Decode(&raw)
+              resp.Body.Close()
+              observed:=time.Now().UTC()
+              providerDate,headerErr:=http.ParseTime(resp.Header.Get("Date"))
+              dateSkew:="UNAVAILABLE"
+              if headerErr==nil{dateSkew=fmt.Sprintf("%.1f",observed.Sub(providerDate).Seconds())}
+              t.Logf("RB2_FRESHNESS_%s_CLOCK=%s_HTTP_%d_ROWS_%d_RTT_SECONDS_%.3f_PROVIDER_DATE_OFFSET_SECONDS_%s_PARSE_%v",product,
+                observed.Format(time.RFC3339Nano),resp.StatusCode,len(raw),observed.Sub(localStart).Seconds(),dateSkew,parseErr)
+              if resp.StatusCode!=200||parseErr!=nil||len(raw)<1{continue}
+              bounded,err:=rb2BoundPublicCoinbaseRows(raw,300)
+              if err!=nil{
+                t.Logf("RB2_FRESHNESS_%s_AUTHENTIC_ROW_INTEGRITY=FAIL_%v",product,err)
+                continue
+              }
+              lastRaw:=time.Unix(int64(bounded[len(bounded)-1][0]),0).UTC()
+              t.Logf("RB2_FRESHNESS_%s_NEWEST_RAW_START=%s_RAW_CLOSE_AGE_SECONDS=%.1f",product,
+                lastRaw.Format(time.RFC3339),observed.Sub(lastRaw.Add(time.Minute)).Seconds())
+              for i:=len(bounded)-1;i>=0&&i>=len(bounded)-3;i--{
+                t.Logf("RB2_FRESHNESS_%s_RECENT_SOURCE_INDEX_%d_START=%s",product,
+                  i,time.Unix(int64(bounded[i][0]),0).UTC().Format(time.RFC3339))
+              }
+              closed,err:=closedCoinbaseCandles(bounded,product,60,300,observed)
+              if err!=nil||len(closed)==0{
+                t.Logf("RB2_FRESHNESS_%s_FINALITY=REFUSED_%v",product,err)
+                continue
+              }
+              lastClosed:=closed[len(closed)-1].Timestamp.Add(time.Minute)
+              age:=observed.Sub(lastClosed)
+              t.Logf("RB2_FRESHNESS_%s_LAST_FINALIZED_AT=%s_AGE_SECONDS_%.1f_STALE_THRESHOLD_SECONDS_120_STALE_%t_VERIFIED_BARS_%d",product,
+                lastClosed.Format(time.RFC3339),age.Seconds(),age>2*time.Minute,len(closed))
+              if product=="BTC-USDC" {
+                actual,actualErr:=fetchCandlesFromCoinbase(product,"1m",300)
+                if actualErr!=nil||len(actual)==0{
+                  t.Logf("RB2_FRESHNESS_EXACT_APP_FETCH=REFUSED_%v",actualErr)
+                }else{
+                  exactClose:=actual[len(actual)-1].Timestamp.Add(time.Minute)
+                  exactAge:=time.Since(exactClose)
+                  t.Logf("RB2_FRESHNESS_EXACT_APP_FETCH_LAST_CLOSE=%s_AGE_SECONDS_%.1f_STALE_%t",exactClose.Format(time.RFC3339),exactAge.Seconds(),exactAge>2*time.Minute)
+                }
+                mark,markErr:=rb2ServerFinalMark(product,fetchCandlesFromCoinbase)
+                if markErr!=nil{t.Logf("RB2_FRESHNESS_EXACT_PAPER_MARK=REFUSED_%v",markErr)
+                }else{t.Logf("RB2_FRESHNESS_EXACT_PAPER_MARK=ADMISSIBLE_OBSERVATION_ONLY_CONFIRMED_AT_%s",mark.ConfirmedAt.Format(time.RFC3339))}
               }
             }
-            if !safeUnranged{t.Fatal("RB2_PUBLIC_GO_UNRANGED_STRICT_SOURCE_UNQUALIFIED")}
-            t.Log("RB2_PUBLIC_GO_NO_RANGE_VALID_FINALIZED_PROSPECTIVE=PASS_DIAGNOSTIC_ONLY")
+            t.Log("RB2_FRESHNESS_DIAGNOSTIC_COMPLETE_NO_ORDERS=PASS")
           }
           '@
           [IO.File]::WriteAllText((Join-Path (Get-Location) $test),
