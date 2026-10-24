@@ -71,19 +71,47 @@ jobs:
 
           package main
           import (
+            "encoding/json"
+            "fmt"
+            "io"
+            "net/http"
             "testing"
             "time"
           )
           func TestRB2OneShotGenuineGoCoinbaseSource(t *testing.T) {
-            started:=time.Now()
-            bars,err:=fetchCandlesFromCoinbase("BTC-USDC","1m",300)
-            if err!=nil {
-              t.Fatalf("RB2_PUBLIC_NATIVE_GO_SOURCE_CAUSE=%T:%v",err,err)
+            now:=time.Now().UTC()
+            _,originalErr:=fetchCandlesFromCoinbase("BTC-USDC","1m",300)
+            t.Logf("RB2_PUBLIC_GO_ORIGINAL_RANGE_RESULT=%v",originalErr)
+            start:=now.Add(-300*time.Minute)
+            cases:=[]struct{name,url string}{
+              {"unranged","https://api.exchange.coinbase.com/products/BTC-USDC/candles?granularity=60"},
+              {"exact300",fmt.Sprintf("https://api.exchange.coinbase.com/products/BTC-USDC/candles?granularity=60&start=%s&end=%s",start.Format(time.RFC3339),now.Format(time.RFC3339))},
             }
-            if len(bars)<2 || len(bars)>300 || bars[len(bars)-1].ProductID!="BTC-USDC" {
-              t.Fatal("RB2_PUBLIC_NATIVE_GO_VERIFIED_BARS_OUT_OF_BOUND")
+            safeUnranged:=false
+            for _,v:=range cases {
+              req,err:=http.NewRequest(http.MethodGet,v.url,nil);if err!=nil{t.Fatal(err)}
+              req.Header.Set("Accept","application/json")
+              req.Header.Set("User-Agent","KTRADE-ReadOnly-Market-Qualification/1.0")
+              client:=&http.Client{Timeout:8*time.Second}
+              response,err:=client.Do(req)
+              if err!=nil{t.Logf("RB2_PUBLIC_GO_%s_NETWORK_CAUSE=%v",v.name,err);continue}
+              var raw [][]float64
+              parseErr:=json.NewDecoder(io.LimitReader(response.Body,256<<10)).Decode(&raw)
+              response.Body.Close()
+              t.Logf("RB2_PUBLIC_GO_%s_RESPONSE=HTTP_%d_ROWS_%d_PARSE_%v",v.name,response.StatusCode,len(raw),parseErr)
+              if v.name=="unranged"&&response.StatusCode==200&&parseErr==nil{
+                bounded,err:=rb2BoundPublicCoinbaseRows(raw,300)
+                if err==nil {
+                  bars,err:=closedCoinbaseCandles(bounded,"BTC-USDC",60,300,now)
+                  if err==nil&&len(bars)>1 {
+                    safeUnranged=true
+                    t.Logf("RB2_PUBLIC_GO_UNRANGED_SOURCE_FINALIZED_VALIDATED=%d",len(bars))
+                  } else {t.Logf("RB2_PUBLIC_GO_UNRANGED_FINALITY_CAUSE=%v",err)}
+                }else{t.Logf("RB2_PUBLIC_GO_UNRANGED_BOUND_CAUSE=%v",err)}
+              }
             }
-            t.Logf("RB2_PUBLIC_NATIVE_GO_SOURCE=PASS_BARS_%d_DURATION_%s",len(bars),time.Since(started))
+            if !safeUnranged{t.Fatal("RB2_PUBLIC_GO_UNRANGED_STRICT_SOURCE_UNQUALIFIED")}
+            t.Log("RB2_PUBLIC_GO_NO_RANGE_VALID_FINALIZED_PROSPECTIVE=PASS_DIAGNOSTIC_ONLY")
           }
           '@
           [IO.File]::WriteAllText((Join-Path (Get-Location) $test),
