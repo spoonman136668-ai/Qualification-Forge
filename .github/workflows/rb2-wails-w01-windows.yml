@@ -56,7 +56,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: fb4412d9859834b2141a555db10cb125158c3196
+          ref: 4e1557ae2c0a72ac0649b7ebfeab2316c6273337
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -70,9 +70,9 @@ jobs:
           $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $head=(& git -C $source rev-parse HEAD).Trim()
           $parent=(& git -C $source rev-parse HEAD^).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne 'fb4412d9859834b2141a555db10cb125158c3196' -or $parent -cne 'f614ae8f349a82e202771818e3630822d2c234c7'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '4e1557ae2c0a72ac0649b7ebfeab2316c6273337' -or $parent -cne 'fb4412d9859834b2141a555db10cb125158c3196'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
           $tree=(& git -C $source rev-parse 'HEAD^{tree}').Trim()
-          if($LASTEXITCODE -ne 0 -or $tree -cne '36203b127e48f29ce18089a6d5668b6115ec5318'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $tree -cne 'a08158ffdafb0e6b472dc701b1cc1709cc88e66d'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
           if(@(& git -C $source status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_DRIFT'}
           Write-Host 'W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
           Write-Output '::notice::W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
@@ -475,7 +475,7 @@ jobs:
           $app=$null;$child=$null;$http=$null;$w03Server=$null
           try {
             $builder=Join-Path $env:GITHUB_WORKSPACE 'checked-private/windows/Build-KTRADE-WailsPortable.ps1'
-            & $builder -OutputRoot $root -ExpectedSourceSha 'fb4412d9859834b2141a555db10cb125158c3196'
+            & $builder -OutputRoot $root -ExpectedSourceSha '4e1557ae2c0a72ac0649b7ebfeab2316c6273337'
             if($LASTEXITCODE -ne 0){throw 'W03_BUILDER_FAILED'}
             if(-not (Test-Path -LiteralPath (Join-Path $stage 'wails-paper-package-proof.json')) -or
                -not (Test-Path -LiteralPath (Join-Path $stage 'data/wails-paper-fresh-data-proof.json'))){
@@ -523,6 +523,20 @@ jobs:
             }
             if(-not $window){throw 'W03_PAPER_WAILS_WINDOW_NOT_PRESENT'}
             Write-Output '::notice::W03_PAIRED_WAILS_GENUINE_WINDOW=PASS'
+            # W04: the paired PAPER Wails parent now uses its OWN persistent
+            # WebView2 profile under the exact source-qualified package's
+            # data root, not an operator-installed profile or OS-TEMP pilot.
+            $w04Profile=Join-Path $stage 'data/webview2-profile'
+            if(-not (Test-Path -LiteralPath $w04Profile -PathType Container)){throw 'W04_QUALIFIED_PROFILE_NOT_CREATED'}
+            $profileInfo=Get-Item -LiteralPath $w04Profile -Force
+            if($profileInfo.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)){throw 'W04_PROFILE_REDIRECT'}
+            # Touch only a bounded, nonsecret marker in the disposable test
+            # package. The second process MUST NOT delete or recreate it.
+            $w04Marker=Join-Path $w04Profile 'w04-owned-cold-profile.test'
+            if(Test-Path -LiteralPath $w04Marker){throw 'W04_PROFILE_NOT_FRESH'}
+            [IO.File]::WriteAllText($w04Marker,'W04 isolated profile retention only; LIVE disarmed',[Text.UTF8Encoding]::new($false))
+            Write-Output '::notice::W04_WAILS_PAIRED_PROFILE_FRESH=PASS'
+
             $childExe=Join-Path $stage 'ktrade-engine.exe'
             $deadline=(Get-Date).AddSeconds(18)
             while((Get-Date) -lt $deadline){
@@ -599,6 +613,19 @@ jobs:
               if($app.MainWindowHandle -ne [IntPtr]::Zero -and $app.MainWindowTitle -like 'KTRADE*Portable PAPER*'){$rebootWindow=$true;break}
             }
             if(!$rebootWindow){throw 'W03_COLD_WAILS_WINDOW_MISSING'}
+            if(-not (Test-Path -LiteralPath $w04Profile -PathType Container) -or
+               -not (Test-Path -LiteralPath $w04Marker -PathType Leaf)){
+              throw 'W04_APP_OWNED_WEBVIEW_PROFILE_DISCARDED_ON_RESTART'
+            }
+            $retained=[IO.File]::ReadAllText($w04Marker)
+            if($retained -cne 'W04 isolated profile retention only; LIVE disarmed'){
+              throw 'W04_APP_OWNED_PROFILE_CONTENT_CHANGED'
+            }
+            if((Get-Item -LiteralPath $w04Profile -Force).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)){
+              throw 'W04_APP_OWNED_PROFILE_REDIRECTED'
+            }
+            Write-Output '::notice::W04_PAIRED_WEBVIEW_PROFILE_PRESERVED_THROUGH_REAL_WINDOWS_RESTART=PASS'
+
             $coldChild=$null
             $rebootDeadline=(Get-Date).AddSeconds(20)
             while((Get-Date) -lt $rebootDeadline){
@@ -641,6 +668,7 @@ jobs:
             if($left -and -not $left.WaitForExit(5000)){throw 'W03_COLD_GO_CHILD_SURVIVED_GUI_CLOSE'}
             Write-Output '::notice::W03_COLD_WAILS_PARENT_CHILD_SHUTDOWN=PASS'
             Write-Output '::notice::W03_NO_LIVE_BROKER_OR_USER_PROFILE_ACCESS=PASS'
+            Write-Output '::notice::W04_ORIGINAL_INSTALLED_PROFILE_NOT_TOUCHED_LIVE_DISARMED=PASS'
           }finally{
             if($w03Server){try{if(-not $w03Server.HasExited){Stop-Process -Id $w03Server.Id -Force -ErrorAction SilentlyContinue}}catch{}}
             if($http){$http.Dispose()}
