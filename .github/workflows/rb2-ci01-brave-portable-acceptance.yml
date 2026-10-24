@@ -140,6 +140,23 @@ jobs:
         working-directory: candidate
         run: |
           $ErrorActionPreference='Stop'
+          # The portable builder uses .NET's actual temporary directory.
+          # Hosted Windows can set TEMP/TMP differently than that .NET path.
+          # Normalize only this disposable Node probe process environment.
+          $temporaryParent=[IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($env:KTRADE_PROBE_ROOT))
+          if (-not (Test-Path -LiteralPath $temporaryParent -PathType Container)) {
+            throw 'RB2_PORTABLE_TEMP_PARENT_MISSING'
+          }
+          $env:TEMP=$temporaryParent
+          $env:TMP=$temporaryParent
+          $nodeTemp=(& node -p "require('node:os').tmpdir()").Trim()
+          if (-not [string]::Equals(
+              [IO.Path]::GetFullPath($nodeTemp).TrimEnd('\\'),
+              [IO.Path]::GetFullPath($temporaryParent).TrimEnd('\\'),
+              [StringComparison]::OrdinalIgnoreCase)) {
+            throw 'RB2_NODE_AND_WINDOWS_TEMP_ROOT_STILL_DISAGREE'
+          }
+          Write-Host 'RB2_NODE_DOTNET_DISPOSABLE_TEMP_ROOT_ALIGNED=PASS'
           & node scripts/probe_brave_chart.cjs $env:KTRADE_PROBE_ROOT
           if ($LASTEXITCODE -ne 0) { throw 'RB2_GENUINE_BRAVE_OPERATOR_E2E_FAILED' }
           Write-Host 'RB2_GENUINE_BRAVE_OPERATOR_E2E=PASS'
