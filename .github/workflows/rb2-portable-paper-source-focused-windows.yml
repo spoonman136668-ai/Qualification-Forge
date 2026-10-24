@@ -1,0 +1,103 @@
+name: RB2 fresh portable paper owner focused Windows qualification
+on:
+  push:
+    branches: [qualification/rb2-ci01-cold-recovery-windows-20261023]
+    paths: [.github/workflows/rb2-portable-paper-source-focused-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: rb2-portable-paper-owner-focused
+  cancel-in-progress: false
+jobs:
+  fresh-portable-paper:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      SOURCE_SHA: 'ae0c3e908ac8d312cf916fe9cb1c332fe3d26e15'
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Verify disarmed hosted Windows environment
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:RUNNER_OS -cne 'Windows' -or
+              $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+              $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'RB2_PORTABLE_PAPER_QUAL_CONTEXT_INVALID'
+          }
+          Write-Host 'RB2_PORTABLE_PAPER_WINDOWS_DISARMED=PASS'
+      - name: Checkout exact isolated KTRADE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: ae0c3e908ac8d312cf916fe9cb1c332fe3d26e15
+          path: candidate
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Verify source exact and no uncommitted changes
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+             @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_PORTABLE_PAPER_SOURCE_IDENTITY_DRIFT'
+          }
+          Write-Host ('RB2_PORTABLE_PAPER_SOURCE_SHA='+$env:SOURCE_SHA)
+      - name: Set up qualified Windows Go compiler
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Test exact standalone and portable owner with Windows race detector
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -race -p=1 -count=1 -timeout=20m -tags=ktrade_full -run '^TestRB2' ./cmd/ktrade ./pkg/apphost
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_PORTABLE_PAPER_SOURCE_FOCUSED_FAILED' }
+          Write-Host 'RB2_PORTABLE_PAPER_FOCUSED_RACE=PASS'
+      - name: Verify paper engine and paper custody race suites
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -race -p=1 -count=1 -timeout=20m -tags=ktrade_full ./internal/originaltradeguard ./internal/paperengine ./internal/papercustody ./internal/paperreconcile ./internal/paperapp
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_PORTABLE_PAPER_RISK_OR_LEDGER_FAILED' }
+          Write-Host 'RB2_PORTABLE_PAPER_RISK_LEDGER_RACE=PASS'
+      - name: One focused tagged Go vet and stopped Windows exe build
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade ./internal/paperengine ./internal/papercustody ./internal/paperreconcile
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_PORTABLE_PAPER_VET_FAILED' }
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade.exe'
+          & go build -mod=readonly -p=1 -tags=ktrade_full -o $exe ./cmd/ktrade
+          if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'RB2_PORTABLE_PAPER_EXE_BUILD_FAILED' }
+          Write-Host ('RB2_PORTABLE_PAPER_STOPPED_EXE_SHA256='+((Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()))
+          Write-Host 'RB2_PORTABLE_PAPER_VET_AND_STOPPED_BUILD=PASS'
+      - name: Assert exact source and no release authority
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+             @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_PORTABLE_PAPER_SOURCE_DIRTY_AFTER_TESTS'
+          }
+          Write-Host 'RB2_PORTABLE_PAPER_OWNER_SOURCE_QUAL=PASS'
+          Write-Host 'RB2_PORTABLE_PAPER_REAL_BRAVE_ACCEPTANCE=NOT_RUN'
+          Write-Host 'RB2_PORTABLE_PAPER_FULL_REGRESSION=NOT_RUN'
+          Write-Host 'RB2_PORTABLE_PAPER_RELEASE=BLOCKED; LIVE_DISARMED=TRUE'
