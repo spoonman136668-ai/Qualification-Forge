@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: b8e73b9cc3bae86e1598470ec9586b33dc5ff0b3
+          ref: d759a51559941a41ad83f13b34f6b0fd8b2843dd
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -69,9 +69,9 @@ jobs:
           $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $head=(& git -C $source rev-parse HEAD).Trim()
           $parent=(& git -C $source rev-parse HEAD^).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne 'b8e73b9cc3bae86e1598470ec9586b33dc5ff0b3' -or $parent -cne '6785853d752b38645b7b03f4c41db90781eedad8'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $head -cne 'd759a51559941a41ad83f13b34f6b0fd8b2843dd' -or $parent -cne 'b8e73b9cc3bae86e1598470ec9586b33dc5ff0b3'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
           $tree=(& git -C $source rev-parse 'HEAD^{tree}').Trim()
-          if($LASTEXITCODE -ne 0 -or $tree -cne '4ddddec7d3031acbf967a25bf027ece09206c5ea'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $tree -cne '23106e676e1b31c901bddd1fccb6d6e9dee8a09a'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
           if(@(& git -C $source status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_DRIFT'}
           Write-Host 'W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
           Write-Output '::notice::W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
@@ -457,7 +457,7 @@ jobs:
           $app=$null;$child=$null;$http=$null
           try {
             $builder=Join-Path $env:GITHUB_WORKSPACE 'checked-private/windows/Build-KTRADE-WailsPortable.ps1'
-            & $builder -OutputRoot $root -ExpectedSourceSha 'b8e73b9cc3bae86e1598470ec9586b33dc5ff0b3'
+            & $builder -OutputRoot $root -ExpectedSourceSha 'd759a51559941a41ad83f13b34f6b0fd8b2843dd'
             if($LASTEXITCODE -ne 0){throw 'W03_BUILDER_FAILED'}
             if(-not (Test-Path -LiteralPath (Join-Path $stage 'wails-paper-package-proof.json')) -or
                -not (Test-Path -LiteralPath (Join-Path $stage 'data/wails-paper-fresh-data-proof.json'))){
