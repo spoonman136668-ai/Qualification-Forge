@@ -1,0 +1,104 @@
+name: RB2 isolated paper race and durable account Windows gate
+on:
+  push:
+    branches: [qualification/rb2-ci01-cold-recovery-windows-20261023]
+    paths: [.github/workflows/rb2-ci01-paper-race-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: rb2-ci01-paper-race-single-owner
+  cancel-in-progress: false
+jobs:
+  native-paper-race:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      SOURCE_SHA: '7acdfa2365f5074527ea6b716fd2e89fdbf30d92'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOWORK: 'off'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Authenticate exact source Windows and paper-only environment
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:GITHUB_REF -cne 'refs/heads/qualification/rb2-ci01-cold-recovery-windows-20261023' -or
+              $env:RUNNER_OS -cne 'Windows' -or
+              $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+              $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+              $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') { throw 'RB2_PAPER_RACE_AUTHORITY_BOUNDARY' }
+          Write-Host 'RB2_PAPER_RACE_INDEPENDENT_WINDOWS=PASS'
+      - name: Read exact immutable KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7acdfa2365f5074527ea6b716fd2e89fdbf30d92
+          path: candidate
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+      - name: Verify source identity and clean disposable tree
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $current=(& git rev-parse HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $current -cne $env:SOURCE_SHA -or
+              @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_PAPER_RACE_SOURCE_IDENTITY_MISMATCH'
+          }
+          Write-Host ('RB2_PAPER_RACE_SOURCE_SHA='+$current)
+      - name: Install pinned Windows Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Verify real Windows C compiler and race availability
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& go env GOOS).Trim() -cne 'windows' -or
+              (& go env CGO_ENABLED).Trim() -cne '1' -or
+              -not (Get-Command gcc -ErrorAction SilentlyContinue)) {
+            throw 'RB2_PAPER_RACE_WINDOWS_CGO_REQUIRED'
+          }
+          Write-Host 'RB2_PAPER_RACE_WINDOWS_CGO=PASS'
+      - name: Test integrated native paper Start Fill Guard durable stop and cold replay with race detector
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -race -p=1 -count=1 -tags=ktrade_full -timeout=25m -run '^TestRB2' ./cmd/ktrade ./pkg/apphost
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_PAPER_RACE_OPERATOR_LIFECYCLE_FAILED' }
+          Write-Host 'RB2_PAPER_RACE_OPERATOR_LIFECYCLE=PASS'
+      - name: Full native risk engine and paper accounting package tests with race detector
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go test -mod=readonly -race -p=1 -count=1 -tags=ktrade_full -timeout=25m ./internal/originaltradeguard ./internal/paperengine ./internal/papertrading ./internal/papercustody ./internal/paperreconcile ./internal/paperauthority ./internal/paperapp
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_PAPER_RACE_GUARD_LEDGER_ACCOUNT_FAILED' }
+          Write-Host 'RB2_PAPER_RACE_GUARD_LEDGER_ACCOUNT=PASS'
+      - name: Assert source unchanged and release disarmed after race tests
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+              @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_PAPER_RACE_POSTQUAL_SOURCE_DRIFT'
+          }
+          Write-Host 'RB2_PAPER_RACE_TESTS_COMPLETE=PASS'
+          Write-Host 'RB2_LIVE_ORDERS=NONE; OWNER_DATA_ACCESS=NONE'
+          Write-Host 'RB2_PRODUCTION_PAPER_ACTIVATION=NOT_AUTHORIZED'
+          Write-Host 'RB2_FULL_REGRESSION=STILL_BLOCKED; LIVE_DISARMED=TRUE'
