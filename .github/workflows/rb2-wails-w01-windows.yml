@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: ac223aca60b887f5e3e9cd96b2038839ecc365a5
+          ref: e555aceedec905d9258f7210a32975813f06676c
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -49,11 +49,12 @@ jobs:
           $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $head=(& git -C $source rev-parse HEAD).Trim()
           $parent=(& git -C $source rev-parse HEAD^).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne 'ac223aca60b887f5e3e9cd96b2038839ecc365a5' -or $parent -cne '5d9a9e3d392860af1f20aa589753b6d8780471d3'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $head -cne 'e555aceedec905d9258f7210a32975813f06676c' -or $parent -cne 'ac223aca60b887f5e3e9cd96b2038839ecc365a5'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
           $changed=@(& git -C $source diff --name-only HEAD^ HEAD)
-          if($changed.Count -ne 1 -or $changed[0] -cne '.github/workflows/rb2-wails-w01-windows.yml'){throw 'W01_ONLY_WORKFLOW_CHANGE_PERMITTED'}
+          $expected=@('tools/wails-pilot/backend/backend.go','tools/wails-pilot/backend/backend_test.go')
+          if($changed.Count -ne 2 -or ($changed -join ';') -cne ($expected -join ';')){throw 'W01_ONLY_TWO_SECURITY_TEST_SOURCE_CHANGES_PERMITTED'}
           if(@(& git -C $source status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_DRIFT'}
-          Write-Host 'W01_EXACT_8_FILE_PILOT=PASS'
+          Write-Host 'W01_SOURCE_PINNED_CASE_SAFE_WINDOWS_PATH_REPAIR=PASS'
           Write-Host 'W01_PROTECTED_BRANCHES_AND_OWNER_DATA_UNTOUCHED=PASS'
 
       - name: Set up hosted Windows Go and build-time vendor tooling
