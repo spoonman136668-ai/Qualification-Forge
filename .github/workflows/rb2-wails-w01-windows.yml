@@ -56,7 +56,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: b32b77c77b2826684e6f1b043af257b5e8b29fa9
+          ref: 30be03de962f00bc320f91ab6572ff16d870e24f
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -70,9 +70,9 @@ jobs:
           $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $head=(& git -C $source rev-parse HEAD).Trim()
           $parent=(& git -C $source rev-parse HEAD^).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne 'b32b77c77b2826684e6f1b043af257b5e8b29fa9' -or $parent -cne '4e1557ae2c0a72ac0649b7ebfeab2316c6273337'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '30be03de962f00bc320f91ab6572ff16d870e24f' -or $parent -cne '3dda90894cddf7bd2e32d772eabefb535058cee4'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
           $tree=(& git -C $source rev-parse 'HEAD^{tree}').Trim()
-          if($LASTEXITCODE -ne 0 -or $tree -cne '8f15020a6dd5d30ff5995b0aee8a95f5debafc44'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $tree -cne 'd58e6cc0b8623d31be602ba89c3799711418357b'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
           if(@(& git -C $source status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_DRIFT'}
           Write-Host 'W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
           Write-Output '::notice::W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
@@ -475,7 +475,7 @@ jobs:
           $app=$null;$child=$null;$http=$null;$w03Server=$null
           try {
             $builder=Join-Path $env:GITHUB_WORKSPACE 'checked-private/windows/Build-KTRADE-WailsPortable.ps1'
-            & $builder -OutputRoot $root -ExpectedSourceSha 'b32b77c77b2826684e6f1b043af257b5e8b29fa9'
+            & $builder -OutputRoot $root -ExpectedSourceSha '30be03de962f00bc320f91ab6572ff16d870e24f'
             if($LASTEXITCODE -ne 0){throw 'W03_BUILDER_FAILED'}
             if(-not (Test-Path -LiteralPath (Join-Path $stage 'wails-paper-package-proof.json')) -or
                -not (Test-Path -LiteralPath (Join-Path $stage 'data/wails-paper-fresh-data-proof.json'))){
@@ -669,6 +669,57 @@ jobs:
             Write-Output '::notice::W03_COLD_WAILS_PARENT_CHILD_SHUTDOWN=PASS'
             Write-Output '::notice::W03_NO_LIVE_BROKER_OR_USER_PROFILE_ACCESS=PASS'
             Write-Output '::notice::W04_ORIGINAL_INSTALLED_PROFILE_NOT_TOUCHED_LIVE_DISARMED=PASS'
+            # W05: actual source-owned transaction in the SAME isolated
+            # stopped Wails package. No installed operator data is touched.
+            $w05Updater=Join-Path $env:GITHUB_WORKSPACE 'checked-private/windows/Invoke-KTRADE-WailsAssetUpdate.ps1'
+            if(-not (Test-Path -LiteralPath $w05Updater -PathType Leaf)){throw 'W05_SOURCE_OWNED_UPDATER_MISSING'}
+            $w05OriginalUnknown=Join-Path $stage 'data/w05-unknown-operator-file.txt'
+            [IO.File]::WriteAllText($w05OriginalUnknown,'W05 unknown data cannot be overwritten',[Text.UTF8Encoding]::new($false))
+            $w05Next=$stage+'.next'
+            New-Item -ItemType Directory -Path $w05Next -ErrorAction Stop | Out-Null
+            foreach($name in @('static','templates','strategies','ktrade.exe','ktrade-engine.exe',
+              'wails-paper-package-proof.json','paper-package-proof.json')){
+              Copy-Item -LiteralPath (Join-Path $stage $name) -Destination $w05Next -Recurse -Force -ErrorAction Stop
+            }
+            foreach($dir in @('data','data/pine-library','data/strategies')){
+              New-Item -ItemType Directory -Path (Join-Path $w05Next $dir) -Force | Out-Null
+            }
+            foreach($proof in @('wails-paper-fresh-data-proof.json','paper-fresh-data-proof.json')){
+              Copy-Item -LiteralPath (Join-Path $stage ('data/'+$proof)) -Destination (Join-Path $w05Next ('data/'+$proof)) -ErrorAction Stop
+            }
+            $w05Asset=Join-Path $w05Next 'static/w05-asset-update.marker'
+            [IO.File]::WriteAllText($w05Asset,'W05 isolated asset-only candidate',[Text.UTF8Encoding]::new($false))
+            # Negative witness: tampered candidate executable is always denied
+            # BEFORE touching the active qualified PAPER installation.
+            [IO.File]::AppendAllText((Join-Path $w05Next 'ktrade.exe'),'tamper',[Text.UTF8Encoding]::new($false))
+            $rejected=$false
+            try{& $w05Updater -Operation Upgrade -StagePath $stage}catch{$rejected=$true}
+            if(-not $rejected){throw 'W05_TAMPERED_EXECUTABLE_ADMITTED'}
+            if(-not (Test-Path -LiteralPath (Join-Path $stage 'ktrade.exe') -PathType Leaf)){throw 'W05_REJECTED_TRANSACTION_CHANGED_ACTIVE'}
+            Copy-Item -LiteralPath (Join-Path $stage 'ktrade.exe') -Destination (Join-Path $w05Next 'ktrade.exe') -Force -ErrorAction Stop
+            Write-Output '::notice::W05_TAMPERED_BINARY_UPDATE_REFUSED_WITHOUT_MUTATION=PASS'
+            & $w05Updater -Operation Upgrade -StagePath $stage
+            if(-not (Test-Path -LiteralPath (Join-Path $stage 'static/w05-asset-update.marker')) -or
+               [IO.File]::ReadAllText($w05OriginalUnknown) -cne 'W05 unknown data cannot be overwritten' -or
+               -not (Test-Path -LiteralPath $w04Marker -PathType Leaf)){
+              throw 'W05_UPGRADE_DROPPED_APP_DATA_OR_ASSET'
+            }
+            Write-Output '::notice::W05_ASSET_ONLY_DISPOSABLE_UPDATE=PASS'
+            # Exercise a new file written after upgrade: rollback cannot
+            # restore obsolete data and silently discard it.
+            $w05PostUpgrade=Join-Path $stage 'data/w05-new-private-state.txt'
+            [IO.File]::WriteAllText($w05PostUpgrade,'post-upgrade owned data',[Text.UTF8Encoding]::new($false))
+            & $w05Updater -Operation Rollback -StagePath $stage
+            if(Test-Path -LiteralPath (Join-Path $stage 'static/w05-asset-update.marker')){throw 'W05_ROLLBACK_DID_NOT_RESTORE_PRIOR_ASSET'}
+            foreach($path in @($w05OriginalUnknown,$w05PostUpgrade,$w04Marker)){
+              if(-not (Test-Path -LiteralPath $path -PathType Leaf)){throw 'W05_ROLLBACK_LOST_NEW_OR_HISTORICAL_DATA'}
+            }
+            if([IO.File]::ReadAllText($w05PostUpgrade) -cne 'post-upgrade owned data'){
+              throw 'W05_ROLLBACK_MUTATED_NEW_DATA'
+            }
+            Write-Output '::notice::W05_DISPOSABLE_ROLLBACK_PRESERVES_NEW_AND_UNKNOWN_DATA=PASS'
+            Write-Output '::notice::W05_NO_REAL_INSTALLER_NO_BINARY_MIGRATION_LIVE_DISARMED=PASS'
+
           }finally{
             if($w03Server){try{if(-not $w03Server.HasExited){Stop-Process -Id $w03Server.Id -Force -ErrorAction SilentlyContinue}}catch{}}
             if($http){$http.Dispose()}
