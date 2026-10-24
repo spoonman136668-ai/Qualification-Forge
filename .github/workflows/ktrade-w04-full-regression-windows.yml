@@ -1,0 +1,106 @@
+name: KTRADE W04 one frozen Windows whole-repository regression
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w04-full-regression-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w04-frozen
+  cancel-in-progress: false
+jobs:
+  full-regression:
+    name: Exact KTRADE source full Windows Go test then vet and build
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+      KTRADE_RECOVERY_ISOLATED: '0'
+      KTRADE_PORTABLE_DISARMED: '1'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout pinned private source without credentials persisted
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: fb4412d9859834b2141a555db10cb125158c3196
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Reject identity drift, user data and self-hosted runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W04_HOSTED_WINDOWS_REQUIRED'}
+          $head=(& git -C $root rev-parse HEAD).Trim()
+          $parent=(& git -C $root rev-parse HEAD^).Trim()
+          $tree=(& git -C $root rev-parse 'HEAD^{tree}').Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne 'fb4412d9859834b2141a555db10cb125158c3196' -or
+             $parent -cne 'f614ae8f349a82e202771818e3630822d2c234c7' -or
+             $tree -cne '36203b127e48f29ce18089a6d5668b6115ec5318'){throw 'W04_EXACT_HEAD_PARENT_TREE_DRIFT'}
+          if(@(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W04_SOURCE_WORKTREE_DRIFT'}
+          Write-Output '::notice::W04_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
+          Write-Output '::notice::W04_NO_INSTALLED_OWNER_DATA=PASS'
+      - name: Prepare fixed Windows Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: ONE full Go regression, preserve every original failure
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $log=Join-Path $env:RUNNER_TEMP 'w04-private-test.log'
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go test -mod=readonly -count=1 -timeout=20m ./... *> $log
+            $code=$LASTEXITCODE
+            $rows=@(Get-Content -LiteralPath $log)
+            $failed=@($rows|Where-Object {$_ -match '^--- FAIL: '})
+            $markers=@($rows|Where-Object {$_ -match '^--- FAIL: ' -or $_ -match '^FAIL\s+ktrade' -or $_ -match '^# ktrade/' -or $_ -match '^panic:'})
+            Write-Output ('::notice::W04_TOP_LEVEL_FAILED_TEST_COUNT='+$failed.Count)
+            Write-Output ('::notice::W04_FAILURE_MARKER_COUNT='+$markers.Count)
+            foreach($line in ($markers|Select-Object -First 90)){
+              $safe=[regex]::Replace([string]$line,'[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+              $safe=[regex]::Replace($safe,'[^a-zA-Z0-9_ .:/=;,+()\[\]-]','')
+              if($safe.Length -gt 240){$safe=$safe.Substring(0,240)}
+              Write-Output ('::warning::W04_FULL_ORIGINAL_FAILURE='+$safe)
+            }
+            if($code -ne 0){
+              Write-Output '::error::W04_FULL_WINDOWS_REGRESSION=FAIL;RELEASE_BLOCKED=TRUE'
+              throw 'W04_WHOLE_REPO_REGRESSION_RED_NO_WAIVER'
+            }
+            Write-Output '::notice::W04_FULL_WINDOWS_REGRESSION=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Vet then native full Windows executable build if regression passes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W04_GO_VET_FAIL'}
+            Write-Output '::notice::W04_GO_VET=PASS'
+            & go build -mod=readonly -tags=ktrade_full -o (Join-Path $env:RUNNER_TEMP 'ktrade-native-full.exe') ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W04_NATIVE_GO_EXE_BUILD_FAIL'}
+            Write-Output '::notice::W04_NATIVE_FULL_GO_WINDOWS_BUILD=PASS'
+          }finally{Pop-Location}
+          Write-Output '::notice::W04_DISARMED_NO_PROMOTION=PASS'
+      - name: Purge checkout
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue}
