@@ -105,7 +105,27 @@ jobs:
               & go mod tidy *> $log
               if($LASTEXITCODE -ne 0){throw 'W01_WAILS_DEPENDENCY_RESOLUTION_FAILED_PRIVATE_OUTPUT_WITHHELD'}
               & go test -count=1 ./backend *> $log
-              if($LASTEXITCODE -ne 0){throw 'W01_BACKEND_FOCUSED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              if($LASTEXITCODE -ne 0){
+                $diagnostic=Get-Content -LiteralPath $log -Raw
+                $failed=@([regex]::Matches($diagnostic,'(?m)^--- FAIL: ([A-Za-z0-9_]+)') | ForEach-Object {$_.Groups[1].Value})
+                if($failed.Count -gt 0){
+                  Write-Host ('W01_BACKEND_FAILED_TEST_NAMES='+($failed -join ','))
+                } elseif($diagnostic -match '(?m)^# .*backend'){
+                  Write-Host 'W01_BACKEND_ERROR_CATEGORY=COMPILE'
+                } else {
+                  Write-Host 'W01_BACKEND_ERROR_CATEGORY=OTHER'
+                }
+                if($diagnostic.Contains('pilot staging path must not be redirected')){
+                  Write-Host 'W01_BACKEND_FAIL_SIGNATURE=WINDOWS_TEMP_CANONICAL_PATH'
+                } elseif($diagnostic.Contains('pilot staging directory must be within OS temporary storage')){
+                  Write-Host 'W01_BACKEND_FAIL_SIGNATURE=WINDOWS_TEMP_BOUNDARY'
+                } elseif($diagnostic.Contains('valid stage:')){
+                  Write-Host 'W01_BACKEND_FAIL_SIGNATURE=STAGE_VALIDATION'
+                } elseif($diagnostic.Contains('missing ordinary staged asset directory')){
+                  Write-Host 'W01_BACKEND_FAIL_SIGNATURE=STAGED_ASSET_DIR'
+                }
+                throw 'W01_BACKEND_FOCUSED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'
+              }
               & go vet ./backend *> $log
               if($LASTEXITCODE -ne 0){throw 'W01_BACKEND_VET_FAILED_PRIVATE_OUTPUT_WITHHELD'}
               Write-Host 'W01_BACKEND_TESTS_AND_VET=PASS'
