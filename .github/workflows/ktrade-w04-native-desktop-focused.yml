@@ -48,6 +48,12 @@ jobs:
         with:
           node-version: '22'
       - name: Diagnose native tagged API and preserved desktop contracts
+        # Original isolated Go handler tests must not inherit portable-paper
+        # mode; the two modes intentionally reject concurrent admission.
+        # Recovery isolation also keeps all test subprocesses paper-inert.
+        env:
+          KTRADE_PORTABLE_DISARMED: '0'
+          KTRADE_RECOVERY_ISOLATED: '1'
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
