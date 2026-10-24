@@ -1,0 +1,187 @@
+name: RB2 Wails W01 isolated Windows desktop qualification
+
+on:
+  push:
+    branches:
+      - qualification/rb2-wails-w01-hosted-20261024
+    paths:
+      - .github/workflows/rb2-wails-w01-windows.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rb2-wails-w01-readonly
+  cancel-in-progress: false
+
+jobs:
+  isolated-wails-window:
+    name: Build and smoke authentic Wails WebView2 on hosted Windows
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout exact private KTRADE review source, no persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: ac223aca60b887f5e3e9cd96b2038839ecc365a5
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+
+      - name: Pin exact pilot source and reject unrelated workflow deltas
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W01_HOSTED_WINDOWS_REQUIRED'}
+          $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $head=(& git -C $source rev-parse HEAD).Trim()
+          $parent=(& git -C $source rev-parse HEAD^).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne 'ac223aca60b887f5e3e9cd96b2038839ecc365a5' -or $parent -cne '5d9a9e3d392860af1f20aa589753b6d8780471d3'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
+          $changed=@(& git -C $source diff --name-only HEAD^ HEAD)
+          if($changed.Count -ne 1 -or $changed[0] -cne '.github/workflows/rb2-wails-w01-windows.yml'){throw 'W01_ONLY_WORKFLOW_CHANGE_PERMITTED'}
+          if(@(& git -C $source status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_DRIFT'}
+          Write-Host 'W01_EXACT_8_FILE_PILOT=PASS'
+          Write-Host 'W01_PROTECTED_BRANCHES_AND_OWNER_DATA_UNTOUCHED=PASS'
+
+      - name: Set up hosted Windows Go and build-time vendor tooling
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache: false
+
+      - name: Set up build-time-only Node for original locked Monaco/chart assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: checked-private/package-lock.json
+
+      - name: Compile, launch, observe window and enforce disarmed backend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log=Join-Path $env:RUNNER_TEMP 'w01-private-compile.log'
+          $sandboxRoot=Join-Path ([IO.Path]::GetTempPath()) ('ktrade-w01-'+[Guid]::NewGuid().ToString('N'))
+          $stage=Join-Path $sandboxRoot 'KTRADE-WailsPilot'
+          $parent=$null
+          $child=$null
+          $http=$null
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          try {
+            Push-Location $root
+            try {
+              & go build -mod=readonly -tags=ktrade_full -o (Join-Path $stage 'ktrade-engine.exe') ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_ORIGINAL_ENGINE_BUILD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              Write-Host 'W01_ORIGINAL_GO_BACKEND_BUILD=PASS'
+              & npm ci --ignore-scripts --no-audit --no-fund --silent *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_LOCKED_FRONTEND_VENDOR_INSTALL_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              & node scripts/stage_offline_vendor.cjs *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_ORIGINAL_OFFLINE_MONACO_ASSET_STAGING_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              foreach($name in @('static','templates','strategies')){
+                Copy-Item -LiteralPath (Join-Path $root $name) -Destination (Join-Path $stage $name) -Recurse -Force
+              }
+              foreach($file in @('static/vendor/monaco/vs/loader.js','static/vendor/lightweight-charts/lightweight-charts.standalone.production.js')){
+                if(-not (Test-Path -LiteralPath (Join-Path $stage $file) -PathType Leaf)){throw 'W01_ORIGINAL_CHART_EDITOR_ASSET_MISSING'}
+              }
+              Write-Host 'W01_OFFLINE_MONACO_AND_CHART_ASSETS=PASS'
+            } finally {Pop-Location}
+            Push-Location (Join-Path $root 'tools/wails-pilot')
+            try {
+              & go mod tidy *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_WAILS_DEPENDENCY_RESOLUTION_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              & go test -count=1 ./backend *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_BACKEND_FOCUSED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              & go vet ./backend *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_BACKEND_VET_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              Write-Host 'W01_BACKEND_TESTS_AND_VET=PASS'
+              & go build -tags desktop,production -o (Join-Path $stage 'ktrade-wails-pilot.exe') . *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_WAILS_WINDOWS_BUILD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              Write-Host 'W01_WAILS_WEBVIEW2_EXE_BUILT=PASS'
+            } finally {Pop-Location}
+            $exe=Join-Path $stage 'ktrade-wails-pilot.exe'
+            $parent=Start-Process -FilePath $exe -WorkingDirectory $stage -PassThru
+            $window=$false
+            $deadline=(Get-Date).AddSeconds(45)
+            while((Get-Date) -lt $deadline){
+              Start-Sleep -Milliseconds 750
+              $parent.Refresh()
+              if($parent.HasExited){throw 'W01_WAILS_PROCESS_EXITED_BEFORE_WINDOW'}
+              if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(-not $window){throw 'W01_GENUINE_WEBVIEW2_WINDOW_NOT_VISIBLE'}
+            Write-Host 'W01_REAL_WINDOWS_DESKTOP_WINDOW=PASS'
+            $backendPath=(Join-Path $stage 'ktrade-engine.exe')
+            $deadline=(Get-Date).AddSeconds(12)
+            while((Get-Date) -lt $deadline){
+              $child=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" | Where-Object {
+                $_.ExecutablePath -ieq $backendPath -and $_.ParentProcessId -eq $parent.Id
+              } | Select-Object -First 1)
+              if($child.Count -eq 1){break}
+              Start-Sleep -Milliseconds 400
+            }
+            if($child.Count -ne 1){throw 'W01_ORIGINAL_GO_CHILD_MISSING'}
+            $listener=@(Get-NetTCPConnection -State Listen -OwningProcess $child[0].ProcessId -ErrorAction SilentlyContinue | Where-Object {$_.LocalAddress -eq '127.0.0.1'})
+            if($listener.Count -ne 1){throw 'W01_EXACTLY_ONE_LOOPBACK_LISTENER_REQUIRED'}
+            $base='http://127.0.0.1:'+$listener[0].LocalPort
+            $http=[System.Net.Http.HttpClient]::new()
+            $http.Timeout=[TimeSpan]::FromSeconds(12)
+            $caps=$http.GetAsync($base+'/api/operator/capabilities').GetAwaiter().GetResult()
+            if([int]$caps.StatusCode -ne 200){throw 'W01_CAPABILITY_HTTP_NOT_OK'}
+            $c=($caps.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json)
+            if($c.schema -cne 'ktrade.operator.capabilities.v1' -or $c.mode -cne 'PAPER_STOPPED' -or
+              $c.paper_orders_enabled -ne $false -or $c.live_orders_enabled -ne $false -or
+              $c.strategy_execution_enabled -ne $false -or $c.paper_accounting_enabled -ne $false -or
+              $c.requires_review -ne $true){throw 'W01_APP_DID_NOT_PROVE_DISARMED'}
+            Write-Host 'W01_ORIGINAL_GO_CAPABILITIES_FAIL_CLOSED=PASS'
+            $chart=$http.GetAsync($base+'/chart').GetAwaiter().GetResult()
+            if([int]$chart.StatusCode -ne 200 -or
+               -not ($chart.Content.ReadAsStringAsync().GetAwaiter().GetResult()).Contains('pine-editor-main')){throw 'W01_ORIGINAL_CHART_HTTP_MISSING'}
+            foreach($asset in @('/static/vendor/monaco/vs/loader.js','/static/vendor/lightweight-charts/lightweight-charts.standalone.production.js')){
+              $result=$http.GetAsync($base+$asset).GetAwaiter().GetResult()
+              if([int]$result.StatusCode -ne 200){throw 'W01_ORIGINAL_OFFLINE_ASSET_HTTP_FAILED'}
+            }
+            Write-Host 'W01_ORIGINAL_CHART_AND_EDITOR_HTTP_ASSETS=PASS'
+            $body=[System.Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')
+            $locked=$http.PostAsync($base+'/api/paper/session/start',$body).GetAwaiter().GetResult()
+            if([int]$locked.StatusCode -ne 423){throw 'W01_PAPER_START_NOT_LOCKED'}
+            $lockedOrder=$http.PostAsync($base+'/api/orders/place',[System.Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+            if([int]$lockedOrder.StatusCode -ne 423){throw 'W01_LEGACY_ORDERS_NOT_LOCKED'}
+            Write-Host 'W01_PAPER_AND_LEGACY_LIVE_ORDER_ROUTES_LOCKED=PASS'
+            $websocket=[System.Net.WebSockets.ClientWebSocket]::new()
+            try {
+              $websocket.Options.SetRequestHeader('Origin','http://hostile.example')
+              $websocket.ConnectAsync([Uri]('ws://127.0.0.1:'+$listener[0].LocalPort+'/ws/chart?product=BTC-USD'),[Threading.CancellationToken]::None).GetAwaiter().GetResult()
+            } catch {
+              if($websocket.State -eq [System.Net.WebSockets.WebSocketState]::Open){throw 'W01_CROSS_ORIGIN_WS_CONNECTED'}
+            } finally {$websocket.Dispose()}
+            if($websocket.State -eq [System.Net.WebSockets.WebSocketState]::Open){throw 'W01_CROSS_ORIGIN_WS_CONNECTED'}
+            Write-Host 'W01_CROSS_ORIGIN_WEBSOCKET_DENIED=PASS'
+            if(Test-Path -LiteralPath (Join-Path $stage 'data')){throw 'W01_SOURCE_CREATED_UNEXPECTED_PAPER_DATA'}
+            Write-Host 'W01_NO_INSTALLED_PROFILE_OR_PAPER_DATA=PASS'
+          } finally {
+            if($http){$http.Dispose()}
+            if($parent){
+              try {if(-not $parent.HasExited){Stop-Process -Id $parent.Id -Force -ErrorAction SilentlyContinue}} catch {}
+            }
+            if($child -and $child.Count -gt 0){
+              try {Stop-Process -Id $child[0].ProcessId -Force -ErrorAction SilentlyContinue} catch {}
+            }
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $sandboxRoot -Force -Recurse -ErrorAction SilentlyContinue
+          }
+          Write-Host 'W01_TEST_ONLY_NO_RELEASE_NO_LIVE=PASS'
