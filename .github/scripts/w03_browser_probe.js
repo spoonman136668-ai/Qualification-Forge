@@ -75,6 +75,7 @@
       send("w03_no_fee_guard_failed");return;
     }
     send("w03_ui_no_fee_start_refused");
+    await waiting(()=>!document.getElementById("paperSessionStart").disabled,4000);
     checkbox.checked=true;
     document.getElementById("paperSessionStart").click();
     try {
@@ -84,7 +85,7 @@
       },17000);
     }catch(_){send("w03_funded_start_not_verified");return;}
     if(state.live_armed!==false||state.paper_orders_enabled!==true||
-      !document.getElementById("paperSessionStop")?.disabled===false){
+      document.getElementById("paperSessionStop")?.disabled!==false){
       send("w03_funded_authority_invalid");return;
     }
     send("w03_ui_explicit_paper_start");
