@@ -1,0 +1,103 @@
+name: RB2 exact native Go Coinbase public source one-shot diagnosis
+on:
+  push:
+    branches: [qualification/rb2-ci01-cold-recovery-windows-20261023]
+    paths: [.github/workflows/rb2-exact-go-public-coinbase-diagnostic.yml]
+permissions:
+  contents: read
+concurrency:
+  group: rb2-exact-go-market-diagnostic
+  cancel-in-progress: false
+jobs:
+  source-one-shot:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      SOURCE_SHA: '45a28c8b3f34a29a68ffc2e5b4a0f5ed0ffe035b'
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Independent Windows public-data-only source qualification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:RUNNER_OS -cne 'Windows' -or
+              $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+              $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'RB2_PUBLIC_NATIVE_SOURCE_DIAGNOSTIC_CONTEXT_INVALID'
+          }
+          Write-Host 'RB2_PUBLIC_GO_ONE_SHOT_NO_ORDER_AUTHORITY=PASS'
+      - name: Checkout exact immutable KTRADE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 45a28c8b3f34a29a68ffc2e5b4a0f5ed0ffe035b
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Confirm source and clean package before temporary probe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git -C candidate rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+              @(& git -C candidate status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_PUBLIC_NATIVE_SOURCE_IDENTITY_DRIFT'
+          }
+          Write-Host ('RB2_PUBLIC_GO_SOURCE_SHA='+$env:SOURCE_SHA)
+      - name: Set up identical Windows Go runtime
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Execute unchanged Coinbase fetch in an isolated temporary focused test
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $test='cmd/ktrade/rb2_one_shot_public_coinbase_diagnostic_full_test.go'
+          if (Test-Path -LiteralPath $test) { throw 'RB2_PUBLIC_DIAG_TEST_COLLISION' }
+          $source=@'
+          //go:build ktrade_full
+
+          package main
+          import (
+            "testing"
+            "time"
+          )
+          func TestRB2OneShotGenuineGoCoinbaseSource(t *testing.T) {
+            started:=time.Now()
+            bars,err:=fetchCandlesFromCoinbase("BTC-USDC","1m",300)
+            if err!=nil {
+              t.Fatalf("RB2_PUBLIC_NATIVE_GO_SOURCE_CAUSE=%T:%v",err,err)
+            }
+            if len(bars)<2 || len(bars)>300 || bars[len(bars)-1].ProductID!="BTC-USDC" {
+              t.Fatal("RB2_PUBLIC_NATIVE_GO_VERIFIED_BARS_OUT_OF_BOUND")
+            }
+            t.Logf("RB2_PUBLIC_NATIVE_GO_SOURCE=PASS_BARS_%d_DURATION_%s",len(bars),time.Since(started))
+          }
+          '@
+          [IO.File]::WriteAllText((Join-Path (Get-Location) $test),
+            $source,[Text.UTF8Encoding]::new($false))
+          try {
+            & go test -mod=readonly -count=1 -p=1 -tags=ktrade_full -timeout=8m -v -run '^TestRB2OneShotGenuineGoCoinbaseSource$' ./cmd/ktrade
+            $rc=$LASTEXITCODE
+          } finally {
+            Remove-Item -LiteralPath $test -Force -ErrorAction SilentlyContinue
+          }
+          if ((& git rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+             @(& git status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_PUBLIC_NATIVE_GO_PROBE_LEFT_SOURCE_DIRTY'
+          }
+          if ($rc -ne 0) { throw 'RB2_PUBLIC_NATIVE_GO_COINBASE_SOURCE_NOT_QUALIFIED' }
+          Write-Host 'RB2_PUBLIC_NATIVE_GO_COINBASE_QUALIFIED=PASS'
+          Write-Host 'RB2_LIVE_DISARMED=TRUE; ORDERS_NONE=TRUE; OWNER_DATA_UNTOUCHED=TRUE'
