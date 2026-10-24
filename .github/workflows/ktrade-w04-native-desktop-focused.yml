@@ -1,0 +1,92 @@
+name: KTRADE W04 native and desktop contract focused diagnosis
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w04-native-desktop-focused.yml]
+permissions:
+  contents: read
+jobs:
+  original-native-desktop:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      KTRADE_PORTABLE_DISARMED: '1'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+    steps:
+      - name: Checkout immutable private source, no persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 3dda90894cddf7bd2e32d772eabefb535058cee4
+          fetch-depth: 2
+          path: checked-private
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact source parent tree and Windows host
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W04_HOSTED_WINDOWS_REQUIRED'}
+          $head=(& git -C $root rev-parse HEAD).Trim()
+          $parent=(& git -C $root rev-parse HEAD^).Trim()
+          $tree=(& git -C $root rev-parse 'HEAD^{tree}').Trim()
+          if($head -cne '3dda90894cddf7bd2e32d772eabefb535058cee4' -or $parent -cne '5b4e06742c084556fdcc897ea494ed805401d70e' -or $tree -cne '7f414ed67937eacdbafa02fbf389d965fef6d668'){throw 'W04_EXACT_SOURCE_DRIFT'}
+          Write-Output '::notice::W04_NATIVE_FOCUSED_EXACT_SOURCE=PASS'
+      - name: Go and Node versions
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Node test runtime
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Diagnose native tagged API and preserved desktop contracts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $goLog=Join-Path $env:RUNNER_TEMP 'w04-native-focused-private.log'
+          $nodeLog=Join-Path $env:RUNNER_TEMP 'w04-node-focused-private.log'
+          Push-Location $root
+          try{
+            & go test -mod=readonly -tags=ktrade_full -count=1 ./cmd/ktrade *> $goLog
+            $goCode=$LASTEXITCODE
+            & node --test tests/legacy_desktop_launch_contract.test.cjs *> $nodeLog
+            $nodeCode=$LASTEXITCODE
+            foreach($line in @(Get-Content -LiteralPath $goLog|Where-Object {
+              $_ -match '^--- FAIL:' -or $_ -match '^FAIL\s+ktrade' -or $_ -match '^# ktrade/' -or $_ -match '^\s+.*_test\.go:[0-9]+:'
+            }|Select-Object -First 24)){
+              $safe=[regex]::Replace([string]$line,'[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+              $safe=[regex]::Replace($safe,'[^a-zA-Z0-9_ .:/=;,+()\[\]"-]','')
+              if($safe.Length -gt 250){$safe=$safe.Substring(0,250)}
+              Write-Output ('::warning::W04_NATIVE_FOCUSED_FAILURE='+$safe)
+            }
+            foreach($line in @(Get-Content -LiteralPath $nodeLog|Where-Object {
+              $_ -match '^not ok ' -or $_ -match '^\s*error:' -or $_ -match 'ERR_' -or $_ -match '^# Error'
+            }|Select-Object -First 24)){
+              $safe=[regex]::Replace([string]$line,'[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+              $safe=[regex]::Replace($safe,'[^a-zA-Z0-9_ .:/=;,+()\[\]"-]','')
+              if($safe.Length -gt 250){$safe=$safe.Substring(0,250)}
+              Write-Output ('::warning::W04_DESKTOP_FOCUSED_FAILURE='+$safe)
+            }
+            Write-Output ('::notice::W04_NATIVE_TAGGED_TEST_EXIT='+$goCode)
+            Write-Output ('::notice::W04_PRESERVED_DESKTOP_NODE_EXIT='+$nodeCode)
+            if($goCode -ne 0 -or $nodeCode -ne 0){throw 'W04_FOCUSED_INTERFACE_GATE_UNQUALIFIED'}
+            Write-Output '::notice::W04_NATIVE_AND_DESKTOP_FOCUSED=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $goLog,$nodeLog -Force -ErrorAction SilentlyContinue
+          }
+      - name: Remove checkout
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue}
