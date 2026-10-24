@@ -135,13 +135,38 @@ jobs:
               Write-Host 'W01_WAILS_WEBVIEW2_EXE_BUILT=PASS'
             } finally {Pop-Location}
             $exe=Join-Path $stage 'ktrade-wails-pilot.exe'
-            $parent=Start-Process -FilePath $exe -WorkingDirectory $stage -PassThru
+            $pilotStderr=Join-Path $env:RUNNER_TEMP 'w01-wails-exit-stderr.log'
+            $pilotStdout=Join-Path $env:RUNNER_TEMP 'w01-wails-exit-stdout.log'
+            $parent=Start-Process -FilePath $exe -WorkingDirectory $stage -PassThru -RedirectStandardError $pilotStderr -RedirectStandardOutput $pilotStdout
             $window=$false
             $deadline=(Get-Date).AddSeconds(45)
             while((Get-Date) -lt $deadline){
               Start-Sleep -Milliseconds 750
               $parent.Refresh()
-              if($parent.HasExited){throw 'W01_WAILS_PROCESS_EXITED_BEFORE_WINDOW'}
+              if($parent.HasExited){
+                Write-Host ('W01_WAILS_EARLY_EXIT_CODE='+$parent.ExitCode)
+                $diagnostic=''
+                if(Test-Path -LiteralPath $pilotStderr){$diagnostic=Get-Content -LiteralPath $pilotStderr -Raw}
+                if([string]::IsNullOrWhiteSpace($diagnostic) -and (Test-Path -LiteralPath $pilotStdout)){
+                  $diagnostic=Get-Content -LiteralPath $pilotStdout -Raw
+                }
+                $kind='OTHER'
+                if($diagnostic -match '(?i)webview2|webview runtime'){ $kind='WEBVIEW2_RUNTIME' }
+                elseif($diagnostic -match '(?i)staging path|temporary storage|stage directory'){ $kind='TEMP_STAGE_REJECTED' }
+                elseif($diagnostic -match '(?i)isolated.*loopback|backend.*timed out|child.*exited'){ $kind='GO_CHILD_STARTUP' }
+                elseif($diagnostic -match '(?i)panic:'){ $kind='GO_PANIC' }
+                elseif($diagnostic -match '(?i)failed to create.*window|createwindow'){ $kind='WINDOW_CREATION' }
+                Write-Host ('W01_WAILS_EARLY_EXIT_CLASS='+$kind)
+                if($diagnostic){
+                  $first=@($diagnostic -split '[\r\n]+' | Where-Object { $_ -match '[A-Za-z]' } | Select-Object -First 1)
+                  if($first.Count -gt 0){
+                    $reason=[regex]::Replace($first[0],'(?i)[a-z]:\\[^\s]+','[TEMP_PATH]')
+                    $reason=[regex]::Replace($reason,'[A-Za-z0-9_\-]{48,}','[REDACTED]')
+                    Write-Host ('W01_WAILS_ERROR_SUMMARY='+$reason.Substring(0,[Math]::Min(220,$reason.Length)))
+                  }
+                }
+                throw 'W01_WAILS_PROCESS_EXITED_BEFORE_WINDOW'
+              }
               if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
             }
             if(-not $window){throw 'W01_GENUINE_WEBVIEW2_WINDOW_NOT_VISIBLE'}
@@ -202,7 +227,7 @@ jobs:
             if($child -and $child.Count -gt 0){
               try {Stop-Process -Id $child[0].ProcessId -Force -ErrorAction SilentlyContinue} catch {}
             }
-            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $log,$pilotStderr,$pilotStdout -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $sandboxRoot -Force -Recurse -ErrorAction SilentlyContinue
           }
           Write-Host 'W01_TEST_ONLY_NO_RELEASE_NO_LIVE=PASS'
