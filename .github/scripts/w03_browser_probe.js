@@ -145,7 +145,7 @@
          Array.isArray(report.account.products)){
         send("w03_ui_sealed_archive");
         const product=report.account.products.find(x=>x.product_id==="BTC-USDC");
-        const numeric=(v)=>typeof v==="string" && /^-?[0-9]+(?:\\.[0-9]+)?$/.test(v);
+        const numeric=(v)=>typeof v==="string" && /^-?[0-9]+(?:\.[0-9]+)?$/.test(v);
         if(verifiedBrowserFill && product?.fill_count===1 &&
           numeric(product.fees_paid)&&Number(product.fees_paid)>0 &&
           numeric(product.position_qty)&&Number(product.position_qty)>0 &&
