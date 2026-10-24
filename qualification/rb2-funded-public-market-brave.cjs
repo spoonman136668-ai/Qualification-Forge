@@ -33,6 +33,11 @@ async function launchApp(bundle){
  KTRADE_PORTABLE_DISARMED:"1",KTRADE_PAPER_SESSION_ROOT:"",KTRADE_PINE_LIBRARY_ROOT:"",
  KTRADE_CI_LIVE_AUTHORITY:"0",KTRADE_CI_COINBASE_ALLOWED:"0"}});
  let output="";for(const name of ["stdout","stderr"])l[name].on("data",b=>output=(output+b.toString()).slice(-16000));
+ // Public market-only error classification, from the disposable Go host.
+ // Never dump general process logs, credentials, environment or response bodies.
+ l.safePublicCandleFailure=()=>output.split(/\\r?\\n/)
+   .filter(line=>line.includes("KTRADE verified source candles unavailable for BTC-USDC:"))
+   .slice(-1).map(line=>line.slice(-400)).join("");
  try{await waitFor(async()=>{
   if(l.exitCode!==null)throw Error("RB2_PORTABLE_LAUNCH_EXIT_"+l.exitCode+"_"+output);
   const r=await fetch("http://127.0.0.1:8080/api/paper/session",{cache:"no-store"});
@@ -141,7 +146,7 @@ async function run(){
   // OHLCV. This is a simulated ledger trade, not an exchange/broker order.
   // No candle, mark or Pine order is accepted from the browser as authority.
   const marketResponse=await fetch("http://127.0.0.1:8080/api/candles?product=BTC-USDC&tf=1m",{cache:"no-store"});
-  if(!marketResponse.ok)throw Error("RB2_PUBLIC_COINBASE_CANDLES_UNAVAILABLE_HTTP_"+marketResponse.status);
+  if(!marketResponse.ok)throw Error("RB2_PUBLIC_COINBASE_CANDLES_UNAVAILABLE_HTTP_"+marketResponse.status+"_SERVER_REASON_"+app.safePublicCandleFailure());
   const market=await marketResponse.json();
   const bars=market.candles;
   if(market.source!=="coinbase_exchange_rest"||market.finalized!==true||market.stale!==false||
