@@ -1,0 +1,77 @@
+name: KTRADE R25C12 parent-wire focused diagnosis
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w04-r25c12-focused.yml]
+permissions:
+  contents: read
+jobs:
+  focused-parent-wire:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      KTRADE_PORTABLE_DISARMED: '1'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+    steps:
+      - name: Checkout source without credentials persisted
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 5b4e06742c084556fdcc897ea494ed805401d70e
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact source identity and historical fixture
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'HOSTED_WINDOWS_REQUIRED'}
+          $head=(& git -C $root rev-parse HEAD).Trim()
+          $parent=(& git -C $root rev-parse HEAD^).Trim()
+          $tree=(& git -C $root rev-parse 'HEAD^{tree}').Trim()
+          if($head -cne '5b4e06742c084556fdcc897ea494ed805401d70e' -or $parent -cne 'b32b77c77b2826684e6f1b043af257b5e8b29fa9' -or $tree -cne '926787f1e29907f6dadefec63b310fd74cc7d6b6'){throw 'SOURCE_IDENTITY_DRIFT'}
+          Write-Output '::notice::R25C12_DIAGNOSTIC_EXACT_SOURCE=PASS'
+          $fixture=Join-Path $root 'pkg/testdata/r25c12/parent-wire.json'
+          $hash=(Get-FileHash -LiteralPath $fixture -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Output ('::notice::R25C12_FIXTURE_CONTENT_SHA256='+$hash)
+      - name: Go pinned version
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Focused original parent comparison, report exact failures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'r25c12-focused-private.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try {
+            & go test -mod=readonly -count=1 -run '^TestR25C12(HistoricalGovernanceJSONWire|MixedPhase9HistoricalJSONWire)$' -v ./pkg *> $log
+            $code=$LASTEXITCODE
+            $lines=@(Get-Content -LiteralPath $log)
+            $filtered=@($lines|Where-Object {$_ -match '^--- FAIL: ' -or $_ -match '^\s+.*_test\.go:[0-9]+:' -or $_ -match '^FAIL\s+ktrade' -or $_ -match '^# ktrade/'})
+            foreach($line in ($filtered|Select-Object -First 26)){
+              $safe=[regex]::Replace([string]$line,'[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+              $safe=[regex]::Replace($safe,'[^a-zA-Z0-9_ .:/=;,+()\[\]"-]','')
+              if($safe.Length -gt 300){$safe=$safe.Substring(0,300)}
+              Write-Output ('::warning::R25C12_FOCUSED_DETAIL='+$safe)
+            }
+            if($code -ne 0){throw 'R25C12_HISTORICAL_WIRE_NOT_QUALIFIED'}
+            Write-Output '::notice::R25C12_HISTORICAL_WIRE_FOCUSED_PASS'
+          }finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Cleanup
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue}
