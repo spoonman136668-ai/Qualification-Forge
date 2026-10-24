@@ -1,0 +1,150 @@
+name: R25C12 exact-parent JSON wire evidence recovery
+on:
+  push:
+    branches: [qualification/rb2-ci01-cold-recovery-windows-20261023]
+    paths: [.github/workflows/r25c12-exact-parent-wire-witness.yml]
+permissions:
+  contents: read
+concurrency:
+  group: r25c12-exact-source-witness
+  cancel-in-progress: false
+jobs:
+  historical-wire-witness:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOV_PARENT: 'd892d5902f6c19105c4395bf6b71bfb112b22a62'
+      MIXED_PARENT: '2af730f8a7bed15370d86d2ce0ced060c56beed2'
+      CANDIDATE: '7acdfa2365f5074527ea6b716fd2e89fdbf30d92'
+      GOV_TEST_BLOB: '8813b0db1c5591db5b136dc32b568d8773cbc4e6'
+      MIXED_TEST_BLOB: '00d8cabd7077f84e8b9d39d36cd5f8eb9b658206'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+    steps:
+      - name: Verify independent Windows witness environment
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:GITHUB_REF -cne 'refs/heads/qualification/rb2-ci01-cold-recovery-windows-20261023' -or
+              $env:RUNNER_OS -cne 'Windows' -or
+              $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {
+            throw 'R25C12_WITNESS_CONTEXT_UNQUALIFIED'
+          }
+          Write-Host 'R25C12_INDEPENDENT_WINDOWS_CONTEXT=PASS'
+      - name: Read exact unmodified governance pre-repair parent
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: d892d5902f6c19105c4395bf6b71bfb112b22a62
+          path: gov-parent
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Read exact unmodified mixed Phase9 pre-repair parent
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2af730f8a7bed15370d86d2ce0ced060c56beed2
+          path: mixed-parent
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Read current exact KTRADE candidate and historical test harnesses
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7acdfa2365f5074527ea6b716fd2e89fdbf30d92
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Pin all exact commit and independent test harness blob identities
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($pair in @(@('gov-parent',$env:GOV_PARENT),@('mixed-parent',$env:MIXED_PARENT),@('candidate',$env:CANDIDATE))) {
+            $dir=$pair[0]; $want=$pair[1]
+            $at=(& git -C $dir rev-parse HEAD).Trim()
+            if ($LASTEXITCODE -ne 0 -or $at -cne $want) { throw ('R25C12_SOURCE_IDENTITY_DRIFT_'+$dir) }
+            if (@(& git -C $dir status --porcelain=v1 --untracked-files=all).Count -ne 0) { throw ('R25C12_SOURCE_DIRTY_'+$dir) }
+          }
+          $gotGov=(& git -C candidate rev-parse 'HEAD:pkg/r25c12_governance_wire_compat_test.go').Trim()
+          $gotMix=(& git -C candidate rev-parse 'HEAD:pkg/r25c12_mixed_phase9_wire_compat_test.go').Trim()
+          if ($gotGov -cne $env:GOV_TEST_BLOB -or $gotMix -cne $env:MIXED_TEST_BLOB) {
+            throw 'R25C12_WITNESS_HARNESS_BLOB_DRIFT'
+          }
+          Write-Host 'R25C12_THREE_PINNED_SOURCES_AND_HARNESSES=PASS'
+      - name: Set up source-equivalent pinned Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Generate authentic original-parent witnesses and qualify candidate wire behavior
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          # The test harnesses are copied into disposable original-parent checkouts
+          # without changing original tracked implementation files or protected refs.
+          Copy-Item -LiteralPath 'candidate/pkg/r25c12_governance_wire_compat_test.go' -Destination 'gov-parent/pkg/r25c12_governance_wire_compat_test.go'
+          Copy-Item -LiteralPath 'candidate/pkg/r25c12_mixed_phase9_wire_compat_test.go' -Destination 'mixed-parent/pkg/r25c12_mixed_phase9_wire_compat_test.go'
+          $govHash=(& git -C gov-parent hash-object pkg/r25c12_governance_wire_compat_test.go).Trim()
+          $mixHash=(& git -C mixed-parent hash-object pkg/r25c12_mixed_phase9_wire_compat_test.go).Trim()
+          if ($govHash -cne $env:GOV_TEST_BLOB -or $mixHash -cne $env:MIXED_TEST_BLOB) {
+            throw 'R25C12_SHADOW_HARNESS_NOT_IDENTICAL'
+          }
+          $env:R25C12_ORIGINAL_MODE='1'
+          Push-Location gov-parent
+          try { $gov=@(& go test -mod=readonly -p=1 -count=1 -timeout=15m -v -run '^TestR25C12HistoricalGovernanceJSONWire$' ./pkg 2>&1); $rc=$LASTEXITCODE }
+          finally { Pop-Location; Remove-Item Env:R25C12_ORIGINAL_MODE }
+          if ($rc -ne 0) { $gov | Select-Object -Last 35 | Write-Host; throw 'R25C12_ORIGINAL_GOVERNANCE_PARENT_FAILED' }
+          $env:R25C12_MIXED_PARENT_MODE='1'
+          Push-Location mixed-parent
+          try { $mixed=@(& go test -mod=readonly -p=1 -count=1 -timeout=15m -v -run '^TestR25C12MixedPhase9HistoricalJSONWire$' ./pkg 2>&1); $rc=$LASTEXITCODE }
+          finally { Pop-Location; Remove-Item Env:R25C12_MIXED_PARENT_MODE }
+          if ($rc -ne 0) { $mixed | Select-Object -Last 35 | Write-Host; throw 'R25C12_ORIGINAL_MIXED_PARENT_FAILED' }
+          $govMap=@{}
+          foreach ($line in $gov) {
+            if ("$line" -match 'R25C12_PARENT_(T\d+)_(COLLISIONS_B64|SHA256)=([A-Za-z0-9+/=]+)') {
+              $key=($Matches[1]+'_'+$Matches[2])
+              if ($govMap.ContainsKey($key)) { throw ('R25C12_DUPLICATE_GOV_WITNESS_'+$key) }
+              $govMap[$key]=$Matches[3]
+            }
+          }
+          if ($govMap.Count -ne 110) { throw ('R25C12_GOV_WITNESS_COUNT_'+$govMap.Count) }
+          foreach ($n in @((298..332)+(354..373))) {
+            foreach($kind in @('COLLISIONS_B64','SHA256')) {
+              $t=('T'+$n); $key=($t+'_'+$kind)
+              if (-not $govMap.ContainsKey($key)) { throw ('R25C12_MISSING_GOV_WITNESS_'+$key) }
+              [Environment]::SetEnvironmentVariable(('R25C12_'+$key),$govMap[$key],'Process')
+            }
+          }
+          $mixMap=@{}
+          foreach ($line in $mixed) {
+            if ("$line" -match 'R25C12_MIXED_PARENT_(T\d+)_(FIELDS_B64|SHA256)=([A-Za-z0-9+/=]+)') {
+              $key=($Matches[1]+'_'+$Matches[2])
+              if ($mixMap.ContainsKey($key)) { throw ('R25C12_DUPLICATE_MIX_WITNESS_'+$key) }
+              $mixMap[$key]=$Matches[3]
+            }
+          }
+          if ($mixMap.Count -ne 34) { throw ('R25C12_MIX_WITNESS_COUNT_'+$mixMap.Count) }
+          foreach($n in 24..40) {
+            foreach($kind in @('FIELDS_B64','SHA256')) {
+              $t=('T'+$n); $key=($t+'_'+$kind)
+              if (-not $mixMap.ContainsKey($key)) { throw ('R25C12_MISSING_MIX_WITNESS_'+$key) }
+              [Environment]::SetEnvironmentVariable(('R25C12_MIXED_'+$key),$mixMap[$key],'Process')
+            }
+          }
+          Write-Host 'R25C12_ORIGINAL_GOVERNANCE_AND_MIXED_PARENT_WITNESSES=RECOVERED_72_CASES'
+          # Witnesses remain process-local; no unqualified fixture commits or exports.
+          Push-Location candidate
+          try { $result=@(& go test -mod=readonly -p=1 -count=1 -timeout=15m -v -run '^TestR25C12(HistoricalGovernanceJSONWire|MixedPhase9HistoricalJSONWire)$' ./pkg 2>&1); $rc=$LASTEXITCODE }
+          finally { Pop-Location }
+          if ($rc -ne 0) { $result | Select-Object -Last 65 | Write-Host; throw 'R25C12_CANDIDATE_HISTORICAL_WIRE_MISMATCH' }
+          Write-Host 'R25C12_HISTORICAL_JSON_WIRE_CANDIDATE=PASS'
+          $at=(& git -C candidate rev-parse HEAD).Trim()
+          if ($at -cne $env:CANDIDATE -or @(& git -C candidate status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'R25C12_CANDIDATE_SOURCE_CHANGED'
+          }
+          Write-Host ('R25C12_PINNED_CANDIDATE='+$at)
+          Write-Host 'R25C12_FULL_REGRESSION=NOT_RUN; LIVE_DISARMED=TRUE; DEPLOYMENT=NONE'
