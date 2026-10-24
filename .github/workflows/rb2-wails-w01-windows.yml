@@ -96,6 +96,7 @@ jobs:
           $parent=$null
           $child=$null
           $http=$null
+          $beaconProcess=$null
           New-Item -ItemType Directory -Path $stage -Force | Out-Null
           try {
             Push-Location $root
@@ -115,6 +116,30 @@ jobs:
                 if(-not (Test-Path -LiteralPath (Join-Path $stage $file) -PathType Leaf)){throw 'W01_ORIGINAL_CHART_EDITOR_ASSET_MISSING'}
               }
               Write-Host 'W01_OFFLINE_MONACO_AND_CHART_ASSETS=PASS'
+              # Exact repository source remains unmodified. Instrument only
+              # the freshly created runner-local staged chart HTML and assets.
+              $beaconManifest=Join-Path $sandboxRoot 'w02-beacon-manifest.json'
+              $beaconNonce=[guid]::NewGuid().ToString('N')
+              $beaconSrc=Join-Path $env:GITHUB_WORKSPACE '.github/scripts/w02_beacon.cjs'
+              $beaconProcess=Start-Process -FilePath node -ArgumentList @($beaconSrc,$beaconManifest,$beaconNonce) -PassThru
+              $beaconDeadline=(Get-Date).AddSeconds(10)
+              while(-not (Test-Path -LiteralPath $beaconManifest) -and (Get-Date) -lt $beaconDeadline){
+                Start-Sleep -Milliseconds 250
+                $beaconProcess.Refresh()
+                if($beaconProcess.HasExited){throw 'W02_BEACON_PROCESS_EXITED'}
+              }
+              if(-not (Test-Path -LiteralPath $beaconManifest)){throw 'W02_BEACON_NOT_READY'}
+              $beacon=(Get-Content -LiteralPath $beaconManifest -Raw | ConvertFrom-Json)
+              if($beacon.nonce -cne $beaconNonce -or [int]$beacon.port -lt 1024){throw 'W02_BEACON_SOURCE_MISMATCH'}
+              $beaconURL='http://127.0.0.1:'+$beacon.port+'/event?nonce='+$beaconNonce
+              $probe=(Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE '.github/scripts/w02_browser_probe.js') -Raw).Replace('__W02_BEACON_URL__',$beaconURL)
+              [IO.File]::WriteAllText((Join-Path $stage 'static/w02-browser-probe.js'),$probe,[Text.UTF8Encoding]::new($false))
+              $templatePath=Join-Path $stage 'templates/chart.tmpl'
+              $template=[IO.File]::ReadAllText($templatePath)
+              if(@([regex]::Matches($template,'</body>')).Count -ne 1){throw 'W02_UNEXPECTED_CHART_TEMPLATE'}
+              $template=$template.Replace('</body>','<script src="/static/w02-browser-probe.js"></script></body>')
+              [IO.File]::WriteAllText($templatePath,$template,[Text.UTF8Encoding]::new($false))
+              Write-Output '::notice::W02_DISPOSABLE_BROWSER_PROBE_INSTALLED=PASS'
               Write-Output '::notice::W01_OFFLINE_MONACO_AND_CHART_ASSETS=PASS'
             } finally {Pop-Location}
             Push-Location (Join-Path $root 'tools/wails-pilot')
@@ -298,7 +323,28 @@ jobs:
             } catch {
               Write-Output '::warning::W02_WINDOWS_ACCESSIBILITY_PROBE_UNAVAILABLE'
             }
-            Write-Output '::notice::W02_INTERACTIVE_CHART_AND_EDITOR_ACTIONS_NOT_YET_QUALIFIED'
+            $required=@('script_executed','chart_dom_present','chart_canvas_live','pine_monaco_ready',
+              'pine_panel_opened','pine_editor_edited','pine_compiled','timeframe_clicked')
+            $seen=@()
+            $deadline=(Get-Date).AddSeconds(31)
+            while((Get-Date) -lt $deadline){
+              try{
+                $obs=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$beacon.port+'/status?nonce='+$beaconNonce) -TimeoutSec 2
+                if($obs.schema -cne 'ktrade.w02.browser-observer.v1'){throw 'W02_BEACON_BAD_SCHEMA'}
+                $seen=@($obs.events)
+                if(@($required | Where-Object {$seen -cnotcontains $_}).Count -eq 0){break}
+              }catch{}
+              Start-Sleep -Milliseconds 500
+            }
+            Write-Output ('::notice::W02_BROWSER_OBSERVED_EVENTS='+(@($seen | Sort-Object) -join ','))
+            $missing=@($required | Where-Object {$seen -cnotcontains $_})
+            if($missing.Count -gt 0){
+              Write-Output ('::warning::W02_REQUIRED_INTERACTION_MISSING='+($missing -join ','))
+              throw 'W02_WEBVIEW2_INTERACTION_NOT_PROVEN'
+            }
+            if($seen -ccontains 'chart_ws_open'){Write-Output '::notice::W02_CHART_WEBSOCKET_OPEN=PASS'}
+            else{Write-Output '::warning::W02_CHART_WEBSOCKET_OPEN_NOT_VERIFIED'}
+            Write-Output '::notice::W02_CHART_CANVAS_PINE_COMPILE_TIMEFRAME=PASS'
             $body=[System.Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')
             $locked=$http.PostAsync($base+'/api/paper/session/start',$body).GetAwaiter().GetResult()
             if([int]$locked.StatusCode -ne 423){throw 'W01_PAPER_START_NOT_LOCKED'}
@@ -349,6 +395,7 @@ jobs:
             throw
           } finally {
             Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -ErrorAction SilentlyContinue
+            if($beaconProcess){try{if(-not $beaconProcess.HasExited){Stop-Process -Id $beaconProcess.Id -Force -ErrorAction SilentlyContinue}}catch{}}
             if($http){$http.Dispose()}
             if($parent){
               try {if(-not $parent.HasExited){Stop-Process -Id $parent.Id -Force -ErrorAction SilentlyContinue}} catch {}
