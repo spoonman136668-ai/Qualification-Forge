@@ -97,6 +97,9 @@ jobs:
           $child=$null
           $http=$null
           $beaconProcess=$null
+          $pilotStderr=$null
+          $pilotStdout=$null
+          $exitCode=$null
           New-Item -ItemType Directory -Path $stage -Force | Out-Null
           try {
             Push-Location $root
@@ -392,6 +395,7 @@ jobs:
             if(-not $reason){$reason='W01_UNCLASSIFIED_RUNTIME_ERROR'}
             if($reason -eq 'W01_WINDOW_CLOSE_FAILED'){$reason+=';exit_code='+[string]$exitCode}
             Write-Output ('::error::'+$reason)
+            Write-Output ('::warning::W02_FAILURE_TYPE='+$_.Exception.GetType().Name)
             throw
           } finally {
             Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -ErrorAction SilentlyContinue
@@ -403,7 +407,10 @@ jobs:
             if($child -and $child.Count -gt 0){
               try {Stop-Process -Id $child[0].ProcessId -Force -ErrorAction SilentlyContinue} catch {}
             }
-            Remove-Item -LiteralPath $log,$pilotStderr,$pilotStdout -Force -ErrorAction SilentlyContinue
+            $privateFiles=@($log)
+            if($pilotStderr){$privateFiles+= $pilotStderr}
+            if($pilotStdout){$privateFiles+= $pilotStdout}
+            Remove-Item -LiteralPath $privateFiles -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $sandboxRoot -Force -Recurse -ErrorAction SilentlyContinue
           }
           Write-Host 'W01_TEST_ONLY_NO_RELEASE_NO_LIVE=PASS'
