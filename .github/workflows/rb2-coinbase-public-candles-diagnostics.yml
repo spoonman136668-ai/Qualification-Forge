@@ -46,3 +46,48 @@ jobs:
             }
           }
           Write-Host 'RB2_PUBLIC_SOURCE_DIAGNOSTIC=OBSERVED_NO_TRADING_AUTHORITY'
+
+      - name: Observe official unauthenticated Advanced Trade public candle freshness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {
+            throw 'RB2_ADVANCED_SOURCE_UNQUALIFIED_WINDOWS'
+          }
+          $now=[DateTimeOffset]::UtcNow
+          $end=$now.ToUnixTimeSeconds().ToString()
+          $start=$now.AddMinutes(-301).ToUnixTimeSeconds().ToString()
+          foreach($product in @('BTC-USDC','ETH-USDC')) {
+            $uri='https://api.coinbase.com/api/v3/brokerage/market/products/'+$product+'/candles?start='+$start+'&end='+$end+'&granularity=ONE_MINUTE&limit=300'
+            try {
+              $response=Invoke-WebRequest -Uri $uri -Method Get -TimeoutSec 12 -Headers @{'Accept'='application/json';'User-Agent'='KTRADE-ReadOnly-Market-Qualification/1.0'}
+              $observed=[DateTimeOffset]::UtcNow
+              $result=$response.Content | ConvertFrom-Json
+              $candles=@($result.candles)
+              if($null -eq $result.candles) {
+                Write-Host ('RB2_ADVANCED_'+$product+'_HTTP_'+[int]$response.StatusCode+'_SCHEMA_NOT_CANDLES')
+                continue
+              }
+              $epochs=@($candles|ForEach-Object {if($_.start -match '^\d{9,11}$'){[long]$_.start}})
+              if($epochs.Count -ne $candles.Count -or !$epochs.Count) {
+                Write-Host ('RB2_ADVANCED_'+$product+'_INVALID_TIMESTAMP_SHAPE_ROWS_'+$candles.Count)
+                continue
+              }
+              $max=($epochs|Measure-Object -Maximum).Maximum
+              $min=($epochs|Measure-Object -Minimum).Minimum
+              $last=[DateTimeOffset]::FromUnixTimeSeconds([long]$max)
+              $freshness=($observed-$last.AddMinutes(1)).TotalSeconds
+              $valid=($freshness -ge 0 -and $freshness -le 120)
+              Write-Host ('RB2_ADVANCED_'+$product+'_HTTP_'+[int]$response.StatusCode+
+                '_ROWS_'+$candles.Count+'_OLDEST_START_'+[DateTimeOffset]::FromUnixTimeSeconds([long]$min).ToString('o')+
+                '_NEWEST_START_'+$last.ToString('o')+'_OBSERVED_'+$observed.ToString('o')+
+                '_LAST_CLOSE_AGE_SECONDS_'+[math]::Round($freshness,1)+'_FRESH_'+$valid)
+            } catch {
+              $status='TRANSPORT_FAILURE'
+              if($_.Exception.Response -and $_.Exception.Response.StatusCode) {
+                $status=[string][int]$_.Exception.Response.StatusCode
+              }
+              Write-Host ('RB2_ADVANCED_'+$product+'_HTTP_'+$status+'_NO_AUTHENTIC_FRESHNESS_PROVEN')
+            }
+          }
+          Write-Host 'RB2_ADVANCED_PUBLIC_CANDLES_DIAGNOSTIC=READ_ONLY_NO_BROKER_AUTHORITY'
