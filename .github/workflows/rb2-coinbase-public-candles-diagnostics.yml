@@ -1,0 +1,48 @@
+name: RB2 public Coinbase candle source boundary diagnostics
+on:
+  push:
+    branches: [qualification/rb2-ci01-cold-recovery-windows-20261023]
+    paths: [.github/workflows/rb2-coinbase-public-candles-diagnostics.yml]
+permissions:
+  contents: read
+concurrency:
+  group: rb2-coinbase-public-candles-diagnostics
+  cancel-in-progress: false
+jobs:
+  read-only-market-diagnostics:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Qualify only public anonymous GET, no authentication or orders
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') {
+            throw 'RB2_MARKET_DIAG_NEEDS_INDEPENDENT_WINDOWS'
+          }
+          $at=[DateTime]::UtcNow
+          $start=$at.AddMinutes(-300).ToString('yyyy-MM-ddTHH:mm:ssZ')
+          $end=$at.ToString('yyyy-MM-ddTHH:mm:ssZ')
+          $items=@(
+            @('BTC-USDC_no_range','https://api.exchange.coinbase.com/products/BTC-USDC/candles?granularity=60'),
+            @('BTC-USDC_exact_300','https://api.exchange.coinbase.com/products/BTC-USDC/candles?granularity=60&start='+$start+'&end='+$end),
+            @('BTC-USD_no_range','https://api.exchange.coinbase.com/products/BTC-USD/candles?granularity=60'),
+            @('ETH-USDC_no_range','https://api.exchange.coinbase.com/products/ETH-USDC/candles?granularity=60'),
+            @('BTC-USDC_product','https://api.exchange.coinbase.com/products/BTC-USDC')
+          )
+          foreach($item in $items) {
+            $label=[string]$item[0]
+            try{
+              $res=Invoke-WebRequest -Uri ([string]$item[1]) -Method Get -TimeoutSec 10 -Headers @{'Accept'='application/json';'User-Agent'='KTRADE-ReadOnly-Market-Qualification/1.0'}
+              $json=$null
+              try{$json=$res.Content|ConvertFrom-Json}catch{}
+              $rowCount=if($null -ne $json -and $json -is [array]){$json.Count}else{-1}
+              Write-Host ('RB2_PUBLIC_SOURCE_'+$label+'=HTTP_'+[int]$res.StatusCode+'_ROWS_'+$rowCount)
+            }catch{
+              $status=$_.Exception.Response.StatusCode.value__
+              if(!$status){$status='TRANSPORT_FAILURE'}
+              $reason=($_.Exception.Message -replace '[\r\n]',' ')
+              Write-Host ('RB2_PUBLIC_SOURCE_'+$label+'=HTTP_'+$status+'_REASON_'+$reason.Substring(0,[Math]::Min(120,$reason.Length)))
+            }
+          }
+          Write-Host 'RB2_PUBLIC_SOURCE_DIAGNOSTIC=OBSERVED_NO_TRADING_AUTHORITY'
