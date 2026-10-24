@@ -35,7 +35,7 @@ async function launchApp(bundle){
  let output="";for(const name of ["stdout","stderr"])l[name].on("data",b=>output=(output+b.toString()).slice(-16000));
  // Public market-only error classification, from the disposable Go host.
  // Never dump general process logs, credentials, environment or response bodies.
- l.safePublicCandleFailure=()=>output.split(/\\r?\\n/)
+ l.safePublicCandleFailure=()=>output.split(String.fromCharCode(10))
    .filter(line=>line.includes("KTRADE verified source candles unavailable for BTC-USDC:"))
    .slice(-1).map(line=>line.slice(-400)).join("");
  try{await waitFor(async()=>{
