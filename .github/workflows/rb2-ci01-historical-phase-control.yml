@@ -1,0 +1,166 @@
+name: RB2-CI01 historical regression baseline and stopped Windows build
+on:
+  push:
+    branches: [qualification/rb2-ci01-cold-recovery-windows-20261023]
+    paths: [.github/workflows/rb2-ci01-historical-phase-control.yml]
+permissions:
+  contents: read
+concurrency:
+  group: rb2-ci01-historical-phase-control
+  cancel-in-progress: false
+jobs:
+  historical-control-and-build:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      BASE_SHA: '6fda83a941049049850a5eb3ecfb07b4fd24b08c'
+      CANDIDATE_SHA: '7acdfa2365f5074527ea6b716fd2e89fdbf30d92'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOWORK: 'off'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Authenticate independent Windows qualification boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:GITHUB_REF -cne 'refs/heads/qualification/rb2-ci01-cold-recovery-windows-20261023' -or
+              $env:RUNNER_OS -cne 'Windows' -or
+              $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+              $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'RB2_HISTORICAL_CONTROL_WRONG_QUALIFICATION_CONTEXT'
+          }
+          Write-Host 'RB2_HISTORICAL_CONTROL_WINDOWS_ISOLATED=PASS'
+      - name: Read immutable previously qualified pre-cold recovery parent
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 6fda83a941049049850a5eb3ecfb07b4fd24b08c
+          path: parent
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Read immutable cold-recovery candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7acdfa2365f5074527ea6b716fd2e89fdbf30d92
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Pin both source identities and inherited pkg tree
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=(& git -C parent rev-parse HEAD).Trim()
+          $c=(& git -C candidate rev-parse HEAD).Trim()
+          if ($p -cne $env:BASE_SHA -or $c -cne $env:CANDIDATE_SHA) {
+            throw 'RB2_HISTORICAL_SOURCE_IDENTITY_DRIFT'
+          }
+          foreach($dir in @('parent','candidate')) {
+            if (@(& git -C $dir status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+              throw ('RB2_DIRTY_CANDIDATE_'+$dir)
+            }
+          }
+          $pPkg=(& git -C parent rev-parse 'HEAD:pkg').Trim()
+          $cPkg=(& git -C candidate rev-parse 'HEAD:pkg').Trim()
+          if ($pPkg -cne $cPkg) { throw 'RB2_HISTORICAL_PKG_TREE_MODIFIED' }
+          Write-Host ('RB2_HISTORICAL_PKG_TREE='+$pPkg)
+          Write-Host 'RB2_HISTORICAL_SOURCE_CUSTODY=PASS'
+      - name: Set up previously successful Windows Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Compare original Phase18 to Phase21 static test failures across exact SHAs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          function Get-HistoricalFailures([string]$directory) {
+            Push-Location $directory
+            try {
+              $raw=@(& go test -mod=readonly -p=1 -count=1 -tags=ktrade_full -timeout=12m -json -run '^TestPhase(18|19|20|21)_' ./pkg 2>&1)
+              $testExit=$LASTEXITCODE
+            } finally { Pop-Location }
+            if ($testExit -eq 0) { throw ('RB2_UNEXPECTED_ZERO_HISTORICAL_FAILURES_'+$directory) }
+            if ($testExit -ne 1) { throw ('RB2_HISTORICAL_GO_TEST_INFRA_FAILURE_'+$directory+'_'+$testExit) }
+            $failNames=@()
+            $errorDetails=@()
+            foreach($line in $raw) {
+              try { $event="$line" | ConvertFrom-Json -ErrorAction Stop }
+              catch { continue }
+              if ($event.Test -notmatch '^TestPhase(18|19|20|21)_') { continue }
+              if ($event.Action -eq 'fail') { $failNames+=([string]$event.Test) }
+              if ($event.Action -eq 'output' -and
+                  [string]$event.Output -match '^\s+\S+_test\.go:\d+:\s+(.+)$') {
+                $errorDetails+=([string]$event.Test+'|'+[string]$Matches[1])
+              }
+            }
+            $failNames=@($failNames | Sort-Object -Unique)
+            $errorDetails=@($errorDetails | Sort-Object -Unique)
+            if ($failNames.Count -lt 1 -or $errorDetails.Count -lt 1) {
+              throw ('RB2_HISTORICAL_EXPECTED_ERROR_EVIDENCE_NOT_OBSERVED_'+$directory)
+            }
+            return [pscustomobject]@{
+              FailedTests=$failNames
+              ErrorDetails=$errorDetails
+            }
+          }
+          $original=Get-HistoricalFailures 'parent'
+          $current=Get-HistoricalFailures 'candidate'
+          if ((@($original.FailedTests) | ConvertTo-Json -Compress) -cne
+              (@($current.FailedTests) | ConvertTo-Json -Compress) -or
+              (@($original.ErrorDetails) | ConvertTo-Json -Compress) -cne
+              (@($current.ErrorDetails) | ConvertTo-Json -Compress)) {
+            Write-Host ('RB2_ORIGINAL_FAILED_TESTS='+($original.FailedTests -join ','))
+            Write-Host ('RB2_CANDIDATE_FAILED_TESTS='+($current.FailedTests -join ','))
+            throw 'RB2_HISTORICAL_FAILURE_CLASS_CHANGED'
+          }
+          Write-Host ('RB2_HISTORICAL_STATIC_FAILURES_IDENTICAL_ON_BASE_AND_CANDIDATE='+$original.FailedTests.Count)
+          Write-Host 'RB2_HISTORICAL_TEST_CONTRACT_STILL_RED=TRUE'
+          Write-Host 'RB2_HISTORICAL_BASELINE_CLASSIFICATION=PASS'
+      - name: Vet real Windows candidate without modifying source
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & go vet -mod=readonly -tags=ktrade_full ./...
+          if($LASTEXITCODE -ne 0) { throw 'RB2_WINDOWS_VET_FAILED' }
+          Write-Host 'RB2_WINDOWS_FULL_TAGGED_GO_VET=PASS'
+      - name: Build stopped source-identical Windows application
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Join-Path $env:RUNNER_TEMP 'ktrade.exe'
+          & go build -mod=readonly -p=1 -tags=ktrade_full -o $exe ./cmd/ktrade
+          if($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $exe -PathType Leaf)) {
+            throw 'RB2_WINDOWS_STOPPED_EXE_BUILD_FAILED'
+          }
+          $sha=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host ('RB2_WINDOWS_STOPPED_EXE_SHA256='+$sha)
+          Write-Host 'RB2_WINDOWS_STOPPED_EXE_BUILD=PASS; NOT_LAUNCHED=TRUE'
+      - name: Seal limited evidence with full regression explicitly blocked
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($pair in @(@('parent',$env:BASE_SHA),@('candidate',$env:CANDIDATE_SHA))) {
+            if ((& git -C $pair[0] rev-parse HEAD).Trim() -cne $pair[1] -or
+                @(& git -C $pair[0] status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+              throw 'RB2_POST_BOUNDED_QUAL_SOURCE_DRIFT'
+            }
+          }
+          Write-Host ('RB2_SOURCE_SHA='+$env:CANDIDATE_SHA)
+          Write-Host 'RB2_HISTORICAL_STATIC_SOURCE_TESTS=LEGACY_RED_IDENTICAL_BASELINE'
+          Write-Host 'RB2_FULL_WINDOWS_REGRESSION=BLOCKED'
+          Write-Host 'RB2_REAL_BRAVE_PACKAGED_ACCEPTANCE=NOT_RUN'
+          Write-Host 'RB2_RELEASE_READY=FALSE; PAPER_STOPPED=TRUE; LIVE_DISARMED=TRUE'
