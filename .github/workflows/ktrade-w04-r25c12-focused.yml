@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 5b4e06742c084556fdcc897ea494ed805401d70e
+          ref: 3dda90894cddf7bd2e32d772eabefb535058cee4
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -36,7 +36,7 @@ jobs:
           $head=(& git -C $root rev-parse HEAD).Trim()
           $parent=(& git -C $root rev-parse HEAD^).Trim()
           $tree=(& git -C $root rev-parse 'HEAD^{tree}').Trim()
-          if($head -cne '5b4e06742c084556fdcc897ea494ed805401d70e' -or $parent -cne 'b32b77c77b2826684e6f1b043af257b5e8b29fa9' -or $tree -cne '926787f1e29907f6dadefec63b310fd74cc7d6b6'){throw 'SOURCE_IDENTITY_DRIFT'}
+          if($head -cne '3dda90894cddf7bd2e32d772eabefb535058cee4' -or $parent -cne '5b4e06742c084556fdcc897ea494ed805401d70e' -or $tree -cne '7f414ed67937eacdbafa02fbf389d965fef6d668'){throw 'SOURCE_IDENTITY_DRIFT'}
           Write-Output '::notice::R25C12_DIAGNOSTIC_EXACT_SOURCE=PASS'
           $fixture=Join-Path $root 'pkg/testdata/r25c12/parent-wire.json'
           $hash=(Get-FileHash -LiteralPath $fixture -Algorithm SHA256).Hash.ToLowerInvariant()
