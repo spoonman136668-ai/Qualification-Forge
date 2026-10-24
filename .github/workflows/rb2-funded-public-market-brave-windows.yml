@@ -1,3 +1,5 @@
+# Qualified source remains immutable; this attempt records the sanitized
+# source-side reason if the real anonymous public Coinbase GET fails.
 name: RB2 authentic Coinbase paper Fill Stop cold financial recovery
 on:
   push:
