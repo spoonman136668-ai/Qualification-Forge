@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 87025444f6428ee86224b27f19805a653130fd17
+          ref: 81d29a9064efb01c12c06ba1de251dc23fd245ca
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -69,9 +69,9 @@ jobs:
           $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $head=(& git -C $source rev-parse HEAD).Trim()
           $parent=(& git -C $source rev-parse HEAD^).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '87025444f6428ee86224b27f19805a653130fd17' -or $parent -cne '4d30d74ae8465193a7d4d3788c814d7ff369a571'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '81d29a9064efb01c12c06ba1de251dc23fd245ca' -or $parent -cne '87025444f6428ee86224b27f19805a653130fd17'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
           $tree=(& git -C $source rev-parse 'HEAD^{tree}').Trim()
-          if($LASTEXITCODE -ne 0 -or $tree -cne '9f52762d9e16f4c2382894c2c02d8e62d79c4fab'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $tree -cne '555cb8912e0d4294067efea3be74d2f1abfe6483'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
           if(@(& git -C $source status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_DRIFT'}
           Write-Host 'W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
           Write-Output '::notice::W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
@@ -126,6 +126,11 @@ jobs:
             try {
               & go build -mod=readonly -tags=ktrade_full -o (Join-Path $stage 'ktrade-engine.exe') ./cmd/ktrade *> $log
               if($LASTEXITCODE -ne 0){throw 'W01_ORIGINAL_ENGINE_BUILD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              # W03 source-pinned Go owner-preflight qualification; the
+              # application still uses the disarmed view-only Wails pilot.
+              & go test -mod=readonly -tags=ktrade_full -count=1 -run '^TestRB3Wails' -timeout 10m ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'W03_PAIRED_OWNER_GO_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              Write-Output '::notice::W03_WAILS_DUAL_EXECUTABLE_OWNER_FOCUSED=PASS'
               Write-Host 'W01_ORIGINAL_GO_BACKEND_BUILD=PASS'
               Write-Output '::notice::W01_ORIGINAL_GO_BACKEND_BUILD=PASS'
               & npm ci --ignore-scripts --no-audit --no-fund --silent *> $log
