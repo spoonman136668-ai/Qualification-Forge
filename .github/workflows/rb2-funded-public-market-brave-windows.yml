@@ -1,0 +1,174 @@
+name: RB2 authentic Coinbase paper Fill Stop cold financial recovery
+on:
+  push:
+    branches: [qualification/rb2-ci01-cold-recovery-windows-20261023]
+    paths: [.github/workflows/rb2-funded-public-market-brave-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: rb2-real-coinbase-paper-financial-replay
+  cancel-in-progress: false
+jobs:
+  portable-paper-real-brave:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 65
+    env:
+      SOURCE_SHA: 'ae0c3e908ac8d312cf916fe9cb1c332fe3d26e15'
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '0'
+      KTRADE_PORTABLE_DISARMED: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_CI_PAPER_ONLY: '1'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Enforce source isolated hosted Windows and disarmed controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+              $env:GITHUB_REF -cne 'refs/heads/qualification/rb2-ci01-cold-recovery-windows-20261023' -or
+              $env:RUNNER_OS -cne 'Windows' -or
+              $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or
+              $env:KTRADE_CI_PAPER_ONLY -cne '1' -or
+              $env:KTRADE_CI_COINBASE_ALLOWED -cne '0' -or
+              $env:KTRADE_CI_LIVE_AUTHORITY -cne '0' -or
+              $env:KTRADE_CI_PROMOTION_ALLOWED -cne '0') {
+            throw 'RB2_PORTABLE_BRAVE_WRONG_AUTHORITY'
+          }
+          Write-Host 'RB2_PORTABLE_BRAVE_DISARMED_WINDOWS=PASS'
+      - name: Checkout exact independent qualification harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Checkout immutable isolated KTRADE PR source without write token
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: ae0c3e908ac8d312cf916fe9cb1c332fe3d26e15
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Authenticate candidate and separate original qualification harness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git -C candidate rev-parse HEAD).Trim() -cne $env:SOURCE_SHA -or
+              @(& git -C candidate status --porcelain=v1 --untracked-files=all).Count -ne 0) {
+            throw 'RB2_PORTABLE_BRAVE_CANDIDATE_SHA_DRIFT'
+          }
+          if (!(Test-Path -LiteralPath 'qualification/rb2-funded-public-market-brave.cjs' -PathType Leaf)) {
+            throw 'RB2_PORTABLE_BRAVE_INDEPENDENT_TEST_MISSING'
+          }
+          Write-Host ('RB2_PORTABLE_BRAVE_CANDIDATE_SHA='+$env:SOURCE_SHA)
+      - name: Configure Windows Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.24.9'
+          cache: false
+      - name: Configure Node 22 CDP browser client
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: candidate/package-lock.json
+      - name: Verify independent browser acceptance harness syntax
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & node --check qualification/rb2-funded-public-market-brave.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_PORTABLE_BRAVE_JAVASCRIPT_INVALID' }
+          Write-Host 'RB2_PORTABLE_BRAVE_JS_SYNTAX=PASS'
+      - name: Stage pinned offline Monaco and chart assets into disposable source
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          & npm ci --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_PORTABLE_OFFLINE_NPM_LOCK_FAILED' }
+          & node scripts/stage_offline_vendor.cjs
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_PORTABLE_OFFLINE_ASSETS_FAILED' }
+          Write-Host 'RB2_PORTABLE_LOCKED_PINE_CHART_ASSETS=PASS'
+      - name: Build genuine new native KTRADE portable Windows bundle
+        shell: pwsh
+        working-directory: candidate
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path ([IO.Path]::GetTempPath()) ('ktrade-rb2-package-'+[guid]::NewGuid().ToString('N'))
+          "RB2_PORTABLE_E2E_ROOT=$root" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          & ./windows/Build-KTRADE-Portable.ps1 -OutputRoot $root
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_PORTABLE_BUNDLE_BUILD_FAILED' }
+          $stage=Join-Path $root 'KTRADE-Portable'
+          $proof=Get-Content -LiteralPath (Join-Path $stage 'paper-package-proof.json') -Raw | ConvertFrom-Json
+          $exe=Join-Path $stage 'ktrade.exe'
+          $hash=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($proof.schema -cne 'ktrade.paper.portable-package.v1' -or
+              $proof.exe_sha256 -cne $hash -or
+              $proof.live_armed -ne $false -or
+              (Test-Path -LiteralPath (Join-Path $stage 'data'))) {
+            throw 'RB2_PORTABLE_PACKAGE_OR_FIRST_LAUNCH_CUSTODY_INVALID'
+          }
+          Write-Host ('RB2_PORTABLE_SIGNED_SOURCE_BUNDLE_EXE_SHA256='+$hash)
+          Write-Host 'RB2_PORTABLE_NEW_BUNDLE_NO_EXISTING_DATA=PASS'
+      - name: Install authentic signed Brave only on disposable hosted runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $paths=@(
+            (Join-Path $env:ProgramFiles 'BraveSoftware\Brave-Browser\Application\brave.exe'),
+            (Join-Path ${env:ProgramFiles(x86)} 'BraveSoftware\Brave-Browser\Application\brave.exe'),
+            (Join-Path $env:LOCALAPPDATA 'BraveSoftware\Brave-Browser\Application\brave.exe')
+          )
+          $brave=@($paths | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}) | Select-Object -First 1
+          if (!$brave) {
+            $choco=Get-Command choco.exe -ErrorAction SilentlyContinue
+            if (!$choco) { throw 'RB2_BRAVE_PACKAGE_MANAGER_UNAVAILABLE' }
+            & $choco.Source install brave --version=1.97.59 --yes --no-progress --limit-output
+            if ($LASTEXITCODE -ne 0) { throw 'RB2_PINNED_BRAVE_INSTALL_FAILED' }
+            $brave=@($paths | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf}) | Select-Object -First 1
+          }
+          if (!$brave) { throw 'RB2_AUTHENTIC_BRAVE_NOT_FOUND' }
+          $signature=Get-AuthenticodeSignature -LiteralPath $brave
+          if ($signature.Status -ne 'Valid' -or
+              $signature.SignerCertificate.Subject -notmatch '(?i)brave software') {
+            throw 'RB2_AUTHENTIC_BRAVE_SIGNATURE_UNVERIFIED'
+          }
+          Write-Host ('RB2_PORTABLE_REAL_BRAVE_SHA256='+((Get-FileHash -LiteralPath $brave -Algorithm SHA256).Hash.ToLowerInvariant()))
+          Write-Host 'RB2_PORTABLE_REAL_SIGNED_BRAVE=PASS'
+      - name: Real first launch and new portable paper-owner UI with clean restart
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=$env:RB2_PORTABLE_E2E_ROOT
+          if (!$root) { throw 'RB2_PORTABLE_TEST_ROOT_MISSING' }
+          $parent=[IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($root))
+          $env:TEMP=$parent
+          $env:TMP=$parent
+          & node qualification/rb2-funded-public-market-brave.cjs $root
+          if ($LASTEXITCODE -ne 0) { throw 'RB2_REAL_PORTABLE_PAPER_BRAVE_E2E_FAILED' }
+          Write-Host 'RB2_REAL_COINBASE_PAPER_BRAVE_REPLAY=PASS'
+      - name: Verify candidate untouched and release explicitly blocked
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ((& git -C candidate rev-parse HEAD).Trim() -cne $env:SOURCE_SHA) {
+            throw 'RB2_PORTABLE_BROWSER_TEST_MUTATED_SOURCE_COMMIT'
+          }
+          Write-Host ('RB2_PORTABLE_BROWSER_SOURCE_SHA='+$env:SOURCE_SHA)
+          Write-Host 'RB2_PORTABLE_FUNDED_PAPER_MARKET=TESTED_PUBLIC_ONLY_NO_BROKER_ORDERS'
+          Write-Host 'RB2_PORTABLE_FULL_WINDOWS_REGRESSION=NOT_RUN'
+          Write-Host 'RB2_PORTABLE_OPERATOR_INSTALLED_DATA=UNTOUCHED'
+          Write-Host 'RB2_PORTABLE_NO_BROKER_ORDERS=TRUE'
+          Write-Host 'RB2_PORTABLE_RELEASE=BLOCKED; LIVE_DISARMED=TRUE'
+      - name: Delete disposable paper test bundle and browser state
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:RB2_PORTABLE_E2E_ROOT -and (Test-Path -LiteralPath $env:RB2_PORTABLE_E2E_ROOT)) {
+            Remove-Item -LiteralPath $env:RB2_PORTABLE_E2E_ROOT -Recurse -Force -ErrorAction SilentlyContinue
+          }
