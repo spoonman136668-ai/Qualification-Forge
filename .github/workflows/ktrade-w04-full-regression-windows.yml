@@ -85,6 +85,12 @@ jobs:
             Write-Output '::notice::W04_FULL_WINDOWS_REGRESSION=PASS'
           }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
       - name: Native HTTP and preserved desktop behavioral contracts
+        # Source-qualified original Go handler tests are isolated/recovery
+        # probes, NOT portable-paper app launches. The two mutually
+        # exclusive process modes must not both be set to 1.
+        env:
+          KTRADE_PORTABLE_DISARMED: '0'
+          KTRADE_RECOVERY_ISOLATED: '1'
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
