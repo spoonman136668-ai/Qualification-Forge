@@ -47,7 +47,11 @@
       send("w03_market_selector_failed");return;
     }
     send("w03_ui_market_selected");
-    const source='//@version=5\nstrategy("W03 Native Browser Paper", overlay=true)\nif bar_index == 5\n    strategy.entry("L", strategy.long, qty=1)\n';
+    // Real Coinbase public FINAL candles remain authoritative. Pine's
+    // supported barstate.islast selects the final confirmed input bar,
+    // regardless of whether upstream finalized 299 or 300 candles.
+    // Bounded spot PAPER size: never close to original $100 quote guard.
+    const source='//@version=5\nstrategy("W03 Browser Final-Bar Paper", overlay=true)\nif barstate.islast\n    strategy.entry("L", strategy.long, qty=0.0001)\n';
     window.KTRADE_APP.pineEditor.setValue(source);
     if(window.KTRADE_APP.pineEditor.getValue()!==source){send("w03_editor_failed");return;}
     const priorPrompt=window.prompt;
@@ -91,6 +95,7 @@
     send("w03_ui_explicit_paper_start");
     // Capture the actual response to the original UI button's POST, not
     // a separate synthetic request or a click-only proxy receipt.
+    let verifiedBrowserFill=false;
     const oldFetch=window.fetch.bind(window);
     window.fetch=async (...args)=>{
       const response=await oldFetch(...args);
@@ -102,6 +107,14 @@
             (result.outcome==="NO_SUPPORTED_FINAL_BAR_ORDER" ||
              result.outcome==="ISOLATED_PAPER_FILLED_OR_DEDUPLICATED")) {
             send("w03_evaluate_server_accepted");
+            if(result.outcome==="ISOLATED_PAPER_FILLED_OR_DEDUPLICATED" &&
+              result.paper_fill===true && result.fill_count===1 &&
+              /^[a-f0-9]{64}$/.test(result.ledger_hash||"")){
+              verifiedBrowserFill=true;
+              send("w03_browser_finalbar_paper_fill");
+            } else {
+              send("w03_browser_no_source_verified_fill");
+            }
           }else{send("w03_evaluate_server_refused");}
         }catch(_){send("w03_evaluate_server_refused");}
       }
@@ -131,6 +144,31 @@
          report.account?.stopped===true &&
          Array.isArray(report.account.products)){
         send("w03_ui_sealed_archive");
+        const product=report.account.products.find(x=>x.product_id==="BTC-USDC");
+        const numeric=(v)=>typeof v==="string" && /^-?[0-9]+(?:\\.[0-9]+)?$/.test(v);
+        if(verifiedBrowserFill && product?.fill_count===1 &&
+          numeric(product.fees_paid)&&Number(product.fees_paid)>0 &&
+          numeric(product.position_qty)&&Number(product.position_qty)>0 &&
+          numeric(product.cash)&&numeric(product.cost_basis) &&
+          numeric(product.realized_pnl) && product.quote_currency==="USDC" &&
+          /^[a-f0-9]{64}$/.test(report.snapshot_seal||"") &&
+          report.original_risk_proof_verified===true){
+          send("w03_browser_fill_sealed_fifo_fees_pnl");
+          const button=document.getElementById("paperSessionArchive");
+          if(button){
+            button.click();
+            try{
+              await waiting(()=>{
+                const displayed=document.getElementById("paperSessionStatus")?.textContent||"";
+                return displayed.includes("COLD ACCOUNT") &&
+                  displayed.includes("fees ") && displayed.includes("(1 fills)");
+              },8000);
+              send("w03_browser_account_visible_in_ui");
+            }catch(_){send("w03_account_ui_not_visible");}
+          }
+        } else {
+          send("w03_browser_sealed_account_fill_missing");
+        }
       }
     }else{send("w03_archive_unavailable");}
   }

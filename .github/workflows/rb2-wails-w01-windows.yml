@@ -557,7 +557,8 @@ jobs:
             $required=@('w03_script_executed','w03_native_paper_controls','w03_unfunded_guard',
               'w03_ui_market_selected','w03_ui_pine_durable_save','w03_ui_no_fee_start_refused',
               'w03_ui_explicit_paper_start','w03_evaluate_server_accepted','w03_ui_evaluate_clicked','w03_ui_paper_stop',
-              'w03_ui_sealed_archive')
+              'w03_ui_sealed_archive','w03_browser_finalbar_paper_fill',
+              'w03_browser_fill_sealed_fifo_fees_pnl','w03_browser_account_visible_in_ui')
             $w03Events=@()
             $limit=(Get-Date).AddSeconds(53)
             while((Get-Date) -lt $limit){
@@ -576,6 +577,7 @@ jobs:
               Write-Output ('::warning::W03_MISSING_BROWSER_ACCEPTANCE='+($missing -join ','))
               throw 'W03_PACKAGED_UI_FUNDED_PAPER_UNQUALIFIED'
             }
+            Write-Output '::notice::W03_PACKAGED_UI_SOURCE_FINALBAR_FILL_FIFO_FEES_PNL=PASS'
             Write-Output '::notice::W03_PACKAGED_UI_FUNDED_START_STOP_ARCHIVE=PASS'
 
             if(-not $app.CloseMainWindow()){throw 'W03_PAIRED_WAILS_CLOSE_REQUEST_FAILED'}
