@@ -158,8 +158,15 @@ async function run(){
   };
   // This time-indexed strategy is created entirely in disposable runner data.
   // It is not a trading signal, recommendation or user strategy.
-  const source='//@version=5\\nstrategy("RB2 Public Candle Paper Only")\\nif bar_index == '+
-   String(bars.length-1)+'\\n    strategy.entry("L", strategy.long, qty=0.0001)\\n';
+  // Build genuine multiline Pine source. Literal backslash-n characters
+  // are NOT valid Pine line breaks and can falsely mask market admission.
+  const source=[
+    '//@version=5',
+    'strategy("RB2 Public Candle Paper Only")',
+    'if bar_index == '+String(bars.length-1),
+    '    strategy.entry("L", strategy.long, qty=0.0001)',
+    ''
+  ].join(String.fromCharCode(10));
   const saved=await post("/api/pine-library",{
    display_name:"RB2 public feed isolated paper only",kind:"strategy",source
   });
