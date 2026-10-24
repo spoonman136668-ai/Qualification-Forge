@@ -153,8 +153,8 @@ async function run(){
   await waitFor(async()=>{try{await fetch("http://127.0.0.1:8080/api/paper/session");return false}catch(e){return true}},"RB2_PORTABLE_PROCESS_TERMINATION_2",12000);
   const alt=path.join(root,"untrusted-copy","KTRADE-Portable");
   fs.mkdirSync(path.dirname(alt),{recursive:true});
-  fs.cpSync(stage,alt,{recursive:true});
-  fs.rmSync(path.join(alt,"data"),{recursive:true,force:true});
+  fs.cpSync(stage,alt,{recursive:true,filter:src=>
+   src===stage||path.relative(stage,src).split(path.sep)[0]!=="data"});
   fs.mkdirSync(path.join(alt,"data"),{recursive:true});
   fs.writeFileSync(path.join(alt,"data","historical-user-profile.txt"),"DO NOT TOUCH");
   second=await launchApp(alt);
