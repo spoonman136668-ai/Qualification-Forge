@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 9d5a76b25f06dec4889075386c841b877e7d828f
+          ref: 59b6362254c3a251612fbf8bf7bb0e108c73288a
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -49,18 +49,17 @@ jobs:
           $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $head=(& git -C $source rev-parse HEAD).Trim()
           $parent=(& git -C $source rev-parse HEAD^).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '9d5a76b25f06dec4889075386c841b877e7d828f' -or $parent -cne 'e555aceedec905d9258f7210a32975813f06676c'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
-          $changed=@(& git -C $source diff --name-only HEAD^ HEAD)
-          $expected=@('tools/wails-pilot/backend/backend.go','tools/wails-pilot/backend/backend_test.go')
-          if($changed.Count -ne 2 -or ($changed -join ';') -cne ($expected -join ';')){throw 'W01_ONLY_TWO_SECURITY_TEST_SOURCE_CHANGES_PERMITTED'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '59b6362254c3a251612fbf8bf7bb0e108c73288a' -or $parent -cne '0da2dd5bcf3aab984080e3acf6539e0f54e8bbab'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
+          $tree=(& git -C $source rev-parse 'HEAD^{tree}').Trim()
+          if($LASTEXITCODE -ne 0 -or $tree -cne 'f801f48ba3dd8ea25508bf065f0d59c880270dc3'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
           if(@(& git -C $source status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_DRIFT'}
-          Write-Host 'W01_SOURCE_PINNED_CANONICAL_TEMP_REDIRECTION_REPAIR=PASS'
+          Write-Host 'W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
           Write-Host 'W01_PROTECTED_BRANCHES_AND_OWNER_DATA_UNTOUCHED=PASS'
 
       - name: Set up hosted Windows Go and build-time vendor tooling
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.x'
+          go-version-file: checked-private/tools/wails-pilot/go.mod
           cache: false
 
       - name: Set up build-time-only Node for original locked Monaco/chart assets
@@ -110,9 +109,9 @@ jobs:
             } finally {Pop-Location}
             Push-Location (Join-Path $root 'tools/wails-pilot')
             try {
-              & go mod tidy *> $log
+              & go mod download *> $log
               if($LASTEXITCODE -ne 0){throw 'W01_WAILS_DEPENDENCY_RESOLUTION_FAILED_PRIVATE_OUTPUT_WITHHELD'}
-              & go test -count=1 ./backend *> $log
+              & go test -mod=readonly -race -count=1 ./backend *> $log
               if($LASTEXITCODE -ne 0){
                 $diagnostic=Get-Content -LiteralPath $log -Raw
                 $failed=@([regex]::Matches($diagnostic,'(?m)^--- FAIL: ([A-Za-z0-9_]+)') | ForEach-Object {$_.Groups[1].Value})
@@ -134,10 +133,10 @@ jobs:
                 }
                 throw 'W01_BACKEND_FOCUSED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'
               }
-              & go vet ./backend *> $log
+              & go vet -mod=readonly ./backend *> $log
               if($LASTEXITCODE -ne 0){throw 'W01_BACKEND_VET_FAILED_PRIVATE_OUTPUT_WITHHELD'}
               Write-Host 'W01_BACKEND_TESTS_AND_VET=PASS'
-              & go build -tags desktop,production -o (Join-Path $stage 'ktrade-wails-pilot.exe') . *> $log
+              & go build -mod=readonly -tags desktop,production -o (Join-Path $stage 'ktrade-wails-pilot.exe') . *> $log
               if($LASTEXITCODE -ne 0){throw 'W01_WAILS_WINDOWS_BUILD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
               Write-Host 'W01_WAILS_WEBVIEW2_EXE_BUILT=PASS'
             } finally {Pop-Location}
@@ -215,17 +214,35 @@ jobs:
             $lockedOrder=$http.PostAsync($base+'/api/orders/place',[System.Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
             if([int]$lockedOrder.StatusCode -ne 423){throw 'W01_LEGACY_ORDERS_NOT_LOCKED'}
             Write-Host 'W01_PAPER_AND_LEGACY_LIVE_ORDER_ROUTES_LOCKED=PASS'
+            $request=[System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get,$base+'/ws/chart?product=BTC-USD')
+            try {
+              foreach($entry in @{Connection='Upgrade';Upgrade='websocket';'Sec-WebSocket-Version'='13';'Sec-WebSocket-Key'='dGhlIHNhbXBsZSBub25jZQ==';Origin='http://hostile.example'}.GetEnumerator()){
+                $request.Headers.TryAddWithoutValidation($entry.Key,$entry.Value) | Out-Null
+              }
+              $response=$http.SendAsync($request).GetAwaiter().GetResult()
+              try {if([int]$response.StatusCode -ne 403){throw 'W01_HOSTILE_UPGRADE_NOT_FORBIDDEN'}} finally {$response.Dispose()}
+            } finally {$request.Dispose()}
             $websocket=[System.Net.WebSockets.ClientWebSocket]::new()
+            $connected=$false
+            $wsDeadline=[Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds(12))
             try {
               $websocket.Options.SetRequestHeader('Origin','http://hostile.example')
-              $websocket.ConnectAsync([Uri]('ws://127.0.0.1:'+$listener[0].LocalPort+'/ws/chart?product=BTC-USD'),[Threading.CancellationToken]::None).GetAwaiter().GetResult()
+              $websocket.ConnectAsync([Uri]('ws://127.0.0.1:'+$listener[0].LocalPort+'/ws/chart?product=BTC-USD'), $wsDeadline.Token).GetAwaiter().GetResult()
+              $connected=$true
             } catch {
-              if($websocket.State -eq [System.Net.WebSockets.WebSocketState]::Open){throw 'W01_CROSS_ORIGIN_WS_CONNECTED'}
-            } finally {$websocket.Dispose()}
-            if($websocket.State -eq [System.Net.WebSockets.WebSocketState]::Open){throw 'W01_CROSS_ORIGIN_WS_CONNECTED'}
+              $connected=$websocket.State -eq [System.Net.WebSockets.WebSocketState]::Open
+            } finally {$websocket.Dispose();$wsDeadline.Dispose()}
+            if($connected){throw 'W01_CROSS_ORIGIN_WS_CONNECTED'}
             Write-Host 'W01_CROSS_ORIGIN_WEBSOCKET_DENIED=PASS'
             if(Test-Path -LiteralPath (Join-Path $stage 'data')){throw 'W01_SOURCE_CREATED_UNEXPECTED_PAPER_DATA'}
             Write-Host 'W01_NO_INSTALLED_PROFILE_OR_PAPER_DATA=PASS'
+            if(-not $parent.CloseMainWindow()){throw 'W01_CLOSE_REQUEST_FAILED'}
+            if(-not $parent.WaitForExit(15000)){throw 'W01_WINDOW_CLOSE_TIMEOUT'}
+            if($parent.ExitCode -ne 0){throw 'W01_WINDOW_CLOSE_FAILED'}
+            $owned=Get-Process -Id $child[0].ProcessId -ErrorAction SilentlyContinue
+            if($owned -and -not $owned.WaitForExit(5000)){throw 'W01_OWNED_BACKEND_SURVIVED_CLOSE'}
+            Write-Host 'W01_WINDOW_AND_OWNED_CHILD_SHUTDOWN=PASS'
+            if(@(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_CHANGED_DURING_BUILD'}
           } finally {
             if($http){$http.Dispose()}
             if($parent){
@@ -238,3 +255,10 @@ jobs:
             Remove-Item -LiteralPath $sandboxRoot -Force -Recurse -ErrorAction SilentlyContinue
           }
           Write-Host 'W01_TEST_ONLY_NO_RELEASE_NO_LIVE=PASS'
+
+      - name: Remove private checkout from disposable runner
+        if: always()
+        shell: pwsh
+        run: |
+          $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $source){Remove-Item -LiteralPath $source -Recurse -Force}
