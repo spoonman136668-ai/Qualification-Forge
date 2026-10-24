@@ -142,14 +142,14 @@ async function run(){
   if(forged.value?.paper_orders_enabled!==false||forged.value?.mode!=="PAPER_NOT_FUNDED")
    throw Error("RB2_PORTABLE_FORGED_INTENT_FUNDED_SESSION");
   console.log("RB2_PORTABLE_BROWSER_INVALID_START_AND_LIVE_VETO=PASS");
-  // First bona fide paper admission on PUBLIC authenticated Coinbase Exchange
+  // First bona fide paper admission on PUBLIC authenticated-source Coinbase Advanced Trade
   // OHLCV. This is a simulated ledger trade, not an exchange/broker order.
   // No candle, mark or Pine order is accepted from the browser as authority.
   const marketResponse=await fetch("http://127.0.0.1:8080/api/candles?product=BTC-USDC&tf=1m",{cache:"no-store"});
   if(!marketResponse.ok)throw Error("RB2_PUBLIC_COINBASE_CANDLES_UNAVAILABLE_HTTP_"+marketResponse.status+"_SERVER_REASON_"+app.safePublicCandleFailure());
   const market=await marketResponse.json();
   const bars=market.candles;
-  if(market.source!=="coinbase_exchange_rest"||market.finalized!==true||market.stale!==false||
+  if(market.source!=="coinbase_advanced_public_rest"||market.finalized!==true||market.stale!==false||
      !Array.isArray(bars)||bars.length<2||bars.length>300)
    throw Error("RB2_PUBLIC_COINBASE_FINAL_BARS_UNQUALIFIED_"+JSON.stringify({source:market.source,stale:market.stale,count:bars?.length}));
   console.log("RB2_AUTHENTIC_PUBLIC_COINBASE_FINAL_CANDLES=PASS");
