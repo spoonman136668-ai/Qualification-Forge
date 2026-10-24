@@ -78,6 +78,16 @@ jobs:
               $last=[DateTimeOffset]::FromUnixTimeSeconds([long]$max)
               $freshness=($observed-$last.AddMinutes(1)).TotalSeconds
               $valid=($freshness -ge 0 -and $freshness -le 120)
+              $finalTimes=@($epochs | Where-Object { $_ + 60 -le ($observed.ToUnixTimeSeconds() - 2) })
+              if($finalTimes.Count) {
+                $finalMax=($finalTimes|Measure-Object -Maximum).Maximum
+                $closed=[DateTimeOffset]::FromUnixTimeSeconds([long]$finalMax+60)
+                $age=($observed-$closed).TotalSeconds
+                Write-Host ('RB2_ADVANCED_FINAL_'+$product+'_CLOSE_'+$closed.ToString('o')+
+                  '_AGE_SECONDS_'+[math]::Round($age,1)+'_INDEPENDENTLY_FRESH_'+($age -ge 0 -and $age -le 120))
+              } else {
+                Write-Host ('RB2_ADVANCED_FINAL_'+$product+'_NO_SOURCE_FINALIZED_CANDLE')
+              }
               Write-Host ('RB2_ADVANCED_'+$product+'_HTTP_'+[int]$response.StatusCode+
                 '_ROWS_'+$candles.Count+'_OLDEST_START_'+[DateTimeOffset]::FromUnixTimeSeconds([long]$min).ToString('o')+
                 '_NEWEST_START_'+$last.ToString('o')+'_OBSERVED_'+$observed.ToString('o')+
