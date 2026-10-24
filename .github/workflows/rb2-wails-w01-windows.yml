@@ -556,7 +556,7 @@ jobs:
             Write-Output '::notice::W03_FRESH_APP_OWNED_PAPER_NOT_FUNDED_LIVE_DISARMED=PASS'
             $required=@('w03_script_executed','w03_native_paper_controls','w03_unfunded_guard',
               'w03_ui_market_selected','w03_ui_pine_durable_save','w03_ui_no_fee_start_refused',
-              'w03_ui_explicit_paper_start','w03_ui_evaluate_clicked','w03_ui_paper_stop',
+              'w03_ui_explicit_paper_start','w03_evaluate_server_accepted','w03_ui_evaluate_clicked','w03_ui_paper_stop',
               'w03_ui_sealed_archive')
             $w03Events=@()
             $limit=(Get-Date).AddSeconds(53)
@@ -583,7 +583,62 @@ jobs:
             $stale=Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
             if($stale -and -not $stale.WaitForExit(5000)){throw 'W03_PAIRED_GO_CHILD_SURVIVED_CLOSE'}
             Write-Output '::notice::W03_PAIRED_SHELL_OWNED_ENGINE_SHUTDOWN=PASS'
-            Write-Output '::notice::W03_NO_FUNDED_PAPER_ORDER_OR_LIVE=PASS'
+            # Reopen the SAME immutable app-owned package in a new process.
+            # A cold launch may inspect a single sealed historical ledger,
+            # but MUST NOT acquire the old financial writer or rearm PAPER.
+            $app=Start-Process -FilePath $exe -WorkingDirectory $stage -PassThru
+            $null=$app.Handle
+            $rebootDeadline=(Get-Date).AddSeconds(40)
+            $rebootWindow=$false
+            while((Get-Date) -lt $rebootDeadline){
+              Start-Sleep -Milliseconds 400
+              $app.Refresh()
+              if($app.HasExited){throw 'W03_COLD_WAILS_WINDOW_EARLY_EXIT'}
+              if($app.MainWindowHandle -ne [IntPtr]::Zero -and $app.MainWindowTitle -like 'KTRADE*Portable PAPER*'){$rebootWindow=$true;break}
+            }
+            if(!$rebootWindow){throw 'W03_COLD_WAILS_WINDOW_MISSING'}
+            $coldChild=$null
+            $rebootDeadline=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $rebootDeadline){
+              $children=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" |
+                Where-Object {$_.ExecutablePath -ieq $childExe -and $_.ParentProcessId -eq $app.Id})
+              if($children.Count -eq 1){$coldChild=$children[0];break}
+              Start-Sleep -Milliseconds 350
+            }
+            if(!$coldChild){throw 'W03_COLD_GO_CHILD_MISSING'}
+            $child=$coldChild
+            $ports=@(Get-NetTCPConnection -State Listen -OwningProcess $child.ProcessId -ErrorAction SilentlyContinue |
+              Where-Object {$_.LocalAddress -eq '127.0.0.1'})
+            if($ports.Count -ne 1){throw 'W03_COLD_GO_LOOPBACK_LISTENER_MISSING'}
+            $coldAddr='http://127.0.0.1:'+$ports[0].LocalPort
+            $coldResp=$http.GetAsync($coldAddr+'/api/paper/session').GetAwaiter().GetResult()
+            if([int]$coldResp.StatusCode -ne 200){throw 'W03_COLD_PAPER_STATUS_REFUSED'}
+            $coldState=$coldResp.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
+            if($coldState.schema -cne 'ktrade.paper.isolated-session.v1' -or
+               $coldState.mode -cne 'PAPER_NOT_FUNDED' -or
+               $coldState.paper_orders_enabled -ne $false -or
+               $coldState.live_armed -ne $false){
+              throw 'W03_COLD_RESTART_AUTO_REARM_DETECTED'
+            }
+            $coldRead=$http.GetAsync($coldAddr+'/api/paper/session/archive').GetAwaiter().GetResult()
+            if([int]$coldRead.StatusCode -ne 200){throw 'W03_COLD_READ_ONLY_ARCHIVE_UNAVAILABLE'}
+            $coldArchive=$coldRead.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
+            if($coldArchive.schema -cne 'ktrade.paper.cold-archive.read-only.v1' -or
+               $coldArchive.live_armed -ne $false -or
+               $coldArchive.orders_enabled -ne $false -or
+               $coldArchive.execution_restore_eligible -ne $false -or
+               $coldArchive.account.stopped -ne $true -or
+               $coldArchive.requires_review -ne $true -or
+               $coldArchive.snapshot_seal -cnotmatch '^[a-f0-9]{64}$'){
+              throw 'W03_COLD_ARCHIVE_FINANCIAL_IDENTITY_INVALID'
+            }
+            Write-Output '::notice::W03_PACKAGED_COLD_RESTART_SEALED_READ_ONLY_ARCHIVE=PASS'
+            if(-not $app.CloseMainWindow()){throw 'W03_COLD_WAILS_CLOSE_FAILED'}
+            if(-not $app.WaitForExit(15000) -or $app.ExitCode -ne 0){throw 'W03_COLD_WAILS_EXIT_FAILED'}
+            $left=Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
+            if($left -and -not $left.WaitForExit(5000)){throw 'W03_COLD_GO_CHILD_SURVIVED_GUI_CLOSE'}
+            Write-Output '::notice::W03_COLD_WAILS_PARENT_CHILD_SHUTDOWN=PASS'
+            Write-Output '::notice::W03_NO_LIVE_BROKER_OR_USER_PROFILE_ACCESS=PASS'
           }finally{
             if($w03Server){try{if(-not $w03Server.HasExited){Stop-Process -Id $w03Server.Id -Force -ErrorAction SilentlyContinue}}catch{}}
             if($http){$http.Dispose()}

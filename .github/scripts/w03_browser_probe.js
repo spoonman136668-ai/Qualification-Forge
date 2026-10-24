@@ -89,10 +89,30 @@
       send("w03_funded_authority_invalid");return;
     }
     send("w03_ui_explicit_paper_start");
+    // Capture the actual response to the original UI button's POST, not
+    // a separate synthetic request or a click-only proxy receipt.
+    const oldFetch=window.fetch.bind(window);
+    window.fetch=async (...args)=>{
+      const response=await oldFetch(...args);
+      if(args[0]==="/api/paper/session/evaluate"){
+        try{
+          const result=await response.clone().json();
+          if(response.ok && result.schema==="ktrade.paper.isolated-session.v1" &&
+            result.live_armed===false &&
+            (result.outcome==="NO_SUPPORTED_FINAL_BAR_ORDER" ||
+             result.outcome==="ISOLATED_PAPER_FILLED_OR_DEDUPLICATED")) {
+            send("w03_evaluate_server_accepted");
+          }else{send("w03_evaluate_server_refused");}
+        }catch(_){send("w03_evaluate_server_refused");}
+      }
+      return response;
+    };
     const evaluate=document.getElementById("paperSessionEvaluate");
     if(evaluate.disabled){send("w03_evaluate_control_disabled");return;}
     evaluate.click();
-    await new Promise(resolve=>setTimeout(resolve,1800));
+    await waiting(()=>events.has("w03_evaluate_server_accepted")||
+      events.has("w03_evaluate_server_refused"),12000);
+    if(!events.has("w03_evaluate_server_accepted"))return;
     send("w03_ui_evaluate_clicked");
     document.getElementById("paperSessionStop").click();
     const stopped=await waiting(async()=>{
@@ -106,7 +126,10 @@
       const report=await archive.json();
       if(report.schema==="ktrade.paper.cold-archive.read-only.v1" &&
          report.live_armed===false && report.orders_enabled===false &&
-         report.execution_restore_eligible===false){
+         report.execution_restore_eligible===false &&
+         report.requires_review===true &&
+         report.account?.stopped===true &&
+         Array.isArray(report.account.products)){
         send("w03_ui_sealed_archive");
       }
     }else{send("w03_archive_unavailable");}
