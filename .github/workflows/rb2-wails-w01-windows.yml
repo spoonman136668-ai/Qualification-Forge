@@ -31,6 +31,26 @@ jobs:
       KTRADE_PAPER_SESSION_ROOT: ''
       KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
     steps:
+      - name: Checkout exact witness-source scripts without persisting credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/Qualification-Forge
+          ref: ${{ github.sha }}
+          path: witness-tools
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Verify witness tools commit identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $local=Join-Path $env:GITHUB_WORKSPACE 'witness-tools'
+          $sha=(& git -C $local rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $sha -cne $env:GITHUB_SHA){throw 'W02_WITNESS_SOURCE_SHA_MISMATCH'}
+          if(-not (Test-Path -LiteralPath (Join-Path $local '.github/scripts/w02_beacon.cjs'))){throw 'W02_WITNESS_BEACON_MISSING'}
+          if(-not (Test-Path -LiteralPath (Join-Path $local '.github/scripts/w02_browser_probe.js'))){throw 'W02_WITNESS_BROWSER_PROBE_MISSING'}
+          Write-Output '::notice::W02_WITNESS_SCRIPTS_EXACT_SHA=PASS'
+
       - name: Checkout exact private KTRADE review source, no persisted credentials
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -123,7 +143,7 @@ jobs:
               # the freshly created runner-local staged chart HTML and assets.
               $beaconManifest=Join-Path $sandboxRoot 'w02-beacon-manifest.json'
               $beaconNonce=[guid]::NewGuid().ToString('N')
-              $beaconSrc=Join-Path $env:GITHUB_WORKSPACE '.github/scripts/w02_beacon.cjs'
+              $beaconSrc=Join-Path $env:GITHUB_WORKSPACE 'witness-tools/.github/scripts/w02_beacon.cjs'
               $beaconProcess=Start-Process -FilePath node -ArgumentList @($beaconSrc,$beaconManifest,$beaconNonce) -PassThru
               $beaconDeadline=(Get-Date).AddSeconds(10)
               while(-not (Test-Path -LiteralPath $beaconManifest) -and (Get-Date) -lt $beaconDeadline){
@@ -135,7 +155,7 @@ jobs:
               $beacon=(Get-Content -LiteralPath $beaconManifest -Raw | ConvertFrom-Json)
               if($beacon.nonce -cne $beaconNonce -or [int]$beacon.port -lt 1024){throw 'W02_BEACON_SOURCE_MISMATCH'}
               $beaconURL='http://127.0.0.1:'+$beacon.port+'/event?nonce='+$beaconNonce
-              $probe=(Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE '.github/scripts/w02_browser_probe.js') -Raw).Replace('__W02_BEACON_URL__',$beaconURL)
+              $probe=(Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'witness-tools/.github/scripts/w02_browser_probe.js') -Raw).Replace('__W02_BEACON_URL__',$beaconURL)
               [IO.File]::WriteAllText((Join-Path $stage 'static/w02-browser-probe.js'),$probe,[Text.UTF8Encoding]::new($false))
               $templatePath=Join-Path $stage 'templates/chart.tmpl'
               $template=[IO.File]::ReadAllText($templatePath)
