@@ -128,6 +128,23 @@ jobs:
               if($LASTEXITCODE -ne 0){throw 'W01_ORIGINAL_ENGINE_BUILD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
               # W03 source-pinned Go owner-preflight qualification; the
               # application still uses the disarmed view-only Wails pilot.
+              # Synthetic fixture only: no real broker, profile, or secret data.
+              # Print ONLY the named test's failure lines; all other private
+              # diagnostics remain withheld from hosted runner output.
+              & go test -mod=readonly -tags=ktrade_full -count=1 -v -run '^TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly$' -timeout 10m ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log | Where-Object {
+                  $_ -match '^(FAIL|# ktrade/|--- FAIL:|    .*rb3_wails_paper_lifecycle_full_test\.go:|cmd/ktrade/.*\.go:[0-9]+:)'
+                } | Select-Object -Last 12)
+                foreach($line in $safe){
+                  $redacted=[regex]::Replace([string]$line,'[A-Za-z]:\\[^ ]+','[REDACTED_PATH]')
+                  $redacted=[regex]::Replace($redacted,'[^a-zA-Z0-9_ .:/=;,+()\[\]-]','')
+                  if($redacted.Length -gt 270){$redacted=$redacted.Substring(0,270)}
+                  Write-Output ('::warning::W03_SYNTHETIC_TEST_FAILURE='+$redacted)
+                }
+                throw 'W03_SYNTHETIC_PAPER_LIFECYCLE_UNQUALIFIED'
+              }
+              Write-Output '::notice::W03_SYNTHETIC_PAIRED_FINANCIAL_LIFECYCLE=PASS'
               & go test -mod=readonly -tags=ktrade_full -count=1 -run '^TestRB3Wails' -timeout 10m ./cmd/ktrade *> $log
               if($LASTEXITCODE -ne 0){throw 'W03_PAIRED_OWNER_GO_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'}
               Write-Output '::notice::W03_WAILS_DUAL_EXECUTABLE_OWNER_FOCUSED=PASS'
