@@ -77,7 +77,14 @@ jobs:
           Set-StrictMode -Version Latest
           $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $log=Join-Path $env:RUNNER_TEMP 'w01-private-compile.log'
-          $sandboxRoot=Join-Path ([IO.Path]::GetTempPath()) ('ktrade-w01-'+[Guid]::NewGuid().ToString('N'))
+          # Go on Windows resolves os.TempDir from TMP/TEMP; .NET's
+          # GetTempPath can resolve a different path on hosted runners.
+          # Bind fixture and both child processes to one explicit ephemeral
+          # runner-owned OS temporary directory, never an installed profile.
+          if(-not (Test-Path -LiteralPath $env:RUNNER_TEMP -PathType Container)){throw 'W01_HOSTED_RUNNER_TEMP_INVALID'}
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $sandboxRoot=Join-Path $env:RUNNER_TEMP ('ktrade-w01-'+[Guid]::NewGuid().ToString('N'))
           $stage=Join-Path $sandboxRoot 'KTRADE-WailsPilot'
           $parent=$null
           $child=$null
