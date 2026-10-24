@@ -150,6 +150,9 @@ jobs:
             $pilotStderr=Join-Path $env:RUNNER_TEMP 'w01-wails-exit-stderr.log'
             $pilotStdout=Join-Path $env:RUNNER_TEMP 'w01-wails-exit-stdout.log'
             $parent=Start-Process -FilePath $exe -WorkingDirectory $stage -PassThru -RedirectStandardError $pilotStderr -RedirectStandardOutput $pilotStdout
+            # Retain the native process handle while alive so .NET can read
+            # the exit code after Windows removes the exited process.
+            $null=$parent.Handle
             $window=$false
             $deadline=(Get-Date).AddSeconds(45)
             while((Get-Date) -lt $deadline){
@@ -250,7 +253,10 @@ jobs:
             Write-Output '::notice::W01_NO_INSTALLED_PROFILE_OR_PAPER_DATA=PASS'
             if(-not $parent.CloseMainWindow()){throw 'W01_CLOSE_REQUEST_FAILED'}
             if(-not $parent.WaitForExit(15000)){throw 'W01_WINDOW_CLOSE_TIMEOUT'}
-            if($parent.ExitCode -ne 0){throw 'W01_WINDOW_CLOSE_FAILED'}
+            $exitCode=$parent.ExitCode
+            if($null -eq $exitCode){throw 'W01_WINDOW_EXIT_CODE_UNAVAILABLE'}
+            Write-Output ('::notice::W01_WINDOW_EXIT_CODE='+$exitCode)
+            if($exitCode -ne 0){throw 'W01_WINDOW_CLOSE_FAILED'}
             $owned=Get-Process -Id $child[0].ProcessId -ErrorAction SilentlyContinue
             if($owned -and -not $owned.WaitForExit(5000)){throw 'W01_OWNED_BACKEND_SURVIVED_CLOSE'}
             Write-Host 'W01_WINDOW_AND_OWNED_CHILD_SHUTDOWN=PASS'
