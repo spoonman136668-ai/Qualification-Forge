@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 81d29a9064efb01c12c06ba1de251dc23fd245ca
+          ref: 6785853d752b38645b7b03f4c41db90781eedad8
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -69,9 +69,9 @@ jobs:
           $source=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $head=(& git -C $source rev-parse HEAD).Trim()
           $parent=(& git -C $source rev-parse HEAD^).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '81d29a9064efb01c12c06ba1de251dc23fd245ca' -or $parent -cne '87025444f6428ee86224b27f19805a653130fd17'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '6785853d752b38645b7b03f4c41db90781eedad8' -or $parent -cne '52b03720ce6df82ad3319d60161c947dd72afe3c'){throw 'W01_EXACT_PILOT_PARENT_REQUIRED'}
           $tree=(& git -C $source rev-parse 'HEAD^{tree}').Trim()
-          if($LASTEXITCODE -ne 0 -or $tree -cne '555cb8912e0d4294067efea3be74d2f1abfe6483'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
+          if($LASTEXITCODE -ne 0 -or $tree -cne 'aae148ae8a799d31ea8cdb6f3b9d84c35e78b93c'){throw 'W01_EXACT_SOURCE_TREE_REQUIRED'}
           if(@(& git -C $source status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W01_TRACKED_SOURCE_DRIFT'}
           Write-Host 'W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
           Write-Output '::notice::W01_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
@@ -440,6 +440,84 @@ jobs:
           }
           Write-Host 'W01_TEST_ONLY_NO_RELEASE_NO_LIVE=PASS'
           Write-Output '::notice::W01_TEST_ONLY_NO_RELEASE_NO_LIVE=PASS'
+
+      - name: W03 create fresh paired portable Wails package and smoke stopped state
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[Guid]::NewGuid().ToString('N'))
+          $stage=Join-Path $root 'KTRADE-WailsPortable'
+          $app=$null;$child=$null;$http=$null
+          try {
+            $builder=Join-Path $env:GITHUB_WORKSPACE 'checked-private/windows/Build-KTRADE-WailsPortable.ps1'
+            & $builder -OutputRoot $root -ExpectedSourceSha '6785853d752b38645b7b03f4c41db90781eedad8'
+            if($LASTEXITCODE -ne 0){throw 'W03_BUILDER_FAILED'}
+            if(-not (Test-Path -LiteralPath (Join-Path $stage 'wails-paper-package-proof.json')) -or
+               -not (Test-Path -LiteralPath (Join-Path $stage 'data/wails-paper-fresh-data-proof.json'))){
+              throw 'W03_PAIR_PROOFS_MISSING'
+            }
+            $proof=Get-Content -LiteralPath (Join-Path $stage 'wails-paper-package-proof.json') -Raw | ConvertFrom-Json
+            if($proof.schema -cne 'ktrade.wails.paper-package.v1' -or
+               $proof.live_armed -ne $false){throw 'W03_PAIR_PROOF_INVALID'}
+            $exe=Join-Path $stage 'ktrade.exe'
+            $app=Start-Process -FilePath $exe -WorkingDirectory $stage -PassThru
+            $null=$app.Handle
+            $deadline=(Get-Date).AddSeconds(55)
+            $window=$false
+            while((Get-Date) -lt $deadline){
+              Start-Sleep -Milliseconds 500
+              $app.Refresh()
+              if($app.HasExited){throw 'W03_WAILS_PAIRED_GUI_EARLY_EXIT'}
+              if($app.MainWindowHandle -ne [IntPtr]::Zero -and $app.MainWindowTitle -like 'KTRADE*Portable PAPER*'){$window=$true;break}
+            }
+            if(-not $window){throw 'W03_PAPER_WAILS_WINDOW_NOT_PRESENT'}
+            Write-Output '::notice::W03_PAIRED_WAILS_GENUINE_WINDOW=PASS'
+            $childExe=Join-Path $stage 'ktrade-engine.exe'
+            $deadline=(Get-Date).AddSeconds(18)
+            while((Get-Date) -lt $deadline){
+              $children=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" |
+                Where-Object {$_.ExecutablePath -ieq $childExe -and $_.ParentProcessId -eq $app.Id})
+              if($children.Count -eq 1){$child=$children[0];break}
+              Start-Sleep -Milliseconds 350
+            }
+            if(!$child){throw 'W03_OWNED_GO_CHILD_MISSING'}
+            $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $child.ProcessId -ErrorAction SilentlyContinue |
+              Where-Object {$_.LocalAddress -eq '127.0.0.1'})
+            if($listeners.Count -ne 1){throw 'W03_EXPECT_ONE_LOOPBACK_LISTENER'}
+            $addr='http://127.0.0.1:'+$listeners[0].LocalPort
+            $http=[Net.Http.HttpClient]::new()
+            $http.Timeout=[TimeSpan]::FromSeconds(15)
+            $paper=$http.GetAsync($addr+'/api/paper/session').GetAwaiter().GetResult()
+            if([int]$paper.StatusCode -ne 200){throw 'W03_PAPER_OWNER_NOT_ADMITTED'}
+            $state=$paper.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json
+            if($state.schema -cne 'ktrade.paper.isolated-session.v1' -or
+               $state.mode -cne 'PAPER_NOT_FUNDED' -or
+               $state.live_armed -ne $false -or
+               $state.paper_orders_enabled -ne $false){
+              throw 'W03_PAPER_NOT_STOPPED_BEFORE_CONSENT'
+            }
+            $legacy=$http.PostAsync($addr+'/api/orders/place',
+              [Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+            if([int]$legacy.StatusCode -ne 423){throw 'W03_LEGACY_ORDER_API_NOT_LOCKED'}
+            $invalid=$http.PostAsync($addr+'/api/paper/session/start',
+              [Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+            if([int]$invalid.StatusCode -eq 200){throw 'W03_UNAUTHORIZED_EMPTY_PAPER_START_ACCEPTED'}
+            Write-Output '::notice::W03_FRESH_APP_OWNED_PAPER_NOT_FUNDED_LIVE_DISARMED=PASS'
+            if(-not $app.CloseMainWindow()){throw 'W03_PAIRED_WAILS_CLOSE_REQUEST_FAILED'}
+            if(-not $app.WaitForExit(15000) -or $app.ExitCode -ne 0){throw 'W03_PAIRED_WAILS_CLOSE_FAILED'}
+            $stale=Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
+            if($stale -and -not $stale.WaitForExit(5000)){throw 'W03_PAIRED_GO_CHILD_SURVIVED_CLOSE'}
+            Write-Output '::notice::W03_PAIRED_SHELL_OWNED_ENGINE_SHUTDOWN=PASS'
+            Write-Output '::notice::W03_NO_FUNDED_PAPER_ORDER_OR_LIVE=PASS'
+          }finally{
+            if($http){$http.Dispose()}
+            if($app){try{if(-not $app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}catch{}}
+            if($child){try{Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue}catch{}}
+            if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue}
+          }
 
       - name: Remove private checkout from disposable runner
         if: always()
