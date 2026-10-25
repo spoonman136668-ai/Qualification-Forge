@@ -1,0 +1,115 @@
+name: KTRADE W13A qualified compile-time-only PAPER market fixture
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w13a-tagged-candle-fixture-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w13a-isolated-exact-source
+  cancel-in-progress: false
+jobs:
+  fixture-source:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    env:
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '0'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: \${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout private KTRADE W13A source read-only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 3976a7d1dce3d3ccc29afee53e600ab96a8490df
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: \${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify Windows host, exact source parent tree and witness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $wit=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W13A_AUTHENTIC_HOST_REQUIRED'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '3976a7d1dce3d3ccc29afee53e600ab96a8490df' -or
+             (& git -C $src rev-parse HEAD^).Trim() -cne 'f2ef5cd8d3feb261a922c52c59ba6f184142381e' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '16291f8b2e7b8fdcef62e418cc4af26f9409c7a7' -or
+             (& git -C $wit rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){
+              throw 'W13A_EXACT_SOURCE_IDENTITY_DRIFT'
+          }
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W13A_TRACKED_SOURCE_DIRTY'}
+          Write-Output '::notice::W13A_EXACT_SOURCE_PARENT_TREE=PASS'
+      - name: Windows Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Source-tag isolation and focused live-disarmed tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log=Join-Path $env:RUNNER_TEMP 'w13a-focus-private.log'
+          Push-Location $src
+          try{
+            $production=(& go list -mod=readonly -tags=ktrade_full -f '{{join .GoFiles ","}}' ./cmd/ktrade)
+            if($LASTEXITCODE -ne 0){throw 'W13A_PRODUCTION_FILE_LIST_FAILED'}
+            if($production -notmatch 'paper_candles_source_production_full.go' -or
+               $production -match 'paper_candles_source_w13_fixture_full.go'){
+              throw 'W13A_PRODUCTION_BINARY_CONTAINS_FIXTURE'
+            }
+            Write-Output '::notice::W13A_PRODUCTION_SOURCE_FIXTURE_ABSENT=PASS'
+            $tagged=(& go list -mod=readonly -tags=ktrade_full,ktrade_w13_fixture -f '{{join .GoFiles ","}}' ./cmd/ktrade)
+            if($LASTEXITCODE -ne 0 -or
+               $tagged -notmatch 'paper_candles_source_w13_fixture_full.go' -or
+               $tagged -match 'paper_candles_source_production_full.go'){
+              throw 'W13A_TEST_FIXTURE_TAG_NOT_EXCLUSIVE'
+            }
+            Write-Output '::notice::W13A_COMPILE_TIME_FIXTURE_TAG_EXCLUSIVE=PASS'
+            & go test -mod=readonly -tags=ktrade_full,ktrade_w13_fixture -count=1 -timeout=10m -run '^TestW13' ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13A_FIXTURE_FOCUS_TEST_FAILED'}
+            Write-Output '::notice::W13A_FROZEN_SYNTHETIC_BARS_AND_UNPAIRED_REFUSAL=PASS'
+            & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=10m -run '^TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly$' ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13A_ORIGINAL_TRADEGUARD_LEDGER_LIFECYCLE_REGRESSION'}
+            Write-Output '::notice::W13A_ORIGINAL_PAPER_LIFECYCLE_UNCHANGED=PASS'
+            & go build -mod=readonly -tags=ktrade_full -o (Join-Path $env:RUNNER_TEMP 'w13a-normal-engine.exe') ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13A_NORMAL_WINDOWS_BUILD_FAILED'}
+            & go build -mod=readonly -tags=ktrade_full,ktrade_w13_fixture -o (Join-Path $env:RUNNER_TEMP 'w13a-fixture-engine.exe') ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13A_FIXTURE_WINDOWS_BUILD_FAILED'}
+            $normal=(Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $env:RUNNER_TEMP 'w13a-normal-engine.exe')).Hash
+            $fixture=(Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $env:RUNNER_TEMP 'w13a-fixture-engine.exe')).Hash
+            if($normal -ceq $fixture){throw 'W13A_PRODUCTION_FIXTURE_BINARY_IDENTITY_COLLISION'}
+            Write-Output '::notice::W13A_NORMAL_AND_FIXTURE_BINARY_IDENTITIES_DIFFER=PASS'
+            & go vet -mod=readonly -tags=ktrade_full,ktrade_w13_fixture ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13A_TAGGED_WINDOWS_VET_FAILED'}
+            Write-Output '::notice::W13A_FIXTURE_WINDOWS_VET=PASS'
+            Write-Output '::notice::W13A_NO_PAPER_START_NO_LIVE_BROKER_NO_INSTALL=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Purge source and test artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'checked-private') -Force -Recurse -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'w13a-normal-engine.exe') -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'w13a-fixture-engine.exe') -Force -ErrorAction SilentlyContinue
