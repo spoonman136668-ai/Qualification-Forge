@@ -608,7 +608,7 @@ jobs:
                   throw 'W17D4_SELECTED_TOGGLE_STATE_NOT_ON'
                 }
               }catch{
-                throw ('W17D4_NATIVE_TIMEFRAME_SELECTED_STATE_NOT_PROVEN_'+$value)
+                throw ('W17D4_NATIVE_TIMEFRAME_SELECTED_STATE_NOT_PROVEN_'+$value+':'+$_.Exception.Message)
               }
               $first=Wait-W17D1AButton $process '1m'
               $p1=[System.Windows.Automation.TogglePattern]$first.GetCurrentPattern(
@@ -650,9 +650,30 @@ jobs:
               Start-Sleep -Milliseconds 350
               Assert-W17D4Selected $process $value
             }
+            # The Indicators overlay is initially open; native foreground
+            # custody and disappearance of its accessible star are mandatory.
+            function Close-W17D4Indicators([object]$process) {
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D4_WAILS_FOREGROUND_REQUIRED_TO_CLOSE_INDICATORS'
+              }
+              Start-Sleep -Milliseconds 150
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D4_FOREIGN_WINDOW_REFUSED_BEFORE_ESCAPE'
+              }
+              [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
+              $deadline=(Get-Date).AddSeconds(8)
+              do {
+                $star=Get-W17D1AAccessibleButton $process 'Remove Relative Strength Index from favorites'
+                if($null -eq $star){
+                  Write-Output '::notice::W17D4_NATIVE_INDICATOR_MODAL_DISMISSED_BEFORE_CHART_CLICK=PASS'
+                  return
+                }
+                Start-Sleep -Milliseconds 200
+              } while((Get-Date) -lt $deadline)
+              throw 'W17D4_INDICATOR_MODAL_STILL_BLOCKS_CHART'
+            }
             Assert-W17D4Selected $parent '1m'
-            [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
-            Start-Sleep -Milliseconds 150
+            Close-W17D4Indicators $parent
             Click-W17D4NativeButton $parent '5m'
             Write-Output '::notice::W17D4_FIRST_WAILS_USER_CLICK_5M=PASS'
             Write-Output '::notice::W17D0_WINDOWS_UIA_ACCESSIBLE_PREVIEW=VERIFIED'
@@ -696,8 +717,7 @@ jobs:
             Assert-W17D1AChartFavorite $parent 'REOPEN'
             Write-Output '::notice::W17D1A_ACTUAL_WEBVIEW2_UIA_COLD_FAVORITE_ACTIVE=PASS'
             Assert-W17D4Selected $parent '5m'
-            [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
-            Start-Sleep -Milliseconds 150
+            Close-W17D4Indicators $parent
             Click-W17D4NativeButton $parent '15m'
             Write-Output '::notice::W17D4_REAL_SECOND_LAUNCH_5M_PERSISTED_THEN_15M_SET=PASS'
             $indicator=Wait-W17D1AButton $parent 'Indicators'
