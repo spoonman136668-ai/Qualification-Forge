@@ -36,9 +36,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 028ef3754db151118c098ac670456fe231f0b6b0
+          ref: 3e7cd1269e54e6a5f46317a9fa12a062ced5961e
           path: checked-private
-          fetch-depth: 4
+          fetch-depth: 8
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Verify immutable candidate parent tree and exact test-only delta
@@ -52,15 +52,23 @@ jobs:
           $parent=(& git -C $src rev-parse HEAD^).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witHead=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '028ef3754db151118c098ac670456fe231f0b6b0' -or
-             $parent -cne 'd593cb4b0ed47f572acb488b153ac3a182ffc529' -or
-             $tree -cne 'e8995ce52350c2aa368975e38d63c36a53410b50' -or
+          if($LASTEXITCODE -ne 0 -or $head -cne '3e7cd1269e54e6a5f46317a9fa12a062ced5961e' -or
+             $parent -cne 'f04bfd083798ba2163edb0b0e82dcf9f8542a9fe' -or
+             $tree -cne '453038479deff27170dd6eec10ffb33c3dedeb11' -or
              $witHead -cne $env:GITHUB_SHA){throw 'W17C8_IMMUTABLE_IDENTITY_DRIFT'}
           $actual=@(& git -C $src diff --name-only a2217ac51e8c375a69c024fa51cc274a232f66b8 HEAD | Sort-Object)
           $expected=@('cmd/ktrade-w17c8-fixture/main.go','tests/w17c8_restored_monaco_cold_cdp.cjs') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
             throw 'W17C8_MORE_THAN_TWO_TEST_ONLY_FILES_CHANGED'
           }
+          # The Go source is unchanged relative to the exact prior Windows
+          # full-regression candidate; only this browser-only test changed.
+          $delta=@(& git -C $src diff --name-only 028ef3754db151118c098ac670456fe231f0b6b0 HEAD)
+          if($LASTEXITCODE -ne 0 -or $delta.Count -ne 1 -or
+            $delta[0] -cne 'tests/w17c8_restored_monaco_cold_cdp.cjs'){
+            throw 'W17C8_REUSED_GO_TREE_CHANGED'
+          }
+          Write-Output '::notice::W17C8_ONLY_REAL_BROWSER_TEST_CHANGED_SINCE_GREEN_GO=PASS'
           if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17C8_PRIVATE_CHECKOUT_DIRTY'}
           Write-Output '::notice::W17C8_SOURCE_SHA_TREE_PARENT_AND_TWO_TEST_FILES=PASS'
       - name: Set up native Go 1.25 on Windows
