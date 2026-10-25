@@ -255,14 +255,43 @@ jobs:
             Click-W13B $header
             $usdc=$null;$limit=(Get-Date).AddSeconds(12)
             while((Get-Date) -lt $limit){
-              $usdc=Find-W13BLike 'BTC-USDC'
-              if($usdc){break}
+              # Choose the exact accessible market TEXT node, not a modal
+              # container whose descendant name happens to include BTC-USDC.
+              $usdc=Find-W13B 'BTC-USDC'
+              if($usdc -and !$usdc.Current.IsOffscreen){break}
+              $usdc=$null
               Start-Sleep -Milliseconds 300
             }
             if(!$usdc){throw 'W13B_ORIGINAL_USDC_MARKET_NOT_ACCESSIBLE'}
-            Click-W13B $usdc
-            $usdcSelected=Find-W13BLike 'BTCUSDC'
-            if(!$usdcSelected){throw 'W13B_ORIGINAL_CHART_USDC_SELECTION_NOT_REFLECTED'}
+            $rect=$usdc.Current.BoundingRectangle
+            if($rect.Width -lt 3 -or $rect.Height -lt 3){throw 'W13B_USDC_SYMBOL_UIA_TEXT_HAS_NO_RECTANGLE'}
+            $ux=[int]($rect.Left+[math]::Min(15,$rect.Width/2))
+            $uy=[int]($rect.Top+$rect.Height/2)
+            if(![W13BMouse]::SetCursorPos($ux,$uy)){throw 'W13B_SYMBOL_OS_POINTER_REFUSED'}
+            [W13BMouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+            [W13BMouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+            $usdcSelected=$null;$limit=(Get-Date).AddSeconds(5)
+            while((Get-Date) -lt $limit){
+              $usdcSelected=Find-W13BLike 'BTCUSDC'
+              if($usdcSelected){break}
+              Start-Sleep -Milliseconds 200
+            }
+            if(!$usdcSelected){
+              $marketNames=@()
+              $buttons=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.PropertyCondition]::new(
+                 [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                 [System.Windows.Automation.ControlType]::Button))
+              foreach($button in $buttons){
+                $name=$button.Current.Name
+                if($name -match 'BTC|USDC|Coinbase'){
+                  $marketNames+=($name+';offscreen='+$button.Current.IsOffscreen)
+                  if($marketNames.Count -ge 8){break}
+                }
+              }
+              Write-Output ('::warning::W13B_USDC_PICKER_UIA_READBACK='+($marketNames -join '|'))
+              throw 'W13B_ORIGINAL_CHART_USDC_SELECTION_NOT_REFLECTED'
+            }
             Write-Output '::notice::W13B_REAL_WEBVIEW2_USDC_MARKET_SELECTED=PASS'
             $feeAck=$null
             $checkboxes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
