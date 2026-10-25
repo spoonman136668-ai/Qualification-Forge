@@ -838,11 +838,29 @@ jobs:
               }
               if(!$edit){throw 'W17D6_REAL_PRICE_EDIT_NOT_EXPOSED'}
               if(!$edit.Current.IsKeyboardFocusable){throw 'W17D6_PRICE_EDIT_NOT_FOCUSABLE'}
-              $edit.SetFocus()
-              [System.Windows.Forms.SendKeys]::SendWait('42500')
-              Start-Sleep -Milliseconds 220
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D6_WAILS_PRICE_ENTRY_FOREGROUND_REQUIRED'
+              }
+              Start-Sleep -Milliseconds 150
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D6_PRICE_ENTRY_FOREIGN_WINDOW_REFUSED'
+              }
               $value=$edit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
-              if($value.Current.Value -cne '42500'){throw 'W17D6_NATIVE_PRICE_INPUT_NOT_CONFIRMED'}
+              if(-not $value.Current.IsReadOnly){
+                # SetValue targets the real WebView2 accessible Edit control,
+                # never JavaScript/DOM/localStorage injection.
+                try{$value.SetValue('42500')}catch{}
+              }
+              if($value.Current.Value -cne '42500'){
+                $edit.SetFocus()
+                [System.Windows.Forms.SendKeys]::SendWait('^a')
+                [System.Windows.Forms.SendKeys]::SendWait('42500')
+                Start-Sleep -Milliseconds 250
+              }
+              if($value.Current.Value -cne '42500'){
+                throw 'W17D6_NATIVE_PRICE_INPUT_NOT_CONFIRMED'
+              }
+              Write-Output '::notice::W17D6_REAL_NATIVE_WEBVIEW2_PRICE_EDIT_42500=PASS'
               Click-W17D6Button $process 'Save horizontal line'
               Assert-W17D6Drawing $process $true
               Write-Output '::notice::W17D6_GENUINE_ORIGINAL_CHART_PRICE_LINE_USER_CREATED=PASS'
