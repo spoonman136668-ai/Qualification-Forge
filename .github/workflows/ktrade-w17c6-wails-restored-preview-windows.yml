@@ -1,0 +1,300 @@
+name: KTRADE W17C6 Wails restored Pine read-only Windows
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w17c6-wails-restored-preview-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w17c6-exact-source
+  cancel-in-progress: false
+jobs:
+  qualify:
+    name: Pinned full Go regression and genuine Wails desktop read-only preview
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a2217ac51e8c375a69c024fa51cc274a232f66b8
+          path: checked-private
+          fetch-depth: 10
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact source parent tree and eight-file boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $wit=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W17C6_GITHUB_HOSTED_WINDOWS_REQUIRED'}
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witness=(& git -C $wit rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or
+             $head -cne 'a2217ac51e8c375a69c024fa51cc274a232f66b8' -or
+             $parent -cne '64941a4e07f1f73b92b052bb34d6d10c35714930' -or
+             $tree -cne '76fe2145e4afdde435f4669f93638d6953a4f943' -or
+             $witness -cne $env:GITHUB_SHA){throw 'W17C6_SOURCE_PARENT_TREE_OR_WITNESS_DRIFT'}
+          $actual=@(& git -C $src diff --name-only a371715c099ee3daaf69b824e1fa6bcfee208aea HEAD | Sort-Object)
+          $expected=@(
+            'tests/w17c6_wails_restored_preview.test.cjs',
+            'tools/wails-pilot/backend/w17c6_restored_preview.go',
+            'tools/wails-pilot/backend/w17c6_restored_preview_test.go',
+            'tools/wails-pilot/cmd/w17c6-preview-digest/main.go',
+            'tools/wails-pilot/frontend/index.html',
+            'tools/wails-pilot/frontend/restored-preview.js',
+            'tools/wails-pilot/frontend/style.css',
+            'tools/wails-pilot/main_windows.go'
+          ) | Sort-Object
+          if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){throw 'W17C6_CHANGESET_WIDENED'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17C6_SOURCE_DIRTY'}
+          Write-Output '::notice::W17C6_IMMUTABLE_SOURCE_TREE_AND_8_FILES=PASS'
+      - name: Native Windows Go 1.25 and Node 24
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Set up Node 24 for frontend contract tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Focused actual Wails backend preview and original Go/Pine test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c6-focus.log'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          Push-Location $src
+          try {
+            & node --test tests/w17c6_wails_restored_preview.test.cjs tests/wails_w02_boot.test.cjs *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log|Select-Object -Last 25;throw 'W17C6_FRONTEND_RENDER_REFUSAL_FAILED'}
+            & go test -mod=readonly -tags ktrade_full -count=1 -timeout=20m -run '^TestW17C5' ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log|Select-Object -Last 20;throw 'W17C6_ORIGINAL_RESTORED_GO_PINE_TESTS_FAILED'}
+            & go test -mod=readonly -count=1 -timeout=20m -run '^(TestW17B|TestW17C|TestW07)' ./internal/durableupgrade *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log|Select-Object -Last 20;throw 'W17C6_HISTORICAL_REGRESSIONS_FAILED'}
+            Write-Output '::notice::W17C6_FRONTEND_FAIL_CLOSED_AND_ORIGINAL_PINE_TESTS=PASS'
+          } finally {Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try {
+            & go test -mod=readonly -count=1 -v -timeout=20m -run '^TestW17C6' ./backend *> $log
+            $exit=$LASTEXITCODE
+            $lines=@(Get-Content -LiteralPath $log)
+            if($exit -ne 0){
+              foreach($line in ($lines|Where-Object{$_ -match '^--- FAIL:' -or $_ -match '^# ' -or $_ -match 'w17c6_restored_preview(_test)?\.go:[0-9]+'}|Select-Object -First 20)){
+                $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                Write-Output ('::warning::W17C6_FOCUSED_FAILURE='+$safe)
+              }
+              throw 'W17C6_WINDOWS_BACKEND_FOCUSED_FAILED'
+            }
+            foreach($name in @(
+              'TestW17C6WailsReadOnlyPreviewRestoredV5V6Favorites',
+              'TestW17C6UnpinnedPreviewMutationAndForeignInstallRefused',
+              'TestW17C6SecretsAndActiveProofFailClosed',
+              'TestW17C6SyntheticPreviewRefusesLinkedSourceAndOwnerPath'
+            )){
+              if(!($lines|Where-Object {$_ -match ('^--- PASS: '+[regex]::Escape($name)+'\s')})){
+                throw ('W17C6_REQUIRED_TEST_NOT_RUN_'+$name)
+              }
+            }
+            & go test -mod=readonly -count=1 -timeout=20m ./backend *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_BACKEND_FULL_TESTS_FAILED'}
+            Write-Output '::notice::W17C6_GENUINE_WAILS_BACKEND_V5_V6_COLD_FAVORITES=PASS'
+            Write-Output '::notice::W17C6_WAILS_LEGACY_DISARMED_BACKEND_REGRESSIONS=PASS'
+          } finally {Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: One complete original untagged Windows Go regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c6-all.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go test -mod=readonly -count=1 -timeout=25m ./... *> $log
+            $exit=$LASTEXITCODE
+            $errors=@(Get-Content $log|Where-Object{$_ -match '^--- FAIL:' -or $_ -match '^FAIL\s+ktrade' -or $_ -match '^# ktrade/' -or $_ -match '^panic:'})
+            Write-Output ('::notice::W17C6_FULL_FAILURE_MARKERS='+$errors.Count)
+            if($exit -ne 0 -or $errors.Count -ne 0){throw 'W17C6_FULL_GO_REGRESSION_FAILED'}
+            Write-Output '::notice::W17C6_ONE_FULL_WINDOWS_GO_REGRESSION=PASS'
+          } finally {Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Verify Go modules and build original engine and actual Wails shell
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $dir=Join-Path $env:RUNNER_TEMP 'w17c6-build'
+          New-Item -ItemType Directory -Path $dir -Force|Out-Null
+          $log=Join-Path $env:RUNNER_TEMP 'w17c6-build.log'
+          Push-Location $src
+          try {
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_GO_VET_FAILED'}
+            & go build -mod=readonly -tags ktrade_full -o (Join-Path $dir 'ktrade-engine.exe') ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_ORIGINAL_ENGINE_BUILD_FAILED'}
+            & npm ci --ignore-scripts --no-audit --no-fund --silent *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_OFFLINE_VENDOR_INSTALL_FAILED'}
+            & node scripts/stage_offline_vendor.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_OFFLINE_VENDOR_STAGING_FAILED'}
+            foreach($part in @('static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $src $part) -Destination (Join-Path $dir $part) -Recurse -Force
+            }
+            Write-Output '::notice::W17C6_ORIGINAL_ENGINE_AND_OFFLINE_EDITOR_ASSETS=PASS'
+          } finally {Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try {
+            & go mod verify *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_GO_MODULES_FAILED'}
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_GO_VET_FAILED'}
+            & go build -mod=readonly -tags desktop,production -ldflags '-H windowsgui' -o (Join-Path $dir 'ktrade.exe') . *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_NATIVE_WINDOWS_BUILD_FAILED'}
+          } finally {Pop-Location}
+          Write-Output '::notice::W17C6_WINDOWS_GO_VET_WAILS_NATIVE_BUILD=PASS'
+      - name: Real Wails desktop hosted Windows synthetic restored preview rehearsal
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $build=Join-Path $env:RUNNER_TEMP 'w17c6-build'
+          $nonce=[Guid]::NewGuid().ToString('N').ToLowerInvariant()
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-w06-install-'+$nonce)
+          $rel=Join-Path $root 'releases\v1'
+          $data=Join-Path $root 'app-data'
+          $preview=Join-Path $data 'w17c6-restored-preview'
+          $parent=$null
+          $child=@()
+          $http=$null
+          try{
+            New-Item -ItemType Directory -Path $rel,$data -Force|Out-Null
+            foreach($name in @('ktrade.exe','ktrade-engine.exe','static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $build $name) -Destination (Join-Path $rel $name) -Recurse -Force
+            }
+            $wh=(Get-FileHash -LiteralPath (Join-Path $rel 'ktrade.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+            $eh=(Get-FileHash -LiteralPath (Join-Path $rel 'ktrade-engine.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+            function Write-Proof([string]$p,[object]$obj){
+              if(Test-Path -LiteralPath $p){throw 'W17C6_EXISTING_PROOF'}
+              $raw=($obj|ConvertTo-Json -Depth 12 -Compress)+'\n'
+              [IO.File]::WriteAllText($p,$raw,[Text.UTF8Encoding]::new($false))
+            }
+            Write-Proof (Join-Path $rel 'w06-readonly-release.json') ([ordered]@{
+              schema='ktrade.wails.w06.synthetic-readonly-release.v1'; install_id=$nonce;version='v1'
+              wails_exe_sha256=$wh;engine_exe_sha256=$eh;live_armed=$false;paper_orders_enabled=$false
+            })
+            Write-Proof (Join-Path $data 'w06-readonly-data.json') ([ordered]@{
+              schema='ktrade.wails.w06.synthetic-readonly-data.v1';install_id=$nonce;generation=1
+              live_armed=$false;paper_orders_enabled=$false
+            })
+            New-Item -ItemType Directory -Path $preview -Force|Out-Null
+            Write-Proof (Join-Path $preview 'config.json') ([ordered]@{paper_only=$true;chart=@{theme='dark'}})
+            Write-Proof (Join-Path $preview 'trading_pairs.json') ([ordered]@{pairs=@('BTC-USDC')})
+            $v5='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';$v6='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            $r5='cccccccccccccccccccccccccccccccc';$r6='dddddddddddddddddddddddddddddddd'
+            $index=[ordered]@{schema_version=1;scripts=@{}}
+            $index.scripts[$v5]=@{metadata=@{id=$v5;display_name='Restored Pine v5';kind='indicator'
+              ownership='user';favorite=$true};revision=$r5}
+            $index.scripts[$v6]=@{metadata=@{id=$v6;display_name='Restored Pine v6';kind='strategy'
+              ownership='user';favorite=$false};revision=$r6}
+            $library=Join-Path $preview 'pine-library'
+            New-Item -ItemType Directory -Path $library -Force|Out-Null
+            Write-Proof (Join-Path $library 'index.json') $index
+            foreach($pair in @(@($r5,'5'),@($r6,'6'))){
+              $folder=Join-Path $library ('revisions\'+$pair[0])
+              New-Item -ItemType Directory -Path $folder -Force|Out-Null
+              [IO.File]::WriteAllText((Join-Path $folder 'source.pine'),
+                ('//@version='+$pair[1]+"`nplot(close)"),[Text.UTF8Encoding]::new($false))
+            }
+            Push-Location (Join-Path $src 'tools/wails-pilot')
+            try{
+              $digest=@(& go run -mod=readonly ./cmd/w17c6-preview-digest $preview)
+              if($LASTEXITCODE -ne 0 -or $digest.Count -ne 1 -or $digest[0] -cnotmatch '^[a-f0-9]{64}$'){
+                throw 'W17C6_PREVIEW_DIGEST_STAMP_FAILED'
+              }
+            }finally{Pop-Location}
+            Write-Proof (Join-Path $data 'w17c6-restored-preview-proof.json') ([ordered]@{
+              schema='ktrade.w17c6.synthetic-wails-restored-preview.v1';install_id=$nonce
+              source_full_sha256=('1'*64);preview_sha256=$digest[0]
+              live_armed=$false;paper_orders_enabled=$false
+            })
+            $parent=Start-Process -FilePath (Join-Path $rel 'ktrade.exe') -WorkingDirectory $rel -PassThru
+            $window=$false
+            $deadline=(Get-Date).AddSeconds(50)
+            while((Get-Date) -lt $deadline){
+              Start-Sleep -Milliseconds 700
+              $parent.Refresh()
+              if($parent.HasExited){throw 'W17C6_WAILS_EXITED_BEFORE_REAL_WINDOW'}
+              if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(-not $window){throw 'W17C6_REAL_WAILS_WINDOW_NOT_VISIBLE'}
+            Write-Output '::notice::W17C6_GENUINE_WAILS_WEBVIEW2_WINDOW=PASS'
+            $engine=Join-Path $rel 'ktrade-engine.exe'
+            $deadline=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $deadline){
+              $child=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'"|Where-Object{
+                $_.ExecutablePath -ieq $engine -and $_.ParentProcessId -eq $parent.Id
+              })
+              if($child.Count -eq 1){break}
+              Start-Sleep -Milliseconds 300
+            }
+            if($child.Count -ne 1){throw 'W17C6_EXPECTED_ONE_DISARMED_GO_CHILD'}
+            $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $child[0].ProcessId -ErrorAction SilentlyContinue)
+            if($listeners.Count -ne 1 -or $listeners[0].LocalAddress -cne '127.0.0.1'){
+              throw 'W17C6_LOOPBACK_ONLY_REQUIRED'
+            }
+            $http=[System.Net.Http.HttpClient]::new()
+            $base='http://127.0.0.1:'+$listeners[0].LocalPort
+            $cap=$http.GetAsync($base+'/api/operator/capabilities').GetAwaiter().GetResult()
+            $caps=$cap.Content.ReadAsStringAsync().GetAwaiter().GetResult()|ConvertFrom-Json
+            if([int]$cap.StatusCode -ne 200 -or $caps.mode -cne 'PAPER_STOPPED' -or
+              $caps.paper_orders_enabled -ne $false -or $caps.live_orders_enabled -ne $false -or
+              $caps.strategy_execution_enabled -ne $false){
+              throw 'W17C6_BACKEND_NOT_EXPLICITLY_DISARMED'
+            }
+            $blocked=$http.PostAsync($base+'/api/orders/place',[System.Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+            if([int]$blocked.StatusCode -ne 423){throw 'W17C6_LEGACY_ORDER_ROUTE_UNLOCKED'}
+            Write-Output '::notice::W17C6_REAL_GO_CHILD_AND_ORDER_ROUTES_DISARMED=PASS'
+            # No privileged WebView2 DOM/screenshot capture: the desktop
+            # displayed preview text itself is not yet independently certified.
+            Write-Output '::notice::W17C6_REAL_DESKTOP_RESTORED_DOM=UNVERIFIED'
+            if(-not $parent.CloseMainWindow()){throw 'W17C6_WINDOW_CLOSE_FAILED'}
+            if(-not $parent.WaitForExit(15000)){throw 'W17C6_WINDOW_SHUTDOWN_TIMEOUT'}
+            Write-Output '::notice::W17C6_REAL_WINDOW_CLOSE=PASS'
+          } finally {
+            if($http){$http.Dispose()}
+            if($parent -and -not $parent.HasExited){Stop-Process -Id $parent.Id -Force -ErrorAction SilentlyContinue}
+            foreach($p in $child){
+              Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+            }
+            if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue}
+          }
+      - name: Scrub all private candidate and scratch files
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($path in @((Join-Path $env:GITHUB_WORKSPACE 'checked-private'),(Join-Path $env:RUNNER_TEMP 'w17c6-build'))){
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force -Recurse -ErrorAction SilentlyContinue}
+          }
