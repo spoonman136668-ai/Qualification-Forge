@@ -864,7 +864,6 @@ jobs:
               Click-W17D6Button $process 'Save horizontal line'
               Assert-W17D6Drawing $process $true
               Write-Output '::notice::W17D6_GENUINE_ORIGINAL_CHART_PRICE_LINE_USER_CREATED=PASS'
-              Click-W17D6Button $process 'Close horizontal lines'
             }
             Assert-W17D4Selected $parent '1m'
             Close-W17D4Indicators $parent
@@ -920,12 +919,6 @@ jobs:
             Assert-W17D5Pane $parent 40
             Click-W17D5Pane $parent 40 28
             Write-Output '::notice::W17D5_SECOND_NATIVE_COLD_RESTART_EXPANDED_LAYOUT_RESTORED_AND_STANDARD_SAVED=PASS'
-            W17D6OpenDrawingEditor $parent
-            Assert-W17D6Drawing $parent $true
-            Write-Output '::notice::W17D6_REAL_WAILS_COLD_RESTART_HLINE_PERSISTED=PASS'
-            Click-W17D6Button $parent 'Remove horizontal line at 42500'
-            Assert-W17D6Drawing $parent $false
-            Click-W17D6Button $parent 'Close horizontal lines'
             Write-Output '::notice::W17D4_REAL_SECOND_LAUNCH_5M_PERSISTED_THEN_15M_SET=PASS'
             $indicator=Wait-W17D1AButton $parent 'Indicators'
             Invoke-W17D1AButton $indicator 'OPEN_INDICATORS' $parent
@@ -991,6 +984,13 @@ jobs:
             $newSelected=Wait-W17D1AButton $parent 'Remove MACD from favorites'
             if($null -eq $newSelected){throw 'W17D3_NEWER_DIFFERENT_FAVORITE_NOT_SAVED'}
             Write-Output '::notice::W17D3_REAL_WEBVIEW2_USER_ADDS_NEWER_MACD_AFTER_OLD_RSI=PASS'
+            Close-W17D4Indicators $parent
+            W17D6OpenDrawingEditor $parent
+            Assert-W17D6Drawing $parent $true
+            Write-Output '::notice::W17D6_REAL_WAILS_COLD_RESTART_HLINE_PERSISTED=PASS'
+            Click-W17D6Button $parent 'Remove horizontal line at 42500'
+            Assert-W17D6Drawing $parent $false
+            Write-Output '::notice::W17D6_REAL_ORIGINAL_CHART_USER_DELETES_LINE=PASS'
             if(-not $parent.CloseMainWindow()){throw 'W17D0_COLD_WINDOW_CLOSE_FAILED'}
             if(-not $parent.WaitForExit(15000)){throw 'W17D0_COLD_WINDOW_SHUTDOWN_FAILED'}
             Write-Output '::notice::W17D0_REAL_WAILS_COLD_RESTART_AND_CLEAN_SHUTDOWN=PASS'
@@ -1011,10 +1011,6 @@ jobs:
             Assert-W17D4Selected $parent '15m'
             Assert-W17D5Pane $parent 28
             Write-Output '::notice::W17D5_THIRD_REAL_WAILS_WEBVIEW2_COLD_RESTART_STANDARD_LAYOUT=PASS'
-            W17D6OpenDrawingEditor $parent
-            Assert-W17D6Drawing $parent $false
-            Write-Output '::notice::W17D6_THIRD_REAL_WAILS_COLD_RESTART_DELETION_PERSISTED=PASS'
-            Click-W17D6Button $parent 'Close horizontal lines'
             Write-Output '::notice::W17D4_THIRD_REAL_WAILS_WEBVIEW2_COLD_RESTART_15M=PASS'
             $indicator=Wait-W17D1AButton $parent 'Indicators'
             Invoke-W17D1AButton $indicator 'OPEN_INDICATORS' $parent
@@ -1026,6 +1022,10 @@ jobs:
               throw 'W17D3_HISTORICAL_RSI_REIMPORT_CLOBBERED_NEWER_WEBVIEW2_MACD'
             }
             Write-Output '::notice::W17D3_REAL_WEBVIEW2_THIRD_COLD_RESTART_NEWER_MACD_NOT_CLOBBERED=PASS'
+            Close-W17D4Indicators $parent
+            W17D6OpenDrawingEditor $parent
+            Assert-W17D6Drawing $parent $false
+            Write-Output '::notice::W17D6_THIRD_REAL_WAILS_COLD_RESTART_DELETION_PERSISTED=PASS'
             if(-not $parent.CloseMainWindow()){throw 'W17D3_THIRD_WAILS_CLOSE_REFUSED'}
             if(-not $parent.WaitForExit(15000)){throw 'W17D3_THIRD_WAILS_SHUTDOWN_REFUSED'}
             Write-Output '::notice::W17D0_NO_LIVE_NO_PAPER_NO_USER_DATA_NO_INSTALLED_MIGRATION=PASS'
