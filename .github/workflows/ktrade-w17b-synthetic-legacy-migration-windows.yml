@@ -92,7 +92,8 @@ jobs:
             if($LASTEXITCODE -ne 0){
               $failed=@(Get-Content -LiteralPath $log | Where-Object {
                 $_ -match '^--- FAIL:' -or $_ -match '^# ktrade/' -or
-                $_ -match '^FAIL\s' -or $_ -match '^panic:'
+                $_ -match '^FAIL\s' -or $_ -match '^panic:' -or
+                $_ -match '^\s*w17b_synthetic_legacy_migration_test\.go:[0-9]+:'
               } | Select-Object -First 15)
               foreach($f in $failed){
                 $safe=[regex]::Replace([string]$f,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
