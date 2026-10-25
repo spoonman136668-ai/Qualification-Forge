@@ -203,24 +203,57 @@ jobs:
             Write-Output '::notice::W13B_ACTUAL_EMBEDDED_WEBVIEW2_PAPER_CONTROLS=PASS'
             # UIA operator selection of ORIGINAL saved strategy, chart symbol,
             # and fee consent. No direct API Start or synthetic fill injection.
+            function Find-W13BLike([string]$fragment){
+              $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              foreach($element in $nodes){
+                if($element.Current.Name -like ('*'+$fragment+'*') -and
+                   !$element.Current.IsOffscreen){return $element}
+              }
+              return $null
+            }
             $library=Find-W13B 'Open saved Pine library'
             if(!$library){throw 'W13B_DURABLE_PINE_LIBRARY_UI_CONTROL_MISSING'}
+            if($library.Current.IsOffscreen){
+              $pineToggle=Find-W13B 'Pine Editor'
+              if(!$pineToggle){throw 'W13B_ORIGINAL_PINE_TOGGLE_UNAVAILABLE'}
+              Click-W13B $pineToggle
+              Start-Sleep -Milliseconds 500
+              $library=Find-W13B 'Open saved Pine library'
+            }
+            if(!$library -or $library.Current.IsOffscreen){
+              throw 'W13B_ORIGINAL_PINE_LIBRARY_NOT_VISIBLE'
+            }
             Click-W13B $library
             $stored=$null;$limit=(Get-Date).AddSeconds(12)
             while((Get-Date) -lt $limit){
-              $stored=Find-W13B 'W13 Synthetic Strategy'
+              $stored=Find-W13BLike 'W13 Synthetic Strategy'
               if($stored){break}
-              Start-Sleep -Milliseconds 300
+              Start-Sleep -Milliseconds 400
             }
-            if(!$stored){throw 'W13B_CANONICAL_SAVED_STRATEGY_NOT_IN_REAL_WEBVIEW2'}
+            if(!$stored){
+              $samples=@()
+              $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              foreach($element in $nodes){
+                $label=$element.Current.Name
+                if($label -match 'W13|Stored Pine|saved Pine library'){
+                  $samples+=('[UIA]'+$label+';offscreen='+$element.Current.IsOffscreen)
+                  if($samples.Count -ge 8){break}
+                }
+              }
+              Write-Output ('::warning::W13B_SAVED_LIBRARY_UIA_DIAGNOSTIC='+($samples -join '|'))
+              throw 'W13B_CANONICAL_SAVED_STRATEGY_NOT_IN_REAL_WEBVIEW2'
+            }
             Click-W13B $stored
             Write-Output '::notice::W13B_REAL_EMBEDDED_SAVED_PINE_LIBRARY_SELECTED=PASS'
-            $header=Find-W13B 'BTCUSD • Coinbase'
+            $header=Find-W13BLike 'BTCUSD'
+            if(!$header){$header=Find-W13BLike 'BTC-USD'}
             if(!$header){throw 'W13B_ORIGINAL_SYMBOL_PICKER_NOT_ACCESSIBLE'}
             Click-W13B $header
             $usdc=$null;$limit=(Get-Date).AddSeconds(12)
             while((Get-Date) -lt $limit){
-              $usdc=Find-W13B 'BTC-USDC'
+              $usdc=Find-W13BLike 'BTC-USDC'
               if($usdc){break}
               Start-Sleep -Milliseconds 300
             }
