@@ -82,7 +82,15 @@ jobs:
           $log=Join-Path $env:RUNNER_TEMP 'w11-paper-cold-private.log'
           Push-Location $src
           try {
-            & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=12m -run '^TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly
+            & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=12m -run TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W11_FROZEN_WAILS_PAPER_LIFECYCLE_FAILED'}
+            if(!(Select-String -LiteralPath $log -SimpleMatch 'ok' -Quiet)){throw 'W11_NATIVE_PAPER_RESULT_MISSING'}
+            Write-Output '::notice::W11_NATIVE_PINE_TRADEGUARD_LEDGER_FILL_STOP_COLD_ARCHIVE=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Genuine Wails GUI and original Pine editor browser interaction
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
