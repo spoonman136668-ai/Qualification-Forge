@@ -64,7 +64,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: false
       - name: Build paired Wails with synthetic test-only tagged Go engine and exercise GUI
         shell: pwsh
         run: |
