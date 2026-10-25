@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 79cd1f75f6e270d0bf9ada58dabc10ec5cd91f1c
+          ref: 0d12d79d3c43c2ae007b7888f4f7abd941272369
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -55,9 +55,9 @@ jobs:
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
           if($LASTEXITCODE -ne 0 -or
-             $head -cne '79cd1f75f6e270d0bf9ada58dabc10ec5cd91f1c' -or
-             $parent -cne '08d4771f3b146a54cb3b308644fd894d5d8e5ac5' -or
-             $tree -cne 'eaa3e7130285aeb87888491437c5afa2067061be' -or
+             $head -cne '0d12d79d3c43c2ae007b7888f4f7abd941272369' -or
+             $parent -cne '79cd1f75f6e270d0bf9ada58dabc10ec5cd91f1c' -or
+             $tree -cne '82b9360ffa6e99b5993ef8bf996cc1689c1ce8b2' -or
              $witness -cne $env:GITHUB_SHA){
             throw 'W17B_SOURCE_PARENT_TREE_WITNESS_DRIFT'
           }
