@@ -163,21 +163,21 @@ jobs:
             $tail=$driver.IndexOf($end,$at+$start.Length,[StringComparison]::Ordinal)
             if($tail -le $at -or $driver.IndexOf($start,$at+1,[StringComparison]::Ordinal) -ge 0){throw 'W10_HISTORICAL_TEST_END_AMBIGUOUS'}
             $negative=@'
-  await until("W10_OPERATOR_DISARMED_BANNER_MISSING",()=>c.eval(
-    'document.querySelector("#operatorModeStatus")?.textContent.includes("PAPER STOPPED")'
-  ),40);
-  const locked=await c.eval('(function(){const trade=document.getElementById("tradeBtn");const submit=document.getElementById("orderSubmit");trade.click();submit.click();return {tradeDisabled:trade.disabled,submitDisabled:submit.disabled,panelOpen:document.getElementById("orderPanel").classList.contains("open"),status:document.getElementById("operatorModeStatus").textContent}})()');
-  assert.equal(locked.tradeDisabled,true,"unqualified Trade button active");
-  assert.equal(locked.submitDisabled,true,"unqualified Order button active");
-  assert.equal(locked.panelOpen,false,"disabled Trade button opened brokerage panel");
-  assert.match(locked.status,/PAPER STOPPED.*LIVE DISARMED/);
-  assert.equal(c.orderRequests.length,0,"disabled UI dispatched order");
-  console.log("W10_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS");
-  const route=await c.eval('(async()=>{const r=await fetch("/api/orders/place",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return r.status})()');
-  assert.equal(route,423,"original Go broker route did not refuse order");
-  assert.equal(c.orderRequests.length,1,"explicit negative route probe count mismatch");
-  console.log("W10_ORIGINAL_LEGACY_ORDER_HTTP_423=PASS");
-'@
+            await until("W10_OPERATOR_DISARMED_BANNER_MISSING",()=>c.eval(
+            'document.querySelector("#operatorModeStatus")?.textContent.includes("PAPER STOPPED")'
+            ),40);
+            const locked=await c.eval('(function(){const trade=document.getElementById("tradeBtn");const submit=document.getElementById("orderSubmit");trade.click();submit.click();return {tradeDisabled:trade.disabled,submitDisabled:submit.disabled,panelOpen:document.getElementById("orderPanel").classList.contains("open"),status:document.getElementById("operatorModeStatus").textContent}})()');
+            assert.equal(locked.tradeDisabled,true,"unqualified Trade button active");
+            assert.equal(locked.submitDisabled,true,"unqualified Order button active");
+            assert.equal(locked.panelOpen,false,"disabled Trade button opened brokerage panel");
+            assert.match(locked.status,/PAPER STOPPED.*LIVE DISARMED/);
+            assert.equal(c.orderRequests.length,0,"disabled UI dispatched order");
+            console.log("W10_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS");
+            const route=await c.eval('(async()=>{const r=await fetch("/api/orders/place",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return r.status})()');
+            assert.equal(route,423,"original Go broker route did not refuse order");
+            assert.equal(c.orderRequests.length,1,"explicit negative route probe count mismatch");
+            console.log("W10_ORIGINAL_LEGACY_ORDER_HTTP_423=PASS");
+          '@
             $w10Driver=Join-Path $env:RUNNER_TEMP 'ktrade-w10-source-pinned-browser-negative.cjs'
             [IO.File]::WriteAllText($w10Driver,($driver.Substring(0,$at)+$negative+[Environment]::NewLine+$driver.Substring($tail)),[Text.UTF8Encoding]::new($false))
             & node $w10Driver $base 'pipe' $browser $browserProfile *> $privateLog
