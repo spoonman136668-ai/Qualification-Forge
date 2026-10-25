@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 3e7cd1269e54e6a5f46317a9fa12a062ced5961e
+          ref: a10193ea03460c95380563f06c62f3dbd4b4b347
           path: checked-private
           fetch-depth: 8
           persist-credentials: false
@@ -52,9 +52,9 @@ jobs:
           $parent=(& git -C $src rev-parse HEAD^).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witHead=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '3e7cd1269e54e6a5f46317a9fa12a062ced5961e' -or
-             $parent -cne 'f04bfd083798ba2163edb0b0e82dcf9f8542a9fe' -or
-             $tree -cne '453038479deff27170dd6eec10ffb33c3dedeb11' -or
+          if($LASTEXITCODE -ne 0 -or $head -cne 'a10193ea03460c95380563f06c62f3dbd4b4b347' -or
+             $parent -cne '3e7cd1269e54e6a5f46317a9fa12a062ced5961e' -or
+             $tree -cne 'e2db1f976e31de96c4410d8b095b0e0679e2e1f1' -or
              $witHead -cne $env:GITHUB_SHA){throw 'W17C8_IMMUTABLE_IDENTITY_DRIFT'}
           $actual=@(& git -C $src diff --name-only a2217ac51e8c375a69c024fa51cc274a232f66b8 HEAD | Sort-Object)
           $expected=@('cmd/ktrade-w17c8-fixture/main.go','tests/w17c8_restored_monaco_cold_cdp.cjs') | Sort-Object
@@ -214,10 +214,18 @@ jobs:
                 'W17C8_AUTHENTIC_CHART_AND_MONACO_LOADED=PASS',
                 'W17C8_REAL_MONACO_OPEN_EDIT_SAVE_BOTH_RESTORED_V5_V6=PASS',
                 'W17C8_GO_ENGINE_AND_REAL_BROWSER_COLD_RESTART_RESTORED_REVISIONS=PASS',
+                'W17C8_PRIOR_ORIGIN_CHROMIUM_PROFILE_PREFERENCES_PERSIST=PASS',
                 'W17C8_FINANCIAL_DPAPI_UNKNOWN_PINE_AND_LIVE_REMAIN_INACTIVE=PASS'
               )){
                 if($rows -cnotcontains $required){throw ('W17C8_MISSING_RESULT_'+$required)}
                 Write-Output ('::notice::'+$required)
+              }
+              if($rows -ccontains 'W17C8_ACTIVE_ORIGIN_BROWSER_PREFERENCES=BLOCKED_DYNAMIC_PORT'){
+                Write-Output '::warning::W17C8_ACTIVE_ORIGIN_BROWSER_PREFERENCES=BLOCKED_DYNAMIC_PORT'
+              }else{
+                if($rows -cnotcontains 'W17C8_ACTIVE_ORIGIN_BROWSER_PREFERENCES=PASS'){
+                  throw 'W17C8_BROWSER_STORAGE_ORIGIN_STATUS_MISSING'
+                }
               }
               Write-Output '::notice::W17C8_NO_REAL_INSTALLED_PROFILE_NO_BROKER_NO_PROMOTION=PASS'
               Write-Output '::notice::W17C8_MONACO_INSIDE_WAILS_WEBVIEW2=NOT_YET_PROVEN'
