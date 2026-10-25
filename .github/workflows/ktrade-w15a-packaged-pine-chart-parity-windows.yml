@@ -72,7 +72,7 @@ jobs:
           node-version: '24'
           cache: 'npm'
           cache-dependency-path: checked-private/package-lock.json
-      - name: Focused original Pine conformance raw strict v6 and real editor compiler lock
+      - name: Focused original Pine v5 conformance raw strict v6 and interpreter lock
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -80,12 +80,21 @@ jobs:
           $env:TEMP=$env:RUNNER_TEMP
           $log=Join-Path $env:RUNNER_TEMP 'w15a-pine-go-private.log'
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
-          try{
-            & go test -mod=readonly -count=1 -timeout=12m -run '^(TestPineConformance|TestPineV6Strict_Parity_|TestPineV6Strict_D03_Gate_)' ./pkg *> $log
-            if($LASTEXITCODE -ne 0){throw 'W15A_PINE_CONFORMANCE_OR_RAW_V6_FAILED'}
-            Write-Output '::notice::W15A_ORIGINAL_PINE_CONFORMANCE_AND_RAW_V6=PASS'
-            Write-Output '::notice::W15A_LEGACY_CONFORMANCE_HARNESS_HAS_NORMALIZATIONS=TRUE'
-            & go test -mod=readonly -tags ktrade_full -count=1 -timeout=7m -run '^TestRB2EditorPineCompilerSharesUnattendedInterpreterLock
+          try {
+            & go test -mod=readonly -count=1 -timeout=12m -run TestPineConformance ./pkg *> $log
+            if($LASTEXITCODE -ne 0){throw 'W15A_ORIGINAL_LEGACY_CONFORMANCE_FAILED'}
+            Write-Output '::notice::W15A_NORMALIZED_LEGACY_PINE_CONFORMANCE=PASS'
+            & go test -mod=readonly -count=1 -timeout=12m -run TestPineV6Strict_ ./pkg *> $log
+            if($LASTEXITCODE -ne 0){throw 'W15A_RAW_STRICT_V6_PINE_CONFORMANCE_FAILED'}
+            Write-Output '::notice::W15A_RAW_STRICT_V6_PINE_CONFORMANCE=PASS'
+            & go test -mod=readonly -tags ktrade_full -count=1 -timeout=7m -run TestRB2EditorPineCompilerSharesUnattendedInterpreterLock ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W15A_REAL_EDITOR_COMPILER_LOCK_FAILED'}
+            Write-Output '::notice::W15A_REAL_EDITOR_COMPILER_LOCK=PASS'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Genuine Wails WebView2, original chart editor and Pine v5 v6 API
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
