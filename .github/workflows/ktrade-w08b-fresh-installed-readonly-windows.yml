@@ -1,0 +1,535 @@
+name: KTRADE W08B genuine fresh installed read-only Windows GUI cold restart
+
+on:
+  push:
+    branches:
+      - qualification/rb2-wails-w01-hosted-20261024
+    paths:
+      - .github/workflows/ktrade-w08b-fresh-installed-readonly-windows.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ktrade-w08b-source-pinned-windows
+  cancel-in-progress: false
+
+jobs:
+  w08b-windows:
+    name: W08B genuine Wails WebView2 fresh first-launch and persistent app-data
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout independent witness workflow, exact source ref
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/Qualification-Forge
+          ref: ${{ github.sha }}
+          path: witness-tools
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout exact KTRADE W06A candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: d67fba994d628f1ea235640fa77eda5f38a62df9
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+
+      - name: Verify private source head, parent, tree and no mutation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W06A_HOSTED_WINDOWS_REQUIRED'}
+          $s=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness-tools'
+          $witness=(& git -C $w rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $witness -cne $env:GITHUB_SHA){throw 'W06A_WITNESS_HEAD_MISMATCH'}
+          $head=(& git -C $s rev-parse HEAD).Trim()
+          $parent=(& git -C $s rev-parse HEAD^).Trim()
+          $tree=(& git -C $s rev-parse 'HEAD^{tree}').Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne 'd67fba994d628f1ea235640fa77eda5f38a62df9' -or
+             $parent -cne 'e70e9bf97a74fdf8f3423ab9d9502b464838a8d4' -or
+             $tree -cne '2a0928c83bd180a11a3183c8c392673950b1444f'){throw 'W06A_SOURCE_IDENTITY_MISMATCH'}
+          if(@(& git -C $s status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W06A_SOURCE_DIRTY'}
+          Write-Output '::notice::W06A_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
+
+      - name: Set up Windows native Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: checked-private/tools/wails-pilot/go.mod
+          cache: false
+
+      - name: Set up locked frontend asset build tooling
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: checked-private/package-lock.json
+
+      - name: Focused W06A custody tests, race, vet, real Windows build and synthetic installation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log=Join-Path $env:RUNNER_TEMP 'w06a-private-build.log'
+          if(-not (Test-Path -LiteralPath $env:RUNNER_TEMP -PathType Container)){throw 'W06A_RUNNER_TEMP_REQUIRED'}
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $pkg=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          $fixtureRoot=$null
+          $release=$null
+          $data=$null
+          try {
+            Push-Location (Join-Path $src 'tools/wails-pilot')
+            try {
+              & go mod verify *> $log
+              if($LASTEXITCODE -ne 0){throw 'W06A_GO_MODULES_VERIFY_FAILED'}
+              & go test -mod=readonly -race -count=1 -timeout=15m ./backend *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction Stop | Where-Object {
+                  $_ -match '(--- FAIL:|^FAIL|^# ktrade-wails-pilot/|\.go:[0-9]+:[0-9]+:|\[build failed\]|^undefined:)'
+                } | Select-Object -Last 18)
+                foreach($entry in $safe){
+                  $v=[regex]::Replace([string]$entry,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED_PATH]')
+                  $v=[regex]::Replace($v,'[A-Za-z0-9_\-]{50,}','[REDACTED]')
+                  if($v.Length -gt 260){$v=$v.Substring(0,260)}
+                  Write-Output ('::warning::W06B_BACKEND_TEST_DIAGNOSTIC='+$v)
+                }
+                if($safe.Count -eq 0){Write-Output '::warning::W06B_BACKEND_TEST_NO_NAMED_FAILURE_AVAILABLE'}
+                throw 'W06B_WINDOWS_BACKEND_RACE_TEST_FAILED'
+              }
+              & go test -mod=readonly -count=1 -v -run '^Test(W06[AB]|W08B)' ./backend *> $log
+              if($LASTEXITCODE -ne 0){throw 'W06A_WINDOWS_FOCUSED_TEST_FAILED'}
+              $passed=@(Get-Content -LiteralPath $log | Where-Object {$_ -match '^--- PASS: Test(W06[AB]|W08B)'}).Count
+              if($passed -ne 15){throw 'W08B_FOCUSED_TEST_COUNT_UNEXPECTED'}
+              & go vet -mod=readonly ./backend *> $log
+              if($LASTEXITCODE -ne 0){throw 'W06A_WINDOWS_BACKEND_VET_FAILED'}
+              Write-Output '::notice::W08B_WINDOWS_GO_FOCUSED_15_AND_RACE_VET=PASS'
+            }finally{Pop-Location}
+
+            Push-Location $src
+            try {
+              & npm ci --ignore-scripts --no-audit --no-fund --silent *> $log
+              if($LASTEXITCODE -ne 0){throw 'W06A_LOCKED_NPM_VENDOR_FAILED'}
+              & node scripts/stage_offline_vendor.cjs *> $log
+              if($LASTEXITCODE -ne 0){throw 'W06A_OFFLINE_EDITOR_ASSETS_FAILED'}
+              $before=@(& git status --porcelain=v1 --untracked-files=no)
+              if($before.Count -ne 0){throw 'W06A_SOURCE_DIRTY_AFTER_ASSET_STAGING'}
+            }finally{Pop-Location}
+            $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
+            $built=@(& $builder -OutputRoot $pkg -ExpectedSourceSha 'd67fba994d628f1ea235640fa77eda5f38a62df9')
+            if(@($built|Where-Object {$_ -match '^W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS'}).Count -ne 1){
+              throw 'W06A_SOURCE_PAIRED_WAILS_PACKAGE_FAILED'
+            }
+            Write-Output '::notice::W06A_EXACT_SOURCE_WAILS_GO_BINARIES=PASS'
+            $stage=Join-Path $pkg 'KTRADE-WailsPortable'
+            $stageScript=Join-Path $src 'windows/Stage-KTRADE-W06A-ReadOnlyFixture.ps1'
+            $result=@(& $stageScript -QualifiedW03Stage $stage -ExpectedSourceSha 'd67fba994d628f1ea235640fa77eda5f38a62df9')
+            if(@($result|Where-Object {$_ -match '^W06A_SYNTHETIC_READONLY_STAGED=PASS'}).Count -ne 1){
+              throw 'W06A_INSTALLED_FIXTURE_NOT_STAGED'
+            }
+            $release=(@($result|Where-Object {$_ -match '^W06A_SYNTHETIC_RELEASE='})[0] -replace '^W06A_SYNTHETIC_RELEASE=','')
+            $data=(@($result|Where-Object {$_ -match '^W06A_SYNTHETIC_APP_DATA='})[0] -replace '^W06A_SYNTHETIC_APP_DATA=','')
+            $fixtureRoot=Split-Path (Split-Path $release -Parent) -Parent
+            if(-not $release.StartsWith($fixtureRoot,[StringComparison]::OrdinalIgnoreCase) -or
+               !(Test-Path -LiteralPath (Join-Path $release 'ktrade.exe') -PathType Leaf)){throw 'W06A_RELEASE_ROOT_MISSING'}
+            if((Join-Path $fixtureRoot 'app-data') -ine $data){throw 'W06A_APP_DATA_ROOT_MISMATCH'}
+            if(Test-Path -LiteralPath (Join-Path $release 'data')){throw 'W06A_EXE_ADJACENT_DATA_FORBIDDEN'}
+            $unknown=Join-Path $data 'nonstandard.unknown'
+            [IO.File]::WriteAllText($unknown,'W06A nonstandard state preserved across real Wails cold restart',[Text.UTF8Encoding]::new($false))
+            Write-Output '::notice::W06A_SYNTHETIC_INSTALLED_SEPARATE_DATA=PASS'
+            $exe=Join-Path $release 'ktrade.exe'
+            $engineExe=Join-Path $release 'ktrade-engine.exe'
+            $expectedTitle='KTRADE*W06 Synthetic Installed Read-Only*'
+            $profile=Join-Path $data 'webview2-profile'
+            $marker=Join-Path $profile 'w06-cold-ui.test'
+            $expectedMarker='original W06A WebView2 application profile preserved'
+            $expectedUnknown='W06A nonstandard state preserved across real Wails cold restart'
+
+
+            # Source-pinned second release: native Go stays identical; a
+            # separate real Wails binary is built with version slot v2.
+            $v2=Join-Path $fixtureRoot 'releases/v2'
+            $prepared=Join-Path $fixtureRoot 'releases/v2.prepared'
+            if((Test-Path -LiteralPath $v2) -or (Test-Path -LiteralPath $prepared)){throw 'W06B_EXISTING_OR_INTERRUPTED_SLOT'}
+            $originalDataProof=Get-Content -LiteralPath (Join-Path $data 'w06-readonly-data.json') -Raw
+            $oldShellHash=(Get-FileHash -LiteralPath (Join-Path $release 'ktrade.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+            $oldEngineHash=(Get-FileHash -LiteralPath (Join-Path $release 'ktrade-engine.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+            $orig=Get-Content -LiteralPath (Join-Path $release 'w06-readonly-release.json') -Raw|ConvertFrom-Json
+            if($orig.version -cne 'v1' -or $orig.wails_exe_sha256 -cne $oldShellHash -or
+               $orig.engine_exe_sha256 -cne $oldEngineHash -or $orig.live_armed -ne $false -or
+               $orig.paper_orders_enabled -ne $false){throw 'W06B_PRIOR_RELEASE_NOT_QUALIFIED'}
+            $oldUnknownHash=(Get-FileHash -LiteralPath $unknown -Algorithm SHA256).Hash
+            New-Item -ItemType Directory -Path $prepared -ErrorAction Stop|Out-Null
+            try{
+              foreach($name in @('static','templates','strategies')){
+                $from=Join-Path $release $name
+                if((Get-Item -LiteralPath $from -Force).Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)){throw 'W06B_REDIRECTED_ASSET'}
+                Copy-Item -LiteralPath $from -Destination (Join-Path $prepared $name) -Recurse -ErrorAction Stop
+              }
+              Copy-Item -LiteralPath (Join-Path $release 'ktrade-engine.exe') -Destination (Join-Path $prepared 'ktrade-engine.exe') -ErrorAction Stop
+              Push-Location (Join-Path $src 'tools/wails-pilot')
+              try{
+                & go build -mod=readonly -tags desktop,production -ldflags '-H windowsgui -X main.w06ReleaseBuildMarker=v2' -o (Join-Path $prepared 'ktrade.exe') . *> $log
+                if($LASTEXITCODE -ne 0){throw 'W06B_REAL_VERSIONED_WINDOWS_BUILD_FAILED'}
+              }finally{Pop-Location}
+              $newShellHash=(Get-FileHash -LiteralPath (Join-Path $prepared 'ktrade.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+              $newEngineHash=(Get-FileHash -LiteralPath (Join-Path $prepared 'ktrade-engine.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+              if($oldShellHash -ceq $newShellHash -or $newEngineHash -cne $oldEngineHash){throw 'W06B_EXECUTABLE_VERSION_IDENTITY_NOT_DISTINCT'}
+              $proof=[ordered]@{schema='ktrade.wails.w06.synthetic-readonly-release.v1';install_id=$orig.install_id;version='v2';wails_exe_sha256=$newShellHash;engine_exe_sha256=$newEngineHash;live_armed=$false;paper_orders_enabled=$false}
+              [IO.File]::WriteAllText((Join-Path $prepared 'w06-readonly-release.json'),(($proof|ConvertTo-Json -Compress -Depth 5)+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+              if((Get-Content -LiteralPath (Join-Path $data 'w06-readonly-data.json') -Raw) -cne $originalDataProof -or
+                 (Get-FileHash -LiteralPath $unknown -Algorithm SHA256).Hash -cne $oldUnknownHash){throw 'W06B_PREPARE_MUTATED_USER_DATA'}
+              [IO.Directory]::Move($prepared,$v2)
+              Write-Output '::notice::W06B_REAL_DIFFERENT_WAILS_BINARY_STAGED=PASS'
+              Write-Output '::notice::W06B_V1_BINARIES_AND_DATA_UNTOUCHED=PASS'
+            }catch{
+              if(Test-Path -LiteralPath $prepared){Remove-Item -LiteralPath $prepared -Recurse -Force -ErrorAction SilentlyContinue}
+              throw
+            }
+
+            for($cycle=1;$cycle -le 3;$cycle++){
+              $app=$null;$child=$null;$http=$null
+              try {
+                $active=if($cycle -eq 2){$v2}else{$release}
+                $exe=Join-Path $active 'ktrade.exe'
+                $engineExe=Join-Path $active 'ktrade-engine.exe'
+                $app=Start-Process -FilePath $exe -WorkingDirectory $active -PassThru
+                $null=$app.Handle
+                $deadline=(Get-Date).AddSeconds(65)
+                $ready=$false
+                while((Get-Date) -lt $deadline){
+                  Start-Sleep -Milliseconds 500
+                  $app.Refresh()
+                  if($app.HasExited){throw 'W06A_WAILS_GUI_EARLY_EXIT'}
+                  if($app.MainWindowHandle -ne [IntPtr]::Zero -and $app.MainWindowTitle -like $expectedTitle){$ready=$true;break}
+                }
+                if(!$ready){throw 'W06A_GENUINE_WEBVIEW_WINDOW_NOT_SEEN'}
+                Write-Output ('::notice::W06A_GENUINE_WAILS_WINDOW_CYCLE_'+$cycle+'=PASS')
+                $deadline=(Get-Date).AddSeconds(20)
+                while((Get-Date) -lt $deadline){
+                  $children=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" |
+                    Where-Object {$_.ExecutablePath -ieq $engineExe -and $_.ParentProcessId -eq $app.Id})
+                  if($children.Count -eq 1){$child=$children[0];break}
+                  Start-Sleep -Milliseconds 350
+                }
+                if(!$child){throw 'W06A_CHILD_PROCESS_NOT_OWNED_BY_WAILS'}
+                $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $child.ProcessId -ErrorAction SilentlyContinue |
+                  Where-Object {$_.LocalAddress -eq '127.0.0.1'})
+                if($listeners.Count -ne 1){throw 'W06A_SINGLE_LOOPBACK_CHILD_REQUIRED'}
+                $base='http://127.0.0.1:'+$listeners[0].LocalPort
+                $http=[Net.Http.HttpClient]::new()
+                $http.Timeout=[TimeSpan]::FromSeconds(12)
+                $caps=$http.GetAsync($base+'/api/operator/capabilities').GetAwaiter().GetResult()
+                if([int]$caps.StatusCode -ne 200){throw 'W06A_READONLY_CAPABILITY_HTTP_FAILED'}
+                $cap=$caps.Content.ReadAsStringAsync().GetAwaiter().GetResult()|ConvertFrom-Json
+                if($cap.schema -cne 'ktrade.operator.capabilities.v1' -or $cap.mode -cne 'PAPER_STOPPED' -or
+                   $cap.paper_orders_enabled -ne $false -or $cap.live_orders_enabled -ne $false -or
+                   $cap.strategy_execution_enabled -ne $false -or $cap.paper_accounting_enabled -ne $false -or
+                   $cap.requires_review -ne $true){throw 'W06A_APP_CAPABILITIES_NOT_DISARMED'}
+                $paper=$http.GetAsync($base+'/api/paper/session').GetAwaiter().GetResult()
+                if([int]$paper.StatusCode -ne 423){throw 'W06A_UNAUTHORIZED_PAPER_OWNER_ADMITTED'}
+                $start=$http.PostAsync($base+'/api/paper/session/start',
+                  [Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+                if([int]$start.StatusCode -ne 423){throw 'W06A_PAPER_START_NOT_LOCKED'}
+                $order=$http.PostAsync($base+'/api/orders/place',
+                  [Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+                if([int]$order.StatusCode -ne 423){throw 'W06A_LEGACY_ORDER_ROUTE_NOT_LOCKED'}
+                $chart=$http.GetAsync($base+'/chart').GetAwaiter().GetResult()
+                if([int]$chart.StatusCode -ne 200 -or
+                   -not ($chart.Content.ReadAsStringAsync().GetAwaiter().GetResult()).Contains('pine-editor-main')){
+                  throw 'W06A_ORIGINAL_CHART_HTML_UNAVAILABLE'
+                }
+                if(!(Test-Path -LiteralPath $profile -PathType Container)){throw 'W06A_STABLE_BROWSER_PROFILE_MISSING'}
+                if($cycle -eq 1){
+                  if(Test-Path -LiteralPath $marker){throw 'W06A_PROFILE_MARKER_PREEXISTING'}
+                  [IO.File]::WriteAllText($marker,$expectedMarker,[Text.UTF8Encoding]::new($false))
+                }else{
+                  if(!(Test-Path -LiteralPath $marker -PathType Leaf) -or
+                     [IO.File]::ReadAllText($marker) -cne $expectedMarker){throw 'W06A_PROFILE_CHANGED_AFTER_RESTART'}
+                }
+                if([IO.File]::ReadAllText($unknown) -cne $expectedUnknown){throw 'W06A_UNKNOWN_APP_DATA_CHANGED'}
+                if(Test-Path -LiteralPath (Join-Path $release 'data')){throw 'W06A_EXE_ADJACENT_DATA_CREATED'}
+                Write-Output ('::notice::W06A_READONLY_HTTP_LOCK_AND_STABLE_DATA_CYCLE_'+$cycle+'=PASS')
+                if(-not $app.CloseMainWindow()){throw 'W06A_WAILS_CLOSE_REQUEST_FAILED'}
+                if(-not $app.WaitForExit(20000) -or $app.ExitCode -ne 0){throw 'W06A_WAILS_GUI_EXIT_FAILED'}
+                $left=Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
+                if($left -and -not $left.WaitForExit(5000)){throw 'W06A_NATIVE_CHILD_SURVIVED_GUI_CLOSE'}
+                Write-Output ('::notice::W06A_PARENT_CHILD_CLEAN_SHUTDOWN_'+$cycle+'=PASS')
+              }finally{
+                if($http){$http.Dispose()}
+                if($app){try{if(-not $app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}catch{}}
+                if($child){try{Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue}catch{}}
+              }
+            }
+            if((Get-Content -LiteralPath (Join-Path $data 'w06-readonly-data.json') -Raw) -cne $originalDataProof -or
+               (Get-FileHash -LiteralPath $unknown -Algorithm SHA256).Hash -cne $oldUnknownHash){throw 'W06B_POST_ROLLBACK_APP_DATA_CHANGED'}
+            if((Get-FileHash -LiteralPath (Join-Path $release 'ktrade.exe') -Algorithm SHA256).Hash.ToLowerInvariant() -cne $oldShellHash){throw 'W06B_ROLLBACK_V1_EXECUTABLE_CHANGED'}
+
+            # W06C operates ONLY on this stopped, synthetic fixture.
+            # v1 and v2 were both launched and fully stopped in the three
+            # preceding genuine Windows WebView2 process cycles.
+            $selector=Join-Path $src 'windows/Invoke-KTRADE-W06C-SyntheticVersionSwitch.ps1'
+            if(!(Test-Path -LiteralPath $selector -PathType Leaf)){throw 'W06C_SOURCE_OWNED_SELECTOR_MISSING'}
+            $selectorSource=(& git -C $src rev-parse HEAD).Trim()
+            if($LASTEXITCODE -ne 0 -or $selectorSource -cne 'd67fba994d628f1ea235640fa77eda5f38a62df9'){throw 'W06C_SELECTOR_NOT_SOURCE_PINNED'}
+            $first=@(& $selector -Action Init -SyntheticRoot $fixtureRoot)
+            if(@($first|Where-Object {$_ -match '^W06C_SYNTHETIC_INITIAL_SELECTION=PASS'}).Count -ne 1){throw 'W06C_INIT_NOT_QUALIFIED'}
+            $pointer=Join-Path $fixtureRoot 'w06-active-readonly.json'
+            $firstInspect=@(& $selector -Action Inspect -SyntheticRoot $fixtureRoot)
+            if($firstInspect -cnotcontains 'W06C_ACTIVE_READONLY_VERSION=v1'){throw 'W06C_INITIAL_POINTER_NOT_V1'}
+            $originalPointerHash=(Get-FileHash -LiteralPath $pointer -Algorithm SHA256).Hash
+            $v2ProofPath=Join-Path $v2 'w06-readonly-release.json'
+            $originalV2Proof=[IO.File]::ReadAllText($v2ProofPath)
+            try {
+              $tamperedProof=$originalV2Proof.Replace('"paper_orders_enabled":false','"paper_orders_enabled":true')
+              if($tamperedProof -ceq $originalV2Proof){throw 'W06C_EXPECTED_EXPLICIT_PAPER_FIELD_MISSING'}
+              [IO.File]::WriteAllText($v2ProofPath,$tamperedProof,[Text.UTF8Encoding]::new($false))
+              $tamperedAccepted=$false
+              try{$null=& $selector -Action Promote -SyntheticRoot $fixtureRoot;$tamperedAccepted=$true}catch{}
+              if($tamperedAccepted){throw 'W06C_TAMPERED_SECOND_RELEASE_PROMOTED'}
+              if((Get-FileHash -LiteralPath $pointer -Algorithm SHA256).Hash -cne $originalPointerHash){throw 'W06C_REJECTION_MUTATED_ACTIVE_POINTER'}
+              Write-Output '::notice::W06C_TAMPERED_PROMOTION_REFUSED_WITHOUT_MUTATION=PASS'
+            }finally{
+              [IO.File]::WriteAllText($v2ProofPath,$originalV2Proof,[Text.UTF8Encoding]::new($false))
+            }
+            $promoted=@(& $selector -Action Promote -SyntheticRoot $fixtureRoot)
+            if(@($promoted|Where-Object {$_ -match '^W06C_SYNTHETIC_STOPPED_BINARY_SELECTION=PASS'}).Count -ne 1){throw 'W06C_STOPPED_PROMOTION_NOT_QUALIFIED'}
+            $activeV2=@(& $selector -Action Inspect -SyntheticRoot $fixtureRoot)
+            if($activeV2 -cnotcontains 'W06C_ACTIVE_READONLY_VERSION=v2'){throw 'W06C_POINTER_NOT_V2'}
+            $prevProof=Join-Path $fixtureRoot 'w06-active-readonly.previous'
+            if(!(Test-Path -LiteralPath $prevProof -PathType Leaf)){throw 'W06C_PRIOR_RELEASE_PROOF_NOT_PRESERVED'}
+            $preRepeated=(Get-FileHash -LiteralPath $pointer -Algorithm SHA256).Hash
+            $doubleAccepted=$false
+            try{$null=& $selector -Action Promote -SyntheticRoot $fixtureRoot;$doubleAccepted=$true}catch{}
+            if($doubleAccepted -or (Get-FileHash -LiteralPath $pointer -Algorithm SHA256).Hash -cne $preRepeated){
+              throw 'W06C_DUPLICATE_PROMOTION_NOT_FAIL_CLOSED'
+            }
+            Write-Output '::notice::W06C_DUPLICATE_PROMOTION_REFUSED_NO_MUTATION=PASS'
+            $rolled=@(& $selector -Action Rollback -SyntheticRoot $fixtureRoot)
+            if(@($rolled|Where-Object {$_ -match '^W06C_SYNTHETIC_STOPPED_ROLLBACK=PASS'}).Count -ne 1){throw 'W06C_STOPPED_ROLLBACK_NOT_QUALIFIED'}
+            $again=@(& $selector -Action Inspect -SyntheticRoot $fixtureRoot)
+            if($again -cnotcontains 'W06C_ACTIVE_READONLY_VERSION=v1'){throw 'W06C_ROLLBACK_POINTER_NOT_V1'}
+            $rolledFile=Join-Path $fixtureRoot 'w06-active-readonly.rolledback'
+            if(!(Test-Path -LiteralPath $rolledFile -PathType Leaf)){throw 'W06C_RETURN_VERSION_EVIDENCE_MISSING'}
+            if((Get-Content -LiteralPath (Join-Path $data 'w06-readonly-data.json') -Raw) -cne $originalDataProof -or
+               (Get-FileHash -LiteralPath $unknown -Algorithm SHA256).Hash -cne $oldUnknownHash -or
+               [IO.File]::ReadAllText($marker) -cne $expectedMarker){
+              throw 'W06C_VERSION_SELECTION_MUTATED_APP_DATA'
+            }
+            $unfinished=Join-Path $fixtureRoot 'w06-active-readonly.next'
+            [IO.File]::WriteAllText($unfinished,'synthetic power loss marker',[Text.UTF8Encoding]::new($false))
+            $crashAccepted=$false
+            try{$null=& $selector -Action Inspect -SyntheticRoot $fixtureRoot;$crashAccepted=$true}catch{}
+            if($crashAccepted){throw 'W06C_UNFINISHED_TRANSACTION_REOPENED'}
+            Remove-Item -LiteralPath $unfinished -Force -ErrorAction Stop
+            Write-Output '::notice::W06C_UNFINISHED_TRANSACTION_FAILS_CLOSED=PASS'
+            Write-Output '::notice::W06C_REAL_WINDOWS_STOPPED_SELECTION_AND_ROLLBACK=PASS'
+            Write-Output '::notice::W06C_UNCHANGED_DATA_WEBVIEW_AND_LIVE_DISARM=PASS'
+
+
+            # W08A uses a NEW code-only release root; no live installation,
+            # owner-data path, or PAPER/LIVE authority is accessed.
+            $freshParent=Join-Path $env:RUNNER_TEMP ('w08a-fresh-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+            New-Item -ItemType Directory -Path $freshParent -ErrorAction Stop|Out-Null
+            $freshTarget=Join-Path $freshParent 'KTRADE'
+            try{
+              $script=Join-Path $src 'windows/Stage-KTRADE-W08A-FreshCodeRelease.ps1'
+              if(!(Test-Path -LiteralPath $script -PathType Leaf)){throw 'W08A_STAGE_SOURCE_MISSING'}
+              $out=@(& $script -QualifiedW03Stage $stage -ExpectedSourceSha 'd67fba994d628f1ea235640fa77eda5f38a62df9' -FreshTargetRoot $freshTarget -CodeOnly -NeverStart -LiveDisarmed)
+              if(@($out|Where-Object {$_ -match '^W08A_FRESH_CODE_ONLY_STAGE=PASS'}).Count -ne 1){throw 'W08A_FRESH_STAGE_DID_NOT_PASS'}
+              $proofPath=Join-Path $freshTarget 'fresh-code-release-proof.json'
+              if(!(Test-Path -LiteralPath $proofPath -PathType Leaf)){throw 'W08A_RELEASE_PROOF_MISSING'}
+              $proof=Get-Content -LiteralPath $proofPath -Raw|ConvertFrom-Json
+              if($proof.schema -cne 'ktrade.wails.fresh-code-only-release.v1' -or
+                 $proof.source_sha -cne 'd67fba994d628f1ea235640fa77eda5f38a62df9' -or
+                 $proof.no_app_data -ne $true -or $proof.no_start -ne $true -or
+                 $proof.paper_orders_enabled -ne $false -or $proof.live_armed -ne $false -or
+                 $proof.installed_or_activated -ne $false){throw 'W08A_DISARMED_PROOF_INVALID'}
+              $shell=Join-Path $freshTarget 'releases\v1\ktrade.exe'
+              $engine=Join-Path $freshTarget 'releases\v1\ktrade-engine.exe'
+              if(!(Test-Path -LiteralPath $shell -PathType Leaf) -or
+                 !(Test-Path -LiteralPath $engine -PathType Leaf) -or
+                 (Get-FileHash -LiteralPath $shell -Algorithm SHA256).Hash.ToLowerInvariant() -cne $proof.wails_exe_sha256 -or
+                 (Get-FileHash -LiteralPath $engine -Algorithm SHA256).Hash.ToLowerInvariant() -cne $proof.engine_exe_sha256){
+                throw 'W08A_STAGED_EXECUTABLES_MISMATCH'
+              }
+              if((Test-Path -LiteralPath (Join-Path $freshTarget 'app-data')) -or
+                 (Test-Path -LiteralPath (Join-Path $freshTarget 'releases\v1\data'))){
+                throw 'W08A_IMPORTED_OR_CREATED_OWNER_DATA'
+              }
+              Write-Output '::notice::W08A_SOURCE_BUILT_REAL_WAILS_GO_NEW_RELEASE=PASS'
+              $proofDigest=(Get-FileHash -LiteralPath $proofPath -Algorithm SHA256).Hash
+              $shellDigest=(Get-FileHash -LiteralPath $shell -Algorithm SHA256).Hash
+              $existingAccepted=$false
+              try{$null=& $script -QualifiedW03Stage $stage -ExpectedSourceSha 'd67fba994d628f1ea235640fa77eda5f38a62df9' -FreshTargetRoot $freshTarget -CodeOnly -NeverStart -LiveDisarmed;$existingAccepted=$true}catch{}
+              if($existingAccepted -or
+                 (Get-FileHash -LiteralPath $proofPath -Algorithm SHA256).Hash -cne $proofDigest -or
+                 (Get-FileHash -LiteralPath $shell -Algorithm SHA256).Hash -cne $shellDigest){
+                throw 'W08A_EXISTING_TARGET_OVERWRITTEN'
+              }
+              Write-Output '::notice::W08A_EXISTING_APP_FAIL_CLOSED_AND_BYTE_PRESERVED=PASS'
+              $bad=Join-Path $freshParent 'other'
+              New-Item -ItemType Directory -Path $bad -ErrorAction Stop|Out-Null
+              $badTarget=Join-Path $bad 'KTRADE'
+              $badAccepted=$false
+              try{$null=& $script -QualifiedW03Stage $stage -ExpectedSourceSha 'd67fba994d628f1ea235640fa77eda5f38a62df9' -FreshTargetRoot $badTarget -CodeOnly -NeverStart -LiveDisarmed:$false;$badAccepted=$true}catch{}
+              if($badAccepted -or (Test-Path -LiteralPath $badTarget)){throw 'W08A_MISSING_DISARM_WAS_ACCEPTED'}
+              Write-Output '::notice::W08A_MISSING_DISARM_REFUSED_NO_WRITE=PASS'
+              Write-Output '::notice::W08A_NOT_INSTALLED_NOT_LAUNCHED_NO_OWNER_DATA=PASS'
+            }finally{
+              if(Test-Path -LiteralPath $freshParent){Remove-Item -LiteralPath $freshParent -Recurse -Force -ErrorAction SilentlyContinue}
+            }
+
+
+            # W08B: NEW code-only W08A release in nonce-scoped OS TEMP
+            # followed by explicitly initialized independent app-data.
+            $freshHostParent=Join-Path $env:RUNNER_TEMP ('ktrade-w08b-fresh-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+            New-Item -ItemType Directory -Path $freshHostParent -ErrorAction Stop|Out-Null
+            $freshHost=Join-Path $freshHostParent 'KTRADE'
+            try{
+              $stageCode=Join-Path $src 'windows/Stage-KTRADE-W08A-FreshCodeRelease.ps1'
+              $initData=Join-Path $src 'windows/Initialize-KTRADE-W08B-FreshReadOnly.ps1'
+              $stageResult=@(& $stageCode -QualifiedW03Stage $stage -ExpectedSourceSha 'd67fba994d628f1ea235640fa77eda5f38a62df9' -FreshTargetRoot $freshHost -CodeOnly -NeverStart -LiveDisarmed)
+              if(@($stageResult|Where-Object {$_ -match '^W08A_FRESH_CODE_ONLY_STAGE=PASS'}).Count -ne 1){throw 'W08B_QUALIFIED_SOURCE_STAGE_FAILED'}
+              $initialized=@(& $initData -FreshTargetRoot $freshHost -ExpectedSourceSha 'd67fba994d628f1ea235640fa77eda5f38a62df9' -ReadOnly -FreshOnly -LiveDisarmed)
+              if(@($initialized|Where-Object {$_ -match '^W08B_FIRST_USE_APP_DATA_INITIALIZED=PASS'}).Count -ne 1){throw 'W08B_FRESH_APP_DATA_NOT_INITIALIZED'}
+              $newRelease=Join-Path $freshHost 'releases\v1'
+              $newExe=Join-Path $newRelease 'ktrade.exe'
+              $newEngine=Join-Path $newRelease 'ktrade-engine.exe'
+              $freshData=Join-Path $freshHost 'app-data'
+              $profile=Join-Path $freshData 'webview2-profile'
+              $freshProof=Join-Path $freshData 'fresh-app-data-readonly-proof.json'
+              $freshProofBefore=(Get-FileHash -LiteralPath $freshProof -Algorithm SHA256).Hash
+              $unknown=Join-Path $freshData 'nonstandard-user-file.txt'
+              $unknownText='W08B new independent unknown preference preserved'
+              [IO.File]::WriteAllText($unknown,$unknownText,[Text.UTF8Encoding]::new($false))
+              # Deliberately break the explicit LIVE disarm before first use:
+              # the genuine Wails process must exit before any backend/profile.
+              $codeProofPath=Join-Path $freshHost 'fresh-code-release-proof.json'
+              $sourceProof=[IO.File]::ReadAllText($codeProofPath)
+              try {
+                $unsafe=$sourceProof.Replace('"live_armed":false','"live_armed":true')
+                if($unsafe -ceq $sourceProof){throw 'W08B_EXPLICIT_PROOF_DISARM_FIELD_MISSING'}
+                [IO.File]::WriteAllText($codeProofPath,$unsafe,[Text.UTF8Encoding]::new($false))
+                $rejected=Start-Process -FilePath $newExe -WorkingDirectory $newRelease -PassThru
+                $null=$rejected.Handle
+                if(-not $rejected.WaitForExit(20000)){Stop-Process -Id $rejected.Id -Force;throw 'W08B_TAMPERED_WAILS_DID_NOT_EXIT'}
+                if($rejected.ExitCode -eq 0){throw 'W08B_TAMPERED_WAILS_ACCEPTED'}
+                if(Test-Path -LiteralPath $profile){throw 'W08B_TAMPER_CREATED_BROWSER_PROFILE'}
+                Write-Output '::notice::W08B_TAMPERED_FIRST_LAUNCH_REFUSED_BEFORE_PROFILE=PASS'
+              }finally {
+                [IO.File]::WriteAllText($codeProofPath,$sourceProof,[Text.UTF8Encoding]::new($false))
+              }
+              $firstMarker=Join-Path $profile 'cold-user-preference.test'
+              $markerValue='synthetic WebView2 preference retained between genuine process starts'
+              for($w08cycle=1;$w08cycle -le 2;$w08cycle++){
+                $app=$null;$child=$null;$http=$null
+                try{
+                  $app=Start-Process -FilePath $newExe -WorkingDirectory $newRelease -PassThru
+                  $null=$app.Handle
+                  $windowDeadline=(Get-Date).AddSeconds(65)
+                  $windowReady=$false
+                  while((Get-Date) -lt $windowDeadline){
+                    Start-Sleep -Milliseconds 450
+                    $app.Refresh()
+                    if($app.HasExited){throw 'W08B_GENUINE_WINDOW_EXITED_EARLY'}
+                    if($app.MainWindowHandle -ne [IntPtr]::Zero -and
+                       $app.MainWindowTitle -like 'KTRADE*W08 Fresh Installed Read-Only*'){
+                      $windowReady=$true;break
+                    }
+                  }
+                  if(!$windowReady){throw 'W08B_WEBVIEW2_WINDOW_NOT_READY'}
+                  $engineDeadline=(Get-Date).AddSeconds(20)
+                  while((Get-Date) -lt $engineDeadline){
+                    $children=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" |
+                      Where-Object {$_.ExecutablePath -ieq $newEngine -and $_.ParentProcessId -eq $app.Id})
+                    if($children.Count -eq 1){$child=$children[0];break}
+                    Start-Sleep -Milliseconds 350
+                  }
+                  if(!$child){throw 'W08B_GENUINE_NATIVE_GO_CHILD_MISSING'}
+                  $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $child.ProcessId -ErrorAction SilentlyContinue |
+                    Where-Object {$_.LocalAddress -eq '127.0.0.1'})
+                  if($listeners.Count -ne 1){throw 'W08B_ONE_NATIVE_GO_LOOPBACK_REQUIRED'}
+                  $base='http://127.0.0.1:'+$listeners[0].LocalPort
+                  $http=[Net.Http.HttpClient]::new()
+                  $http.Timeout=[TimeSpan]::FromSeconds(12)
+                  $caps=$http.GetAsync($base+'/api/operator/capabilities').GetAwaiter().GetResult()
+                  if([int]$caps.StatusCode -ne 200){throw 'W08B_CAPABILITY_ENDPOINT_FAILED'}
+                  $cap=$caps.Content.ReadAsStringAsync().GetAwaiter().GetResult()|ConvertFrom-Json
+                  if($cap.mode -cne 'PAPER_STOPPED' -or
+                     $cap.paper_orders_enabled -ne $false -or
+                     $cap.live_orders_enabled -ne $false -or
+                     $cap.strategy_execution_enabled -ne $false -or
+                     $cap.paper_accounting_enabled -ne $false -or
+                     $cap.requires_review -ne $true){throw 'W08B_UNAUTHORIZED_OPERATOR_CAPABILITIES'}
+                  $paper=$http.GetAsync($base+'/api/paper/session').GetAwaiter().GetResult()
+                  if([int]$paper.StatusCode -ne 423){throw 'W08B_PAPER_AUTHORITY_ACCIDENTALLY_ACTIVE'}
+                  $start=$http.PostAsync($base+'/api/paper/session/start',
+                    [Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+                  if([int]$start.StatusCode -ne 423){throw 'W08B_PAPER_START_NOT_DISARMED'}
+                  $order=$http.PostAsync($base+'/api/orders/place',
+                    [Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+                  if([int]$order.StatusCode -ne 423){throw 'W08B_ORDER_ROUTE_NOT_DISARMED'}
+                  $chart=$http.GetAsync($base+'/chart').GetAwaiter().GetResult()
+                  if([int]$chart.StatusCode -ne 200 -or
+                     -not ($chart.Content.ReadAsStringAsync().GetAwaiter().GetResult()).Contains('pine-editor-main')){
+                    throw 'W08B_ORIGINAL_CHART_HTML_UNAVAILABLE'
+                  }
+                  if(!(Test-Path -LiteralPath $profile -PathType Container)){throw 'W08B_WEBVIEW2_PROFILE_NOT_CREATED'}
+                  if($w08cycle -eq 1){
+                    [IO.File]::WriteAllText($firstMarker,$markerValue,[Text.UTF8Encoding]::new($false))
+                  }else{
+                    if(!(Test-Path -LiteralPath $firstMarker -PathType Leaf) -or
+                       [IO.File]::ReadAllText($firstMarker) -cne $markerValue){throw 'W08B_COLD_BROWSER_PROFILE_NOT_PRESERVED'}
+                  }
+                  if([IO.File]::ReadAllText($unknown) -cne $unknownText -or
+                     (Get-FileHash -LiteralPath $freshProof -Algorithm SHA256).Hash -cne $freshProofBefore){
+                    throw 'W08B_FRESH_APP_DATA_CHANGED_OR_UNKNOWN_LOST'
+                  }
+                  if(Test-Path -LiteralPath (Join-Path $newRelease 'data')){throw 'W08B_EXE_ADJACENT_DATA_CREATED'}
+                  Write-Output ('::notice::W08B_REAL_WAILS_NATIVE_GO_READONLY_CYCLE_'+$w08cycle+'=PASS')
+                  if(-not $app.CloseMainWindow()){throw 'W08B_GUI_CLOSE_REFUSED'}
+                  if(-not $app.WaitForExit(20000) -or $app.ExitCode -ne 0){throw 'W08B_GUI_PROCESS_DID_NOT_SHUTDOWN'}
+                  $left=Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
+                  if($left -and -not $left.WaitForExit(5000)){throw 'W08B_GO_CHILD_SURVIVED_WAILS_EXIT'}
+                }finally{
+                  if($http){$http.Dispose()}
+                  if($app){try{if(-not $app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}catch{}}
+                  if($child){try{Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue}catch{}}
+                }
+              }
+              Write-Output '::notice::W08B_FRESH_INSTALLED_WAILS_WEBVIEW2_COLD_RESTART=PASS'
+              Write-Output '::notice::W08B_FRESH_APP_DATA_AND_UNKNOWN_BYTES_PRESERVED=PASS'
+              Write-Output '::notice::W08B_NO_PREVIOUS_INSTALL_DATA_OR_PAPER_LIVE=PASS'
+            }finally {
+              if(Test-Path -LiteralPath $freshHostParent){Remove-Item -LiteralPath $freshHostParent -Recurse -Force -ErrorAction SilentlyContinue}
+            }
+
+            Write-Output '::notice::W06B_V1_V2_V1_REAL_WEBVIEW2_COLD_ROLLBACK=PASS'
+            Write-Output '::notice::W06B_PERSISTENT_UNKNOWN_AND_BROWSER_STATE=PASS'
+            Write-Output '::notice::W06A_INSTALLED_READONLY_WAILS_COLD_PROFILE=PASS'
+            Write-Output '::notice::W06A_SYNTHETIC_ONLY_NO_INSTALL_NO_PAPER_NO_LIVE=PASS'
+          }finally{
+            if($fixtureRoot -and (Test-Path -LiteralPath $fixtureRoot)){
+              Remove-Item -LiteralPath $fixtureRoot -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            if(Test-Path -LiteralPath $pkg){Remove-Item -LiteralPath $pkg -Recurse -Force -ErrorAction SilentlyContinue}
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
