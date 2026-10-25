@@ -1,0 +1,252 @@
+name: KTRADE W12U genuine Wails WebView2 Windows UI Automation
+
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w12u-real-webview2-uia-windows.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ktrade-w12u-exact-source-windows
+  cancel-in-progress: false
+
+jobs:
+  operator-smoke:
+    name: Real Wails window plus original Go/Monaco browser interactions
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout immutable qualification workflow
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable private KTRADE source read-only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 4fa71a347090648ce219a278ae54af3c943b22fa
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Authenticate original KTRADE commit parent tree and witness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W12U_AUTHENTIC_WINDOWS_HOST_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $witness=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witnessHead=(& git -C $witness rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne '4fa71a347090648ce219a278ae54af3c943b22fa' -or
+             $parent -cne '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -or
+             $tree -cne '63c69c0f71682b653c3d541cec874a2f903f190c' -or
+             $witnessHead -cne $env:GITHUB_SHA){throw 'W12U_SOURCE_OR_WITNESS_IDENTITY_DRIFT'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W12U_DIRTY_PRIVATE_SOURCE'}
+          Write-Output '::notice::W12U_SOURCE_PARENT_TREE_AND_WITNESS=PASS'
+      - name: Set up native Windows Go for original engine and Wails
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: checked-private/tools/wails-pilot/go.mod
+          cache: false
+      - name: Set up Node 24 for real Chromium CDP pipe and locked assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: checked-private/package-lock.json
+      - name: Genuine Wails GUI and original Pine editor browser interaction
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          # One canonical disposable path for .NET, Go os.TempDir and both binaries.
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $tmp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
+          $pkg=Join-Path $tmp ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          $privateLog=Join-Path $env:RUNNER_TEMP 'w12u-private-output.log'
+          $browserProfile=Join-Path $env:RUNNER_TEMP ('w12u-cdp-'+[guid]::NewGuid().ToString('N'))
+          $app=$null;$child=$null;$w12uDriver=$null
+          try{
+            Push-Location $src
+            try{
+              & npm ci --ignore-scripts --no-audit --no-fund --silent *> $privateLog
+              if($LASTEXITCODE -ne 0){throw 'W12U_LOCKED_FRONTEND_INSTALL_FAILED'}
+              & node scripts/stage_offline_vendor.cjs *> $privateLog
+              if($LASTEXITCODE -ne 0){throw 'W12U_LOCKED_OFFLINE_VENDOR_FAILED'}
+              if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W12U_TRACKED_SOURCE_CHANGED'}
+            }finally{Pop-Location}
+            $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
+            $built=@(& $builder -OutputRoot $pkg -ExpectedSourceSha '4fa71a347090648ce219a278ae54af3c943b22fa')
+            if($built -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W12U_AUTHENTIC_PAIRED_WAILS_BUILD_FAILED'}
+            $release=Join-Path $pkg 'KTRADE-WailsPortable'
+            $exe=Join-Path $release 'ktrade.exe'
+            $engine=Join-Path $release 'ktrade-engine.exe'
+            $wailsLog=Join-Path $env:RUNNER_TEMP 'w12u-private-wails-stderr.log'
+          $app=Start-Process -FilePath $exe -WorkingDirectory $release -RedirectStandardError $wailsLog -PassThru
+            $null=$app.Handle
+            $until=(Get-Date).AddSeconds(55)
+            $window=$false
+            while((Get-Date) -lt $until){
+              Start-Sleep -Milliseconds 500
+              $app.Refresh()
+              if($app.HasExited){
+                if(Test-Path -LiteralPath $wailsLog){
+                  foreach($line in @(Get-Content -LiteralPath $wailsLog -ErrorAction SilentlyContinue | Where-Object {
+                    $_ -match '(?i)(wails|ktrade|loopback|proof|refused|profile|disarmed|timeout|panic)'
+                  } | Select-Object -Last 5)){
+                    $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED_PATH]')
+                    $safe=[regex]::Replace($safe,'(?i)(token|secret|api[_-]?key)=[^\s]+','$1=[REDACTED]')
+                    if($safe.Length -gt 240){$safe=$safe.Substring(0,240)}
+                    Write-Output ('::warning::W12U_WAILS_START_DIAGNOSTIC='+$safe)
+                  }
+                }
+                throw 'W12U_WAILS_WINDOW_EXITED_BEFORE_READY'
+              }
+              if($app.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(-not $window){throw 'W12U_NATIVE_WAILS_WINDOW_MISSING'}
+            Write-Output '::notice::W12U_GENUINE_WAILS_WEBVIEW2_WINDOW=PASS'
+            $until=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $until){
+              $children=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" | Where-Object {
+                $_.ExecutablePath -ieq $engine -and $_.ParentProcessId -eq $app.Id
+              })
+              if($children.Count -eq 1){$child=$children[0];break}
+              Start-Sleep -Milliseconds 400
+            }
+            if(!$child){throw 'W12U_WAILS_OWNED_ORIGINAL_GO_CHILD_MISSING'}
+            $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $child.ProcessId -ErrorAction SilentlyContinue |
+              Where-Object {$_.LocalAddress -eq '127.0.0.1'})
+            if($listeners.Count -ne 1){throw 'W12U_EXACT_ONE_GO_LOOPBACK_REQUIRED'}
+            $base='http://127.0.0.1:'+$listeners[0].LocalPort
+            $cap=Invoke-RestMethod -Uri ($base+'/api/operator/capabilities') -TimeoutSec 10
+            if($cap.live_orders_enabled -ne $false -or $cap.mode -cne 'PAPER_STOPPED' -or
+               $cap.paper_orders_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W12U_OPERATOR_NOT_STOPPED_DISARMED'}
+            Write-Output '::notice::W12U_GO_NATIVE_CAPABILITIES_LIVE_DISARMED=PASS'
+            # Native UI Automation of the actual Wails WebView2 process window.
+            # No CDP flags, injected JS, test-only browser profiles, simulated
+            # clicks, broker authorization, or owner-data modification.
+            Add-Type -AssemblyName UIAutomationClient
+            Add-Type -AssemblyName UIAutomationTypes
+            $uiRoot=[System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$app.MainWindowHandle)
+            if(!$uiRoot){throw 'W12U_AUTHENTIC_WINDOW_UIA_ROOT_NOT_FOUND'}
+            function Find-W12UNode([string]$name){
+              $condition=[System.Windows.Automation.PropertyCondition]::new(
+                [System.Windows.Automation.AutomationElement]::NameProperty,$name)
+              return $uiRoot.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
+            }
+            $wailsHeader=$null;$embeddedChart=$null;$lockedTrade=$null
+            $untilUIA=(Get-Date).AddSeconds(18)
+            while((Get-Date) -lt $untilUIA){
+              $wailsHeader=Find-W12UNode 'KTRADE / Wails'
+              $embeddedChart=Find-W12UNode 'Original KTRADE chart and Pine editor'
+              $lockedTrade=Find-W12UNode 'Trade unavailable'
+              if($wailsHeader -and $embeddedChart -and $lockedTrade){break}
+              Start-Sleep -Milliseconds 450
+            }
+            Write-Output ('::notice::W12U_UIA_ACCESSIBILITY_COUNTS=parent:'+[int][bool]$wailsHeader+
+              ';frame:'+[int][bool]$embeddedChart+';trade:'+[int][bool]$lockedTrade)
+            if(!$wailsHeader){throw 'W12U_GENUINE_WAILS_UIA_PARENT_NOT_EXPOSED'}
+            if(!$embeddedChart){throw 'W12U_EMBEDDED_WEBVIEW2_IFRAME_UIA_NOT_EXPOSED'}
+            if(!$lockedTrade){throw 'W12U_GO_CHART_CROSS_ORIGIN_UIA_CHILD_NOT_EXPOSED'}
+            if($lockedTrade.Current.IsEnabled){throw 'W12U_EMBEDDED_LEGACY_TRADE_BUTTON_ENABLED'}
+            Write-Output '::notice::W12U_REAL_EMBEDDED_WEBVIEW2_CROSS_ORIGIN_ACCESSIBILITY=PASS'
+            Write-Output '::notice::W12U_REAL_EMBEDDED_LEGACY_TRADE_DISABLED=PASS'
+            Write-Output '::notice::W12U_NO_FINANCIAL_START_OR_LIVE=PASS'
+            $browser=@(
+              'C:\Program Files\Google\Chrome\Application\chrome.exe',
+              'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+              'C:\Program Files\Microsoft\Edge\Application\msedge.exe'
+            ) | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1
+            if(!$browser){throw 'W12U_AUTHENTIC_INSTALLED_CHROMIUM_REQUIRED'}
+            $test=Join-Path $src 'tests/ktrade_real_browser_chart_cdp.cjs'
+            # This original private test still expects a once-clickable broker
+            # panel. Pin its Git blob and adapt ONLY that obsolete assertion in
+            # a disposable driver, never editing or publishing private source.
+            $driverSHA=(& git -C $src hash-object -- tests/ktrade_real_browser_chart_cdp.cjs).Trim()
+            if($LASTEXITCODE -ne 0 -or $driverSHA -cne 'c3a5f896dee5aba1ac2b6af8ea94f93d12143ec7'){throw 'W12U_ORIGINAL_TEST_DRIVER_IDENTITY_DRIFT'}
+            $driver=[IO.File]::ReadAllText($test)
+            $start='  // Click ACTUAL original trading controls, not a reconstructed test page.'
+            $end=' }finally{c.close()}'
+            $at=$driver.IndexOf($start,[StringComparison]::Ordinal)
+            if($at -lt 0){throw 'W12U_HISTORICAL_TEST_START_MISSING'}
+            $tail=$driver.IndexOf($end,$at+$start.Length,[StringComparison]::Ordinal)
+            if($tail -le $at -or $driver.IndexOf($start,$at+1,[StringComparison]::Ordinal) -ge 0){throw 'W12U_HISTORICAL_TEST_END_AMBIGUOUS'}
+            $negative=@'
+            await until("W12U_OPERATOR_DISARMED_BANNER_MISSING",()=>c.eval(
+            'document.querySelector("#operatorModeStatus")?.textContent.includes("PAPER STOPPED")'
+            ),40);
+            const locked=await c.eval('(function(){const trade=document.getElementById("tradeBtn");const submit=document.getElementById("orderSubmit");trade.click();submit.click();return {tradeDisabled:trade.disabled,submitDisabled:submit.disabled,panelOpen:document.getElementById("orderPanel").classList.contains("open"),status:document.getElementById("operatorModeStatus").textContent}})()');
+            assert.equal(locked.tradeDisabled,true,"unqualified Trade button active");
+            assert.equal(locked.submitDisabled,true,"unqualified Order button active");
+            assert.equal(locked.panelOpen,false,"disabled Trade button opened brokerage panel");
+            assert.match(locked.status,/PAPER STOPPED.*LIVE DISARMED/);
+            assert.equal(c.orderRequests.length,0,"disabled UI dispatched order");
+            console.log("W12U_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS");
+            const route=await c.eval('(async()=>{const r=await fetch("/api/orders/place",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return r.status})()');
+            assert.equal(route,423,"original Go broker route did not refuse order");
+            assert.equal(c.orderRequests.length,1,"explicit negative route probe count mismatch");
+            console.log("W12U_ORIGINAL_LEGACY_ORDER_HTTP_423=PASS");
+          '@
+            $w12uDriver=Join-Path $env:RUNNER_TEMP 'ktrade-w12u-source-pinned-browser-negative.cjs'
+            [IO.File]::WriteAllText($w12uDriver,($driver.Substring(0,$at)+$negative+[Environment]::NewLine+$driver.Substring($tail)),[Text.UTF8Encoding]::new($false))
+            & node $w12uDriver $base 'pipe' $browser $browserProfile *> $privateLog
+            if($LASTEXITCODE -ne 0){
+              $names=@(Get-Content -LiteralPath $privateLog | Where-Object {
+                $_ -match '^(KTRADE_REAL_BROWSER_|Error: |AssertionError|REAL_BROWSER_)'
+              } | Select-Object -Last 12)
+              foreach($n in $names){
+                $safe=[regex]::Replace([string]$n,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED]')
+                if($safe.Length -gt 220){$safe=$safe.Substring(0,220)}
+                Write-Output ('::warning::W12U_ORIGINAL_BROWSER_FAILURE='+$safe)
+              }
+              throw 'W12U_AUTHENTIC_ORIGINAL_PINE_BROWSER_WORKFLOW_FAILED'
+            }
+            foreach($receipt in @(
+              'KTRADE_REAL_BROWSER_MONACO_EDITOR_INITIALIZED=PASS',
+              'KTRADE_REAL_BROWSER_SAVE_FAVORITE_RELOAD_REOPEN=PASS',
+              'KTRADE_REAL_BROWSER_HISTORICAL_KEYS_PRESERVED=PASS',
+              'KTRADE_REAL_BROWSER_NO_ORDER_DISPATCH=PASS',
+              'W12U_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS',
+              'W12U_ORIGINAL_LEGACY_ORDER_HTTP_423=PASS'
+            )){
+              if(-not (Select-String -LiteralPath $privateLog -SimpleMatch $receipt -Quiet)){throw ('W12U_REQUIRED_BROWSER_RECEIPT_MISSING_'+$receipt)}
+            }
+            Write-Output '::notice::W12U_ORIGINAL_MONACO_PINE_SAVE_FAVORITE_REOPEN=PASS'
+            Write-Output '::notice::W12U_ORIGINAL_TRADING_CONTROLS_REFUSE_ORDERS=PASS'
+            Write-Output '::notice::W12U_REAL_BROWSER_ON_WAILS_GO_CHILD=PASS'
+            if(-not $app.CloseMainWindow()){throw 'W12U_WAILS_GUI_CLOSE_REFUSED'}
+            if(-not $app.WaitForExit(20000) -or $app.ExitCode -ne 0){throw 'W12U_WAILS_PARENT_SHUTDOWN_FAILED'}
+            $remaining=Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
+            if($remaining -and -not $remaining.WaitForExit(5000)){throw 'W12U_GO_CHILD_SHUTDOWN_FAILED'}
+            Write-Output '::notice::W12U_WAILS_GO_CHILD_STOPPED=PASS'
+            Write-Output '::notice::W12U_NO_INSTALLED_OWNER_DATA_NO_LIVE_ACTIVATION=PASS'
+          }finally{
+            if($app){try{if(-not $app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}catch{}}
+            if($child){try{Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue}catch{}}
+            if(Test-Path -LiteralPath $browserProfile){Remove-Item -LiteralPath $browserProfile -Recurse -Force -ErrorAction SilentlyContinue}
+            if(Test-Path -LiteralPath $pkg){Remove-Item -LiteralPath $pkg -Recurse -Force -ErrorAction SilentlyContinue}
+            Remove-Item -LiteralPath $privateLog -Force -ErrorAction SilentlyContinue
+            if($w12uDriver -and (Test-Path -LiteralPath $w12uDriver)){Remove-Item -LiteralPath $w12uDriver -Force -ErrorAction SilentlyContinue}
+            Remove-Item -LiteralPath $wailsLog -Force -ErrorAction SilentlyContinue
+          }
