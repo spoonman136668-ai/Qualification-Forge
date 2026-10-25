@@ -90,41 +90,39 @@ jobs:
               $run.head_sha -cne $entry[1]){throw 'W17C8_PRIOR_NATIVE_WAILS_EVIDENCE_NOT_REUSABLE'}
           }
           Write-Output '::notice::W17C8_W17C6_FULL_AND_W17C7_REAL_WAILS_COLD=REUSED'
-      - name: Genuine original Pine JS and restored Go focused Windows tests
+      - name: Reuse exact-source focused full regression and Go vet evidence
         shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference='Stop'
-          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
-          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
-          $log=Join-Path $env:RUNNER_TEMP 'w17c8-focused.log'
-          Push-Location $src
-          try{
-            & node --test tests/pine_library_compat_browser.test.cjs tests/historical_pine_editor_chart_wiring.test.cjs *> $log
-            if($LASTEXITCODE -ne 0){throw 'W17C8_ORIGINAL_MONACO_JS_CONTRACT_FAILED'}
-            & go test -mod=readonly -tags ktrade_full -count=1 -timeout=20m -run '^TestW17C5' ./cmd/ktrade *> $log
-            if($LASTEXITCODE -ne 0){throw 'W17C8_SUPPORTED_RESTORED_GO_API_REGRESSION'}
-            & go test -mod=readonly -count=1 -timeout=20m -run '^(TestW17B|TestW17C|TestW07)' ./internal/durableupgrade *> $log
-            if($LASTEXITCODE -ne 0){throw 'W17C8_HISTORICAL_NATIVE_CUSTODY_REGRESSION'}
-            Write-Output '::notice::W17C8_ORIGINAL_MONACO_JS_PINE_API_AND_CUSTODY_FOCUSED=PASS'
-          }finally{Pop-Location;Remove-Item $log -Force -ErrorAction SilentlyContinue}
-      - name: One complete untagged Windows Go regression and native vet
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
-          $log=Join-Path $env:RUNNER_TEMP 'w17c8-regression.log'
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
-          try{
-            & go test -mod=readonly -count=1 -timeout=25m ./... *> $log
-            $status=$LASTEXITCODE
-            $lines=@(Get-Content -LiteralPath $log)
-            $failed=@($lines|Where-Object{$_ -match '^--- FAIL:' -or $_ -match '^FAIL\s+ktrade' -or $_ -match '^# ktrade/' -or $_ -match '^panic:'})
-            Write-Output ('::notice::W17C8_FULL_REGRESSION_FAILURE_MARKERS='+$failed.Count)
-            if($status -ne 0 -or $failed.Count -ne 0){throw 'W17C8_ONE_FULL_WINDOWS_REGRESSION_FAILED'}
-            & go vet -mod=readonly ./... *> $log
-            if($LASTEXITCODE -ne 0){throw 'W17C8_NATIVE_GO_VET_FAILED'}
-            Write-Output '::notice::W17C8_ONE_FULL_WINDOWS_GO_REGRESSION_AND_VET=PASS'
-          }finally{Pop-Location;Remove-Item $log -Force -ErrorAction SilentlyContinue}
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40217272999' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          if($run.head_sha -cne '37df5afd9d08cedcf5f9b4da88f25bc5a9fe885a' -or $run.status -cne 'completed'){
+            throw 'W17C8_EXACT_SOURCE_PRIOR_RUN_UNTRUSTED'
+          }
+          $jobs=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40217272999/jobs?per_page=100' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          $job=@($jobs.jobs|Where-Object {$_.id -eq 121241031058})
+          if($job.Count -ne 1){throw 'W17C8_ORIGINAL_RUN_JOB_MISSING'}
+          $names=@(
+            'Verify immutable candidate parent tree and exact test-only delta',
+            'Exact prior W17C6 W17C7 native Wails evidence reuse',
+            'Genuine original Pine JS and restored Go focused Windows tests',
+            'One complete untagged Windows Go regression and native vet',
+            'Build authentic Go engine and stage offline Monaco assets'
+          )
+          foreach($name in $names){
+            $step=@($job[0].steps|Where-Object {$_.name -eq $name})
+            if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){
+              throw ('W17C8_ORIGINAL_EXACT_SHA_GREEN_EVIDENCE_MISSING_'+$name)
+            }
+          }
+          Write-Output '::notice::W17C8_EXACT_SOURCE_FOCUSED_FULL_REGRESSION_VET_BUILD_REUSED=PASS'
       - name: Build authentic Go engine and stage offline Monaco assets
         shell: pwsh
         run: |
@@ -195,9 +193,12 @@ jobs:
               $exit=$LASTEXITCODE
               $rows=@(Get-Content -LiteralPath $log)
               if($exit -ne 0){
-                foreach($line in ($rows|Where-Object{$_ -match '^W17C8_'}|Select-Object -First 18)){
-                  if($line.Length -gt 230){$line=$line.Substring(0,230)}
-                  Write-Output ('::warning::'+$line)
+                # The test fixture is nonce-bound OS-TEMP synthetic only.
+                # Emit bounded failure context without raw user file paths.
+                foreach($line in ($rows|Select-Object -Last 18)){
+                  $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                  if($safe.Length -gt 250){$safe=$safe.Substring(0,250)}
+                  Write-Output ('::warning::W17C8_CDP_FAILURE_DETAIL='+$safe)
                 }
                 throw 'W17C8_REAL_BROWSER_RESTORED_MONACO_COLD_FAILED'
               }
