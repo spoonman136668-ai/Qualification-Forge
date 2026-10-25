@@ -310,6 +310,7 @@ jobs:
             if($firstPort -lt 42000 -or $firstPort -ge 47000){
               throw 'W17D0_SYNTHETIC_FIXED_ORIGIN_OUT_OF_RANGE'
             }
+            $base='http://127.0.0.1:'+$listeners[0].LocalPort
             Write-Output '::notice::W17D0_NATIVE_W06_HOST_FIRST_FIXED_ORIGIN=PASS'
             Push-Location $src
             try{
