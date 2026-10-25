@@ -198,7 +198,7 @@ jobs:
             $eh=(Get-FileHash -LiteralPath (Join-Path $rel 'ktrade-engine.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
             function Write-Proof([string]$p,[object]$obj){
               if(Test-Path -LiteralPath $p){throw 'W17C6_EXISTING_PROOF'}
-              $raw=($obj|ConvertTo-Json -Depth 12 -Compress)+'\n'
+              $raw=($obj|ConvertTo-Json -Depth 12 -Compress)+[Environment]::NewLine
               [IO.File]::WriteAllText($p,$raw,[Text.UTF8Encoding]::new($false))
             }
             Write-Proof (Join-Path $rel 'w06-readonly-release.json') ([ordered]@{
