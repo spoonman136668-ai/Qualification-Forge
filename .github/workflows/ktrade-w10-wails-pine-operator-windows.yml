@@ -85,7 +85,7 @@ jobs:
           $pkg=Join-Path $tmp ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
           $privateLog=Join-Path $env:RUNNER_TEMP 'w10-private-output.log'
           $browserProfile=Join-Path $env:RUNNER_TEMP ('w10-cdp-'+[guid]::NewGuid().ToString('N'))
-          $app=$null;$child=$null
+          $app=$null;$child=$null;$w10Driver=$null
           try{
             Push-Location $src
             try{
@@ -150,7 +150,37 @@ jobs:
             ) | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1
             if(!$browser){throw 'W10_AUTHENTIC_INSTALLED_CHROMIUM_REQUIRED'}
             $test=Join-Path $src 'tests/ktrade_real_browser_chart_cdp.cjs'
-            & node $test $base 'pipe' $browser $browserProfile *> $privateLog
+            # This original private test still expects a once-clickable broker
+            # panel. Pin its Git blob and adapt ONLY that obsolete assertion in
+            # a disposable driver, never editing or publishing private source.
+            $driverSHA=(& git -C $src hash-object -- tests/ktrade_real_browser_chart_cdp.cjs).Trim()
+            if($LASTEXITCODE -ne 0 -or $driverSHA -cne 'c3a5f896dee5aba1ac2b6af8ea94f93d12143ec7'){throw 'W10_ORIGINAL_TEST_DRIVER_IDENTITY_DRIFT'}
+            $driver=[IO.File]::ReadAllText($test)
+            $start='  // Click ACTUAL original trading controls, not a reconstructed test page.'
+            $end=' }finally{c.close()}'
+            $at=$driver.IndexOf($start,[StringComparison]::Ordinal)
+            if($at -lt 0){throw 'W10_HISTORICAL_TEST_START_MISSING'}
+            $tail=$driver.IndexOf($end,$at+$start.Length,[StringComparison]::Ordinal)
+            if($tail -le $at -or $driver.IndexOf($start,$at+1,[StringComparison]::Ordinal) -ge 0){throw 'W10_HISTORICAL_TEST_END_AMBIGUOUS'}
+            $negative=@'
+  await until("W10_OPERATOR_DISARMED_BANNER_MISSING",()=>c.eval(
+    'document.querySelector("#operatorModeStatus")?.textContent.includes("PAPER STOPPED")'
+  ),40);
+  const locked=await c.eval('(function(){const trade=document.getElementById("tradeBtn");const submit=document.getElementById("orderSubmit");trade.click();submit.click();return {tradeDisabled:trade.disabled,submitDisabled:submit.disabled,panelOpen:document.getElementById("orderPanel").classList.contains("open"),status:document.getElementById("operatorModeStatus").textContent}})()');
+  assert.equal(locked.tradeDisabled,true,"unqualified Trade button active");
+  assert.equal(locked.submitDisabled,true,"unqualified Order button active");
+  assert.equal(locked.panelOpen,false,"disabled Trade button opened brokerage panel");
+  assert.match(locked.status,/PAPER STOPPED.*LIVE DISARMED/);
+  assert.equal(c.orderRequests.length,0,"disabled UI dispatched order");
+  console.log("W10_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS");
+  const route=await c.eval('(async()=>{const r=await fetch("/api/orders/place",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return r.status})()');
+  assert.equal(route,423,"original Go broker route did not refuse order");
+  assert.equal(c.orderRequests.length,1,"explicit negative route probe count mismatch");
+  console.log("W10_ORIGINAL_LEGACY_ORDER_HTTP_423=PASS");
+'@
+            $w10Driver=Join-Path $env:RUNNER_TEMP 'ktrade-w10-source-pinned-browser-negative.cjs'
+            [IO.File]::WriteAllText($w10Driver,($driver.Substring(0,$at)+$negative+[Environment]::NewLine+$driver.Substring($tail)),[Text.UTF8Encoding]::new($false))
+            & node $w10Driver $base 'pipe' $browser $browserProfile *> $privateLog
             if($LASTEXITCODE -ne 0){
               $names=@(Get-Content -LiteralPath $privateLog | Where-Object {
                 $_ -match '^(KTRADE_REAL_BROWSER_|Error: |AssertionError|REAL_BROWSER_)'
@@ -167,12 +197,13 @@ jobs:
               'KTRADE_REAL_BROWSER_SAVE_FAVORITE_RELOAD_REOPEN=PASS',
               'KTRADE_REAL_BROWSER_HISTORICAL_KEYS_PRESERVED=PASS',
               'KTRADE_REAL_BROWSER_NO_ORDER_DISPATCH=PASS',
-              'KTRADE_REAL_BROWSER_ORIGINAL_TRADE_PANEL_CLICK_AND_BROKER_VETO=PASS'
+              'W10_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS',
+              'W10_ORIGINAL_LEGACY_ORDER_HTTP_423=PASS'
             )){
               if(-not (Select-String -LiteralPath $privateLog -SimpleMatch $receipt -Quiet)){throw ('W10_REQUIRED_BROWSER_RECEIPT_MISSING_'+$receipt)}
             }
             Write-Output '::notice::W10_ORIGINAL_MONACO_PINE_SAVE_FAVORITE_REOPEN=PASS'
-            Write-Output '::notice::W10_ORIGINAL_TRADING_CONTROL_BROKER_VETO=PASS'
+            Write-Output '::notice::W10_ORIGINAL_TRADING_CONTROLS_REFUSE_ORDERS=PASS'
             Write-Output '::notice::W10_REAL_BROWSER_ON_WAILS_GO_CHILD=PASS'
             if(-not $app.CloseMainWindow()){throw 'W10_WAILS_GUI_CLOSE_REFUSED'}
             if(-not $app.WaitForExit(20000) -or $app.ExitCode -ne 0){throw 'W10_WAILS_PARENT_SHUTDOWN_FAILED'}
@@ -186,5 +217,6 @@ jobs:
             if(Test-Path -LiteralPath $browserProfile){Remove-Item -LiteralPath $browserProfile -Recurse -Force -ErrorAction SilentlyContinue}
             if(Test-Path -LiteralPath $pkg){Remove-Item -LiteralPath $pkg -Recurse -Force -ErrorAction SilentlyContinue}
             Remove-Item -LiteralPath $privateLog -Force -ErrorAction SilentlyContinue
+            if($w10Driver -and (Test-Path -LiteralPath $w10Driver)){Remove-Item -LiteralPath $w10Driver -Force -ErrorAction SilentlyContinue}
             Remove-Item -LiteralPath $wailsLog -Force -ErrorAction SilentlyContinue
           }
