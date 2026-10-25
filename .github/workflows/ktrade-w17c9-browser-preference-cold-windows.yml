@@ -1,0 +1,262 @@
+name: KTRADE W17C9 synthetic browser preferences across cold Go origins Windows
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w17c9-browser-preference-cold-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w17c9-immutable-source
+  cancel-in-progress: false
+jobs:
+  qualify:
+    name: W17C9 allowlisted favorites cold transfer in genuine Go and Chromium
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout exact qualification evidence witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private KTRADE W17C8 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 8dae8c2724b2215011178f05b9d48357364b3c10
+          path: checked-private
+          fetch-depth: 8
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable candidate parent tree and exact test-only delta
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $wit=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W17C8_HOSTED_WINDOWS_ONLY'}
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witHead=(& git -C $wit rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne '8dae8c2724b2215011178f05b9d48357364b3c10' -or
+             $parent -cne '7ebe671a1716fe05925c4325e192f4e7d2e50536' -or
+             $tree -cne '3b5e40cc6f6680257e09a645844fd3c32e24204f' -or
+             $witHead -cne $env:GITHUB_SHA){throw 'W17C8_IMMUTABLE_IDENTITY_DRIFT'}
+          $actual=@(& git -C $src diff --name-only ee7c474e0697bb9a83c8b967cfc02ccbe06dbf3b HEAD | Sort-Object)
+          $expected=@(
+            'tests/w17c8_restored_monaco_cold_cdp.cjs',
+            'tests/w17c9_allowlisted_preference_transfer.cjs',
+            'tests/w17c9_allowlisted_preference_transfer.test.cjs'
+          ) | Sort-Object
+          if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
+            throw 'W17C9_THREE_TEST_ONLY_FILES_REQUIRED'
+          }
+          Write-Output '::notice::W17C9_ORIGINAL_GO_WAILS_TREE_UNCHANGED_TEST_DELTA_ONLY=PASS'
+          Write-Output '::notice::W17C9_SOURCE_SHA_TREE_PARENT_AND_SCOPE=PASS'
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17C8_PRIVATE_CHECKOUT_DIRTY'}
+          Write-Output '::notice::W17C8_SOURCE_SHA_TREE_PARENT_AND_TWO_TEST_FILES=PASS'
+      - name: Set up native Go 1.25 on Windows
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Set up Node 24 for native CDP pipe
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Exact prior W17C6 W17C7 native Wails evidence reuse
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $expected=@(@(40214120059,'aaee1ed5d3bc74d4202f9b7e8b65353bd7da6154'),
+                      @(40215229981,'a278f558ac6781c596d772b95f8adf6f1de06fc1'))
+          foreach($entry in $expected){
+            $run=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$entry[0]) -Headers @{
+              Authorization='Bearer '+$env:GITHUB_TOKEN
+              Accept='application/vnd.github+json'
+              'X-GitHub-Api-Version'='2022-11-28'
+            }
+            if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or
+              $run.head_sha -cne $entry[1]){throw 'W17C8_PRIOR_NATIVE_WAILS_EVIDENCE_NOT_REUSABLE'}
+          }
+          Write-Output '::notice::W17C8_W17C6_FULL_AND_W17C7_REAL_WAILS_COLD=REUSED'
+      - name: Reuse exact-source focused full regression and Go vet evidence
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40217272999' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          if($run.head_sha -cne '37df5afd9d08cedcf5f9b4da88f25bc5a9fe885a' -or $run.status -cne 'completed'){
+            throw 'W17C8_EXACT_SOURCE_PRIOR_RUN_UNTRUSTED'
+          }
+          $jobs=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40217272999/jobs?per_page=100' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          $job=@($jobs.jobs|Where-Object {$_.id -eq 121241031058})
+          if($job.Count -ne 1){throw 'W17C8_ORIGINAL_RUN_JOB_MISSING'}
+          $names=@(
+            'Verify immutable candidate parent tree and exact test-only delta',
+            'Exact prior W17C6 W17C7 native Wails evidence reuse',
+            'Genuine original Pine JS and restored Go focused Windows tests',
+            'One complete untagged Windows Go regression and native vet',
+            'Build authentic Go engine and stage offline Monaco assets'
+          )
+          foreach($name in $names){
+            $step=@($job[0].steps|Where-Object {$_.name -eq $name})
+            if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){
+              throw ('W17C8_ORIGINAL_EXACT_SHA_GREEN_EVIDENCE_MISSING_'+$name)
+            }
+          }
+          Write-Output '::notice::W17C8_EXACT_SOURCE_FOCUSED_FULL_REGRESSION_VET_BUILD_REUSED=PASS'
+      - name: Test bounded synthetic preference export and security refusal
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try {
+            & node --test tests/w17c9_allowlisted_preference_transfer.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W17C9_TYPED_PREVIEW_PREFERENCE_REFUSAL_RED'}
+            Write-Output '::notice::W17C9_ALLOWLIST_NONCE_ORIGIN_DIGEST_NEGATIVES=PASS'
+          } finally {Pop-Location}
+      - name: Build authentic Go engine and stage offline Monaco assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $bin=Join-Path $env:RUNNER_TEMP 'w17c8-real-go'
+          $log=Join-Path $env:RUNNER_TEMP 'w17c8-build.log'
+          New-Item -ItemType Directory -Path $bin -Force|Out-Null
+          Push-Location $src
+          try{
+            & go build -mod=readonly -tags ktrade_full -o (Join-Path $bin 'ktrade.exe') ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C8_REAL_NATIVE_ENGINE_BUILD_FAILED'}
+            & npm ci --ignore-scripts --no-audit --no-fund --silent *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C8_OFFLINE_EDITOR_DEPENDENCIES_FAILED'}
+            & node scripts/stage_offline_vendor.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C8_MONACO_LOCAL_ASSET_STAGING_FAILED'}
+            foreach($part in @('static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $src $part) -Destination (Join-Path $bin $part) -Recurse -Force
+            }
+            Write-Output '::notice::W17C8_ACTUAL_WINDOWS_ENGINE_AND_OFFLINE_MONACO_ASSETS=PASS'
+          }finally{Pop-Location;Remove-Item $log -Force -ErrorAction SilentlyContinue}
+      - name: Authentic 695-history escrow fixture through real Monaco and cold OS restart
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $bin=Join-Path $env:RUNNER_TEMP 'w17c8-real-go'
+          $output=Join-Path $env:RUNNER_TEMP 'w17c8-fixture-evidence.log'
+          $log=Join-Path $env:RUNNER_TEMP 'w17c8-original-monaco.log'
+          $root=$null;$nonce=$null
+          try{
+            Push-Location $src
+            try{
+              & go run -mod=readonly ./cmd/ktrade-w17c8-fixture *> $output
+              if($LASTEXITCODE -ne 0){throw 'W17C8_SYNTHETIC_FULL_RESTORATION_SETUP_FAILED'}
+            }finally{Pop-Location}
+            $lines=@(Get-Content $output)
+            $metadata=@{}
+            foreach($line in $lines){
+              if($line -match '^W17C8_([A-Z0-9_]+)=(.+)$'){
+                $metadata[$Matches[1]]=$Matches[2]
+              }
+            }
+            if($metadata['EXACT_SYNTHETIC_SOURCE_AND_INACTIVE_ESCROW'] -cne 'PASS' -or
+               $metadata['V5_ID'] -cnotmatch '^[a-f0-9]{32}$' -or
+               $metadata['V6_ID'] -cnotmatch '^[a-f0-9]{32}$' -or
+               $metadata['SOURCE_SHA'] -cnotmatch '^[a-f0-9]{64}$'){
+              throw 'W17C8_RESTORED_ORIGINAL_LIBRARY_UNVERIFIED'
+            }
+            $root=[IO.Path]::GetFullPath($metadata['TARGET'])
+            $nonce=[regex]::Match([IO.Path]::GetFileName($root),'^ktrade-w17c3-target-([a-f0-9]{32})$').Groups[1].Value
+            if(!$nonce -or [IO.Path]::GetDirectoryName($root) -ine [IO.Path]::GetFullPath($env:RUNNER_TEMP) -or
+               !(Test-Path -LiteralPath (Join-Path $root '.w17c8-synthetic-qualification-only'))){
+              throw 'W17C8_TEMP_ONLY_FIXTURE_REFUSED'
+            }
+            $browser=@(
+              'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+              'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
+              'C:\Program Files\Google\Chrome\Application\chrome.exe',
+              'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
+            )|Where-Object{Test-Path -LiteralPath $_}|Select-Object -First 1
+            if(!$browser){throw 'W17C8_NO_REAL_WINDOWS_CHROMIUM_INSTALLED'}
+            Push-Location $src
+            try{
+              & node tests/w17c8_restored_monaco_cold_cdp.cjs (Join-Path $bin 'ktrade.exe') $root $metadata['V5_ID'] $metadata['V6_ID'] $browser *> $log
+              $exit=$LASTEXITCODE
+              $rows=@(Get-Content -LiteralPath $log)
+              if($exit -ne 0){
+                # The test fixture is nonce-bound OS-TEMP synthetic only.
+                # Emit bounded failure context without raw user file paths.
+                foreach($line in ($rows|Select-Object -Last 18)){
+                  $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                  if($safe.Length -gt 250){$safe=$safe.Substring(0,250)}
+                  Write-Output ('::warning::W17C8_CDP_FAILURE_DETAIL='+$safe)
+                }
+                throw 'W17C8_REAL_BROWSER_RESTORED_MONACO_COLD_FAILED'
+              }
+              foreach($required in @(
+                'W17C8_AUTHENTIC_CHART_AND_MONACO_LOADED=PASS',
+                'W17C8_REAL_MONACO_OPEN_EDIT_SAVE_BOTH_RESTORED_V5_V6=PASS',
+                'W17C8_GO_ENGINE_AND_REAL_BROWSER_COLD_RESTART_RESTORED_REVISIONS=PASS',
+                'W17C9_REAL_CHROMIUM_ALLOWLISTED_CROSS_PORT_PREFERENCE_TRANSFER=PASS',
+                'W17C8_PRIOR_ORIGIN_CHROMIUM_PROFILE_PREFERENCES_PERSIST=PASS',
+                'W17C8_FINANCIAL_DPAPI_UNKNOWN_PINE_AND_LIVE_REMAIN_INACTIVE=PASS'
+              )){
+                if($rows -cnotcontains $required){throw ('W17C8_MISSING_RESULT_'+$required)}
+                Write-Output ('::notice::'+$required)
+              }
+              if($rows -ccontains 'W17C8_ACTIVE_ORIGIN_BROWSER_PREFERENCES=BLOCKED_DYNAMIC_PORT'){
+                Write-Output '::warning::W17C8_ACTIVE_ORIGIN_BROWSER_PREFERENCES=BLOCKED_DYNAMIC_PORT'
+              }else{
+                if($rows -cnotcontains 'W17C8_ACTIVE_ORIGIN_BROWSER_PREFERENCES=PASS'){
+                  throw 'W17C8_BROWSER_STORAGE_ORIGIN_STATUS_MISSING'
+                }
+              }
+              Write-Output '::notice::W17C9_ONLY_DISPOSABLE_BROWSER_TEST_NO_INSTALLED_OWNER_DATA=PASS'
+              Write-Output '::notice::W17C8_MONACO_INSIDE_WAILS_WEBVIEW2=NOT_YET_PROVEN'
+            }finally{Pop-Location}
+          }finally{
+            if($nonce -and $root){
+              foreach($prefix in @('ktrade-installed-shadow-src-','ktrade-installed-shadow-dst-',
+                'ktrade-w17c3-target-','ktrade-w17c8-snapshot-','ktrade-w17c8-browser-')){
+                $p=Join-Path $env:RUNNER_TEMP ($prefix+$nonce)
+                if([IO.Path]::GetDirectoryName($p) -ieq [IO.Path]::GetFullPath($env:RUNNER_TEMP) -and
+                   (Test-Path -LiteralPath $p)){
+                  Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue
+                }
+              }
+            }
+            Remove-Item -LiteralPath $output,$log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Scrub private checkout and native binaries
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($p in @((Join-Path $env:GITHUB_WORKSPACE 'checked-private'),
+              (Join-Path $env:RUNNER_TEMP 'w17c8-real-go'))){
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
