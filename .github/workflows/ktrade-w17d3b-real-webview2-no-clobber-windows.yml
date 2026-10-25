@@ -684,6 +684,23 @@ jobs:
                  $rect.Right -gt $outer.Right -or $rect.Bottom -gt $outer.Bottom){
                 throw 'W17D3_CONFLICT_UIA_STAR_BOUNDARY_REFUSED'
               }
+              # The qualified W17D1A control sequence first focuses the
+              # exact accessibility button and sends SPACE; only then
+              # falls back to a physical pointer when necessary.
+              if($button.Current.IsKeyboardFocusable){
+                try{
+                  $button.SetFocus()
+                  [System.Windows.Forms.SendKeys]::SendWait(' ')
+                  Start-Sleep -Milliseconds 250
+                  if($label -ceq 'Add VWAP to favorites' -and
+                     $null -ne (Get-W17D1AAccessibleButton $process 'Remove VWAP from favorites')){
+                    Write-Output '::notice::W17D3_NATIVE_WEBVIEW2_FOCUSED_KEYBOARD_NEWER_VWAP=PASS'
+                    return
+                  }
+                }catch{
+                  Write-Output '::warning::W17D3_FOCUSED_WEBVIEW2_BUTTON_NOT_INVOKABLE'
+                }
+              }
               if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
                 throw 'W17D3_CONFLICT_WAILS_NOT_FOREGROUND'
               }
