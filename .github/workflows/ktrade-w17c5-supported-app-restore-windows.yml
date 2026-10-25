@@ -60,7 +60,7 @@ jobs:
           $base='8bae69a1b814391d9425b2d99043897f51df0e9e'
           $actual=@(& git -C $src diff --name-only $base HEAD | Sort-Object)
           $expected=@('internal/durableupgrade/w17c5_supported_app_restore.go',
-                      'cmd/ktrade/w17c5_restored_supported_full_test.go' | Sort-Object)
+                      'cmd/ktrade/w17c5_restored_supported_full_test.go') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
             throw 'W17C5_SCOPE_WIDENED'
           }
