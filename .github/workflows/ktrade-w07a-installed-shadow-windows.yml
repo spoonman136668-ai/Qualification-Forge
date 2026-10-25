@@ -1,0 +1,135 @@
+name: KTRADE W07A installed full-tree synthetic custody qualification
+
+on:
+  push:
+    branches:
+      - qualification/rb2-wails-w01-hosted-20261024
+    paths:
+      - .github/workflows/ktrade-w07a-installed-shadow-windows.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ktrade-w07a-single-windows
+  cancel-in-progress: false
+
+jobs:
+  w07a:
+    name: W07A exact-source synthetic full-tree transfer and offline inventory
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout exact KTRADE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2b3b561de603bfdec36554be54c1c516ce6ec5f9
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+
+      - name: Verify source identity and hosted Windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W07A_HOSTED_WINDOWS_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne '2b3b561de603bfdec36554be54c1c516ce6ec5f9' -or
+             $parent -cne 'a263ef1cbbd7e9c0d295eada7031876e101f7748' -or
+             $tree -cne '3ac766412aecf1b3c7c2986ca2ba69d640fcc494'){throw 'W07A_EXACT_SOURCE_IDENTITY_REQUIRED'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W07A_TRACKED_SOURCE_DRIFT'}
+          Write-Output '::notice::W07A_EXACT_HEAD_PARENT_TREE=PASS'
+
+      - name: Set up native Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: checked-private/go.mod
+          cache: false
+
+      - name: Go race, focused acceptance, CLI inventory, no owner data
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $env:TEMP=$env:RUNNER_TEMP
+          $env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w07a-private.log'
+          $out=Join-Path $env:RUNNER_TEMP ('w07a-binaries-'+[guid]::NewGuid().ToString('N'))
+          $fixture=Join-Path $env:RUNNER_TEMP ('w07a-local-'+[guid]::NewGuid().ToString('N'))
+          New-Item -ItemType Directory -Path @($out,$fixture) -ErrorAction Stop | Out-Null
+          try {
+            Push-Location $src
+            try {
+              & go test -mod=readonly -race -count=1 -timeout 12m ./internal/durableupgrade *> $log
+              if($LASTEXITCODE -ne 0){
+                $lines=@(Get-Content -LiteralPath $log | Where-Object {$_ -match '^--- FAIL:|^FAIL|^# ktrade/|\.go:[0-9]+:[0-9]+:'}|Select-Object -Last 12)
+                foreach($line in $lines){
+                  $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED_PATH]')
+                  Write-Output ('::warning::W07A_TEST_DIAGNOSTIC='+$safe.Substring(0,[Math]::Min(220,$safe.Length)))
+                }
+                throw 'W07A_ORIGINAL_DURABLE_PACKAGE_RACE_FAILED'
+              }
+              & go test -mod=readonly -count=1 -v -run '^TestW07A' ./internal/durableupgrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'W07A_FOCUSED_TEST_FAILED'}
+              $pass=@(Get-Content -LiteralPath $log | Where-Object {$_ -match '^--- PASS: TestW07A'}).Count
+              if($pass -lt 3){throw 'W07A_FOCUSED_COVERAGE_MISSING'}
+              & go vet -mod=readonly ./internal/durableupgrade ./cmd/ktrade-inventory ./cmd/ktrade-inventory-hash *> $log
+              if($LASTEXITCODE -ne 0){throw 'W07A_VET_FAILED'}
+              & go build -mod=readonly -o (Join-Path $out 'ktrade-inventory.exe') ./cmd/ktrade-inventory *> $log
+              if($LASTEXITCODE -ne 0){throw 'W07A_METADATA_CLI_BUILD_FAILED'}
+              & go build -mod=readonly -o (Join-Path $out 'ktrade-inventory-hash.exe') ./cmd/ktrade-inventory-hash *> $log
+              if($LASTEXITCODE -ne 0){throw 'W07A_CONTENT_REVIEW_CLI_BUILD_FAILED'}
+              Write-Output '::notice::W07A_WHOLE_DURABLE_PACKAGE_RACE_FOCUSED_VET_AND_CLI=PASS'
+            }finally{Pop-Location}
+            $items=@{
+              'data/config.json'='synthetic user settings'
+              'data/trading_pairs.json'='synthetic user pairs'
+              'data/pine-library/index.json'='synthetic Pine library'
+              'data/strategy_state_legacy.json'='synthetic FIFO fees'
+              'data/secrets.dpapi'='synthetic encrypted data'
+              'data/browser/Brave/Local State'='synthetic browser preference'
+              'data/webview2-profile/Preferences'='synthetic Wails state'
+              'legacy/unknown-ledger.dat'='synthetic unknown financial data'
+            }
+            foreach($name in $items.Keys){
+              $f=Join-Path $fixture $name
+              New-Item -ItemType Directory -Path (Split-Path $f -Parent) -Force|Out-Null
+              [IO.File]::WriteAllText($f,$items[$name],[Text.UTF8Encoding]::new($false))
+            }
+            $unknown=Join-Path $fixture 'legacy/unknown-ledger.dat'
+            $before=(Get-FileHash -LiteralPath $unknown -Algorithm SHA256).Hash
+            $report=(& (Join-Path $out 'ktrade-inventory.exe') -root $fixture -app-stopped | ConvertFrom-Json)
+            if($LASTEXITCODE -ne 0 -or $report.schema -cne 'ktrade.installed.readonly-inventory.v1' -or
+               $report.metadata_only -ne $true -or $report.safe_to_migrate -ne $false -or
+               $report.complete_historical_inventory -ne $false -or
+               $report.unclassified_files -lt 2 -or $report.browser_profile_files -lt 1){
+              throw 'W07A_METADATA_CLI_FAIL_CLOSED_OR_CLASSIFICATION_FAILED'
+            }
+            Write-Output '::notice::W07A_REAL_WINDOWS_INVENTORY_METADATA_ONLY=PASS'
+            $digest=(& (Join-Path $out 'ktrade-inventory-hash.exe') -root $fixture -app-stopped -hash-content | ConvertFrom-Json)
+            if($LASTEXITCODE -ne 0 -or $digest.schema -cne 'ktrade.installed.content-digest.review.v1' -or
+               $digest.content_read -ne $true -or $digest.safe_to_migrate -ne $false -or
+               $digest.aggregate_sha256 -cnotmatch '^[a-f0-9]{64}$'){
+              throw 'W07A_SYNTHETIC_CONTENT_REVIEW_FAILED'
+            }
+            if((Get-FileHash -LiteralPath $unknown -Algorithm SHA256).Hash -cne $before){
+              throw 'W07A_READONLY_INVENTORY_CHANGED_UNKNOWN_DATA'
+            }
+            Write-Output '::notice::W07A_ORIGINAL_WINDOWS_CONTENT_REVIEW_EXPLICIT_OPT_IN=PASS'
+            Write-Output '::notice::W07A_ACTUAL_INSTALLED_USER_DATA_UNTOUCHED_NO_MIGRATION_NO_LIVE=PASS'
+          }finally{
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath @($out,$fixture) -Recurse -Force -ErrorAction SilentlyContinue
+          }
