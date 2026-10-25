@@ -201,9 +201,9 @@ jobs:
             Write-Output '::notice::W15B_OVERLAY_RENDERING_TO_BE_VERIFIED_BY_REAL_CHROMIUM=TRUE'
             Write-Output '::notice::W15B_NO_FINANCIAL_START_OR_LIVE=PASS'
             $browser=@(
-              'C:\Program Files\Google\Chrome\Application\chrome.exe',
+              'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
               'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
-              'C:\Program Files\Microsoft\Edge\Application\msedge.exe'
+              'C:\Program Files\Google\Chrome\Application\chrome.exe'
             ) | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1
             if(!$browser){throw 'W15B_AUTHENTIC_INSTALLED_CHROMIUM_REQUIRED'}
             $test=Join-Path $src 'tests/ktrade_real_browser_chart_cdp.cjs'
@@ -213,6 +213,15 @@ jobs:
             $driverSHA=(& git -C $src hash-object -- tests/ktrade_real_browser_chart_cdp.cjs).Trim()
             if($LASTEXITCODE -ne 0 -or $driverSHA -cne 'c3a5f896dee5aba1ac2b6af8ea94f93d12143ec7'){throw 'W15B_ORIGINAL_TEST_DRIVER_IDENTITY_DRIFT'}
             $driver=[IO.File]::ReadAllText($test)
+            # Extend only the original Chromium pipe's initial 15s CDP deadline
+            # to 30s for a cold fresh Windows Edge profile. Preserve exact
+            # authenticated driver SHA and all behavioral assertions.
+            $timeoutBefore='},15000);'
+            $timeoutAfter='},30000);'
+            if($driver.Split(@($timeoutBefore),[StringSplitOptions]::None).Count -ne 2){
+              throw 'W15B_HISTORICAL_CDP_TIMEOUT_ANCHOR_CHANGED'
+            }
+            $driver=$driver.Replace($timeoutBefore,$timeoutAfter)
             $start='  // Click ACTUAL original trading controls, not a reconstructed test page.'
             $end=' }finally{c.close()}'
             $at=$driver.IndexOf($start,[StringComparison]::Ordinal)
