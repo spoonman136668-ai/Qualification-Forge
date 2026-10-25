@@ -36,12 +36,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 688010b0f93de944d24ae5df593545c6149eda16
+          ref: 10b036f34e8800108cbc4175ca1480c89fb263c1
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Verify immutable W17D5 source and exact three-path delta
+      - name: Verify immutable W17D5 source and exact four-path delta
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -51,16 +51,17 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '688010b0f93de944d24ae5df593545c6149eda16' -or
-             $tree -cne '727dffbee94285e20cb32fee5e00fafdf602c1c2' -or $witness -cne $env:GITHUB_SHA){throw 'W17D5_SOURCE_OR_WITNESS_DRIFT'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '10b036f34e8800108cbc4175ca1480c89fb263c1' -or
+             $tree -cne 'e3c05fa39f689d962a42866fcf73f671b46b2f89' -or $witness -cne $env:GITHUB_SHA){throw 'W17D5_SOURCE_OR_WITNESS_DRIFT'}
           $actual=@(& git -C $src diff --name-only b448d577f89f86b2facc6a7f205fad116d876cd7 HEAD | Sort-Object)
           $expected=@('static/w17d5_pane_layout.js','templates/chart.tmpl',
-                      'tests/w17d5_chart_pane_layout.test.cjs') | Sort-Object
+                      'tests/w17d5_chart_pane_layout.test.cjs',
+                      'tests/w17d4_chart_timeframe_continuity.test.cjs') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
             throw 'W17D5_THREE_FILE_BOUNDARY_DRIFT'
           }
           if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17D5_DIRTY_SOURCE'}
-          Write-Output '::notice::W17D5_IMMUTABLE_HEAD_TREE_AND_THREE_FILE_DELTA=PASS'
+          Write-Output '::notice::W17D5_IMMUTABLE_HEAD_TREE_AND_FOUR_FILE_DELTA=PASS'
       - name: Native Windows Go 1.25 and Node 24
         uses: actions/setup-go@v5
         with:
