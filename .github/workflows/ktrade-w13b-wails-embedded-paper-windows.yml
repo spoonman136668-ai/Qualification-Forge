@@ -1,0 +1,323 @@
+name: KTRADE W13B genuine embedded PAPER synthetic lifecycle
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w13b-wails-embedded-paper-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w13b-exact-source-windows
+  cancel-in-progress: false
+jobs:
+  wails-paper:
+    runs-on: windows-2022
+    timeout-minutes: 38
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    env:
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '0'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout pinned qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable private W13B source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b66b1608741d53732099c69c7e05e37acae63f18
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Authenticate Windows source parent tree witness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W13B_HOSTED_WINDOWS_REQUIRED'}
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $witness=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if((& git -C $root rev-parse HEAD).Trim() -cne 'b66b1608741d53732099c69c7e05e37acae63f18' -or
+             (& git -C $root rev-parse HEAD^).Trim() -cne '3976a7d1dce3d3ccc29afee53e600ab96a8490df' -or
+             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '7320b021ab6bb4914dcd0408e01c703916dfbe23' -or
+             (& git -C $witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){
+            throw 'W13B_EXACT_SOURCE_IDENTITY_DRIFT'
+          }
+          if(@(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W13B_SOURCE_DIRTY'}
+          Write-Output '::notice::W13B_EXACT_SOURCE_PARENT_TREE_AND_WITNESS=PASS'
+      - name: Windows Go and locked node toolchains
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Node for immutable offline Monaco and chart assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: false
+      - name: Build paired Wails with synthetic test-only tagged Go engine and exercise GUI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $env:KTRADE_W13_QUALIFICATION_ONLY='1'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $pkg=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          $capture=Join-Path $env:RUNNER_TEMP 'w13b-private.log'
+          $wailsErr=Join-Path $env:RUNNER_TEMP 'w13b-wails-private.log'
+          $app=$null;$child=$null
+          try{
+            Push-Location $src
+            try{
+              & npm ci --ignore-scripts --no-audit --no-fund --silent *> $capture
+              if($LASTEXITCODE -ne 0){throw 'W13B_LOCKED_NPM_INSTALL_FAILED'}
+              & node scripts/stage_offline_vendor.cjs *> $capture
+              if($LASTEXITCODE -ne 0){throw 'W13B_OFFLINE_VENDOR_STAGE_FAILED'}
+              if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W13B_SOURCE_MODIFIED'}
+              $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
+              $proof=@(& $builder -OutputRoot $pkg -ExpectedSourceSha 'b66b1608741d53732099c69c7e05e37acae63f18' -W13QualificationFixture)
+              if($proof -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W13B_PAIRED_DISPOSABLE_BUILD_FAILED'}
+            }finally{Pop-Location}
+            $receipt=Get-Content -LiteralPath (Join-Path $pkg 'source-manifest.json') -Raw | ConvertFrom-Json
+            if($receipt.source_sha -cne 'b66b1608741d53732099c69c7e05e37acae63f18' -or
+               $receipt.fixture_mode -cne 'w13-compile-time-only' -or
+               $receipt.live_armed -ne $false -or $receipt.paper_started -ne $false){
+              throw 'W13B_TAGGED_ENGINE_MANIFEST_IDENTITY_INVALID'
+            }
+            Write-Output '::notice::W13B_TAGGED_ENGINE_PAIRED_PROOFS_AND_FRESH_DATA=PASS'
+            $stage=Join-Path $pkg 'KTRADE-WailsPortable'
+            $exe=Join-Path $stage 'ktrade.exe'
+            $engine=Join-Path $stage 'ktrade-engine.exe'
+            function Start-W13BApp(){
+              $script:app=Start-Process -FilePath $exe -WorkingDirectory $stage -RedirectStandardError $wailsErr -PassThru
+              $null=$script:app.Handle
+              $deadline=(Get-Date).AddSeconds(55)
+              while((Get-Date) -lt $deadline){
+                Start-Sleep -Milliseconds 400
+                $script:app.Refresh()
+                if($script:app.HasExited){throw 'W13B_GENUINE_WAILS_EXITED'}
+                if($script:app.MainWindowHandle -ne [IntPtr]::Zero){break}
+              }
+              if($script:app.MainWindowHandle -eq [IntPtr]::Zero){throw 'W13B_NATIVE_WINDOW_MISSING'}
+              $deadline=(Get-Date).AddSeconds(22)
+              $script:child=$null
+              while((Get-Date) -lt $deadline){
+                $matches=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" | Where-Object {
+                  $_.ExecutablePath -ieq $engine -and $_.ParentProcessId -eq $script:app.Id})
+                if($matches.Count -eq 1){$script:child=$matches[0];break}
+                Start-Sleep -Milliseconds 300
+              }
+              if(!$script:child){throw 'W13B_ORIGINAL_GO_CHILD_MISSING'}
+              $listener=@(Get-NetTCPConnection -State Listen -OwningProcess $script:child.ProcessId -ErrorAction SilentlyContinue |
+                Where-Object {$_.LocalAddress -eq '127.0.0.1'})
+              if($listener.Count -ne 1){throw 'W13B_ONE_LOCAL_GO_LISTENER_REQUIRED'}
+              return 'http://127.0.0.1:'+$listener[0].LocalPort
+            }
+            $base=Start-W13BApp
+            Write-Output '::notice::W13B_GENUINE_WAILS_CHILD_AND_LOOPBACK=PASS'
+            $before=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
+            if($before.mode -cne 'PAPER_NOT_FUNDED' -or $before.live_armed -ne $false -or
+               $before.paper_orders_enabled -ne $false){throw 'W13B_FRESH_PAPER_UNVERIFIED'}
+            $cap=Invoke-RestMethod -Uri ($base+'/api/operator/capabilities') -TimeoutSec 10
+            if($cap.live_orders_enabled -ne $false){throw 'W13B_LIVE_OPERATOR_AUTHORITY_DETECTED'}
+            Write-Output '::notice::W13B_GENUINE_WAILS_PAPER_FRESH_AND_LIVE_DISARMED=PASS'
+            # Store a disposable user-owned strategy via the application's
+            # ORIGINAL same-origin revisioned Pine library (no forged ID).
+            $scriptSource='//@version=5'+[Environment]::NewLine+
+              'strategy("W13 synthetic paper")'+[Environment]::NewLine+
+              'if bar_index == 5'+[Environment]::NewLine+
+              '    strategy.entry("L", strategy.long, qty=1)'+[Environment]::NewLine
+            $json=@{display_name='W13 Synthetic Strategy';kind='strategy';source=$scriptSource} | ConvertTo-Json -Compress
+            $saved=Invoke-RestMethod -Uri ($base+'/api/pine-library') -Method Post -Headers @{Origin=$base} -ContentType 'application/json' -Body $json -TimeoutSec 10
+            if($saved.metadata.ownership -cne 'user' -or $saved.metadata.kind -cne 'strategy' -or
+               $saved.metadata.id -cnotmatch '^[a-f0-9]{32}$'){
+              throw 'W13B_ORIGINAL_CANONICAL_SAVED_PINE_ID_MISSING'
+            }
+            $scriptID=$saved.metadata.id
+            Write-Output '::notice::W13B_ORIGINAL_DURABLE_PINE_SOURCE_SAVED=PASS'
+            # The fixture must satisfy ORIGINAL preview validation, including
+            # finality, SHA identity, canonical script ownership and no orders.
+            $previewJson=@{script_id=$scriptID;product_id='BTC-USDC';timeframe='1m'} | ConvertTo-Json -Compress
+            $preview=Invoke-RestMethod -Uri ($base+'/api/paper/strategy/preview') -Method Post -Headers @{Origin=$base} -ContentType 'application/json' -Body $previewJson -TimeoutSec 12
+            if($preview.schema -cne 'ktrade.paper.strategy-preview.review.v1' -or
+               $preview.source_sha256 -cnotmatch '^[a-f0-9]{64}$' -or
+               $preview.orders_enabled -ne $false -or $preview.live_armed -ne $false){
+              throw 'W13B_ORIGINAL_PREVIEW_UNQUALIFIED_OR_AUTHORITY_LEAK'
+            }
+            Write-Output '::notice::W13B_DETERMINISTIC_SERVER_FINAL_CANDLE_PINE_PREVIEW=PASS'
+            # Windows UI Automation acts on the ORIGINAL embedded WebView2
+            # without CDP or privileged browser injection.
+            Add-Type -AssemblyName UIAutomationClient
+            Add-Type -AssemblyName UIAutomationTypes
+            Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public class W13BMouse{
+            [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+            [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr extra);
+          }
+          '@
+            $ui=[System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$app.MainWindowHandle)
+            if(!$ui){throw 'W13B_UIA_WAILS_ROOT_MISSING'}
+            function Find-W13B([string]$name){
+              $prop=[System.Windows.Automation.PropertyCondition]::new(
+               [System.Windows.Automation.AutomationElement]::NameProperty,$name)
+              return $ui.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$prop)
+            }
+            function Click-W13B($element){
+              if(!$element){throw 'W13B_REQUIRED_WEBVIEW2_CONTROL_NOT_FOUND'}
+              if(!$element.Current.IsEnabled){throw 'W13B_REQUIRED_WEBVIEW2_CONTROL_DISABLED'}
+              $pattern=$null
+              if($element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$pattern)){
+                ([System.Windows.Automation.InvokePattern]$pattern).Invoke()
+                return
+              }
+              $rect=$element.Current.BoundingRectangle
+              if($rect.Width -lt 3 -or $rect.Height -lt 3){throw 'W13B_UIA_CONTROL_NOT_VISIBLE'}
+              $x=[int]($rect.Left+$rect.Width/2)
+              $y=[int]($rect.Top+$rect.Height/2)
+              if(![W13BMouse]::SetCursorPos($x,$y)){throw 'W13B_OS_POINTER_REFUSED'}
+              [W13BMouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W13BMouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+            }
+            $end=(Get-Date).AddSeconds(20)
+            $startCtrl=$null
+            while((Get-Date) -lt $end){
+              $startCtrl=Find-W13B 'Start isolated paper'
+              if($startCtrl){break}
+              Start-Sleep -Milliseconds 400
+            }
+            if(!$startCtrl){throw 'W13B_EMBEDDED_PAPER_START_NOT_ACCESSIBLE'}
+            if(!(Find-W13B 'Trade unavailable')){throw 'W13B_EMBEDDED_LEGACY_BROKER_VETO_NOT_ACCESSIBLE'}
+            Write-Output '::notice::W13B_ACTUAL_EMBEDDED_WEBVIEW2_PAPER_CONTROLS=PASS'
+            # UIA operator selection of ORIGINAL saved strategy, chart symbol,
+            # and fee consent. No direct API Start or synthetic fill injection.
+            $library=Find-W13B 'Open saved Pine library'
+            if(!$library){throw 'W13B_DURABLE_PINE_LIBRARY_UI_CONTROL_MISSING'}
+            Click-W13B $library
+            $stored=$null;$limit=(Get-Date).AddSeconds(12)
+            while((Get-Date) -lt $limit){
+              $stored=Find-W13B 'W13 Synthetic Strategy'
+              if($stored){break}
+              Start-Sleep -Milliseconds 300
+            }
+            if(!$stored){throw 'W13B_CANONICAL_SAVED_STRATEGY_NOT_IN_REAL_WEBVIEW2'}
+            Click-W13B $stored
+            Write-Output '::notice::W13B_REAL_EMBEDDED_SAVED_PINE_LIBRARY_SELECTED=PASS'
+            $header=Find-W13B 'BTCUSD • Coinbase'
+            if(!$header){throw 'W13B_ORIGINAL_SYMBOL_PICKER_NOT_ACCESSIBLE'}
+            Click-W13B $header
+            $usdc=$null;$limit=(Get-Date).AddSeconds(12)
+            while((Get-Date) -lt $limit){
+              $usdc=Find-W13B 'BTC-USDC'
+              if($usdc){break}
+              Start-Sleep -Milliseconds 300
+            }
+            if(!$usdc){throw 'W13B_ORIGINAL_USDC_MARKET_NOT_ACCESSIBLE'}
+            Click-W13B $usdc
+            Write-Output '::notice::W13B_REAL_WEBVIEW2_USDC_MARKET_SELECTED=PASS'
+            $feeAck=$null
+            $checkboxes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+              [System.Windows.Automation.PropertyCondition]::new(
+               [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+               [System.Windows.Automation.ControlType]::CheckBox))
+            foreach($check in $checkboxes){
+              if($check.Current.Name -match 'Fee estimate|exchange quote'){$feeAck=$check;break}
+            }
+            if(!$feeAck){throw 'W13B_SIMULATED_FEE_ACK_CHECKBOX_MISSING'}
+            $toggle=$null
+            if($feeAck.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$toggle)){
+              $t=[System.Windows.Automation.TogglePattern]$toggle
+              if($t.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){$t.Toggle()}
+            }else{Click-W13B $feeAck}
+            if(!$startCtrl.Current.IsEnabled){throw 'W13B_PAPER_START_DISABLED_AFTER_CANONICAL_SETUP'}
+            Click-W13B $startCtrl
+            $running=$false;$limit=(Get-Date).AddSeconds(16)
+            while((Get-Date) -lt $limit){
+              Start-Sleep -Milliseconds 450
+              $s=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
+              if($s.mode -ceq 'PAPER_ISOLATED_RUNNING'){
+                if($s.paper_orders_enabled -ne $true -or $s.live_armed -ne $false -or
+                   $s.durable_custody_enabled -ne $true){throw 'W13B_RUNNING_WITHOUT_TRADEGUARD_CUSTODY'}
+                $running=$true;break
+              }
+            }
+            if(!$running){throw 'W13B_ACTUAL_WEBVIEW2_OPERATOR_PAPER_START_NOT_ADMITTED'}
+            Write-Output '::notice::W13B_GUI_START_ESTABLISHED_ORIGINAL_DURABLE_PAPER_OWNER=PASS'
+            $evaluateCtrl=Find-W13B 'Evaluate final bar'
+            if(!$evaluateCtrl){throw 'W13B_NATIVE_EVALUATION_CONTROL_MISSING'}
+            if($evaluateCtrl.Current.IsEnabled){Click-W13B $evaluateCtrl}
+            $limit=(Get-Date).AddSeconds(14);$filled=$null
+            while((Get-Date) -lt $limit){
+              Start-Sleep -Milliseconds 400
+              $s=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
+              if($s.fill_count -ge 1){$filled=$s;break}
+            }
+            if(!$filled -or $filled.fill_count -ne 1 -or $filled.last_ledger_hash -cnotmatch '^[a-f0-9]{64}$' -or
+               $filled.live_armed -ne $false){throw 'W13B_SINGLE_ORIGINAL_LEDGER_FILL_NOT_VERIFIED'}
+            Write-Output '::notice::W13B_GUI_PINE_TRADEGUARD_SINGLE_SYNTHETIC_FILL=PASS'
+            $stopCtrl=Find-W13B 'Stop paper'
+            if(!$stopCtrl){throw 'W13B_OPERATOR_STOP_CONTROL_MISSING'}
+            Click-W13B $stopCtrl
+            $limit=(Get-Date).AddSeconds(15);$stopped=$null
+            while((Get-Date) -lt $limit){
+              Start-Sleep -Milliseconds 450
+              $s=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
+              if($s.mode -ceq 'PAPER_STOPPED' -and $s.stopped -eq $true){$stopped=$s;break}
+            }
+            if(!$stopped -or $stopped.paper_orders_enabled -ne $false -or $stopped.live_armed -ne $false){
+              throw 'W13B_ORIGINAL_OPERATOR_STOP_NOT_SEALED'
+            }
+            Write-Output '::notice::W13B_GUI_STOP_ORIGINAL_PAPER_WRITER_SEALED=PASS'
+            $archive=Invoke-RestMethod -Uri ($base+'/api/paper/session/archive') -TimeoutSec 10
+            if($archive.schema -cne 'ktrade.paper.cold-archive.read-only.v1' -or
+               $archive.snapshot_seal -cnotmatch '^[a-f0-9]{64}$' -or
+               $archive.live_armed -ne $false -or $archive.orders_enabled -ne $false -or
+               $archive.account.schema -cne 'ktrade.paper.account.read-only.v1'){
+              throw 'W13B_COLD_LEDGER_ACCOUNT_ARCHIVE_UNVERIFIED'
+            }
+            $product=@($archive.account.products|Where-Object {$_.product_id -ceq 'BTC-USDC'})
+            if($product.Count -ne 1 -or $product[0].fill_count -ne 1 -or
+               $null -eq $product[0].realized_pnl -or $null -eq $product[0].fees_paid){
+              throw 'W13B_COLD_ACCOUNT_PNL_OR_FEE_UNVERIFIED'
+            }
+            Write-Output '::notice::W13B_COLD_FEE_PNL_SINGLE_LEDGER_REPLAY=PASS'
+            if(!$app.CloseMainWindow() -or !$app.WaitForExit(20000)){throw 'W13B_WAILS_SHUTDOWN_FAILED'}
+            $app=$null
+            if($child){Start-Sleep -Milliseconds 700; if(Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue){throw 'W13B_ORIGINAL_GO_CHILD_LEAK'};$child=$null}
+            $base=Start-W13BApp
+            $cold=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
+            if($cold.mode -ceq 'PAPER_ISOLATED_RUNNING' -or $cold.live_armed -ne $false -or
+               $cold.paper_orders_enabled -ne $false){throw 'W13B_COLD_RESTART_AUTO_REARMED'}
+            $reopen=Invoke-RestMethod -Uri ($base+'/api/paper/session/archive') -TimeoutSec 10
+            if($reopen.snapshot_seal -cne $archive.snapshot_seal -or
+               $reopen.account.schema -cne 'ktrade.paper.account.read-only.v1'){
+              throw 'W13B_COLD_RESTART_ORIGINAL_PNL_REPLAY_CHANGED'
+            }
+            Write-Output '::notice::W13B_GENUINE_WAILS_COLD_RESTART_READ_ONLY_NO_REARM=PASS'
+            Write-Output '::notice::W13B_NO_BROKER_NO_LIVE_NO_INSTALLED_USER_DATA=PASS'
+          }finally{
+            if($app){try{if(-not $app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}catch{}}
+            if($child){try{Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue}catch{}}
+            if(Test-Path -LiteralPath $pkg){Remove-Item -LiteralPath $pkg -Force -Recurse -ErrorAction SilentlyContinue}
+            Remove-Item -LiteralPath $capture -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $wailsErr -Force -ErrorAction SilentlyContinue
+          }
+      - name: Purge private source
+        if: always()
+        shell: pwsh
+        run: |
+          $private=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $private){Remove-Item -LiteralPath $private -Recurse -Force -ErrorAction SilentlyContinue}
