@@ -249,6 +249,7 @@ jobs:
             # self-assert successful DOM rendering; actual WebView2 content
             # must be exposed as visible Windows accessibility elements.
             Add-Type -AssemblyName UIAutomationClient -ErrorAction Stop
+            Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
             function Assert-VisibleRecoveredScripts([object]$process,[string]$phase) {
               $sawV5=$false;$sawV6=$false;$sawPanel=$false;$sawDisarm=$false
               $deadline=(Get-Date).AddSeconds(30)
@@ -324,22 +325,41 @@ jobs:
                 ' MATCHING_SYNTHETIC_LABELS='+($sample -join ','))
               throw 'W17D1A_ORIGINAL_WEBVIEW2_CHART_ACCESSIBILITY_NOT_EXPOSED'
             }
-            function Invoke-W17D1AButton([object]$element,[string]$description) {
+            function Invoke-W17D1AButton([object]$element,[string]$description,[object]$process) {
               try{
                 $pattern=$element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
                 $pattern.Invoke()
+                return
               }catch{
-                throw ('W17D1A_NATIVE_CHART_BUTTON_NOT_INVOKABLE_'+$description)
+                # Native WebView2 can expose HTML buttons to accessibility
+                # without supporting InvokePattern on every nested iframe.
+                # The fallback is an actual user keyboard action on the
+                # precisely identified, visible and focusable UIA control.
+                if($description -ceq 'ORIGINAL_FAVORITE_STAR' -and
+                   $null -ne (Get-W17D1AAccessibleButton $process 'Remove Relative Strength Index from favorites')){
+                  return
+                }
+                try{
+                  if($element.Current.IsOffscreen -or -not $element.Current.IsKeyboardFocusable){
+                    throw 'UIA_TARGET_NOT_KEYBOARD_FOCUSABLE'
+                  }
+                  $element.SetFocus()
+                  [System.Windows.Forms.SendKeys]::SendWait(' ')
+                  Start-Sleep -Milliseconds 150
+                  Write-Output ('::notice::W17D1A_REAL_UIA_FOCUSED_KEYBOARD_BUTTON='+$description)
+                }catch{
+                  throw ('W17D1A_NATIVE_BUTTON_INVOKE_AND_KEYBOARD_NOT_SUPPORTED_'+$description)
+                }
               }
             }
             function Assert-W17D1AChartFavorite([object]$process,[string]$phase) {
               $indicator=Wait-W17D1AButton $process 'Indicators'
-              Invoke-W17D1AButton $indicator 'OPEN_INDICATORS'
+              Invoke-W17D1AButton $indicator 'OPEN_INDICATORS' $process
               $category=Wait-W17D1AButton $process 'Technicals'
-              Invoke-W17D1AButton $category 'TECHNICALS_CATEGORY'
+              Invoke-W17D1AButton $category 'TECHNICALS_CATEGORY' $process
               if($phase -ceq 'WRITE'){
                 $star=Wait-W17D1AButton $process 'Add Relative Strength Index to favorites'
-                Invoke-W17D1AButton $star 'ORIGINAL_FAVORITE_STAR'
+                Invoke-W17D1AButton $star 'ORIGINAL_FAVORITE_STAR' $process
               }
               # This is an actual original chart DOM button rendered inside
               # the real WebView2 iframe, never a synthetic Wails host label.
