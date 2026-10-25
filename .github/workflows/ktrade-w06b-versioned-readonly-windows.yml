@@ -101,7 +101,19 @@ jobs:
               & go mod verify *> $log
               if($LASTEXITCODE -ne 0){throw 'W06A_GO_MODULES_VERIFY_FAILED'}
               & go test -mod=readonly -race -count=1 -timeout=15m ./backend *> $log
-              if($LASTEXITCODE -ne 0){throw 'W06A_WINDOWS_BACKEND_RACE_TEST_FAILED'}
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log -ErrorAction Stop | Where-Object {
+                  $_ -match '^(--- FAIL:|FAIL\s|FAIL$|# ktrade-wails-pilot/|    [A-Za-z0-9_/\-]+\.go:[0-9]+:|.*\[build failed\])'
+                } | Select-Object -Last 18)
+                foreach($entry in $safe){
+                  $v=[regex]::Replace([string]$entry,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED_PATH]')
+                  $v=[regex]::Replace($v,'[A-Za-z0-9_\-]{50,}','[REDACTED]')
+                  if($v.Length -gt 260){$v=$v.Substring(0,260)}
+                  Write-Output ('::warning::W06B_BACKEND_TEST_DIAGNOSTIC='+$v)
+                }
+                if($safe.Count -eq 0){Write-Output '::warning::W06B_BACKEND_TEST_NO_NAMED_FAILURE_AVAILABLE'}
+                throw 'W06B_WINDOWS_BACKEND_RACE_TEST_FAILED'
+              }
               & go test -mod=readonly -count=1 -v -run '^TestW06[AB]' ./backend *> $log
               if($LASTEXITCODE -ne 0){throw 'W06A_WINDOWS_FOCUSED_TEST_FAILED'}
               $passed=@(Get-Content -LiteralPath $log | Where-Object {$_ -match '^--- PASS: TestW06[AB]'}).Count
