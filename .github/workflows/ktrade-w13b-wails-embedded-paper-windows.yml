@@ -302,19 +302,43 @@ jobs:
               if($check.Current.Name -match 'Fee estimate|exchange quote'){$feeAck=$check;break}
             }
             if(!$feeAck){throw 'W13B_SIMULATED_FEE_ACK_CHECKBOX_MISSING'}
-            $toggle=$null
-            if($feeAck.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$toggle)){
-              $t=[System.Windows.Automation.TogglePattern]$toggle
-              if($t.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){$t.Toggle()}
-            }else{Click-W13B $feeAck}
             $toggleCheck=$null
-            if($feeAck.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$toggleCheck)){
-              $feeState=([System.Windows.Automation.TogglePattern]$toggleCheck).Current.ToggleState
-              if($feeState -ne [System.Windows.Automation.ToggleState]::On){
-                throw 'W13B_REAL_EMBEDDED_SIMULATED_FEE_ACK_NOT_SET'
-              }
-              Write-Output '::notice::W13B_REAL_WEBVIEW2_FEE_ACK_TOGGLE_ON=PASS'
+            if(!$feeAck.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$toggleCheck)){
+              throw 'W13B_REAL_EMBEDDED_FEE_CHECKBOX_NOT_TOGGLEABLE'
             }
+            $toggle=[System.Windows.Automation.TogglePattern]$toggleCheck
+            if($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){
+              # WebView2's UIA TogglePattern can report an operation without
+              # producing the DOM click event. Use real Windows pointer input
+              # once on the exact accessible <input type=checkbox> rectangle.
+              $rect=$feeAck.Current.BoundingRectangle
+              if($feeAck.Current.IsOffscreen -or $rect.Width -lt 2 -or $rect.Height -lt 2){
+                throw 'W13B_REAL_FEE_CHECKBOX_NOT_VISIBLE'
+              }
+              $x=[int]($rect.Left+$rect.Width/2)
+              $y=[int]($rect.Top+$rect.Height/2)
+              if(![W13BMouse]::SetCursorPos($x,$y)){throw 'W13B_FEE_ACK_OS_POINTER_REFUSED'}
+              [W13BMouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W13BMouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 450
+            }
+            $refreshed=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+              [System.Windows.Automation.PropertyCondition]::new(
+               [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+               [System.Windows.Automation.ControlType]::CheckBox))
+            $verified=$false
+            foreach($box in $refreshed){
+              if($box.Current.Name -match 'Fee estimate|exchange quote'){
+                $pattern=$null
+                if($box.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$pattern)){
+                  $verified=([System.Windows.Automation.TogglePattern]$pattern).Current.ToggleState -eq
+                    [System.Windows.Automation.ToggleState]::On
+                }
+                break
+              }
+            }
+            if(!$verified){throw 'W13B_REAL_EMBEDDED_SIMULATED_FEE_ACK_NOT_SET'}
+            Write-Output '::notice::W13B_REAL_WEBVIEW2_FEE_ACK_TOGGLE_ON=PASS'
             if(!$startCtrl.Current.IsEnabled){throw 'W13B_PAPER_START_DISABLED_AFTER_CANONICAL_SETUP'}
             Click-W13B $startCtrl
             $running=$false;$limit=(Get-Date).AddSeconds(16)
