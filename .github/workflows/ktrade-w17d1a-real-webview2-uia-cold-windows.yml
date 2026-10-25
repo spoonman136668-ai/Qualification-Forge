@@ -250,6 +250,16 @@ jobs:
             # must be exposed as visible Windows accessibility elements.
             Add-Type -AssemblyName UIAutomationClient -ErrorAction Stop
             Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+            Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class W17D1ANativeClick {
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr info);
+}
+'@ -ErrorAction Stop
             function Assert-VisibleRecoveredScripts([object]$process,[string]$phase) {
               $sawV5=$false;$sawV6=$false;$sawPanel=$false;$sawDisarm=$false
               $deadline=(Get-Date).AddSeconds(30)
@@ -347,6 +357,39 @@ jobs:
                   [System.Windows.Forms.SendKeys]::SendWait(' ')
                   Start-Sleep -Milliseconds 150
                   Write-Output ('::notice::W17D1A_REAL_UIA_FOCUSED_KEYBOARD_BUTTON='+$description)
+                  if($description -ceq 'ORIGINAL_FAVORITE_STAR' -and
+                     $null -eq (Get-W17D1AAccessibleButton $process 'Remove Relative Strength Index from favorites')){
+                    # The exact native UIA browser button is visible but
+                    # WebView2 did not accept either InvokePattern or SPACE.
+                    # Fall back to a *real Windows mouse* at its bounded
+                    # UIA rectangle, never DOM eval, JavaScript or storage
+                    # mutation. The following asserted state still decides.
+                    $rect=$element.Current.BoundingRectangle
+                    $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
+                      $process.MainWindowHandle).Current.BoundingRectangle
+                    if($rect.IsEmpty -or $rect.Width -lt 10 -or $rect.Height -lt 10 -or
+                       $rect.Width -gt 160 -or $rect.Height -gt 160 -or
+                       $rect.Left -lt $outer.Left -or $rect.Top -lt $outer.Top -or
+                       $rect.Right -gt $outer.Right -or $rect.Bottom -gt $outer.Bottom){
+                       throw 'W17D1A_MOUSE_CLICK_OUTSIDE_ORIGINAL_UIA_BUTTON'
+                    }
+                    $x=[int]($rect.Left+$rect.Width/2)
+                    $y=[int]($rect.Top+$rect.Height/2)
+                    if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                       throw 'W17D1A_DISPOSABLE_WAILS_NOT_FOREGROUND'
+                    }
+                    Start-Sleep -Milliseconds 120
+                    if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                       throw 'W17D1A_FOREIGN_WINDOWS_WINDOW_REFUSED'
+                    }
+                    if(-not [W17D1ANativeClick]::SetCursorPos($x,$y)){
+                       throw 'W17D1A_NATIVE_POINTER_TARGET_REFUSED'
+                    }
+                    [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+                    [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+                    Start-Sleep -Milliseconds 300
+                    Write-Output '::notice::W17D1A_NATIVE_WAILS_EXACT_UIA_BUTTON_MOUSE_ACTIVATION=EXECUTED'
+                  }
                 }catch{
                   throw ('W17D1A_NATIVE_BUTTON_INVOKE_AND_KEYBOARD_NOT_SUPPORTED_'+$description)
                 }
