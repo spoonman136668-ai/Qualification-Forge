@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 371ee844e022652a5130774a0c534dae3b0e4913
+          ref: b448d577f89f86b2facc6a7f205fad116d876cd7
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
@@ -51,8 +51,8 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '371ee844e022652a5130774a0c534dae3b0e4913' -or
-             $tree -cne 'f91053b4b81abea81e206229725fdbdd9cfa18b1' -or $witness -cne $env:GITHUB_SHA){throw 'W17D4_SOURCE_OR_WITNESS_DRIFT'}
+          if($LASTEXITCODE -ne 0 -or $head -cne 'b448d577f89f86b2facc6a7f205fad116d876cd7' -or
+             $tree -cne 'fd56f636c4117915869ab40bb43bfdeea016ac48' -or $witness -cne $env:GITHUB_SHA){throw 'W17D4_SOURCE_OR_WITNESS_DRIFT'}
           $actual=@(& git -C $src diff --name-only 48e2f24b24651655cdb12caa2fd29e4cd4c6beb9 HEAD | Sort-Object)
           $expected=@('static/w17d4_chart_timeframe.js','templates/chart.tmpl',
                       'tests/w17d4_chart_timeframe_continuity.test.cjs') | Sort-Object
@@ -652,25 +652,44 @@ jobs:
             }
             # The Indicators overlay is initially open; native foreground
             # custody and disappearance of its accessible star are mandatory.
+            # The user-visible chart dialog must be explicitly closed by its
+            # genuine accessible button, not ESC sent to a possibly foreign focus.
             function Close-W17D4Indicators([object]$process) {
+              $close=Wait-W17D1AButton $process 'Close indicators'
+              if($null -eq $close){throw 'W17D4_VISIBLE_NATIVE_MODAL_CLOSE_BUTTON_MISSING'}
+              $rect=$close.Current.BoundingRectangle
+              $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
+                 $process.MainWindowHandle).Current.BoundingRectangle
+              if($rect.IsEmpty -or $rect.Width -lt 10 -or $rect.Height -lt 10 -or
+                 $rect.Width -gt 110 -or $rect.Height -gt 110 -or
+                 $rect.Left -lt $outer.Left -or $rect.Top -lt $outer.Top -or
+                 $rect.Right -gt $outer.Right -or $rect.Bottom -gt $outer.Bottom){
+                throw 'W17D4_NATIVE_MODAL_CLOSE_OUTSIDE_VERIFIED_WAILS'
+              }
               if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
-                throw 'W17D4_WAILS_FOREGROUND_REQUIRED_TO_CLOSE_INDICATORS'
+                throw 'W17D4_WAILS_MODAL_FOREGROUND_REQUIRED'
               }
               Start-Sleep -Milliseconds 150
               if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
-                throw 'W17D4_FOREIGN_WINDOW_REFUSED_BEFORE_ESCAPE'
+                throw 'W17D4_FOREIGN_WINDOW_REFUSED_BEFORE_CLOSE'
               }
-              [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
+              if(-not [W17D1ANativeClick]::SetCursorPos(
+                 [int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){
+                throw 'W17D4_CLOSE_BUTTON_NATIVE_POINTER_REFUSED'
+              }
+              [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
               $deadline=(Get-Date).AddSeconds(8)
               do {
                 $star=Get-W17D1AAccessibleButton $process 'Remove Relative Strength Index from favorites'
-                if($null -eq $star){
-                  Write-Output '::notice::W17D4_NATIVE_INDICATOR_MODAL_DISMISSED_BEFORE_CHART_CLICK=PASS'
+                $closedButton=Get-W17D1AAccessibleButton $process 'Close indicators'
+                if($null -eq $star -and $null -eq $closedButton){
+                  Write-Output '::notice::W17D4_ORIGINAL_NATIVE_CLOSE_INDICATORS_CLICKED_AND_VERIFIED=PASS'
                   return
                 }
                 Start-Sleep -Milliseconds 200
               } while((Get-Date) -lt $deadline)
-              throw 'W17D4_INDICATOR_MODAL_STILL_BLOCKS_CHART'
+              throw 'W17D4_NATIVE_MODAL_CLOSE_DID_NOT_DISMISS_OVERLAY'
             }
             Assert-W17D4Selected $parent '1m'
             Close-W17D4Indicators $parent
