@@ -98,14 +98,27 @@ jobs:
             $release=Join-Path $pkg 'KTRADE-WailsPortable'
             $exe=Join-Path $release 'ktrade.exe'
             $engine=Join-Path $release 'ktrade-engine.exe'
-            $app=Start-Process -FilePath $exe -WorkingDirectory $release -PassThru
+            $wailsLog=Join-Path $env:RUNNER_TEMP 'w10-private-wails-stderr.log'
+          $app=Start-Process -FilePath $exe -WorkingDirectory $release -RedirectStandardError $wailsLog -PassThru
             $null=$app.Handle
             $until=(Get-Date).AddSeconds(55)
             $window=$false
             while((Get-Date) -lt $until){
               Start-Sleep -Milliseconds 500
               $app.Refresh()
-              if($app.HasExited){throw 'W10_WAILS_WINDOW_EXITED_BEFORE_READY'}
+              if($app.HasExited){
+                if(Test-Path -LiteralPath $wailsLog){
+                  foreach($line in @(Get-Content -LiteralPath $wailsLog -ErrorAction SilentlyContinue | Where-Object {
+                    $_ -match '(?i)(wails|ktrade|loopback|proof|refused|profile|disarmed|timeout|panic)'
+                  } | Select-Object -Last 5)){
+                    $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED_PATH]')
+                    $safe=[regex]::Replace($safe,'(?i)(token|secret|api[_-]?key)=[^\s]+','$1=[REDACTED]')
+                    if($safe.Length -gt 240){$safe=$safe.Substring(0,240)}
+                    Write-Output ('::warning::W10_WAILS_START_DIAGNOSTIC='+$safe)
+                  }
+                }
+                throw 'W10_WAILS_WINDOW_EXITED_BEFORE_READY'
+              }
               if($app.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
             }
             if(-not $window){throw 'W10_NATIVE_WAILS_WINDOW_MISSING'}
@@ -170,4 +183,5 @@ jobs:
             if(Test-Path -LiteralPath $browserProfile){Remove-Item -LiteralPath $browserProfile -Recurse -Force -ErrorAction SilentlyContinue}
             if(Test-Path -LiteralPath $pkg){Remove-Item -LiteralPath $pkg -Recurse -Force -ErrorAction SilentlyContinue}
             Remove-Item -LiteralPath $privateLog -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $wailsLog -Force -ErrorAction SilentlyContinue
           }
