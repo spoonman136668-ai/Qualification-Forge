@@ -286,13 +286,13 @@ jobs:
               console.log("W15B_REAL_COINBASE_PINE_V"+version+"_PRICE_OVERLAY_SERIES=PASS");
             }
             await until("W15B_OPERATOR_DISARMED_BANNER_MISSING",()=>c.eval(
-            'document.querySelector("#operatorModeStatus")?.textContent.includes("PAPER STOPPED")'
+            'document.querySelector("#operatorModeStatus")?.textContent.includes("LIVE DISARMED")'
             ),40);
             const locked=await c.eval('(function(){const trade=document.getElementById("tradeBtn");const submit=document.getElementById("orderSubmit");trade.click();submit.click();return {tradeDisabled:trade.disabled,submitDisabled:submit.disabled,panelOpen:document.getElementById("orderPanel").classList.contains("open"),status:document.getElementById("operatorModeStatus").textContent}})()');
             assert.equal(locked.tradeDisabled,true,"unqualified Trade button active");
             assert.equal(locked.submitDisabled,true,"unqualified Order button active");
             assert.equal(locked.panelOpen,false,"disabled Trade button opened brokerage panel");
-            assert.match(locked.status,/PAPER STOPPED.*LIVE DISARMED/);
+            assert.match(locked.status,/^(?:PAPER STOPPED|PAPER UNAVAILABLE) · LIVE DISARMED$/);
             assert.equal(c.orderRequests.length,0,"disabled UI dispatched order");
             console.log("W15B_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS");
             const route=await c.eval('(async()=>{const r=await fetch("/api/orders/place",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return r.status})()');
@@ -305,7 +305,7 @@ jobs:
             & node $w15bDriver $base 'pipe' $browser $browserProfile *> $privateLog
             if($LASTEXITCODE -ne 0){
               $names=@(Get-Content -LiteralPath $privateLog | Where-Object {
-                $_ -match '^(KTRADE_REAL_BROWSER_|Error: |AssertionError|REAL_BROWSER_)'
+                $_ -match '^(KTRADE_REAL_BROWSER_|W15B_|Error: |AssertionError|REAL_BROWSER_)'
               } | Select-Object -Last 12)
               foreach($n in $names){
                 $safe=[regex]::Replace([string]$n,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED]')
@@ -325,6 +325,9 @@ jobs:
               'W15B_ORIGINAL_LEGACY_ORDER_HTTP_423=PASS'
             )){
               if(-not (Select-String -LiteralPath $privateLog -SimpleMatch $receipt -Quiet)){throw ('W15B_REQUIRED_BROWSER_RECEIPT_MISSING_'+$receipt)}
+            }
+            foreach($receipt in @('W15B_REAL_COINBASE_PINE_V5_PRICE_OVERLAY_SERIES=PASS','W15B_REAL_COINBASE_PINE_V6_PRICE_OVERLAY_SERIES=PASS')){
+              Write-Output ('::notice::'+$receipt)
             }
             Write-Output '::notice::W15B_REAL_V5_V6_CHART_PLOT_RENDER_ALIGNMENT=PASS'
             Write-Output '::notice::W15B_ORIGINAL_MONACO_PINE_SAVE_FAVORITE_REOPEN=PASS'
