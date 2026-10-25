@@ -77,14 +77,14 @@ jobs:
               throw 'W13A_PRODUCTION_BINARY_CONTAINS_FIXTURE'
             }
             Write-Output '::notice::W13A_PRODUCTION_SOURCE_FIXTURE_ABSENT=PASS'
-            $tagged=(& go list -mod=readonly -tags=ktrade_full,ktrade_w13_fixture -f '{{join .GoFiles ","}}' ./cmd/ktrade)
+            $tagged=(& go list -mod=readonly -tags 'ktrade_full,ktrade_w13_fixture' -f '{{join .GoFiles ","}}' ./cmd/ktrade)
             if($LASTEXITCODE -ne 0 -or
                $tagged -notmatch 'paper_candles_source_w13_fixture_full.go' -or
                $tagged -match 'paper_candles_source_production_full.go'){
               throw 'W13A_TEST_FIXTURE_TAG_NOT_EXCLUSIVE'
             }
             Write-Output '::notice::W13A_COMPILE_TIME_FIXTURE_TAG_EXCLUSIVE=PASS'
-            & go test -mod=readonly -tags=ktrade_full,ktrade_w13_fixture -count=1 -timeout=10m -run '^TestW13' ./cmd/ktrade *> $log
+            & go test -mod=readonly -tags 'ktrade_full,ktrade_w13_fixture' -count=1 -timeout=10m -run '^TestW13' ./cmd/ktrade *> $log
             if($LASTEXITCODE -ne 0){throw 'W13A_FIXTURE_FOCUS_TEST_FAILED'}
             Write-Output '::notice::W13A_FROZEN_SYNTHETIC_BARS_AND_UNPAIRED_REFUSAL=PASS'
             & go test -mod=readonly -tags=ktrade_full -count=1 -timeout=10m -run '^TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly$' ./cmd/ktrade *> $log
@@ -92,13 +92,13 @@ jobs:
             Write-Output '::notice::W13A_ORIGINAL_PAPER_LIFECYCLE_UNCHANGED=PASS'
             & go build -mod=readonly -tags=ktrade_full -o (Join-Path $env:RUNNER_TEMP 'w13a-normal-engine.exe') ./cmd/ktrade *> $log
             if($LASTEXITCODE -ne 0){throw 'W13A_NORMAL_WINDOWS_BUILD_FAILED'}
-            & go build -mod=readonly -tags=ktrade_full,ktrade_w13_fixture -o (Join-Path $env:RUNNER_TEMP 'w13a-fixture-engine.exe') ./cmd/ktrade *> $log
+            & go build -mod=readonly -tags 'ktrade_full,ktrade_w13_fixture' -o (Join-Path $env:RUNNER_TEMP 'w13a-fixture-engine.exe') ./cmd/ktrade *> $log
             if($LASTEXITCODE -ne 0){throw 'W13A_FIXTURE_WINDOWS_BUILD_FAILED'}
             $normal=(Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $env:RUNNER_TEMP 'w13a-normal-engine.exe')).Hash
             $fixture=(Get-FileHash -Algorithm SHA256 -LiteralPath (Join-Path $env:RUNNER_TEMP 'w13a-fixture-engine.exe')).Hash
             if($normal -ceq $fixture){throw 'W13A_PRODUCTION_FIXTURE_BINARY_IDENTITY_COLLISION'}
             Write-Output '::notice::W13A_NORMAL_AND_FIXTURE_BINARY_IDENTITIES_DIFFER=PASS'
-            & go vet -mod=readonly -tags=ktrade_full,ktrade_w13_fixture ./cmd/ktrade *> $log
+            & go vet -mod=readonly -tags 'ktrade_full,ktrade_w13_fixture' ./cmd/ktrade *> $log
             if($LASTEXITCODE -ne 0){throw 'W13A_TAGGED_WINDOWS_VET_FAILED'}
             Write-Output '::notice::W13A_FIXTURE_WINDOWS_VET=PASS'
             Write-Output '::notice::W13A_NO_PAPER_START_NO_LIVE_BROKER_NO_INSTALL=PASS'
