@@ -1,0 +1,95 @@
+name: KTRADE W07B existing synthetic installed data reconciliation Windows
+
+on:
+  push:
+    branches:
+      - qualification/rb2-wails-w01-hosted-20261024
+    paths:
+      - .github/workflows/ktrade-w07b-reconcile-existing-windows.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ktrade-w07b-single-windows
+  cancel-in-progress: false
+
+jobs:
+  w07b:
+    name: Exact-source existing-destination all-class read-only Windows reconciliation
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout exact source without persisting credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b9f71f4d0126d0c3be58ed1f8e31f934d5c9d36a
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+
+      - name: Validate original source head, parent, tree and no owner data
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W07B_HOSTED_WINDOWS_ONLY'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne 'b9f71f4d0126d0c3be58ed1f8e31f934d5c9d36a' -or
+             $parent -cne '2b3b561de603bfdec36554be54c1c516ce6ec5f9' -or
+             $tree -cne '18deec34e6c106d7825d2e19ac696ec3c0ee63d0'){throw 'W07B_PROVENANCE_DRIFT'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W07B_SOURCE_NOT_CLEAN'}
+          Write-Output '::notice::W07B_SOURCE_HEAD_PARENT_TREE=PASS'
+
+      - name: Configure native Windows Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: checked-private/go.mod
+          cache: false
+
+      - name: Full durableupgrade race and existing-destination conflict tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $env:TEMP=$env:RUNNER_TEMP
+          $env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w07b-private-go.log'
+          try {
+            Push-Location $src
+            try {
+              & go test -mod=readonly -race -count=1 -timeout 12m ./internal/durableupgrade *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log | Where-Object {$_ -match '^--- FAIL:|^FAIL|^# ktrade/|\.go:[0-9]+:[0-9]+:'} | Select-Object -Last 14)
+                foreach($line in $safe){
+                  $v=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED_PATH]')
+                  $v=[regex]::Replace($v,'[A-Za-z0-9_-]{48,}','[REDACTED]')
+                  Write-Output ('::warning::W07B_FOCUSED_DIAGNOSTIC='+$v.Substring(0,[Math]::Min($v.Length,250)))
+                }
+                throw 'W07B_WHOLE_DURABLE_PACKAGE_RACE_FAILED'
+              }
+              & go test -mod=readonly -count=1 -v -run '^TestW07[AB]' ./internal/durableupgrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'W07B_FOCUSED_EXPERIMENT_FAILED'}
+              $caseNames=@(Get-Content -LiteralPath $log | Where-Object {$_ -match '^--- PASS: TestW07B'})
+              if($caseNames.Count -ne 5){throw 'W07B_FOCUSED_CASE_COUNT_UNEXPECTED'}
+              & go vet -mod=readonly ./internal/durableupgrade ./cmd/ktrade-inventory ./cmd/ktrade-inventory-hash *> $log
+              if($LASTEXITCODE -ne 0){throw 'W07B_GO_VET_FAILED'}
+              Write-Output '::notice::W07B_SOURCE_OWNED_EXISTING_SHADOW_RACE_VET=PASS'
+              Write-Output '::notice::W07B_FIVE_FOCUSED_TESTS_AND_W07A_RETAINED=PASS'
+              Write-Output '::notice::W07B_SAME_SIZE_MUTATION_EXTRA_DELETED_FOREIGN_RUNTIME_SYMLINK_DENIED=PASS'
+              Write-Output '::notice::W07B_INSTALLED_OPERATOR_DATA_UNTOUCHED=PASS;MIGRATION_AUTHORIZED=FALSE;LIVE_ARMED=FALSE'
+            } finally {Pop-Location}
+          } finally {
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
