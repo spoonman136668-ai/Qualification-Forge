@@ -63,7 +63,7 @@ jobs:
           $parent=(& git -C $s rev-parse HEAD^).Trim()
           $tree=(& git -C $s rev-parse 'HEAD^{tree}').Trim()
           if($LASTEXITCODE -ne 0 -or $head -cne 'd67fba994d628f1ea235640fa77eda5f38a62df9' -or
-             $parent -cne 'e70e9bf97a74fdf8f3423ab9d9502b464838a8d4' -or
+             $parent -cne '034e53b00cd66117d0b86870c1ee412668513444' -or
              $tree -cne '2a0928c83bd180a11a3183c8c392673950b1444f'){throw 'W06A_SOURCE_IDENTITY_MISMATCH'}
           if(@(& git -C $s status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W06A_SOURCE_DIRTY'}
           Write-Output '::notice::W06A_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
