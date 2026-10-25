@@ -1,0 +1,445 @@
+name: KTRADE W17D1A actual WebView2 star UIA cold Windows
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w17d1a-real-webview2-uia-cold-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w17d1a-native-uia
+  cancel-in-progress: false
+jobs:
+  qualify:
+    name: Actual UIA invokes original WebView2 chart star through cold restart
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 75
+    env:
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 3166001f1aa4aa5b994841208294389475d00b00
+          path: checked-private
+          fetch-depth: 10
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact source parent tree and eight-file boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $wit=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W17C6_GITHUB_HOSTED_WINDOWS_REQUIRED'}
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witness=(& git -C $wit rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or
+             $head -cne '3166001f1aa4aa5b994841208294389475d00b00' -or
+             $parent -cne 'e4c24dfa734959713bbb7199a5c82c65b5b4064b' -or
+             $tree -cne '73b36adfc7f915a8f7b3105735e9e08296744cfc' -or
+             $witness -cne $env:GITHUB_SHA){throw 'W17C6_SOURCE_PARENT_TREE_OR_WITNESS_DRIFT'}
+          $actual=@(& git -C $src diff --name-only 57c73e38cdd6001eaa85b7cff82604a2989eba49 HEAD | Sort-Object)
+          $expected=@(
+            'templates/chart.tmpl',
+            'tests/w17d1a_original_chart_uia.test.cjs'
+          ) | Sort-Object
+          if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
+            throw 'W17D1A_TWO_ORIGINAL_CHART_AND_TEST_FILES_REQUIRED'
+          }
+          Write-Output '::notice::W17D1A_ORIGINAL_GO_WAILS_UNCHANGED_TWO_FILE_SCOPE=PASS'
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17C6_SOURCE_DIRTY'}
+          Write-Output '::notice::W17D0_SOURCE_TREE_AND_SIX_FILE_BOUNDARY=PASS'
+      - name: Native Windows Go 1.25 and Node 24
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Set up Node 24 for frontend contract tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Require exact existing W17C6 green Windows regression witness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $response=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40214120059' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+            'X-GitHub-Api-Version'='2022-11-28'
+          }
+          if($response.conclusion -cne 'success' -or $response.status -cne 'completed' -or
+             $response.head_sha -cne 'aaee1ed5d3bc74d4202f9b7e8b65353bd7da6154'){
+            throw 'W17D0_W17C6_ORIGINAL_FULL_WINDOWS_ACCEPTANCE_NOT_REUSABLE'
+          }
+          Write-Output '::notice::W17D0_W17C6_EXACT_SHA_REGRESSION_REUSED=PASS'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Reuse unchanged W17D0 exact full Go and Wails qualification
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40226971742' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or
+            $run.head_sha -cne '895619630ca9cbc695518afbe91ebeafcdb3f0a5'){
+            throw 'W17D1_UNCHANGED_GO_WAILS_NATIVE_EVIDENCE_NOT_REUSABLE'
+          }
+          $jobs=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40226971742/jobs?per_page=100' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          foreach($name in @('W17D0 focused Go and Wails safety tests',
+              'One full original Go Windows regression',
+              'Verify Go modules and build original engine and actual Wails shell',
+              'Real Wails desktop hosted Windows synthetic restored preview rehearsal')){
+            $step=@($jobs.jobs[0].steps|Where-Object{$_.name -eq $name})
+            if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){
+              throw ('W17D1_UNCHANGED_GO_REGRESSION_NOT_REUSABLE_'+$name)
+            }
+          }
+          Write-Output '::notice::W17D1_GO_AND_WAILS_NATIVE_FULL_EVIDENCE=REUSED_EXACT_TREE'
+      - name: Test original chart favorite storage with bounded collision veto
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & node --test tests/w17d1_chart_favorite_continuity.test.cjs tests/w17d1a_original_chart_uia.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W17D1_CHART_BROWSER_STORAGE_FOCUSED_RED'}
+            Write-Output '::notice::W17D1A_ACCESSIBLE_ORIGINAL_CHART_AND_STORAGE_NEGATIVES=PASS'
+          }finally{Pop-Location}
+      - name: Verify Go modules and build original engine and actual Wails shell
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $dir=Join-Path $env:RUNNER_TEMP 'w17c6-build'
+          New-Item -ItemType Directory -Path $dir -Force|Out-Null
+          $log=Join-Path $env:RUNNER_TEMP 'w17c6-build.log'
+          Push-Location $src
+          try {
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_GO_VET_FAILED'}
+            & go build -mod=readonly -tags ktrade_full -o (Join-Path $dir 'ktrade-engine.exe') ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_ORIGINAL_ENGINE_BUILD_FAILED'}
+            & npm ci --ignore-scripts --no-audit --no-fund --silent *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_OFFLINE_VENDOR_INSTALL_FAILED'}
+            & node scripts/stage_offline_vendor.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_OFFLINE_VENDOR_STAGING_FAILED'}
+            foreach($part in @('static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $src $part) -Destination (Join-Path $dir $part) -Recurse -Force
+            }
+            Write-Output '::notice::W17C6_ORIGINAL_ENGINE_AND_OFFLINE_EDITOR_ASSETS=PASS'
+          } finally {Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try {
+            & go mod verify *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_GO_MODULES_FAILED'}
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_GO_VET_FAILED'}
+            & go build -mod=readonly -tags desktop,production -ldflags '-H windowsgui' -o (Join-Path $dir 'ktrade.exe') . *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_NATIVE_WINDOWS_BUILD_FAILED'}
+          } finally {Pop-Location}
+          Write-Output '::notice::W17C6_WINDOWS_GO_VET_WAILS_NATIVE_BUILD=PASS'
+      - name: Real Wails desktop hosted Windows synthetic restored preview rehearsal
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $build=Join-Path $env:RUNNER_TEMP 'w17c6-build'
+          $nonce=[Guid]::NewGuid().ToString('N').ToLowerInvariant()
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-w06-install-'+$nonce)
+          $rel=Join-Path $root 'releases\v1'
+          $data=Join-Path $root 'app-data'
+          $preview=Join-Path $data 'w17c6-restored-preview'
+          $parent=$null
+          $child=@()
+          $http=$null
+          # No WebView2 debugger or script injection. Original chart control
+          # must appear as a native Windows accessibility Button.
+          try{
+            New-Item -ItemType Directory -Path $rel,$data -Force|Out-Null
+            foreach($name in @('ktrade.exe','ktrade-engine.exe','static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $build $name) -Destination (Join-Path $rel $name) -Recurse -Force
+            }
+            $wh=(Get-FileHash -LiteralPath (Join-Path $rel 'ktrade.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+            $eh=(Get-FileHash -LiteralPath (Join-Path $rel 'ktrade-engine.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+            function Write-Proof([string]$p,[object]$obj){
+              if(Test-Path -LiteralPath $p){throw 'W17C6_EXISTING_PROOF'}
+              $raw=($obj|ConvertTo-Json -Depth 12 -Compress)+[Environment]::NewLine
+              [IO.File]::WriteAllText($p,$raw,[Text.UTF8Encoding]::new($false))
+            }
+            Write-Proof (Join-Path $rel 'w06-readonly-release.json') ([ordered]@{
+              schema='ktrade.wails.w06.synthetic-readonly-release.v1'; install_id=$nonce;version='v1'
+              wails_exe_sha256=$wh;engine_exe_sha256=$eh;live_armed=$false;paper_orders_enabled=$false
+            })
+            Write-Proof (Join-Path $data 'w06-readonly-data.json') ([ordered]@{
+              schema='ktrade.wails.w06.synthetic-readonly-data.v1';install_id=$nonce;generation=1
+              live_armed=$false;paper_orders_enabled=$false
+            })
+            New-Item -ItemType Directory -Path $preview -Force|Out-Null
+            Write-Proof (Join-Path $preview 'config.json') ([ordered]@{paper_only=$true;chart=@{theme='dark'}})
+            Write-Proof (Join-Path $preview 'trading_pairs.json') ([ordered]@{pairs=@('BTC-USDC')})
+            $v5='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';$v6='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            $r5='cccccccccccccccccccccccccccccccc';$r6='dddddddddddddddddddddddddddddddd'
+            $index=[ordered]@{schema_version=1;scripts=@{}}
+            $index.scripts[$v5]=@{metadata=@{id=$v5;display_name='Restored Pine v5';kind='indicator'
+              ownership='user';favorite=$true};revision=$r5}
+            $index.scripts[$v6]=@{metadata=@{id=$v6;display_name='Restored Pine v6';kind='strategy'
+              ownership='user';favorite=$false};revision=$r6}
+            $library=Join-Path $preview 'pine-library'
+            New-Item -ItemType Directory -Path $library -Force|Out-Null
+            Write-Proof (Join-Path $library 'index.json') $index
+            foreach($pair in @(@($r5,'5'),@($r6,'6'))){
+              $folder=Join-Path $library ('revisions\'+$pair[0])
+              New-Item -ItemType Directory -Path $folder -Force|Out-Null
+              [IO.File]::WriteAllText((Join-Path $folder 'source.pine'),
+                ('//@version='+$pair[1]+"`nplot(close)"),[Text.UTF8Encoding]::new($false))
+            }
+            Push-Location (Join-Path $src 'tools/wails-pilot')
+            try{
+              $digest=@(& go run -mod=readonly ./cmd/w17c6-preview-digest $preview)
+              if($LASTEXITCODE -ne 0 -or $digest.Count -ne 1 -or $digest[0] -cnotmatch '^[a-f0-9]{64}$'){
+                throw 'W17C6_PREVIEW_DIGEST_STAMP_FAILED'
+              }
+            }finally{Pop-Location}
+            Write-Proof (Join-Path $data 'w17c6-restored-preview-proof.json') ([ordered]@{
+              schema='ktrade.w17c6.synthetic-wails-restored-preview.v1';install_id=$nonce
+              source_full_sha256=('1'*64);preview_sha256=$digest[0]
+              live_armed=$false;paper_orders_enabled=$false
+            })
+            $parent=Start-Process -FilePath (Join-Path $rel 'ktrade.exe') -WorkingDirectory $rel -PassThru
+            $window=$false
+            $deadline=(Get-Date).AddSeconds(50)
+            while((Get-Date) -lt $deadline){
+              Start-Sleep -Milliseconds 700
+              $parent.Refresh()
+              if($parent.HasExited){throw 'W17C6_WAILS_EXITED_BEFORE_REAL_WINDOW'}
+              if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(-not $window){throw 'W17C6_REAL_WAILS_WINDOW_NOT_VISIBLE'}
+            Write-Output '::notice::W17D0_GENUINE_WAILS_WEBVIEW2_WINDOW=PASS'
+            # Independent Windows UI Automation tree. The model/view cannot
+            # self-assert successful DOM rendering; actual WebView2 content
+            # must be exposed as visible Windows accessibility elements.
+            Add-Type -AssemblyName UIAutomationClient -ErrorAction Stop
+            function Assert-VisibleRecoveredScripts([object]$process,[string]$phase) {
+              $sawV5=$false;$sawV6=$false;$sawPanel=$false;$sawDisarm=$false
+              $deadline=(Get-Date).AddSeconds(30)
+              do {
+                $process.Refresh()
+                if($process.HasExited){throw ('W17D0_DESKTOP_EXITED_'+$phase)}
+                try{
+                  $rootElement=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+                  if($null -eq $rootElement){throw 'UIA_ROOT_UNAVAILABLE'}
+                  $nodes=$rootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                  $names=New-Object System.Collections.Generic.List[string]
+                  for($i=0;$i -lt [Math]::Min($nodes.Count,2500);$i++){
+                    try{
+                      $element=$nodes.Item($i)
+                      if(!$element.Current.IsOffscreen -and ![string]::IsNullOrEmpty($element.Current.Name)){
+                        $names.Add([string]$element.Current.Name)
+                      }
+                    }catch{}
+                  }
+                  $namesText=$names -join '|'
+                  $sawPanel= $namesText.Contains('Recovered user data')
+                  $sawV5 = $namesText.Contains('Restored Pine v5')
+                  $sawV6 = $namesText.Contains('Restored Pine v6')
+                  $sawDisarm = $namesText.Contains('financial and unknown data remain inactive')
+                  if($sawPanel -and $sawV5 -and $sawV6 -and $sawDisarm){break}
+                }catch{}
+                Start-Sleep -Milliseconds 500
+              }while((Get-Date) -lt $deadline)
+              if(!$sawPanel -or !$sawV5 -or !$sawV6 -or !$sawDisarm){
+                throw ('W17D0_VISIBLE_WEBVIEW2_ACCESSIBILITY_MISSING_'+$phase)
+              }
+              Write-Output ('::notice::W17D0_UIA_VISIBLE_RESTORED_V5_V6_FAVORITES_'+$phase+'=PASS')
+            }
+            function Get-W17D1AAccessibleButton([object]$process,[string]$name) {
+              $process.Refresh()
+              if($process.HasExited -or $process.MainWindowHandle -eq [IntPtr]::Zero){return $null}
+              $root=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+              if($null -eq $root){return $null}
+              $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              for($i=0;$i -lt [Math]::Min($all.Count,6500);$i++){
+                try {
+                  $e=$all.Item($i)
+                  if($e.Current.IsOffscreen -eq $false -and
+                    $e.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+                    $e.Current.Name -ceq $name){return $e}
+                } catch {}
+              }
+              return $null
+            }
+            function Wait-W17D1AButton([object]$process,[string]$name,[int]$seconds=18) {
+              $deadline=(Get-Date).AddSeconds($seconds)
+              do {
+                $found=Get-W17D1AAccessibleButton $process $name
+                if($null -ne $found){return $found}
+                Start-Sleep -Milliseconds 350
+              } while((Get-Date) -lt $deadline)
+              # Report metadata only from this synthetic fixture, no
+              # browser profile, storage keys, trading actions or credentials.
+              $root=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+              $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              $sample=@()
+              for($i=0;$i -lt [Math]::Min($all.Count,3500);$i++){
+                try{
+                  $e=$all.Item($i)
+                  $n=$e.Current.Name
+                  if($n -and $n -match '^(Indicators|Technicals|Add Relative Strength Index|Remove Relative Strength Index)' -and
+                    $sample.Count -lt 8){$sample+=($e.Current.ControlType.ProgrammaticName+':'+$n)}
+                }catch{}
+              }
+              Write-Output ('::warning::W17D1A_NATIVE_UIA_VISIBLE_BUTTON_MISSING='+$name+' NODE_COUNT='+$all.Count+
+                ' MATCHING_SYNTHETIC_LABELS='+($sample -join ','))
+              throw 'W17D1A_ORIGINAL_WEBVIEW2_CHART_ACCESSIBILITY_NOT_EXPOSED'
+            }
+            function Invoke-W17D1AButton([object]$element,[string]$description) {
+              try{
+                $pattern=$element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+                $pattern.Invoke()
+              }catch{
+                throw ('W17D1A_NATIVE_CHART_BUTTON_NOT_INVOKABLE_'+$description)
+              }
+            }
+            function Assert-W17D1AChartFavorite([object]$process,[string]$phase) {
+              $indicator=Wait-W17D1AButton $process 'Indicators'
+              Invoke-W17D1AButton $indicator 'OPEN_INDICATORS'
+              $category=Wait-W17D1AButton $process 'Technicals'
+              Invoke-W17D1AButton $category 'TECHNICALS_CATEGORY'
+              if($phase -ceq 'WRITE'){
+                $star=Wait-W17D1AButton $process 'Add Relative Strength Index to favorites'
+                Invoke-W17D1AButton $star 'ORIGINAL_FAVORITE_STAR'
+              }
+              # This is an actual original chart DOM button rendered inside
+              # the real WebView2 iframe, never a synthetic Wails host label.
+              $active=Wait-W17D1AButton $process 'Remove Relative Strength Index from favorites'
+              if($null -eq $active){throw 'W17D1A_ACTIVE_FAVORITE_BUTTON_ABSENT'}
+              if($phase -ceq 'WRITE'){
+                Write-Output '::notice::W17D1A_NATIVE_ORIGINAL_IFRAME_ADD_TO_REMOVE_STATE=PASS'
+              }else{
+                Write-Output '::notice::W17D1A_COLD_ORIGINAL_IFRAME_RETURNS_ACTIVE_FAVORITE=PASS'
+              }
+            }
+            Assert-VisibleRecoveredScripts $parent 'FIRST_LAUNCH'
+            $engine=Join-Path $rel 'ktrade-engine.exe'
+            $deadline=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $deadline){
+              $child=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'"|Where-Object{
+                $_.ExecutablePath -ieq $engine -and $_.ParentProcessId -eq $parent.Id
+              })
+              if($child.Count -eq 1){break}
+              Start-Sleep -Milliseconds 300
+            }
+            if($child.Count -ne 1){throw 'W17C6_EXPECTED_ONE_DISARMED_GO_CHILD'}
+            $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $child[0].ProcessId -ErrorAction SilentlyContinue)
+            if($listeners.Count -ne 1 -or $listeners[0].LocalAddress -cne '127.0.0.1'){
+              throw 'W17C6_LOOPBACK_ONLY_REQUIRED'
+            }
+            $http=[System.Net.Http.HttpClient]::new()
+            $firstPort=[int]$listeners[0].LocalPort
+            if($firstPort -lt 42000 -or $firstPort -ge 47000){
+              throw 'W17D0_SYNTHETIC_FIXED_ORIGIN_OUT_OF_RANGE'
+            }
+            $base='http://127.0.0.1:'+$listeners[0].LocalPort
+            Write-Output '::notice::W17D0_NATIVE_W06_HOST_FIRST_FIXED_ORIGIN=PASS'
+            Assert-W17D1AChartFavorite $parent 'WRITE'
+            Write-Output '::notice::W17D1A_ACTUAL_WEBVIEW2_UIA_CLICK_FAVORITE_SAVED=PASS'
+            $base='http://127.0.0.1:'+$listeners[0].LocalPort
+            $cap=$http.GetAsync($base+'/api/operator/capabilities').GetAwaiter().GetResult()
+            $caps=$cap.Content.ReadAsStringAsync().GetAwaiter().GetResult()|ConvertFrom-Json
+            if([int]$cap.StatusCode -ne 200 -or $caps.mode -cne 'PAPER_STOPPED' -or
+              $caps.paper_orders_enabled -ne $false -or $caps.live_orders_enabled -ne $false -or
+              $caps.strategy_execution_enabled -ne $false){
+              throw 'W17C6_BACKEND_NOT_EXPLICITLY_DISARMED'
+            }
+            $blocked=$http.PostAsync($base+'/api/orders/place',[System.Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+            if([int]$blocked.StatusCode -ne 423){throw 'W17C6_LEGACY_ORDER_ROUTE_UNLOCKED'}
+            Write-Output '::notice::W17D0_REAL_GO_CHILD_AND_ORDER_ROUTES_DISARMED=PASS'
+            # No privileged WebView2 DOM/screenshot capture: the desktop
+            # displayed preview text itself is not yet independently certified.
+            Write-Output '::notice::W17D0_WINDOWS_UIA_ACCESSIBLE_PREVIEW=VERIFIED'
+            if(-not $parent.CloseMainWindow()){throw 'W17C6_WINDOW_CLOSE_FAILED'}
+            if(-not $parent.WaitForExit(15000)){throw 'W17C6_WINDOW_SHUTDOWN_TIMEOUT'}
+            Write-Output '::notice::W17D0_REAL_WINDOW_FIRST_CLOSE=PASS'
+            # A real second OS process must reopen the same persisted
+            # synthetic release and WebView2 profile, not merely reconstruct
+            # an in-memory mock. The exact v5/v6 preview must remain visible.
+            $parent=Start-Process -FilePath (Join-Path $rel 'ktrade.exe') -WorkingDirectory $rel -PassThru
+            $deadline=(Get-Date).AddSeconds(50)
+            $window=$false
+            while((Get-Date) -lt $deadline){
+              Start-Sleep -Milliseconds 700
+              $parent.Refresh()
+              if($parent.HasExited){throw 'W17D0_WAILS_COLD_START_EXITED'}
+              if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(!$window){throw 'W17D0_WAILS_COLD_WINDOW_MISSING'}
+            Assert-VisibleRecoveredScripts $parent 'COLD_RESTART'
+            $coldChild=@()
+            $deadline=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $deadline){
+              $coldChild=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'"|Where-Object{
+                $_.ExecutablePath -ieq $engine -and $_.ParentProcessId -eq $parent.Id
+              })
+              if($coldChild.Count -eq 1){break}
+              Start-Sleep -Milliseconds 250
+            }
+            if($coldChild.Count -ne 1){throw 'W17D0_COLD_GO_CHILD_UNAVAILABLE'}
+            $coldListeners=@(Get-NetTCPConnection -State Listen -OwningProcess $coldChild[0].ProcessId -ErrorAction SilentlyContinue)
+            if($coldListeners.Count -ne 1 -or $coldListeners[0].LocalAddress -cne '127.0.0.1' -or
+               [int]$coldListeners[0].LocalPort -ne $firstPort){
+              throw 'W17D0_ORIGIN_CHANGED_ACROSS_WAILS_COLD_RESTART'
+            }
+            Write-Output '::notice::W17D0_REAL_WAILS_GO_IFRAME_ORIGIN_SAME_AFTER_COLD_RESTART=PASS'
+            Assert-W17D1AChartFavorite $parent 'REOPEN'
+            Write-Output '::notice::W17D1A_ACTUAL_WEBVIEW2_UIA_COLD_FAVORITE_ACTIVE=PASS'
+            if(-not $parent.CloseMainWindow()){throw 'W17D0_COLD_WINDOW_CLOSE_FAILED'}
+            if(-not $parent.WaitForExit(15000)){throw 'W17D0_COLD_WINDOW_SHUTDOWN_FAILED'}
+            Write-Output '::notice::W17D0_REAL_WAILS_COLD_RESTART_AND_CLEAN_SHUTDOWN=PASS'
+            Write-Output '::notice::W17D0_NO_LIVE_NO_PAPER_NO_USER_DATA_NO_INSTALLED_MIGRATION=PASS'
+          } finally {
+            if($http){$http.Dispose()}
+            if($parent -and -not $parent.HasExited){Stop-Process -Id $parent.Id -Force -ErrorAction SilentlyContinue}
+            foreach($p in $child){
+              Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+            }
+            if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue}
+          }
+      - name: Scrub all private candidate and scratch files
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($path in @((Join-Path $env:GITHUB_WORKSPACE 'checked-private'),(Join-Path $env:RUNNER_TEMP 'w17c6-build'))){
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force -Recurse -ErrorAction SilentlyContinue}
+          }
