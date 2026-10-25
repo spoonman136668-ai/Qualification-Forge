@@ -103,7 +103,7 @@ jobs:
               & go test -mod=readonly -race -count=1 -timeout=15m ./backend *> $log
               if($LASTEXITCODE -ne 0){
                 $safe=@(Get-Content -LiteralPath $log -ErrorAction Stop | Where-Object {
-                  $_ -match '^(--- FAIL:|FAIL\s|FAIL$|# ktrade-wails-pilot/|    [A-Za-z0-9_/\-]+\.go:[0-9]+:|.*\[build failed\])'
+                  $_ -match '(--- FAIL:|^FAIL|^# ktrade-wails-pilot/|\.go:[0-9]+:[0-9]+:|\[build failed\]|^undefined:)'
                 } | Select-Object -Last 18)
                 foreach($entry in $safe){
                   $v=[regex]::Replace([string]$entry,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED_PATH]')
