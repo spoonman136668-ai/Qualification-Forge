@@ -1,0 +1,189 @@
+name: KTRADE W17C5 original Go Pine API restored-source integration Windows
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w17c5-supported-app-restore-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w17c5-exact-source
+  cancel-in-progress: false
+jobs:
+  qualify:
+    name: Original Go HTTP reads restored v5/v6 sources, one whole Windows regression
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 70
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout exact qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable private W17C5 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a371715c099ee3daaf69b824e1fa6bcfee208aea
+          path: checked-private
+          fetch-depth: 4
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact source SHA parent tree and two-file delta
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $wit=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W17C5_WINDOWS_HOST_REQUIRED'}
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witness=(& git -C $wit rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or
+             $head -cne 'a371715c099ee3daaf69b824e1fa6bcfee208aea' -or
+             $parent -cne '08f6a6eb231c3c7df9698cd5b3c9a9ea7a824d3c' -or
+             $tree -cne '8ce7d24fe86b11d6b65554b10567ec1809178300' -or
+             $witness -cne $env:GITHUB_SHA){throw 'W17C5_SOURCE_SHA_PARENT_TREE_DRIFT'}
+          $base='8bae69a1b814391d9425b2d99043897f51df0e9e'
+          $actual=@(& git -C $src diff --name-only $base HEAD | Sort-Object)
+          $expected=@('internal/durableupgrade/w17c5_supported_app_restore.go',
+                      'cmd/ktrade/w17c5_restored_supported_full_test.go' | Sort-Object)
+          if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
+            throw 'W17C5_SCOPE_WIDENED'
+          }
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17C5_PRIVATE_SOURCE_DIRTY'}
+          Write-Output '::notice::W17C5_IMMUTABLE_SOURCE_AND_2_FILE_SCOPE=PASS'
+      - name: Install native Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Original tagged Go application reads restored Pine v5/v6 and cold favorites
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c5-app.log'
+          $names=@(
+            'TestW17C5RealGoPineHTTPReadsRestoredV5V6FavoritesAndColdReopens',
+            'TestW17C5ChangedActiveFinancialStateAndUnknownEscrowRefuseGoAppPreflight',
+            'TestW17C5OriginalLoopbackPineAPIRejectsCrossSiteWritesAfterRestore',
+            'TestKTradePineLibraryCompatPreservesExistingScriptsAndFavorites',
+            'TestKTradePineLibraryCompatBuiltinsImmutableAndFailClosed'
+          )
+          $pattern='^('+($names -join '|')+')$'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go test -mod=readonly -tags ktrade_full -count=1 -v -timeout=25m -run $pattern ./cmd/ktrade *> $log
+            $exit=$LASTEXITCODE
+            $lines=@(Get-Content -LiteralPath $log)
+            if($exit -ne 0){
+              foreach($line in ($lines|Where-Object{$_ -match '^--- FAIL:' -or $_ -match '^# ktrade/' -or $_ -match '^panic:' -or $_ -match 'w17c5_restored_supported_full_test.go:[0-9]+'}|Select-Object -First 24)){
+                $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                if($safe.Length -gt 220){$safe=$safe.Substring(0,220)}
+                Write-Output ('::warning::W17C5_APP_FAILURE='+$safe)
+              }
+              throw 'W17C5_ORIGINAL_APP_WINDOWS_FOCUSED_RED'
+            }
+            foreach($name in $names){
+              if(!($lines|Where-Object{$_ -match ('^--- PASS: '+[regex]::Escape($name)+'\s')})){
+                throw ('W17C5_REQUIRED_APP_TEST_NOT_RUN_'+$name)
+              }
+            }
+            Write-Output '::notice::W17C5_REAL_GO_PINE_API_RESTORED_V5_V6_AND_FAVORITES=PASS'
+            Write-Output '::notice::W17C5_COLD_REOPEN_NEW_FINANCIAL_AND_UNKNOWN_TAMPER_VETO=PASS'
+            Write-Output '::notice::W17C5_NATIVE_LOOPBACK_ORIGIN_WRITE_REFUSAL=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Original durableupgrade W17B through W17C4 source regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c5-history.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go test -mod=readonly -count=1 -timeout=20m -run '^(TestW17B|TestW17C|TestW07)' ./internal/durableupgrade *> $log
+            if($LASTEXITCODE -ne 0){
+              foreach($line in (Get-Content -LiteralPath $log | Where-Object{$_ -match '^--- FAIL:' -or $_ -match '^# ktrade/' }|Select-Object -First 20)){
+                $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                Write-Output ('::warning::W17C5_HISTORIC_FAIL='+$safe)
+              }
+              throw 'W17C5_HISTORICAL_SOURCE_REGRESSION'
+            }
+            Write-Output '::notice::W17C5_W17B_W17C1_C2_C3_C4_AND_W07=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Existing Wails WebView2 package safety tests remain intact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c5-wails.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private/tools/wails-pilot')
+          try{
+            $names=@('TestW03PositiveFreshTempPairAndTamperVeto',
+                     'TestW03PortableRequiresExactTempStageAndBothProofs',
+                     'TestW04PortableWebviewStateSurvivesStopWithoutProfileRedirect')
+            $pattern='^('+($names -join '|')+')$'
+            & go test -mod=readonly -count=1 -timeout=10m -run $pattern ./backend *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C5_WAILS_EXISTING_SAFETY_TESTS_FAILED'}
+            Write-Output '::notice::W17C5_WAILS_FRESH_SHELL_PROFILE_NEGATIVES=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: One complete untagged Windows Go regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c5-full.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go test -mod=readonly -count=1 -timeout=25m ./... *> $log
+            $exit=$LASTEXITCODE
+            $rows=@(Get-Content -LiteralPath $log)
+            $failures=@($rows|Where-Object{$_ -match '^--- FAIL:' -or $_ -match '^FAIL\s+ktrade' -or $_ -match '^# ktrade/' -or $_ -match '^panic:'})
+            Write-Output ('::notice::W17C5_FULL_FAILURE_MARKERS='+$failures.Count)
+            if($exit -ne 0 -or $failures.Count -ne 0){
+              foreach($line in ($failures|Select-Object -First 15)){
+                $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                if($safe.Length -gt 200){$safe=$safe.Substring(0,200)}
+                Write-Output ('::warning::W17C5_FULL_FAILURE='+$safe)
+              }
+              throw 'W17C5_FULL_WINDOWS_REGRESSION_RED'
+            }
+            Write-Output '::notice::W17C5_ONE_FULL_WINDOWS_REGRESSION=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Vet and full native Go Windows build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c5-build.log'
+          $exe=Join-Path $env:RUNNER_TEMP 'w17c5-qualify-only.exe'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C5_GO_VET_FAILED'}
+            & go build -mod=readonly -tags ktrade_full -o $exe ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C5_NATIVE_WINDOWS_BUILD_FAILED'}
+            Write-Output '::notice::W17C5_GO_VET_AND_NATIVE_BUILD=PASS'
+            Write-Output '::notice::W17C5_WAILS_INSTALLED_CUTOVER_DPAPI_OWNER_MIGRATION=BLOCKED'
+            Write-Output '::notice::W17C5_NO_OWNER_DATA_NO_BROKER_NO_INSTALL_NO_PROMOTION=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $exe,$log -Force -ErrorAction SilentlyContinue}
+      - name: Purge private source checkout
+        if: always()
+        shell: pwsh
+        run: |
+          $path=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force -Recurse -ErrorAction SilentlyContinue}
