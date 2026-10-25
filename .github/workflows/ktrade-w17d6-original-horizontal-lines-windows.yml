@@ -780,8 +780,11 @@ jobs:
               $r=$button.Current.BoundingRectangle
               $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
                 $process.MainWindowHandle).Current.BoundingRectangle
+              # The exact saved-line removal button occupies the editor width,
+              # unlike compact toolbar buttons; never relax outer-window custody.
+              $limit=if($name -ceq 'Remove horizontal line at 42500'){480}else{250}
               if($r.IsEmpty -or $r.Width -lt 14 -or $r.Height -lt 12 -or
-                 $r.Width -gt 250 -or $r.Height -gt 125 -or
+                 $r.Width -gt $limit -or $r.Height -gt 125 -or
                  $r.Left -lt $outer.Left -or $r.Top -lt $outer.Top -or
                  $r.Right -gt $outer.Right -or $r.Bottom -gt $outer.Bottom){
                 throw ('W17D6_NATIVE_BUTTON_OUTSIDE_WAILS_'+$name)
