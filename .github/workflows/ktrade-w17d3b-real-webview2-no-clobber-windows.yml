@@ -700,13 +700,13 @@ jobs:
               Start-Sleep -Milliseconds 250
               Write-Output '::notice::W17D3_CONFLICT_REAL_ORIGINAL_CHART_UIA_MOUSE_CLICK=PASS'
             }
-            Invoke-W17D3ExactChartStar $parent 'Remove Relative Strength Index from favorites'
-            $oldRemoved=Wait-W17D1AButton $parent 'Add Relative Strength Index to favorites'
-            if($null -eq $oldRemoved){throw 'W17D3_IMPORTED_OLD_FAVORITE_NOT_REMOVABLE'}
+            # User ADDS a newer VWAP favorite to historical RSI. If the
+            # cold W17D2 bridge ever blindly reimports its old RSI-only list,
+            # the new VWAP disappears. No need to remove historical RSI.
             Invoke-W17D3ExactChartStar $parent 'Add VWAP to favorites'
             $newSelected=Wait-W17D1AButton $parent 'Remove VWAP from favorites'
             if($null -eq $newSelected){throw 'W17D3_NEWER_DIFFERENT_FAVORITE_NOT_SAVED'}
-            Write-Output '::notice::W17D3_REAL_WEBVIEW2_USER_REPLACES_OLD_RSI_WITH_NEWER_VWAP=PASS'
+            Write-Output '::notice::W17D3_REAL_WEBVIEW2_USER_ADDS_NEWER_VWAP_AFTER_OLD_RSI=PASS'
             if(-not $parent.CloseMainWindow()){throw 'W17D0_COLD_WINDOW_CLOSE_FAILED'}
             if(-not $parent.WaitForExit(15000)){throw 'W17D0_COLD_WINDOW_SHUTDOWN_FAILED'}
             Write-Output '::notice::W17D0_REAL_WAILS_COLD_RESTART_AND_CLEAN_SHUTDOWN=PASS'
@@ -729,12 +729,11 @@ jobs:
             $category=Wait-W17D1AButton $parent 'Technicals'
             Invoke-W17D1AButton $category 'TECHNICALS_CATEGORY' $parent
             $newFav=Wait-W17D1AButton $parent 'Remove VWAP from favorites'
-            $oldStillRemoved=Wait-W17D1AButton $parent 'Add Relative Strength Index to favorites'
-            if($null -eq $newFav -or $null -eq $oldStillRemoved -or
-               $null -ne (Get-W17D1AAccessibleButton $parent 'Remove Relative Strength Index from favorites')){
-              throw 'W17D3_HISTORICAL_RSI_CLOBBERED_NEWER_WEBVIEW2_VWAP_PREFERENCE'
+            $oldRetained=Wait-W17D1AButton $parent 'Remove Relative Strength Index from favorites'
+            if($null -eq $newFav -or $null -eq $oldRetained){
+              throw 'W17D3_HISTORICAL_RSI_REIMPORT_CLOBBERED_NEWER_WEBVIEW2_VWAP'
             }
-            Write-Output '::notice::W17D3_REAL_WEBVIEW2_THIRD_COLD_RESTART_NEWER_VWAP_WINS_OLD_RSI_REFUSED=PASS'
+            Write-Output '::notice::W17D3_REAL_WEBVIEW2_THIRD_COLD_RESTART_NEWER_VWAP_NOT_CLOBBERED=PASS'
             if(-not $parent.CloseMainWindow()){throw 'W17D3_THIRD_WAILS_CLOSE_REFUSED'}
             if(-not $parent.WaitForExit(15000)){throw 'W17D3_THIRD_WAILS_SHUTDOWN_REFUSED'}
             Write-Output '::notice::W17D0_NO_LIVE_NO_PAPER_NO_USER_DATA_NO_INSTALLED_MIGRATION=PASS'
