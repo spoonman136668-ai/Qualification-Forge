@@ -888,7 +888,29 @@ jobs:
             # Two native pointer events, no DOM, CDP, canvas JS or localStorage writes.
             function Click-W17D7Named([object]$process,[string]$name) {
               Write-Output ('::notice::W17D7_GENUINE_BUTTON_LOOKUP_'+$name)
-              $button=Wait-W17D1AButton $process $name
+              $button=$null
+              if($name -ceq 'Manage trendlines'){
+                # WebView2 can expose the visible title "Drawings" instead
+                # of the supplied aria-label; insist on its exact original
+                # position directly below the native Trend Line tool.
+                $button=Get-W17D1AAccessibleButton $process 'Manage trendlines'
+                if($null -eq $button){
+                  $button=Get-W17D1AAccessibleButton $process 'Drawings'
+                }
+                if($null -eq $button){
+                  throw 'W17D7_FIXED_ORIGINAL_DRAWINGS_BUTTON_NOT_EXPOSED'
+                }
+                $trend=Wait-W17D1AButton $process 'Trend Line'
+                $b=$button.Current.BoundingRectangle
+                $a=$trend.Current.BoundingRectangle
+                if($b.IsEmpty -or [Math]::Abs($b.Left-$a.Left) -gt 8 -or
+                   $b.Top -lt $a.Bottom-4 -or $b.Top -gt $a.Bottom+16){
+                  throw 'W17D7_DRAWINGS_BUTTON_NOT_ADJACENT_TO_ORIGINAL_TOOL'
+                }
+                Write-Output ('::notice::W17D7_MANAGER_ACCESSIBLE_NAME='+$button.Current.Name)
+              }else{
+                $button=Wait-W17D1AButton $process $name
+              }
               $r=$button.Current.BoundingRectangle
               $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
                 $process.MainWindowHandle).Current.BoundingRectangle
