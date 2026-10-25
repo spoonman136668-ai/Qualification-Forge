@@ -1,0 +1,219 @@
+name: KTRADE W13C final Windows regression and negative proof gate
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w13c-final-windows-regression.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w13c-exact-source-regression
+  cancel-in-progress: false
+jobs:
+  w13c-windows-regression:
+    name: One full regression; negative replay, tamper, restart and Wails tests
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout pinned qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private KTRADE candidate read only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b66b1608741d53732099c69c7e05e37acae63f18
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify hosted Windows source, parent, tree and witness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $wit=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W13C_GITHUB_HOSTED_WINDOWS_REQUIRED'}
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witness=(& git -C $wit rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne 'b66b1608741d53732099c69c7e05e37acae63f18' -or
+             $parent -cne '3976a7d1dce3d3ccc29afee53e600ab96a8490df' -or
+             $tree -cne '7320b021ab6bb4914dcd0408e01c703916dfbe23' -or
+             $witness -cne $env:GITHUB_SHA){throw 'W13C_SOURCE_OR_WITNESS_IDENTITY_DRIFT'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W13C_DIRTY_PRIVATE_SOURCE'}
+          Write-Output '::notice::W13C_EXACT_SOURCE_PARENT_TREE_WITNESS=PASS'
+          Write-Output '::notice::W13C_HOSTED_WINDOWS_FRESH_SANDBOX=PASS'
+      - name: Fixed Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Fixed Node for preserved original desktop contracts
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Exactly one untagged full Windows Go regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w13c-private-full-regression.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go test -mod=readonly -count=1 -timeout=20m ./... *> $log
+            $exit=$LASTEXITCODE
+            $rows=@(Get-Content -LiteralPath $log)
+            $fails=@($rows|Where-Object {$_ -match '^--- FAIL:'})
+            $markers=@($rows|Where-Object {$_ -match '^--- FAIL:' -or $_ -match '^FAIL\s+ktrade' -or $_ -match '^# ktrade/' -or $_ -match '^panic:'})
+            Write-Output ('::notice::W13C_FULL_TOP_LEVEL_TEST_FAILURES='+$fails.Count)
+            Write-Output ('::notice::W13C_FULL_FAILURE_MARKERS='+$markers.Count)
+            foreach($line in ($markers|Select-Object -First 30)){
+              $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+              $safe=[regex]::Replace($safe,'[^a-zA-Z0-9_ .:/=;,+()\[\]-]','')
+              if($safe.Length -gt 220){$safe=$safe.Substring(0,220)}
+              Write-Output ('::warning::W13C_ORIGINAL_REGRESSION_FAILURE='+$safe)
+            }
+            if($exit -ne 0 -or $markers.Count -ne 0){
+              Write-Output '::error::W13C_FULL_WINDOWS_REGRESSION=FAIL;INTEGRATION_BLOCKED=TRUE'
+              throw 'W13C_WHOLE_REPOSITORY_REGRESSION_RED'
+            }
+            Write-Output '::notice::W13C_ONE_FULL_WINDOWS_REGRESSION=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Focused duplicate-fill, original TradeGuard, unsafe cold restart and fixture refusal
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log=Join-Path $env:RUNNER_TEMP 'w13c-private-negative-tests.log'
+          $names=@(
+            'TestRB2NativeBravePaperSessionStartEvaluateStopAndReconcile',
+            'TestRB2NativeUnattendedWorkerEvaluatesOnceAndStops',
+            'TestRB2ApplicationOwnedPaperCustodyStartFillStopColdArchive',
+            'TestRB2PortableColdRestartDiscoversOnlySealedOriginalFinancialSource',
+            'TestRB3WailsPairRequiresExactShellAndGoEngine',
+            'TestRB3WailsRejectsMismatchedAndRedirectedIdentity',
+            'TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly',
+            'TestW13SyntheticCandleScopeAndFinality',
+            'TestW13FixtureRefusesUnpairedOrdinaryProcess'
+          )
+          $pattern='^('+($names -join '|')+')$'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -tags 'ktrade_full,ktrade_w13_fixture' -count=1 -v -timeout=15m -run $pattern ./cmd/ktrade *> $log
+            $exit=$LASTEXITCODE
+            $lines=@(Get-Content -LiteralPath $log)
+            if($exit -ne 0){
+              foreach($line in ($lines|Where-Object {$_ -match '^--- FAIL:' -or $_ -match '^# ktrade/' -or $_ -match 'fatal error:'}|Select-Object -First 15)){
+                $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                Write-Output ('::warning::W13C_FOCUSED_ORIGINAL_FAILURE='+$safe)
+              }
+              throw 'W13C_ORIGINAL_SAFETY_NEGATIVE_TEST_FAILED'
+            }
+            foreach($name in $names){
+              if(!($lines|Where-Object {$_ -match ('^--- PASS: '+[regex]::Escape($name)+'\s') })){
+                throw ('W13C_REQUIRED_TEST_NOT_EXECUTED_'+$name)
+              }
+            }
+            Write-Output '::notice::W13C_DUPLICATE_FINAL_BAR_FILL_VETO=PASS'
+            Write-Output '::notice::W13C_DURABLE_TRADEGUARD_STOP_AND_ARCHIVE=PASS'
+            Write-Output '::notice::W13C_UNSAFE_COLD_RESTART_AND_PAPER_REARM_VETO=PASS'
+            Write-Output '::notice::W13C_TAMPERED_WAILS_PAIR_AND_FRESH_PROOF_VETO=PASS'
+            Write-Output '::notice::W13C_TAGGED_MARKET_FIXTURE_SOURCE_SCOPE_AND_UNPAIRED_REFUSAL=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Original Wails package tamper and WebView2 identity negative tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w13c-private-wails-safety.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private/tools/wails-pilot')
+          try{
+            $names=@('TestW03PositiveFreshTempPairAndTamperVeto',
+                     'TestW03PortableRequiresExactTempStageAndBothProofs',
+                     'TestW04PortableWebviewStateSurvivesStopWithoutProfileRedirect')
+            $pattern='^('+($names -join '|')+')$'
+            & go test -mod=readonly -count=1 -v -timeout=8m -run $pattern ./backend *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13C_WAILS_REAL_PACKAGE_NEGATIVE_TESTS_FAILED'}
+            $lines=@(Get-Content -LiteralPath $log)
+            foreach($name in $names){
+              if(!($lines|Where-Object {$_ -match ('^--- PASS: '+[regex]::Escape($name)+'\s')})){
+                throw ('W13C_WAILS_REQUIRED_TEST_NOT_EXECUTED_'+$name)
+              }
+            }
+            Write-Output '::notice::W13C_WAILS_PACKAGE_HASH_TAMPERING_REJECTED=PASS'
+            Write-Output '::notice::W13C_MISSING_DATA_PROOF_AND_REDIRECT_REJECTED=PASS'
+            Write-Output '::notice::W13C_FRESH_WEBVIEW2_DATA_PRESERVED_NO_REDIRECT=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Preserved native desktop and original paper contract probes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'w13c-private-legacy-contracts.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & node --test tests/legacy_desktop_launch_contract.test.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13C_PRESERVED_NATIVE_DESKTOP_CONTRACT_FAILED'}
+            Write-Output '::notice::W13C_PRESERVED_DESKTOP_CONTRACTS=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Vet and distinct untagged, native full and W13 test-only Windows builds
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w13c-private-build.log'
+          $normal=Join-Path $env:RUNNER_TEMP 'w13c-original-full.exe'
+          $testOnly=Join-Path $env:RUNNER_TEMP 'w13c-synthetic-only.exe'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13C_NORMAL_GO_VET_FAILED'}
+            & go vet -mod=readonly -tags 'ktrade_full,ktrade_w13_fixture' ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13C_TAGGED_GO_VET_FAILED'}
+            Write-Output '::notice::W13C_NORMAL_AND_W13_TAGGED_GO_VET=PASS'
+            & go build -mod=readonly -tags ktrade_full -o $normal ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13C_ORIGINAL_WINDOWS_BUILD_FAILED'}
+            & go build -mod=readonly -tags 'ktrade_full,ktrade_w13_fixture' -o $testOnly ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W13C_TAGGED_WINDOWS_BUILD_FAILED'}
+            if((Get-FileHash -LiteralPath $normal -Algorithm SHA256).Hash -ceq
+               (Get-FileHash -LiteralPath $testOnly -Algorithm SHA256).Hash){
+              throw 'W13C_PRODUCTION_AND_SYNTHETIC_BINARY_COLLISION'
+            }
+            Write-Output '::notice::W13C_ORIGINAL_AND_TEST_ONLY_WINDOWS_BUILD_DISTINCT=PASS'
+            Write-Output '::notice::W13C_NO_INSTALL_NO_BROKER_NO_PROMOTION=PASS'
+          }finally{
+            Pop-Location
+            foreach($p in @($normal,$testOnly,$log)){
+              Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+            }
+          }
+      - name: Purge private workspace
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $root){
+            Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+          }
