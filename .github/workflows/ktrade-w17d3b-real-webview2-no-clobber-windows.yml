@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   qualify:
-    name: Real WebView2 old RSI import then newer VWAP wins cold restart
+    name: Real WebView2 old RSI import then newer MACD wins cold restart
     if: github.repository == 'spoonman136668-ai/Qualification-Forge'
     runs-on: windows-2022
     timeout-minutes: 75
@@ -665,8 +665,8 @@ jobs:
             Assert-W17D1AChartFavorite $parent 'REOPEN'
             Write-Output '::notice::W17D1A_ACTUAL_WEBVIEW2_UIA_COLD_FAVORITE_ACTIVE=PASS'
             # Real browser conflict test: the user removes the imported RSI
-            # and chooses a DIFFERENT, newer catalog favorite (VWAP). A
-            # third cold KTRADE startup must retain VWAP and MUST NOT
+            # and chooses a DIFFERENT, newer catalog favorite (MACD). A
+            # third cold KTRADE startup must retain MACD and MUST NOT
             # overwrite it with the still-present OLD-origin RSI value.
             function Invoke-W17D3ExactChartStar([object]$process,[string]$label) {
               $button=Wait-W17D1AButton $process $label
@@ -692,9 +692,9 @@ jobs:
                   $button.SetFocus()
                   [System.Windows.Forms.SendKeys]::SendWait(' ')
                   Start-Sleep -Milliseconds 250
-                  if($label -ceq 'Add VWAP to favorites' -and
-                     $null -ne (Get-W17D1AAccessibleButton $process 'Remove VWAP from favorites')){
-                    Write-Output '::notice::W17D3_NATIVE_WEBVIEW2_FOCUSED_KEYBOARD_NEWER_VWAP=PASS'
+                  if($label -ceq 'Add MACD to favorites' -and
+                     $null -ne (Get-W17D1AAccessibleButton $process 'Remove MACD from favorites')){
+                    Write-Output '::notice::W17D3_NATIVE_WEBVIEW2_FOCUSED_KEYBOARD_NEWER_MACD=PASS'
                     return
                   }
                 }catch{
@@ -717,18 +717,18 @@ jobs:
               Start-Sleep -Milliseconds 250
               Write-Output '::notice::W17D3_CONFLICT_REAL_ORIGINAL_CHART_UIA_MOUSE_CLICK=PASS'
             }
-            # User ADDS a newer VWAP favorite to historical RSI. If the
+            # User ADDS a newer MACD favorite to historical RSI. If the
             # cold W17D2 bridge ever blindly reimports its old RSI-only list,
-            # the new VWAP disappears. No need to remove historical RSI.
-            Invoke-W17D3ExactChartStar $parent 'Add VWAP to favorites'
-            $newSelected=Wait-W17D1AButton $parent 'Remove VWAP from favorites'
+            # the new MACD disappears. No need to remove historical RSI.
+            Invoke-W17D3ExactChartStar $parent 'Add MACD to favorites'
+            $newSelected=Wait-W17D1AButton $parent 'Remove MACD from favorites'
             if($null -eq $newSelected){throw 'W17D3_NEWER_DIFFERENT_FAVORITE_NOT_SAVED'}
-            Write-Output '::notice::W17D3_REAL_WEBVIEW2_USER_ADDS_NEWER_VWAP_AFTER_OLD_RSI=PASS'
+            Write-Output '::notice::W17D3_REAL_WEBVIEW2_USER_ADDS_NEWER_MACD_AFTER_OLD_RSI=PASS'
             if(-not $parent.CloseMainWindow()){throw 'W17D0_COLD_WINDOW_CLOSE_FAILED'}
             if(-not $parent.WaitForExit(15000)){throw 'W17D0_COLD_WINDOW_SHUTDOWN_FAILED'}
             Write-Output '::notice::W17D0_REAL_WAILS_COLD_RESTART_AND_CLEAN_SHUTDOWN=PASS'
             # Third ORIGINAL Wails process, same source identity and browser
-            # directory, legacy RSI source still present. User's NEWER VWAP
+            # directory, legacy RSI source still present. User's NEWER MACD
             # preference must win; never reimport RSI at cold start.
             $parent=Start-Process -FilePath (Join-Path $rel 'ktrade.exe') -WorkingDirectory $rel -PassThru
             $window=$false
@@ -745,12 +745,12 @@ jobs:
             Invoke-W17D1AButton $indicator 'OPEN_INDICATORS' $parent
             $category=Wait-W17D1AButton $parent 'Technicals'
             Invoke-W17D1AButton $category 'TECHNICALS_CATEGORY' $parent
-            $newFav=Wait-W17D1AButton $parent 'Remove VWAP from favorites'
+            $newFav=Wait-W17D1AButton $parent 'Remove MACD from favorites'
             $oldRetained=Wait-W17D1AButton $parent 'Remove Relative Strength Index from favorites'
             if($null -eq $newFav -or $null -eq $oldRetained){
-              throw 'W17D3_HISTORICAL_RSI_REIMPORT_CLOBBERED_NEWER_WEBVIEW2_VWAP'
+              throw 'W17D3_HISTORICAL_RSI_REIMPORT_CLOBBERED_NEWER_WEBVIEW2_MACD'
             }
-            Write-Output '::notice::W17D3_REAL_WEBVIEW2_THIRD_COLD_RESTART_NEWER_VWAP_NOT_CLOBBERED=PASS'
+            Write-Output '::notice::W17D3_REAL_WEBVIEW2_THIRD_COLD_RESTART_NEWER_MACD_NOT_CLOBBERED=PASS'
             if(-not $parent.CloseMainWindow()){throw 'W17D3_THIRD_WAILS_CLOSE_REFUSED'}
             if(-not $parent.WaitForExit(15000)){throw 'W17D3_THIRD_WAILS_SHUTDOWN_REFUSED'}
             Write-Output '::notice::W17D0_NO_LIVE_NO_PAPER_NO_USER_DATA_NO_INSTALLED_MIGRATION=PASS'
