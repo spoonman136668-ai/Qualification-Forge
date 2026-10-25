@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 37e7a011c12437952d528d86229adaa23d29a945
+          ref: 3dbbbc5eea3d9da7c5d14c4a71716c2e32a4d41b
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -62,9 +62,9 @@ jobs:
           $head=(& git -C $s rev-parse HEAD).Trim()
           $parent=(& git -C $s rev-parse HEAD^).Trim()
           $tree=(& git -C $s rev-parse 'HEAD^{tree}').Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '37e7a011c12437952d528d86229adaa23d29a945' -or
-             $parent -cne '87405293f93c0826144b84c7943c4442a846d2f9' -or
-             $tree -cne 'f5676c9c0e48f561c6fc4115efe2da484f0d09bf'){throw 'W06A_SOURCE_IDENTITY_MISMATCH'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '3dbbbc5eea3d9da7c5d14c4a71716c2e32a4d41b' -or
+             $parent -cne '37e7a011c12437952d528d86229adaa23d29a945' -or
+             $tree -cne '2efd5b5ae5d24a8fa2f1ca249041b3a0bb08cae7'){throw 'W06A_SOURCE_IDENTITY_MISMATCH'}
           if(@(& git -C $s status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W06A_SOURCE_DIRTY'}
           Write-Output '::notice::W06A_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
 
@@ -133,14 +133,14 @@ jobs:
               if($before.Count -ne 0){throw 'W06A_SOURCE_DIRTY_AFTER_ASSET_STAGING'}
             }finally{Pop-Location}
             $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
-            $built=@(& $builder -OutputRoot $pkg -ExpectedSourceSha '37e7a011c12437952d528d86229adaa23d29a945')
+            $built=@(& $builder -OutputRoot $pkg -ExpectedSourceSha '3dbbbc5eea3d9da7c5d14c4a71716c2e32a4d41b')
             if(@($built|Where-Object {$_ -match '^W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS'}).Count -ne 1){
               throw 'W06A_SOURCE_PAIRED_WAILS_PACKAGE_FAILED'
             }
             Write-Output '::notice::W06A_EXACT_SOURCE_WAILS_GO_BINARIES=PASS'
             $stage=Join-Path $pkg 'KTRADE-WailsPortable'
             $stageScript=Join-Path $src 'windows/Stage-KTRADE-W06A-ReadOnlyFixture.ps1'
-            $result=@(& $stageScript -QualifiedW03Stage $stage -ExpectedSourceSha '37e7a011c12437952d528d86229adaa23d29a945')
+            $result=@(& $stageScript -QualifiedW03Stage $stage -ExpectedSourceSha '3dbbbc5eea3d9da7c5d14c4a71716c2e32a4d41b')
             if(@($result|Where-Object {$_ -match '^W06A_SYNTHETIC_READONLY_STAGED=PASS'}).Count -ne 1){
               throw 'W06A_INSTALLED_FIXTURE_NOT_STAGED'
             }
