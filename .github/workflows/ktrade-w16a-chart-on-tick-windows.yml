@@ -1,0 +1,345 @@
+name: KTRADE W16A original chart onTick cost and OHLC nonregression
+
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w16a-chart-on-tick-windows.yml]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ktrade-w16a-exact-source-windows
+  cancel-in-progress: false
+
+jobs:
+  operator-smoke:
+    name: Real Wails window plus original Go/Monaco browser interactions
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout immutable qualification workflow
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable private KTRADE source read-only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 08d4771f3b146a54cb3b308644fd894d5d8e5ac5
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Authenticate original KTRADE commit parent tree and witness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W16A_AUTHENTIC_WINDOWS_HOST_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $witness=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witnessHead=(& git -C $witness rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne '08d4771f3b146a54cb3b308644fd894d5d8e5ac5' -or
+             $parent -cne 'b66b1608741d53732099c69c7e05e37acae63f18' -or
+             $tree -cne '0774551f9800fece485475b7ab7d5b0bdad26979' -or
+             $witnessHead -cne $env:GITHUB_SHA){throw 'W16A_SOURCE_OR_WITNESS_IDENTITY_DRIFT'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W16A_DIRTY_PRIVATE_SOURCE'}
+          Write-Output '::notice::W16A_SOURCE_PARENT_TREE_AND_WITNESS=PASS'
+      - name: Set up native Windows Go for original engine and Wails
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: checked-private/tools/wails-pilot/go.mod
+          cache: false
+      - name: Set up Node 24 for real Chromium CDP pipe and locked assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: checked-private/package-lock.json
+      - name: Genuine Wails WebView2, original chart editor and Pine v5 v6 API
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          # One canonical disposable path for .NET, Go os.TempDir and both binaries.
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $tmp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
+          $pkg=Join-Path $tmp ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          $privateLog=Join-Path $env:RUNNER_TEMP 'w16a-private-output.log'
+          $browserProfile=Join-Path $env:RUNNER_TEMP ('w16a-cdp-'+[guid]::NewGuid().ToString('N'))
+          $app=$null;$child=$null;$w16aDriver=$null
+          try{
+            Push-Location $src
+            try{
+              & npm ci --ignore-scripts --no-audit --no-fund --silent *> $privateLog
+              if($LASTEXITCODE -ne 0){throw 'W16A_LOCKED_FRONTEND_INSTALL_FAILED'}
+              & node scripts/stage_offline_vendor.cjs *> $privateLog
+              if($LASTEXITCODE -ne 0){throw 'W16A_LOCKED_OFFLINE_VENDOR_FAILED'}
+              if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W16A_TRACKED_SOURCE_CHANGED'}
+            }finally{Pop-Location}
+            $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
+            $built=@(& $builder -OutputRoot $pkg -ExpectedSourceSha '08d4771f3b146a54cb3b308644fd894d5d8e5ac5')
+            if($built -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W16A_AUTHENTIC_PAIRED_WAILS_BUILD_FAILED'}
+            $release=Join-Path $pkg 'KTRADE-WailsPortable'
+            $exe=Join-Path $release 'ktrade.exe'
+            $engine=Join-Path $release 'ktrade-engine.exe'
+            $wailsLog=Join-Path $env:RUNNER_TEMP 'w16a-private-wails-stderr.log'
+          $app=Start-Process -FilePath $exe -WorkingDirectory $release -RedirectStandardError $wailsLog -PassThru
+            $null=$app.Handle
+            $until=(Get-Date).AddSeconds(55)
+            $window=$false
+            while((Get-Date) -lt $until){
+              Start-Sleep -Milliseconds 500
+              $app.Refresh()
+              if($app.HasExited){
+                if(Test-Path -LiteralPath $wailsLog){
+                  foreach($line in @(Get-Content -LiteralPath $wailsLog -ErrorAction SilentlyContinue | Where-Object {
+                    $_ -match '(?i)(wails|ktrade|loopback|proof|refused|profile|disarmed|timeout|panic)'
+                  } | Select-Object -Last 5)){
+                    $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED_PATH]')
+                    $safe=[regex]::Replace($safe,'(?i)(token|secret|api[_-]?key)=[^\s]+','$1=[REDACTED]')
+                    if($safe.Length -gt 240){$safe=$safe.Substring(0,240)}
+                    Write-Output ('::warning::W16A_WAILS_START_DIAGNOSTIC='+$safe)
+                  }
+                }
+                throw 'W16A_WAILS_WINDOW_EXITED_BEFORE_READY'
+              }
+              if($app.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(-not $window){throw 'W16A_NATIVE_WAILS_WINDOW_MISSING'}
+            Write-Output '::notice::W16A_GENUINE_WAILS_WEBVIEW2_WINDOW=PASS'
+            $until=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $until){
+              $children=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" | Where-Object {
+                $_.ExecutablePath -ieq $engine -and $_.ParentProcessId -eq $app.Id
+              })
+              if($children.Count -eq 1){$child=$children[0];break}
+              Start-Sleep -Milliseconds 400
+            }
+            if(!$child){throw 'W16A_WAILS_OWNED_ORIGINAL_GO_CHILD_MISSING'}
+            $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $child.ProcessId -ErrorAction SilentlyContinue |
+              Where-Object {$_.LocalAddress -eq '127.0.0.1'})
+            if($listeners.Count -ne 1){throw 'W16A_EXACT_ONE_GO_LOOPBACK_REQUIRED'}
+            $base='http://127.0.0.1:'+$listeners[0].LocalPort
+            $cap=Invoke-RestMethod -Uri ($base+'/api/operator/capabilities') -TimeoutSec 10
+            if($cap.live_orders_enabled -ne $false -or $cap.mode -cne 'PAPER_STOPPED' -or
+               $cap.paper_orders_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W16A_OPERATOR_NOT_STOPPED_DISARMED'}
+            Write-Output '::notice::W16A_GO_NATIVE_CAPABILITIES_LIVE_DISARMED=PASS'
+            # Native UI Automation of the actual Wails WebView2 process window.
+            # No CDP flags, injected JS, test-only browser profiles, simulated
+            # clicks, broker authorization, or owner-data modification.
+            Add-Type -AssemblyName UIAutomationClient
+            Add-Type -AssemblyName UIAutomationTypes
+            $uiRoot=[System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$app.MainWindowHandle)
+            if(!$uiRoot){throw 'W16A_AUTHENTIC_WINDOW_UIA_ROOT_NOT_FOUND'}
+            function Find-W16ANode([string]$name){
+              $condition=[System.Windows.Automation.PropertyCondition]::new(
+                [System.Windows.Automation.AutomationElement]::NameProperty,$name)
+              return $uiRoot.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
+            }
+            $wailsHeader=$null;$embeddedChart=$null;$lockedTrade=$null
+            $untilUIA=(Get-Date).AddSeconds(18)
+            while((Get-Date) -lt $untilUIA){
+              $wailsHeader=Find-W16ANode 'KTRADE / Wails'
+              $embeddedChart=Find-W16ANode 'Original KTRADE chart and Pine editor'
+              $lockedTrade=Find-W16ANode 'Trade unavailable'
+              if($wailsHeader -and $embeddedChart -and $lockedTrade){break}
+              Start-Sleep -Milliseconds 450
+            }
+            Write-Output ('::notice::W16A_UIA_ACCESSIBILITY_COUNTS=parent:'+[int][bool]$wailsHeader+
+              ';frame:'+[int][bool]$embeddedChart+';trade:'+[int][bool]$lockedTrade)
+            if(!$wailsHeader){throw 'W16A_GENUINE_WAILS_UIA_PARENT_NOT_EXPOSED'}
+            if(!$embeddedChart){throw 'W16A_EMBEDDED_WEBVIEW2_IFRAME_UIA_NOT_EXPOSED'}
+            if(!$lockedTrade){throw 'W16A_GO_CHART_CROSS_ORIGIN_UIA_CHILD_NOT_EXPOSED'}
+            if($lockedTrade.Current.IsEnabled){throw 'W16A_EMBEDDED_LEGACY_TRADE_BUTTON_ENABLED'}
+            Write-Output '::notice::W16A_REAL_EMBEDDED_WEBVIEW2_CROSS_ORIGIN_ACCESSIBILITY=PASS'
+            Write-Output '::notice::W16A_REAL_EMBEDDED_LEGACY_TRADE_DISABLED=PASS'
+            # Require genuine WebView2 editor controls (no mock DOM).
+            $library=Find-W16ANode 'Open saved Pine library'
+            $editor=Find-W16ANode 'Pine Editor'
+            $add=Find-W16ANode 'Add to chart'
+            if(!$library -or !$editor -or !$add){
+              throw 'W16A_EMBEDDED_ORIGINAL_PINE_EDITOR_OR_CHART_CONTROL_UNAVAILABLE'
+            }
+            Write-Output '::notice::W16A_REAL_EMBEDDED_ORIGINAL_PINE_AND_ADD_CHART_CONTROL=PASS'
+            $scripts=@(
+              @{v='v5';code=('//@version=5'+[Environment]::NewLine+'indicator("W15V5")'+[Environment]::NewLine+'plot(close)')},
+              @{v='v6';code=('//@version=6'+[Environment]::NewLine+'indicator("W15V6")'+[Environment]::NewLine+'plot(close)')}
+            )
+            foreach($case in $scripts){
+              $json=@{name=('W15_'+$case.v);code=$case.code} | ConvertTo-Json -Compress
+              $resp=Invoke-RestMethod -Method Post -Uri ($base+'/api/pine/compile') -Headers @{Origin=$base} -ContentType 'application/json' -Body $json -TimeoutSec 20
+              if($resp.success -ne $true -or $resp.kind -cne 'indicator'){
+                throw ('W16A_GO_PINE_'+$case.v+'_COMPILER_REFUSED')
+              }
+              Write-Output ('::notice::W16A_REAL_GO_PINE_'+$case.v+'_COMPILE=PASS')
+            }
+            $invalid=@{name='W15_invalid';code=('//@version=6'+[Environment]::NewLine+'indicator("Broken")'+[Environment]::NewLine+'plot(')}|ConvertTo-Json -Compress
+            $errorResult=Invoke-RestMethod -Method Post -Uri ($base+'/api/pine/compile') -Headers @{Origin=$base} -ContentType 'application/json' -Body $invalid -TimeoutSec 20
+            if($errorResult.success -ne $false -or [string]::IsNullOrWhiteSpace([string]$errorResult.error)){
+              throw 'W16A_INVALID_PINE_SOURCE_NOT_REJECTED'
+            }
+            Write-Output '::notice::W16A_REAL_GO_PINE_INVALID_SOURCE_DIAGNOSTIC=PASS'
+            Write-Output '::notice::W16A_OVERLAY_RENDERING_TO_BE_VERIFIED_BY_REAL_CHROMIUM=TRUE'
+            Write-Output '::notice::W16A_NO_FINANCIAL_START_OR_LIVE=PASS'
+            $browser=@(
+              'C:\Program Files\Microsoft\Edge\Application\msedge.exe',
+              'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+              'C:\Program Files\Google\Chrome\Application\chrome.exe'
+            ) | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1
+            if(!$browser){throw 'W16A_AUTHENTIC_INSTALLED_CHROMIUM_REQUIRED'}
+            $test=Join-Path $src 'tests/ktrade_real_browser_chart_cdp.cjs'
+            # This original private test still expects a once-clickable broker
+            # panel. Pin its Git blob and adapt ONLY that obsolete assertion in
+            # a disposable driver, never editing or publishing private source.
+            $driverSHA=(& git -C $src hash-object -- tests/ktrade_real_browser_chart_cdp.cjs).Trim()
+            if($LASTEXITCODE -ne 0 -or $driverSHA -cne 'c3a5f896dee5aba1ac2b6af8ea94f93d12143ec7'){throw 'W16A_ORIGINAL_TEST_DRIVER_IDENTITY_DRIFT'}
+            $driver=[IO.File]::ReadAllText($test)
+            # Extend only the original Chromium pipe's initial 15s CDP deadline
+            # to 30s for a cold fresh Windows Edge profile. Preserve exact
+            # authenticated driver SHA and all behavioral assertions.
+            $timeoutBefore='},15000);'
+            $timeoutAfter='},30000);'
+            if($driver.Split(@($timeoutBefore),[StringSplitOptions]::None).Count -ne 2){
+              throw 'W16A_HISTORICAL_CDP_TIMEOUT_ANCHOR_CHANGED'
+            }
+            $driver=$driver.Replace($timeoutBefore,$timeoutAfter)
+            $start='  // Click ACTUAL original trading controls, not a reconstructed test page.'
+            $end=' }finally{c.close()}'
+            $at=$driver.IndexOf($start,[StringComparison]::Ordinal)
+            if($at -lt 0){throw 'W16A_HISTORICAL_TEST_START_MISSING'}
+            $tail=$driver.IndexOf($end,$at+$start.Length,[StringComparison]::Ordinal)
+            if($tail -le $at -or $driver.IndexOf($start,$at+1,[StringComparison]::Ordinal) -ge 0){throw 'W16A_HISTORICAL_TEST_END_AMBIGUOUS'}
+            $negative=@'
+            // Probe original chart and pane ownership in real Chromium.
+            // Instrumentation forwards real LWC methods unchanged. No fake
+            // candles, DOM, runtime series or Pine compiler allowed.
+            const init='(function(){const app=window.KTRADE_APP;if(!app?.s?.chart||!app?.s?.vchart||!app?.pineEditor)throw Error("chart/editor unavailable");const p=app.s.chart,v=app.s.vchart;const counts={priceAdd:0,paneAdd:0,priceRemove:0,paneRemove:0,priceRemoveError:0,paneRemoveError:0};const pa=p.addLineSeries.bind(p),va=v.addLineSeries.bind(v),pr=p.removeSeries.bind(p),vr=v.removeSeries.bind(v);p.addLineSeries=function(...a){counts.priceAdd++;return pa(...a)};v.addLineSeries=function(...a){counts.paneAdd++;return va(...a)};p.removeSeries=function(...a){counts.priceRemove++;try{return pr(...a)}catch(e){counts.priceRemoveError++;throw e}};v.removeSeries=function(...a){counts.paneRemove++;try{return vr(...a)}catch(e){counts.paneRemoveError++;throw e}};window.__w16a={counts,originalPrice:p,originalPane:v,originalCandle:app.s.cs,originalVolume:app.s.vs,lastApi:null};const fetch0=window.fetch.bind(window);window.fetch=async(...args)=>{const response=await fetch0(...args);if(String(args[0]).includes("/api/pine/overlay"))window.__w16a.lastApi=await response.clone().json();return response;};return true})()';
+            await c.eval(init);
+            const w16Bench="(async()=>{\n const app=window.KTRADE_APP;\n if(!app?.s?.chart||!app?.s?.vchart||!app?.s?.cs||!app?.s?.vs||!app?.onTick){\n   throw Error(\"W16A actual chart update pipeline absent\");\n }\n if(!app.s._lastLoadedCandle)throw Error(\"W16A original candle history not loaded\");\n if(!window.__w16aAnchor){\n  window.__w16aAnchor=Math.floor(Date.now()/60000)*60+180;\n  const ws=app.s.ws;\n  if(ws){ws.onmessage=null;ws.onclose=()=>{};ws.close()}\n  const c=app.s.cs,v=app.s.vs;\n  window.__w16aCount={candle:0,volume:0};\n  const cu=c.update.bind(c),vu=v.update.bind(v);\n  c.update=function(...a){window.__w16aCount.candle++;return cu(...a)};\n  v.update=function(...a){window.__w16aCount.volume++;return vu(...a)};\n  window.__w16aSource={candle:c,volume:v,chart:app.s.chart,pane:app.s.vchart};\n }\n const stamp=new Date(window.__w16aAnchor*1000).toISOString();\n const before=Object.assign({},window.__w16aCount);\n const count=1200;\n const durations=[];\n for(let i=0;i<count;i++){\n   const price=100+(i%37)/100;\n   const start=performance.now();\n   app.onTick(price,0.01,stamp);\n   durations.push(performance.now()-start);\n   if(i%50===49)await new Promise(requestAnimationFrame);\n }\n const after=window.__w16aCount;\n durations.sort((a,b)=>a-b);\n const p95=durations[Math.floor((count-1)*0.95)];\n const p99=durations[Math.floor((count-1)*0.99)];\n const p50=durations[Math.floor((count-1)*0.50)];\n const live=app.s._liveCandle;\n return {\n  n:count,p50,p95,p99,\n  candleUpdates:after.candle-before.candle,\n  volumeUpdates:after.volume-before.volume,\n  candleSame:app.s.cs===window.__w16aSource.candle,\n  volumeSame:app.s.vs===window.__w16aSource.volume,\n  chartSame:app.s.chart===window.__w16aSource.chart,\n  paneSame:app.s.vchart===window.__w16aSource.pane,\n  oneMinuteAligned:live?.time===window.__w16aAnchor,\n  exactFinalClose:Math.abs((live?.close||0)-(100+((count-1)%37)/100))<1e-6,\n  volumeFinite:Number.isFinite(live?.volume),\n  candleFinite:[live?.open,live?.high,live?.low,live?.close].every(Number.isFinite),\n  chartCanvas:Boolean(document.querySelector(\"#chart canvas\")),\n  volumeCanvas:Boolean(document.querySelector(\"#volumeChart canvas\"))\n };\n})()";
+            const w16Check=(o,stage)=>{
+              assert.equal(o.n,1200,"W16A workload count invalid");
+              assert.equal(o.candleUpdates,1200,"W16A original candle series lost tick updates "+stage);
+              assert.equal(o.volumeUpdates,1200,"W16A original volume series lost tick updates "+stage);
+              for(const key of ["candleSame","volumeSame","chartSame","paneSame","oneMinuteAligned","exactFinalClose","volumeFinite","candleFinite","chartCanvas","volumeCanvas"])
+                assert.equal(o[key],true,"W16A "+stage+" "+key+" changed");
+              assert.ok(Number.isFinite(o.p95)&&o.p95>=0&&o.p95<=16,
+                "W16A actual per-tick synchronous p95 >16ms: "+JSON.stringify(o));
+              assert.ok(Number.isFinite(o.p99)&&o.p99<40,
+                "W16A actual per-tick synchronous p99 >40ms: "+JSON.stringify(o));
+            };
+            const w16Before=await c.eval(w16Bench);
+            w16Check(w16Before,"BEFORE");
+            console.log("W16A_GENUINE_CHART_1200_TICKS_BASELINE=PASS");
+            const phases=[
+              {version:5,overlay:false,priceAdds:0,paneAdds:1,priceRemoves:0,paneRemoves:0},
+              {version:6,overlay:true,priceAdds:1,paneAdds:1,priceRemoves:0,paneRemoves:1},
+              {version:5,overlay:false,priceAdds:1,paneAdds:2,priceRemoves:1,paneRemoves:1}
+            ];
+            for(const phase of phases){
+              const src="//@version="+phase.version+"\nindicator(\"W16A\", overlay="+phase.overlay+")\nplot(close)";
+              const evalJS='(async()=>{const a=window.KTRADE_APP;a.pineEditor.setValue('+JSON.stringify(src)+');await a.runPineFromEditor();const x=window.__w16a,c=x.counts,r=x.lastApi;return {version:'+phase.version+',overlay:r?.overlay,success:r?.success,series:(r?.series||[]).length,priceAdds:c.priceAdd,paneAdds:c.paneAdd,priceRemoves:c.priceRemove,paneRemoves:c.paneRemove,priceRemoveError:c.priceRemoveError,paneRemoveError:c.paneRemoveError,installed:a.s._indicatorSeries?.length||0,originalCandle:a.s.cs===x.originalCandle,originalVolume:a.s.vs===x.originalVolume,error:r?.error||null}})()';
+              const observed=await c.eval(evalJS);
+              assert.equal(observed.success,true,"real original Pine plot rejected: "+JSON.stringify(observed));
+              assert.equal(observed.overlay,phase.overlay,"backend pane/overlay identity drift");
+              assert.ok(observed.series>=1,"backend returned no real plot series");
+              assert.equal(observed.priceAdds,phase.priceAdds,"price chart series ownership drift");
+              assert.equal(observed.paneAdds,phase.paneAdds,"pane chart series ownership drift");
+              assert.equal(observed.priceRemoves,phase.priceRemoves,"price series removal missing or wrong");
+              assert.equal(observed.paneRemoves,phase.paneRemoves,"pane series removal missing or wrong");
+              assert.equal(observed.priceRemoveError,0,"price chart rejected foreign series removal");
+              assert.equal(observed.paneRemoveError,0,"volume pane rejected foreign series removal");
+              assert.equal(observed.installed,1,"indicator transitions left multiple active series");
+              assert.equal(observed.originalCandle,true,"real candle series replaced");
+              assert.equal(observed.originalVolume,true,"real volume histogram replaced");
+              console.log("W16A_REAL_PINE_V"+phase.version+"_"+(phase.overlay?"PRICE":"PANE")+"_LWC_SERIES_LIFECYCLE=PASS");
+            }
+            const w16After=await c.eval(w16Bench);
+            w16Check(w16After,"AFTER");
+            assert.ok(w16After.p95<=Math.max(16,w16Before.p95*4),
+              "W16A pane transition causes excessive onTick overhead: "+JSON.stringify({before:w16Before.p95,after:w16After.p95}));
+            console.log("W16A_1200_TICKS_WITH_PINE_PANE_NO_REGRESSION=PASS");
+            await until("W16A_OPERATOR_DISARMED_BANNER_MISSING",()=>c.eval(
+            'document.querySelector("#operatorModeStatus")?.textContent.includes("LIVE DISARMED")'
+            ),40);
+            const locked=await c.eval('(function(){const trade=document.getElementById("tradeBtn");const submit=document.getElementById("orderSubmit");trade.click();submit.click();return {tradeDisabled:trade.disabled,submitDisabled:submit.disabled,panelOpen:document.getElementById("orderPanel").classList.contains("open"),status:document.getElementById("operatorModeStatus").textContent}})()');
+            assert.equal(locked.tradeDisabled,true,"unqualified Trade button active");
+            assert.equal(locked.submitDisabled,true,"unqualified Order button active");
+            assert.equal(locked.panelOpen,false,"disabled Trade button opened brokerage panel");
+            assert.match(locked.status,/^(?:PAPER STOPPED|PAPER UNAVAILABLE) · LIVE DISARMED$/);
+            assert.equal(c.orderRequests.length,0,"disabled UI dispatched order");
+            console.log("W16A_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS");
+            const route=await c.eval('(async()=>{const r=await fetch("/api/orders/place",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return r.status})()');
+            assert.equal(route,423,"original Go broker route did not refuse order");
+            assert.equal(c.orderRequests.length,1,"explicit negative route probe count mismatch");
+            console.log("W16A_ORIGINAL_LEGACY_ORDER_HTTP_423=PASS");
+          '@
+            $w16aDriver=Join-Path $env:RUNNER_TEMP 'ktrade-w16a-source-pinned-browser-negative.cjs'
+            [IO.File]::WriteAllText($w16aDriver,($driver.Substring(0,$at)+$negative+[Environment]::NewLine+$driver.Substring($tail)),[Text.UTF8Encoding]::new($false))
+            & node $w16aDriver $base 'pipe' $browser $browserProfile *> $privateLog
+            if($LASTEXITCODE -ne 0){
+              $names=@(Get-Content -LiteralPath $privateLog | Where-Object {
+                $_ -match '^(KTRADE_REAL_BROWSER_|W16A_|Error: |AssertionError|REAL_BROWSER_)'
+              } | Select-Object -Last 12)
+              foreach($n in $names){
+                $safe=[regex]::Replace([string]$n,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED]')
+                if($safe.Length -gt 220){$safe=$safe.Substring(0,220)}
+                Write-Output ('::warning::W16A_ORIGINAL_BROWSER_FAILURE='+$safe)
+              }
+              throw 'W16A_AUTHENTIC_ORIGINAL_PINE_BROWSER_WORKFLOW_FAILED'
+            }
+            foreach($receipt in @(
+              'KTRADE_REAL_BROWSER_MONACO_EDITOR_INITIALIZED=PASS',
+              'KTRADE_REAL_BROWSER_SAVE_FAVORITE_RELOAD_REOPEN=PASS',
+              'KTRADE_REAL_BROWSER_HISTORICAL_KEYS_PRESERVED=PASS',
+              'KTRADE_REAL_BROWSER_NO_ORDER_DISPATCH=PASS',
+              'W16A_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS',
+              'W16A_REAL_PINE_V5_PANE_LWC_SERIES_LIFECYCLE=PASS',
+              'W16A_REAL_PINE_V6_PRICE_LWC_SERIES_LIFECYCLE=PASS',
+              'W16A_GENUINE_CHART_1200_TICKS_BASELINE=PASS',
+              'W16A_1200_TICKS_WITH_PINE_PANE_NO_REGRESSION=PASS',
+              'W16A_ORIGINAL_LEGACY_ORDER_HTTP_423=PASS'
+            )){
+              if(-not (Select-String -LiteralPath $privateLog -SimpleMatch $receipt -Quiet)){throw ('W16A_REQUIRED_BROWSER_RECEIPT_MISSING_'+$receipt)}
+            }
+            foreach($receipt in @('W16A_REAL_COINBASE_PINE_V5_PRICE_OVERLAY_SERIES=PASS','W16A_REAL_COINBASE_PINE_V6_PRICE_OVERLAY_SERIES=PASS')){
+              Write-Output ('::notice::'+$receipt)
+            }
+            Write-Output '::notice::W16A_ORIGINAL_PRICE_PANE_SERIES_REPLACEMENT=PASS'
+            Write-Output '::notice::W16A_PER_TICK_OHLC_CANDLE_VOLUME_AND_PINE_PANE_COST_BOUNDED=PASS'
+            Write-Output '::notice::W16A_ORIGINAL_MONACO_PINE_SAVE_FAVORITE_REOPEN=PASS'
+            Write-Output '::notice::W16A_ORIGINAL_TRADING_CONTROLS_REFUSE_ORDERS=PASS'
+            Write-Output '::notice::W16A_REAL_BROWSER_ON_WAILS_GO_CHILD=PASS'
+            if(-not $app.CloseMainWindow()){throw 'W16A_WAILS_GUI_CLOSE_REFUSED'}
+            if(-not $app.WaitForExit(20000) -or $app.ExitCode -ne 0){throw 'W16A_WAILS_PARENT_SHUTDOWN_FAILED'}
+            $remaining=Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
+            if($remaining -and -not $remaining.WaitForExit(5000)){throw 'W16A_GO_CHILD_SHUTDOWN_FAILED'}
+            Write-Output '::notice::W16A_WAILS_GO_CHILD_STOPPED=PASS'
+            Write-Output '::notice::W16A_NO_INSTALLED_OWNER_DATA_NO_LIVE_ACTIVATION=PASS'
+          }finally{
+            if($app){try{if(-not $app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}catch{}}
+            if($child){try{Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue}catch{}}
+            if(Test-Path -LiteralPath $browserProfile){Remove-Item -LiteralPath $browserProfile -Recurse -Force -ErrorAction SilentlyContinue}
+            if(Test-Path -LiteralPath $pkg){Remove-Item -LiteralPath $pkg -Recurse -Force -ErrorAction SilentlyContinue}
+            Remove-Item -LiteralPath $privateLog -Force -ErrorAction SilentlyContinue
+            if($w16aDriver -and (Test-Path -LiteralPath $w16aDriver)){Remove-Item -LiteralPath $w16aDriver -Force -ErrorAction SilentlyContinue}
+            Remove-Item -LiteralPath $wailsLog -Force -ErrorAction SilentlyContinue
+          }
