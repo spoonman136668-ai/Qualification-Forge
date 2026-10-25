@@ -1,0 +1,148 @@
+name: KTRADE W17B 695-file legacy clone migration refusal Windows
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w17b-synthetic-legacy-migration-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w17b-readonly-exact-source
+  cancel-in-progress: false
+jobs:
+  w17b-windows:
+    name: Actual Go portable rollback and complete 695-file synthetic shadow parity
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout exact qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable private W17B source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 79cd1f75f6e270d0bf9ada58dabc10ec5cd91f1c
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify authentic hosted Windows source parent tree witness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $wit=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){
+            throw 'W17B_HOSTED_WINDOWS_REQUIRED'
+          }
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witness=(& git -C $wit rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or
+             $head -cne '79cd1f75f6e270d0bf9ada58dabc10ec5cd91f1c' -or
+             $parent -cne '08d4771f3b146a54cb3b308644fd894d5d8e5ac5' -or
+             $tree -cne 'eaa3e7130285aeb87888491437c5afa2067061be' -or
+             $witness -cne $env:GITHUB_SHA){
+            throw 'W17B_SOURCE_PARENT_TREE_WITNESS_DRIFT'
+          }
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){
+            throw 'W17B_PRIVATE_SOURCE_TRACKED_DIRTY'
+          }
+          Write-Output '::notice::W17B_EXACT_SOURCE_PARENT_TREE_WITNESS=PASS'
+          Write-Output '::notice::W17B_GITHUB_HOSTED_WINDOWS_DISPOSABLE_ONLY=PASS'
+      - name: Set up native Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Exercise real durable upgrader and stopped 695-file synthetic shadow
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17b-private-focus.log'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $names=@(
+            'TestW17B695FileSyntheticHistoricalShadowPreservesUnknownAndDeniesAdmission',
+            'TestW17BPortableUpgradeRollbackKeepsPreexistingUnknownBrowserAndSealsFinancialDrift',
+            'TestW17BRejectsPlaintextSecretsExistingPortableTargetAndActiveRuntime'
+          )
+          $pattern='^('+($names -join '|')+')$'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -v -timeout=15m -run $pattern ./internal/durableupgrade *> $log
+            if($LASTEXITCODE -ne 0){
+              $failed=@(Get-Content -LiteralPath $log | Where-Object {
+                $_ -match '^--- FAIL:' -or $_ -match '^# ktrade/' -or
+                $_ -match '^FAIL\s' -or $_ -match '^panic:'
+              } | Select-Object -First 15)
+              foreach($f in $failed){
+                $safe=[regex]::Replace([string]$f,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                if($safe.Length -gt 200){$safe=$safe.Substring(0,200)}
+                Write-Output ('::warning::W17B_FOCUSED_FAILURE='+$safe)
+              }
+              throw 'W17B_ORIGINAL_WINDOWS_FOCUSED_GO_TEST_FAILED'
+            }
+            $lines=@(Get-Content -LiteralPath $log)
+            foreach($name in $names){
+              if(!($lines | Where-Object {$_ -match ('^--- PASS: '+[regex]::Escape($name)+'\s')})){
+                throw ('W17B_REQUIRED_TEST_NOT_EXECUTED_'+$name)
+              }
+            }
+            $required=@(
+              'W17B_695_SYNTHETIC_HISTORIC_FILES_FULL_TREE_BYTE_PRESERVED=PASS',
+              'W17B_PORTABLE_ALLOWLIST_NOT_MISREPRESENTED_AS_COMPLETE_MIGRATION=PASS',
+              'W17B_UNKNOWN_LEDGER_DRIFT_AND_MIGRATION_AUTHORITY_REFUSED=PASS',
+              'W17B_PORTABLE_PINE_SETTINGS_FEES_PNL_RESTORE_AND_ROLLBACK=PASS',
+              'W17B_PREEXISTING_UNKNOWN_BROWSER_AND_V5_PINE_PRESERVED=PASS',
+              'W17B_POST_UPGRADE_FINANCIAL_MUTATION_ROLLBACK_REFUSED=PASS',
+              'W17B_PLAINTEXT_CREDENTIAL_EXISTING_OWNER_DATA_ACTIVE_RUNTIME_REFUSED=PASS'
+            )
+            foreach($line in $required){
+              if(!($lines | Where-Object {$_ -match [regex]::Escape($line)})){
+                throw 'W17B_REQUIRED_RECEIPT_MISSING'
+              }
+            }
+            Write-Output '::notice::W17B_695_SYNTHETIC_HISTORICAL_FILES_FULL_TREE_BYTE_PARITY=PASS'
+            Write-Output '::notice::W17B_UNKNOWN_PINE_SETTINGS_LEDGER_AND_BROWSER_PRESERVED=PASS'
+            Write-Output '::notice::W17B_REAL_PORTABLE_SNAPSHOT_SEAL_INSTALL_ROLLBACK=PASS'
+            Write-Output '::notice::W17B_TAMPER_CREDENTIAL_ACTIVE_RUNTIME_AND_FINANCIAL_DRIFT_VETO=PASS'
+            Write-Output '::notice::W17B_INCOMPLETE_ALLOWLIST_NOT_CERTIFIED_AS_FULL_MIGRATION=PASS'
+            Write-Output '::notice::W17B_NO_OWNER_MIGRATION_AUTHORITY_GRANTED=PASS'
+            & go vet -mod=readonly ./internal/durableupgrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17B_DURABLE_UPGRADE_GO_VET_FAILED'}
+            Write-Output '::notice::W17B_WINDOWS_DURABLE_UPGRADE_VET=PASS'
+            & go test -race -mod=readonly -count=1 -timeout=15m -run $pattern ./internal/durableupgrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17B_WINDOWS_FOCUSED_RACE_FAILED'}
+            Write-Output '::notice::W17B_695_FILE_SHADOW_ROLLBACK_RACE_CHECK=PASS'
+            Write-Output '::notice::W17B_NO_NORMAL_INSTALL_NO_BROKER_NO_LIVE_NO_OWNER_DATA=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Scrub private checkout
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $root){
+            Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue
+          }
