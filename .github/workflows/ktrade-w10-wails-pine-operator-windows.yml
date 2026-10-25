@@ -78,6 +78,9 @@ jobs:
           $ErrorActionPreference='Stop'
           Set-StrictMode -Version Latest
           $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          # One canonical disposable path for .NET, Go os.TempDir and both binaries.
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
           $tmp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
           $pkg=Join-Path $tmp ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
           $privateLog=Join-Path $env:RUNNER_TEMP 'w10-private-output.log'
