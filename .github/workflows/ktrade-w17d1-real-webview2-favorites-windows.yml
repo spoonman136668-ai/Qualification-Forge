@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1b6d37175d2178cea851117680d3aa19c8eaf93c
+          ref: 57c73e38cdd6001eaa85b7cff82604a2989eba49
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
@@ -53,9 +53,9 @@ jobs:
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
           if($LASTEXITCODE -ne 0 -or
-             $head -cne '1b6d37175d2178cea851117680d3aa19c8eaf93c' -or
-             $parent -cne '47671f9b36f91638b619b60dd187d80d18c36efb' -or
-             $tree -cne 'c1696f52b04fd6a753d6135b4007c052d0804797' -or
+             $head -cne '57c73e38cdd6001eaa85b7cff82604a2989eba49' -or
+             $parent -cne '5d5c22b1717955e98f08eaeedaa0a231dcd4cce8' -or
+             $tree -cne 'f2727a6e745b23fff2970d7e188fa6ecba767bc2' -or
              $witness -cne $env:GITHUB_SHA){throw 'W17C6_SOURCE_PARENT_TREE_OR_WITNESS_DRIFT'}
           $actual=@(& git -C $src diff --name-only 22ab22ce08fb0e92b53fb3d899081eb664f0b7c8 HEAD | Sort-Object)
           $expected=@(
