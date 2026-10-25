@@ -887,6 +887,7 @@ jobs:
             # W17D7: actual original Wails Windows UIA price-chart click points.
             # Two native pointer events, no DOM, CDP, canvas JS or localStorage writes.
             function Click-W17D7Named([object]$process,[string]$name) {
+              Write-Output ('::notice::W17D7_GENUINE_BUTTON_LOOKUP_'+$name)
               $button=Wait-W17D1AButton $process $name
               $r=$button.Current.BoundingRectangle
               $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
@@ -981,6 +982,7 @@ jobs:
                 [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
                 Start-Sleep -Milliseconds 350
               }
+              Write-Output '::notice::W17D7_REAL_ORIGINAL_PRICE_CHART_TWO_POINTS_CLICKED'
               W17D7OpenManager $process
               W17D7AssertLine $process $true
               Write-Output '::notice::W17D7_ORIGINAL_WAILS_CHART_TWO_NATIVE_CANDLE_POINT_CLICKS=PASS'
