@@ -28,7 +28,7 @@ jobs:
       - name: Checkout qualification witness
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           path: witness
           persist-credentials: false
       - name: Checkout private KTRADE W13A source read-only
@@ -39,7 +39,7 @@ jobs:
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
-          token: \${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Verify Windows host, exact source parent tree and witness
         shell: pwsh
         run: |
