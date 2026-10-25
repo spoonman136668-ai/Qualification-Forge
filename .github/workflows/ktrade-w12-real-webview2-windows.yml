@@ -152,8 +152,19 @@ jobs:
                $cap.paper_orders_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W12_OPERATOR_NOT_STOPPED_DISARMED'}
             Write-Output '::notice::W12_GO_NATIVE_CAPABILITIES_LIVE_DISARMED=PASS'
             # Real Edge WebView2, NOT a detached Chrome/Edge browser.
-            $debugListeners=@(Get-NetTCPConnection -State Listen -LocalPort $debugPort -ErrorAction SilentlyContinue)
-            if($debugListeners.Count -eq 0){throw 'W12_WEBVIEW2_DEBUGGER_NOT_BOUND'}
+            $debugListeners=@()
+            $untilDebug=(Get-Date).AddSeconds(18)
+            while((Get-Date) -lt $untilDebug){
+              $debugListeners=@(Get-NetTCPConnection -State Listen -LocalPort $debugPort -ErrorAction SilentlyContinue)
+              if($debugListeners.Count -gt 0){break}
+              Start-Sleep -Milliseconds 300
+            }
+            if($debugListeners.Count -eq 0){
+              $matchedBrowserProcess=@(Get-CimInstance Win32_Process -Filter "name='msedgewebview2.exe'" -ErrorAction SilentlyContinue |
+                Where-Object {$_.CommandLine -match [regex]::Escape("--remote-debugging-port=$debugPort")})
+              Write-Output ('::warning::W12_WEBVIEW2_OWNED_DEBUG_ARGUMENT_PROCESS_COUNT='+$matchedBrowserProcess.Count)
+              throw 'W12_WEBVIEW2_DEBUGGER_NOT_BOUND'
+            }
             if(@($debugListeners|Where-Object {$_.LocalAddress -notin @('127.0.0.1','::1')}).Count -ne 0){
               throw 'W12_WEBVIEW2_DEBUGGER_NOT_LOOPBACK_ONLY'
             }
