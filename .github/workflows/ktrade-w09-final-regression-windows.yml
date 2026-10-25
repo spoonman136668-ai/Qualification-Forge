@@ -1,0 +1,128 @@
+name: KTRADE W09 one frozen Windows whole-repository regression
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w09-final-regression-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w09-frozen
+  cancel-in-progress: false
+# W08B GUI evidence already qualified: Qualification-Forge run 40151638524.
+# This job performs exactly one whole-repository Windows Go regression for the identical immutable source.
+# No installation, paper/live execution, acceptance, or promotion.
+jobs:
+  full-regression:
+    name: Exact KTRADE source full Windows Go test then vet and build
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+      KTRADE_RECOVERY_ISOLATED: '0'
+      KTRADE_PORTABLE_DISARMED: '1'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout pinned private source without credentials persisted
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 4fa71a347090648ce219a278ae54af3c943b22fa
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Reject identity drift, user data and self-hosted runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W09_HOSTED_WINDOWS_REQUIRED'}
+          $head=(& git -C $root rev-parse HEAD).Trim()
+          $parent=(& git -C $root rev-parse HEAD^).Trim()
+          $tree=(& git -C $root rev-parse 'HEAD^{tree}').Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne '4fa71a347090648ce219a278ae54af3c943b22fa' -or
+             $parent -cne '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -or
+             $tree -cne '63c69c0f71682b653c3d541cec874a2f903f190c'){throw 'W09_EXACT_HEAD_PARENT_TREE_DRIFT'}
+          if(@(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W09_SOURCE_WORKTREE_DRIFT'}
+          Write-Output '::notice::W09_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
+          Write-Output '::notice::W09_NO_INSTALLED_OWNER_DATA=PASS'
+      - name: Prepare fixed Windows Go toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: ONE full Go regression, preserve every original failure
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $log=Join-Path $env:RUNNER_TEMP 'w09-private-test.log'
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go test -mod=readonly -count=1 -timeout=20m ./... *> $log
+            $code=$LASTEXITCODE
+            $rows=@(Get-Content -LiteralPath $log)
+            $failed=@($rows|Where-Object {$_ -match '^--- FAIL: '})
+            $markers=@($rows|Where-Object {$_ -match '^--- FAIL: ' -or $_ -match '^FAIL\s+ktrade' -or $_ -match '^# ktrade/' -or $_ -match '^panic:'})
+            Write-Output ('::notice::W09_TOP_LEVEL_FAILED_TEST_COUNT='+$failed.Count)
+            Write-Output ('::notice::W09_FAILURE_MARKER_COUNT='+$markers.Count)
+            foreach($line in ($markers|Select-Object -First 90)){
+              $safe=[regex]::Replace([string]$line,'[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+              $safe=[regex]::Replace($safe,'[^a-zA-Z0-9_ .:/=;,+()\[\]-]','')
+              if($safe.Length -gt 240){$safe=$safe.Substring(0,240)}
+              Write-Output ('::warning::W09_FULL_ORIGINAL_FAILURE='+$safe)
+            }
+            if($code -ne 0){
+              Write-Output '::error::W09_FULL_WINDOWS_REGRESSION=FAIL;RELEASE_BLOCKED=TRUE'
+              throw 'W09_WHOLE_REPO_REGRESSION_RED_NO_WAIVER'
+            }
+            Write-Output '::notice::W09_FULL_WINDOWS_REGRESSION=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Native HTTP and preserved desktop behavioral contracts
+        # Source-qualified original Go handler tests are isolated/recovery
+        # probes, NOT portable-paper app launches. The two mutually
+        # exclusive process modes must not both be set to 1.
+        env:
+          KTRADE_PORTABLE_DISARMED: '0'
+          KTRADE_RECOVERY_ISOLATED: '1'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'w09-private-interfaces.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try {
+            & go test -mod=readonly -tags=ktrade_full -count=1 ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W09_NATIVE_HTTP_CONTRACTS_FAILED'}
+            & node --test tests/legacy_desktop_launch_contract.test.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'W09_PRESERVED_DESKTOP_CONTRACTS_FAILED'}
+            Write-Output '::notice::W09_NATIVE_HTTP_AND_PRESERVED_DESKTOP_CONTRACTS=PASS'
+          } finally {Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Vet then native full Windows executable build if regression passes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W09_GO_VET_FAIL'}
+            Write-Output '::notice::W09_GO_VET=PASS'
+            & go build -mod=readonly -tags=ktrade_full -o (Join-Path $env:RUNNER_TEMP 'ktrade-native-full.exe') ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W09_NATIVE_GO_EXE_BUILD_FAIL'}
+            Write-Output '::notice::W09_NATIVE_FULL_GO_WINDOWS_BUILD=PASS'
+          }finally{Pop-Location}
+          Write-Output '::notice::W09_DISARMED_NO_PROMOTION=PASS'
+      - name: Purge checkout
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue}
