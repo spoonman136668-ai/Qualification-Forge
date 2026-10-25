@@ -1,0 +1,168 @@
+name: KTRADE W17C2 excluded target and source coverage Windows
+on:
+  push:
+    branches: [qualification/rb2-wails-w01-hosted-20261024]
+    paths: [.github/workflows/ktrade-w17c2-installed-coverage-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w17c2-exact-source
+  cancel-in-progress: false
+jobs:
+  qualify:
+    name: W17C2 source-pinned complete target preservation and whole-root omission
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 70
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_WAILS_OWNED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+    steps:
+      - name: Checkout exact qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable private W17C2 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 281c7cf794f4b6acc5de93360099d32472097682
+          path: checked-private
+          fetch-depth: 6
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact candidate, parent, tree and three-path delta
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $wit=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W17C2_HOSTED_WINDOWS_REQUIRED'}
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witness=(& git -C $wit rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or
+             $head -cne '281c7cf794f4b6acc5de93360099d32472097682' -or
+             $parent -cne 'd942786ea7cd0db02d7cc0a70097f605dab30714' -or
+             $tree -cne '9393d2e4cc64330bf6bd3faf6673bb1c3c756bb4' -or
+             $witness -cne $env:GITHUB_SHA){throw 'W17C2_SOURCE_PARENT_TREE_WITNESS_DRIFT'}
+          $base='8ff8cac406c380aceb679d5ee8072ea7a854cef5'
+          $actual=@(& git -C $src diff --name-only $base HEAD | Sort-Object)
+          $expected=@('internal/durableupgrade/durable_upgrade.go',
+                      'internal/durableupgrade/w17c2_historical_coverage.go',
+                      'internal/durableupgrade/w17c2_install_coverage_test.go' | Sort-Object)
+          if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
+            throw 'W17C2_UNBOUNDED_CHANGED_PATHS'
+          }
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17C2_PRIVATE_SOURCE_DIRTY'}
+          Write-Output '::notice::W17C2_SOURCE_SHA_TREE_PARENT_AND_SCOPE=PASS'
+          Write-Output '::notice::W17C2_HOSTED_WINDOWS_ONLY=PASS'
+      - name: Install Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Focused real portable install and complete coverage regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c2-focus.log'
+          $names=@(
+            'TestW17C2InstallAndRollbackPreserve695UnknownBrowserTargetFiles',
+            'TestW17C2PinnedWholeSourceSnapshotCoverageExposesUnknownGaps',
+            'TestW17C2SourceCoverageRejectsActiveOrInvalidSnapshot',
+            'TestW17CCompleteGuardRejectsChangedUnknownFinancialState',
+            'TestW17CBrowserAndPineSurviveSealedRollbackWithoutDrift',
+            'TestW17CLegacyGuardWithoutFullInventoryRefusesRollback',
+            'TestW17CSealedBrowserMutationDeniesRollback',
+            'TestW17B695FileSyntheticHistoricalShadowPreservesUnknownAndDeniesAdmission',
+            'TestW17BPortableUpgradeRollbackKeepsPreexistingUnknownBrowserAndSealsFinancialDrift',
+            'TestW17BRejectsPlaintextSecretsExistingPortableTargetAndActiveRuntime'
+          )
+          $pattern='^('+($names -join '|')+')$'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go test -mod=readonly -count=1 -v -timeout=25m -run $pattern ./internal/durableupgrade *> $log
+            $exit=$LASTEXITCODE
+            $lines=@(Get-Content -LiteralPath $log)
+            if($exit -ne 0){
+              $failed=@($lines|Where-Object{$_ -match '^--- FAIL:' -or $_ -match '^# ktrade/' -or $_ -match '^panic:' -or $_ -match 'w17c2_install_coverage_test.go:[0-9]+'} | Select-Object -First 20)
+              foreach($line in $failed){
+                $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                if($safe.Length -gt 230){$safe=$safe.Substring(0,230)}
+                Write-Output ('::warning::W17C2_FOCUSED_FAILURE='+$safe)
+              }
+              throw 'W17C2_WINDOWS_FOCUSED_RED'
+            }
+            foreach($name in $names){
+              if(!($lines|Where-Object{$_ -match ('^--- PASS: '+[regex]::Escape($name)+'\s')})){
+                throw ('W17C2_REQUIRED_TEST_NOT_RUN_'+$name)
+              }
+            }
+            Write-Output '::notice::W17C2_695_EXCLUDED_TARGET_INSTALL_AND_ROLLBACK=PASS'
+            Write-Output '::notice::W17C2_UNKNOWN_SOURCE_HASH_DRIFT_AND_OMISSION=PASS'
+            Write-Output '::notice::W17C2_W17B_W17C1_REGRESSIONS=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: One complete original untagged Windows Go regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c2-full.log'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go test -mod=readonly -count=1 -timeout=25m ./... *> $log
+            $exit=$LASTEXITCODE
+            $rows=@(Get-Content -LiteralPath $log)
+            $failures=@($rows|Where-Object{$_ -match '^--- FAIL:' -or $_ -match '^FAIL\s+ktrade' -or $_ -match '^# ktrade/' -or $_ -match '^panic:'})
+            Write-Output ('::notice::W17C2_FULL_FAILURE_MARKERS='+$failures.Count)
+            if($exit -ne 0 -or $failures.Count -ne 0){
+              foreach($line in ($failures|Select-Object -First 12)){
+                $safe=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^ \t]+','[REDACTED_PATH]')
+                if($safe.Length -gt 200){$safe=$safe.Substring(0,200)}
+                Write-Output ('::warning::W17C2_FULL_FAILURE='+$safe)
+              }
+              throw 'W17C2_FULL_WINDOWS_REGRESSION_RED'
+            }
+            Write-Output '::notice::W17C2_ONE_FULL_WINDOWS_REGRESSION=PASS'
+          }finally{Pop-Location;Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue}
+      - name: Vet and original full native Windows build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w17c2-build.log'
+          $exe=Join-Path $env:RUNNER_TEMP 'w17c2-qualified-only.exe'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C2_GO_VET_FAILED'}
+            & go build -mod=readonly -tags ktrade_full -o $exe ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C2_FULL_NATIVE_WINDOWS_BUILD_FAILED'}
+            Write-Output '::notice::W17C2_GO_VET_AND_WINDOWS_BUILD=PASS'
+            Write-Output '::notice::W17C2_SOURCE_UNKNOWN_MIGRATION=STILL_BLOCKED'
+            Write-Output '::notice::W17C2_NO_OWNER_DATA_NO_LIVE_NO_RELEASE_NO_INSTALL=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $exe,$log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Scrub private qualification checkout
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $root){
+            Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue
+          }
