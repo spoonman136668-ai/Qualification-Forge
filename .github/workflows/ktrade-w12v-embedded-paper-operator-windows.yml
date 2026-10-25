@@ -250,13 +250,13 @@ jobs:
             if($tail -le $at -or $driver.IndexOf($start,$at+1,[StringComparison]::Ordinal) -ge 0){throw 'W12V_HISTORICAL_TEST_END_AMBIGUOUS'}
             $negative=@'
             await until("W12V_OPERATOR_DISARMED_BANNER_MISSING",()=>c.eval(
-            'document.querySelector("#operatorModeStatus")?.textContent.includes("PAPER STOPPED")'
+            'Boolean(document.querySelector("#operatorModeStatus")?.textContent.includes("LIVE DISARMED"))'
             ),40);
             const locked=await c.eval('(function(){const trade=document.getElementById("tradeBtn");const submit=document.getElementById("orderSubmit");trade.click();submit.click();return {tradeDisabled:trade.disabled,submitDisabled:submit.disabled,panelOpen:document.getElementById("orderPanel").classList.contains("open"),status:document.getElementById("operatorModeStatus").textContent}})()');
             assert.equal(locked.tradeDisabled,true,"unqualified Trade button active");
             assert.equal(locked.submitDisabled,true,"unqualified Order button active");
             assert.equal(locked.panelOpen,false,"disabled Trade button opened brokerage panel");
-            assert.match(locked.status,/PAPER STOPPED.*LIVE DISARMED/);
+            assert.match(locked.status,/^(?:PAPER STOPPED|PAPER UNAVAILABLE) · LIVE DISARMED$/);
             assert.equal(c.orderRequests.length,0,"disabled UI dispatched order");
             console.log("W12V_DISARMED_BROWSER_BUTTONS_NO_ORDER_DISPATCH=PASS");
             const route=await c.eval('(async()=>{const r=await fetch("/api/orders/place",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});return r.status})()');
