@@ -671,33 +671,34 @@ jobs:
             function Invoke-W17D3ExactChartStar([object]$process,[string]$label) {
               $button=Wait-W17D1AButton $process $label
               if($null -eq $button){throw ('W17D3_STAR_NOT_VISIBLE_'+$label)}
-              try{
-                $invoke=$button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
-                $invoke.Invoke()
-              }catch{
-                $rect=$button.Current.BoundingRectangle
-                $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
-                  $process.MainWindowHandle).Current.BoundingRectangle
-                if($rect.IsEmpty -or $rect.Width -lt 10 -or $rect.Height -lt 10 -or
-                   $rect.Width -gt 160 -or $rect.Height -gt 160 -or
-                   $rect.Left -lt $outer.Left -or $rect.Top -lt $outer.Top -or
-                   $rect.Right -gt $outer.Right -or $rect.Bottom -gt $outer.Bottom){
-                  throw 'W17D3_CONFLICT_UIA_STAR_BOUNDARY_REFUSED'
-                }
-                if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
-                  throw 'W17D3_CONFLICT_WAILS_NOT_FOREGROUND'
-                }
-                Start-Sleep -Milliseconds 100
-                if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
-                  throw 'W17D3_FOREIGN_FOCUS_REFUSED'
-                }
-                $x=[int]($rect.Left+$rect.Width/2);$y=[int]($rect.Top+$rect.Height/2)
-                if(-not [W17D1ANativeClick]::SetCursorPos($x,$y)){
-                  throw 'W17D3_CONFLICT_NATIVE_POINTER_REFUSED'
-                }
-                [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
-                [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              # WebView2 exposes the star as a real UIA Button, but hosted
+              # InvokePattern may return without triggering the web click.
+              # Use the exact physically visible UIA bounds as W17D1A's
+              # already qualified real Windows pointer path.
+              $rect=$button.Current.BoundingRectangle
+              $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle).Current.BoundingRectangle
+              if($rect.IsEmpty -or $rect.Width -lt 10 -or $rect.Height -lt 10 -or
+                 $rect.Width -gt 160 -or $rect.Height -gt 160 -or
+                 $rect.Left -lt $outer.Left -or $rect.Top -lt $outer.Top -or
+                 $rect.Right -gt $outer.Right -or $rect.Bottom -gt $outer.Bottom){
+                throw 'W17D3_CONFLICT_UIA_STAR_BOUNDARY_REFUSED'
               }
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D3_CONFLICT_WAILS_NOT_FOREGROUND'
+              }
+              Start-Sleep -Milliseconds 150
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D3_FOREIGN_FOCUS_REFUSED'
+              }
+              $x=[int]($rect.Left+$rect.Width/2);$y=[int]($rect.Top+$rect.Height/2)
+              if(-not [W17D1ANativeClick]::SetCursorPos($x,$y)){
+                throw 'W17D3_CONFLICT_NATIVE_POINTER_REFUSED'
+              }
+              [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 250
+              Write-Output '::notice::W17D3_CONFLICT_REAL_ORIGINAL_CHART_UIA_MOUSE_CLICK=PASS'
             }
             Invoke-W17D3ExactChartStar $parent 'Remove Relative Strength Index from favorites'
             $oldRemoved=Wait-W17D1AButton $parent 'Add Relative Strength Index to favorites'
