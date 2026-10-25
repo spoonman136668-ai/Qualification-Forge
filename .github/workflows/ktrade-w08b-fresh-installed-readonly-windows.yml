@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 76bdd11a8bb71b7e20ffed2eb2686b5e60204f97
+          ref: 4fa71a347090648ce219a278ae54af3c943b22fa
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -62,9 +62,9 @@ jobs:
           $head=(& git -C $s rev-parse HEAD).Trim()
           $parent=(& git -C $s rev-parse HEAD^).Trim()
           $tree=(& git -C $s rev-parse 'HEAD^{tree}').Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -or
-             $parent -cne 'd67fba994d628f1ea235640fa77eda5f38a62df9' -or
-             $tree -cne '33eeb0e2d2659cabf8d1210f75ad57563fa98d19'){throw 'W06A_SOURCE_IDENTITY_MISMATCH'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '4fa71a347090648ce219a278ae54af3c943b22fa' -or
+             $parent -cne '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -or
+             $tree -cne '63c69c0f71682b653c3d541cec874a2f903f190c'){throw 'W06A_SOURCE_IDENTITY_MISMATCH'}
           if(@(& git -C $s status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W06A_SOURCE_DIRTY'}
           Write-Output '::notice::W06A_EXACT_SOURCE_HEAD_PARENT_TREE=PASS'
 
@@ -133,14 +133,14 @@ jobs:
               if($before.Count -ne 0){throw 'W06A_SOURCE_DIRTY_AFTER_ASSET_STAGING'}
             }finally{Pop-Location}
             $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
-            $built=@(& $builder -OutputRoot $pkg -ExpectedSourceSha '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97')
+            $built=@(& $builder -OutputRoot $pkg -ExpectedSourceSha '4fa71a347090648ce219a278ae54af3c943b22fa')
             if(@($built|Where-Object {$_ -match '^W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS'}).Count -ne 1){
               throw 'W06A_SOURCE_PAIRED_WAILS_PACKAGE_FAILED'
             }
             Write-Output '::notice::W06A_EXACT_SOURCE_WAILS_GO_BINARIES=PASS'
             $stage=Join-Path $pkg 'KTRADE-WailsPortable'
             $stageScript=Join-Path $src 'windows/Stage-KTRADE-W06A-ReadOnlyFixture.ps1'
-            $result=@(& $stageScript -QualifiedW03Stage $stage -ExpectedSourceSha '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97')
+            $result=@(& $stageScript -QualifiedW03Stage $stage -ExpectedSourceSha '4fa71a347090648ce219a278ae54af3c943b22fa')
             if(@($result|Where-Object {$_ -match '^W06A_SYNTHETIC_READONLY_STAGED=PASS'}).Count -ne 1){
               throw 'W06A_INSTALLED_FIXTURE_NOT_STAGED'
             }
@@ -288,7 +288,7 @@ jobs:
             $selector=Join-Path $src 'windows/Invoke-KTRADE-W06C-SyntheticVersionSwitch.ps1'
             if(!(Test-Path -LiteralPath $selector -PathType Leaf)){throw 'W06C_SOURCE_OWNED_SELECTOR_MISSING'}
             $selectorSource=(& git -C $src rev-parse HEAD).Trim()
-            if($LASTEXITCODE -ne 0 -or $selectorSource -cne '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97'){throw 'W06C_SELECTOR_NOT_SOURCE_PINNED'}
+            if($LASTEXITCODE -ne 0 -or $selectorSource -cne '4fa71a347090648ce219a278ae54af3c943b22fa'){throw 'W06C_SELECTOR_NOT_SOURCE_PINNED'}
             $first=@(& $selector -Action Init -SyntheticRoot $fixtureRoot)
             if(@($first|Where-Object {$_ -match '^W06C_SYNTHETIC_INITIAL_SELECTION=PASS'}).Count -ne 1){throw 'W06C_INIT_NOT_QUALIFIED'}
             $pointer=Join-Path $fixtureRoot 'w06-active-readonly.json'
@@ -352,13 +352,13 @@ jobs:
             try{
               $script=Join-Path $src 'windows/Stage-KTRADE-W08A-FreshCodeRelease.ps1'
               if(!(Test-Path -LiteralPath $script -PathType Leaf)){throw 'W08A_STAGE_SOURCE_MISSING'}
-              $out=@(& $script -QualifiedW03Stage $stage -ExpectedSourceSha '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -FreshTargetRoot $freshTarget -CodeOnly -NeverStart -LiveDisarmed)
+              $out=@(& $script -QualifiedW03Stage $stage -ExpectedSourceSha '4fa71a347090648ce219a278ae54af3c943b22fa' -FreshTargetRoot $freshTarget -CodeOnly -NeverStart -LiveDisarmed)
               if(@($out|Where-Object {$_ -match '^W08A_FRESH_CODE_ONLY_STAGE=PASS'}).Count -ne 1){throw 'W08A_FRESH_STAGE_DID_NOT_PASS'}
               $proofPath=Join-Path $freshTarget 'fresh-code-release-proof.json'
               if(!(Test-Path -LiteralPath $proofPath -PathType Leaf)){throw 'W08A_RELEASE_PROOF_MISSING'}
               $proof=Get-Content -LiteralPath $proofPath -Raw|ConvertFrom-Json
               if($proof.schema -cne 'ktrade.wails.fresh-code-only-release.v1' -or
-                 $proof.source_sha -cne '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -or
+                 $proof.source_sha -cne '4fa71a347090648ce219a278ae54af3c943b22fa' -or
                  $proof.no_app_data -ne $true -or $proof.no_start -ne $true -or
                  $proof.paper_orders_enabled -ne $false -or $proof.live_armed -ne $false -or
                  $proof.installed_or_activated -ne $false){throw 'W08A_DISARMED_PROOF_INVALID'}
@@ -378,7 +378,7 @@ jobs:
               $proofDigest=(Get-FileHash -LiteralPath $proofPath -Algorithm SHA256).Hash
               $shellDigest=(Get-FileHash -LiteralPath $shell -Algorithm SHA256).Hash
               $existingAccepted=$false
-              try{$null=& $script -QualifiedW03Stage $stage -ExpectedSourceSha '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -FreshTargetRoot $freshTarget -CodeOnly -NeverStart -LiveDisarmed;$existingAccepted=$true}catch{}
+              try{$null=& $script -QualifiedW03Stage $stage -ExpectedSourceSha '4fa71a347090648ce219a278ae54af3c943b22fa' -FreshTargetRoot $freshTarget -CodeOnly -NeverStart -LiveDisarmed;$existingAccepted=$true}catch{}
               if($existingAccepted -or
                  (Get-FileHash -LiteralPath $proofPath -Algorithm SHA256).Hash -cne $proofDigest -or
                  (Get-FileHash -LiteralPath $shell -Algorithm SHA256).Hash -cne $shellDigest){
@@ -389,7 +389,7 @@ jobs:
               New-Item -ItemType Directory -Path $bad -ErrorAction Stop|Out-Null
               $badTarget=Join-Path $bad 'KTRADE'
               $badAccepted=$false
-              try{$null=& $script -QualifiedW03Stage $stage -ExpectedSourceSha '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -FreshTargetRoot $badTarget -CodeOnly -NeverStart -LiveDisarmed:$false;$badAccepted=$true}catch{}
+              try{$null=& $script -QualifiedW03Stage $stage -ExpectedSourceSha '4fa71a347090648ce219a278ae54af3c943b22fa' -FreshTargetRoot $badTarget -CodeOnly -NeverStart -LiveDisarmed:$false;$badAccepted=$true}catch{}
               if($badAccepted -or (Test-Path -LiteralPath $badTarget)){throw 'W08A_MISSING_DISARM_WAS_ACCEPTED'}
               Write-Output '::notice::W08A_MISSING_DISARM_REFUSED_NO_WRITE=PASS'
               Write-Output '::notice::W08A_NOT_INSTALLED_NOT_LAUNCHED_NO_OWNER_DATA=PASS'
@@ -406,9 +406,9 @@ jobs:
             try{
               $stageCode=Join-Path $src 'windows/Stage-KTRADE-W08A-FreshCodeRelease.ps1'
               $initData=Join-Path $src 'windows/Initialize-KTRADE-W08B-FreshReadOnly.ps1'
-              $stageResult=@(& $stageCode -QualifiedW03Stage $stage -ExpectedSourceSha '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -FreshTargetRoot $freshHost -CodeOnly -NeverStart -LiveDisarmed)
+              $stageResult=@(& $stageCode -QualifiedW03Stage $stage -ExpectedSourceSha '4fa71a347090648ce219a278ae54af3c943b22fa' -FreshTargetRoot $freshHost -CodeOnly -NeverStart -LiveDisarmed)
               if(@($stageResult|Where-Object {$_ -match '^W08A_FRESH_CODE_ONLY_STAGE=PASS'}).Count -ne 1){throw 'W08B_QUALIFIED_SOURCE_STAGE_FAILED'}
-              $initialized=@(& $initData -FreshTargetRoot $freshHost -ExpectedSourceSha '76bdd11a8bb71b7e20ffed2eb2686b5e60204f97' -ReadOnly -FreshOnly -LiveDisarmed)
+              $initialized=@(& $initData -FreshTargetRoot $freshHost -ExpectedSourceSha '4fa71a347090648ce219a278ae54af3c943b22fa' -ReadOnly -FreshOnly -LiveDisarmed)
               if(@($initialized|Where-Object {$_ -match '^W08B_FIRST_USE_APP_DATA_INITIALIZED=PASS'}).Count -ne 1){throw 'W08B_FRESH_APP_DATA_NOT_INITIALIZED'}
               $newRelease=Join-Path $freshHost 'releases\v1'
               $newExe=Join-Path $newRelease 'ktrade.exe'
