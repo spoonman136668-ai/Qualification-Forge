@@ -1,0 +1,95 @@
+name: KTRADE W07C frozen installed-data reconciliation receipt Windows
+
+on:
+  push:
+    branches:
+      - qualification/rb2-wails-w01-hosted-20261024
+    paths:
+      - .github/workflows/ktrade-w07c-source-sealed-receipt-windows.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ktrade-w07c-single-windows
+  cancel-in-progress: false
+
+jobs:
+  w07c:
+    name: Exact-source frozen synthetic reconciliation and rollback refusal
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GOWORK: 'off'
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout exact source without persisting credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0edf64855ab5c8b15bcfc46781d8e71a36f02c02
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+
+      - name: Validate original source head, parent, tree and no owner data
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W07B_HOSTED_WINDOWS_ONLY'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne '0edf64855ab5c8b15bcfc46781d8e71a36f02c02' -or
+             $parent -cne 'b9f71f4d0126d0c3be58ed1f8e31f934d5c9d36a' -or
+             $tree -cne '4da917c60f856ba0bbdd471c5acfe397088e3af3'){throw 'W07B_PROVENANCE_DRIFT'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W07B_SOURCE_NOT_CLEAN'}
+          Write-Output '::notice::W07B_SOURCE_HEAD_PARENT_TREE=PASS'
+
+      - name: Configure native Windows Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: checked-private/go.mod
+          cache: false
+
+      - name: Full durableupgrade race and existing-destination conflict tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $env:TEMP=$env:RUNNER_TEMP
+          $env:TMP=$env:RUNNER_TEMP
+          $log=Join-Path $env:RUNNER_TEMP 'w07b-private-go.log'
+          try {
+            Push-Location $src
+            try {
+              & go test -mod=readonly -race -count=1 -timeout 12m ./internal/durableupgrade *> $log
+              if($LASTEXITCODE -ne 0){
+                $safe=@(Get-Content -LiteralPath $log | Where-Object {$_ -match '^--- FAIL:|^FAIL|^# ktrade/|\.go:[0-9]+:[0-9]+:'} | Select-Object -Last 14)
+                foreach($line in $safe){
+                  $v=[regex]::Replace([string]$line,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED_PATH]')
+                  $v=[regex]::Replace($v,'[A-Za-z0-9_-]{48,}','[REDACTED]')
+                  Write-Output ('::warning::W07B_FOCUSED_DIAGNOSTIC='+$v.Substring(0,[Math]::Min($v.Length,250)))
+                }
+                throw 'W07B_WHOLE_DURABLE_PACKAGE_RACE_FAILED'
+              }
+              & go test -mod=readonly -count=1 -v -run '^TestW07[ABC]' ./internal/durableupgrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'W07B_FOCUSED_EXPERIMENT_FAILED'}
+              $caseNames=@(Get-Content -LiteralPath $log | Where-Object {$_ -match '^--- PASS: TestW07C'})
+              if($caseNames.Count -ne 5){throw 'W07C_FOCUSED_CASE_COUNT_UNEXPECTED'}
+              & go vet -mod=readonly ./internal/durableupgrade ./cmd/ktrade-inventory ./cmd/ktrade-inventory-hash *> $log
+              if($LASTEXITCODE -ne 0){throw 'W07B_GO_VET_FAILED'}
+              Write-Output '::notice::W07C_SOURCE_OWNED_RECEIPT_RACE_VET=PASS'
+              Write-Output '::notice::W07C_FIVE_FOCUSED_TESTS_AND_W07AB_RETAINED=PASS'
+              Write-Output '::notice::W07C_FROZEN_RECEIPT_POST_FREEZE_DRIFT_TAMPER_FOREIGN_DENIED=PASS'
+              Write-Output '::notice::W07C_INSTALLED_OWNER_DATA_UNTOUCHED=PASS;ROLLBACK_AUTHORIZED=FALSE;MIGRATION_AUTHORIZED=FALSE;LIVE_ARMED=FALSE'
+            } finally {Pop-Location}
+          } finally {
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
