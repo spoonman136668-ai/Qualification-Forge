@@ -1342,7 +1342,14 @@ jobs:
             W17D7OpenManager $parent
             W17D7AssertLine $parent $true
             W17D7CloseManager $parent
-            $coldGeometry=W17D8AssertRendered $parent 'AFTER_COLD_RESTART'
+            # The saved points were drawn on 1-minute candle timestamps.
+            # Earlier regression checks deliberately changed the restored
+            # chart to 15m; return to their matching native time scale before
+            # judging viewport pixels. Keep the 15m continuity check above.
+            Click-W17D4NativeButton $parent '1m'
+            Assert-W17D4Selected $parent '1m'
+            Start-Sleep -Milliseconds 1100
+            $coldGeometry=W17D8AssertRendered $parent 'AFTER_COLD_RESTART_MATCHING_1M'
             W17D7OpenManager $parent
             Write-Output '::notice::W17D7_REAL_WAILS_COLD_RESTART_TRENDLINE_RETAINED=PASS'
             Click-W17D7Named $parent 'Remove trendline 1'
