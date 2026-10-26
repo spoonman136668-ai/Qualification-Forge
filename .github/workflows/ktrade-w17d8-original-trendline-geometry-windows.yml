@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: be818e5e91ec3e578cae22ae08f136a4c3823653
+          ref: 8769395031a469bb4725b8d1949322328334c78e
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
@@ -51,8 +51,8 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne 'be818e5e91ec3e578cae22ae08f136a4c3823653' -or
-             $tree -cne '65c4439a7c854fbc78538d6d16bcca001b02f479' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '8769395031a469bb4725b8d1949322328334c78e' -or
+             $tree -cne '78e14d737923cdf01d5024fcca9fead827b89e9c' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
           $actual=@(& git -C $src diff --name-only ec2b20ff06ac0111fdb77059dfe611f513e51f35 HEAD | Sort-Object)
           $expected=@('cmd/ktrade/paper_strategy_preview_full.go','cmd/ktrade/paper_session_full.go','cmd/ktrade/paper_session_runner_full.go','cmd/ktrade/w19_unsupported_pine_order_full_test.go') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
@@ -284,7 +284,7 @@ jobs:
           }
           $originPort=$null
           try{
-            & $builder -OutputRoot $candidate -ExpectedSourceSha 'be818e5e91ec3e578cae22ae08f136a4c3823653' -ReleaseCandidate
+            & $builder -OutputRoot $candidate -ExpectedSourceSha '8769395031a469bb4725b8d1949322328334c78e' -ReleaseCandidate
             $stage=Join-Path $candidate 'KTRADE-WailsPortable'
             $receipt=Get-Content -Raw (Join-Path $stage 'release-candidate-proof.json')|ConvertFrom-Json
             $manifest=Get-Content -Raw (Join-Path $candidate 'source-manifest.json')|ConvertFrom-Json
@@ -295,7 +295,7 @@ jobs:
             [IO.File]::WriteAllText($sentinel,'W18 synthetic independent unknown bytes')
             $before=(Get-FileHash $sentinel).Hash
             $refused=$false
-            try{& $builder -OutputRoot $candidate -ExpectedSourceSha 'be818e5e91ec3e578cae22ae08f136a4c3823653' -ReleaseCandidate}catch{$refused=$true}
+            try{& $builder -OutputRoot $candidate -ExpectedSourceSha '8769395031a469bb4725b8d1949322328334c78e' -ReleaseCandidate}catch{$refused=$true}
             if(!$refused -or (Get-FileHash $sentinel).Hash -cne $before){throw 'W18_EXISTING_CANDIDATE_OR_UNKNOWN_DATA_OVERWRITTEN'}
             for($cycle=1;$cycle -le 2;$cycle++){
               $process=Start-Process (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
