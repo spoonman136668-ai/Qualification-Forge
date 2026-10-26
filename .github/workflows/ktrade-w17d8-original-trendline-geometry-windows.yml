@@ -1,4 +1,4 @@
-name: KTRADE W17D8 original chart true plot pixel geometry Windows
+name: KTRADE W17D9 selected-market context and native chart Windows
 on:
   push:
     branches: [qualification/ktrade-w17d8-original-trendline-geometry-20261025]
@@ -36,12 +36,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: bacaea4c52228ea89a3bb8dda579b9104b3a1e05
+          ref: dee76619281f670b752159fe3f91ecbbde3525bb
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Verify immutable W17D8 source and exact four-path delta
+      - name: Verify immutable W17D9 source and exact two-path delta
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -51,17 +51,15 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne 'bacaea4c52228ea89a3bb8dda579b9104b3a1e05' -or
-             $tree -cne '842bae48b6f18f43d184e9fe6adf7868fbe4b87c' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
-          $actual=@(& git -C $src diff --name-only 81bf13e33e0ec6a1fa73102e423af7b65232761b HEAD | Sort-Object)
-          $expected=@('static/w17d7_trendlines.js','templates/chart.tmpl',
-                      'tests/w17d8_trendline_geometry.test.cjs',
-                      'tests/w17d7_original_trendlines.test.cjs') | Sort-Object
+          if($LASTEXITCODE -ne 0 -or $head -cne 'dee76619281f670b752159fe3f91ecbbde3525bb' -or
+             $tree -cne 'c13ccbc815d64872383cfc8c905becc559c675fb' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
+          $actual=@(& git -C $src diff --name-only bacaea4c52228ea89a3bb8dda579b9104b3a1e05 HEAD | Sort-Object)
+          $expected=@('templates/chart.tmpl','tests/w17d9_market_context.test.cjs') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
             throw 'W17D8_THREE_FILE_BOUNDARY_DRIFT'
           }
           if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17D8_DIRTY_SOURCE'}
-          Write-Output '::notice::W17D8_IMMUTABLE_HEAD_TREE_AND_FOUR_FILE_DELTA=PASS'
+          Write-Output '::notice::W17D9_IMMUTABLE_HEAD_TREE_AND_TWO_FILE_DELTA=PASS'
       - name: Native Windows Go 1.25 and Node 24
         uses: actions/setup-go@v5
         with:
@@ -121,7 +119,7 @@ jobs:
           $ErrorActionPreference='Stop'
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
           try{
-            & node --test tests/w17d1_chart_favorite_continuity.test.cjs tests/w17d1a_original_chart_uia.test.cjs tests/w17d2_legacy_favorite_import.test.cjs tests/w17d3_old_origin_fixture.test.cjs tests/w17d4_chart_timeframe_continuity.test.cjs tests/w17d5_chart_pane_layout.test.cjs tests/w17d6_chart_horizontal_lines.test.cjs tests/w17d7_original_trendlines.test.cjs tests/w17d8_trendline_geometry.test.cjs
+            & node --test tests/w17d1_chart_favorite_continuity.test.cjs tests/w17d1a_original_chart_uia.test.cjs tests/w17d2_legacy_favorite_import.test.cjs tests/w17d3_old_origin_fixture.test.cjs tests/w17d4_chart_timeframe_continuity.test.cjs tests/w17d5_chart_pane_layout.test.cjs tests/w17d6_chart_horizontal_lines.test.cjs tests/w17d7_original_trendlines.test.cjs tests/w17d8_trendline_geometry.test.cjs tests/w17d9_market_context.test.cjs
             if($LASTEXITCODE -ne 0){throw 'W17D1_CHART_BROWSER_STORAGE_FOCUSED_RED'}
             Write-Output '::notice::W17D3_OLD_WEBVIEW2_SOURCE_UI_AND_NO_CLOBBER_CONTRACTS=PASS'
           }finally{Pop-Location}
