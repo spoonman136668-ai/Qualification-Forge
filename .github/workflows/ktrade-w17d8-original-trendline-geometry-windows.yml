@@ -1,4 +1,4 @@
-name: KTRADE W21 truthful market readout native Windows
+name: KTRADE W22 candidate asset integrity full Windows
 on:
   push:
     branches: [qualification/ktrade-w17d8-original-trendline-geometry-20261025]
@@ -36,12 +36,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: ba72465c606216d985122ae1d2b8f33938fc9eca
+          ref: 8f879fe6e98c3eef2a4ca6b0893897cd29493459
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Verify immutable W21 source and exact two-path delta
+      - name: Verify immutable W22 source and exact six-path delta
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -51,15 +51,15 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne 'ba72465c606216d985122ae1d2b8f33938fc9eca' -or
-             $tree -cne 'e5772788361b9b66ab9b464a0f474ff5cceaddff' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
-          $actual=@(& git -C $src diff --name-only 8257f1410fa844e7868ad5772050ed7d2e867921 HEAD | Sort-Object)
-          $expected=@('templates/chart.tmpl','tests/w21_market_readout_integrity.test.cjs') | Sort-Object
+          if($LASTEXITCODE -ne 0 -or $head -cne '8f879fe6e98c3eef2a4ca6b0893897cd29493459' -or
+             $tree -cne 'e0fcf59bbe94e6c60ee6d5f2587c2be0765671cb' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
+          $actual=@(& git -C $src diff --name-only ba72465c606216d985122ae1d2b8f33938fc9eca HEAD | Sort-Object)
+          $expected=@('tools/wails-pilot/backend/release_candidate.go','tools/wails-pilot/backend/release_candidate_test.go','tools/wails-pilot/cmd/release-assets-digest/main.go','windows/Build-KTRADE-WailsPortable.ps1','cmd/ktrade/w18_candidate_origin_full.go','cmd/ktrade/w18_candidate_origin_full_test.go') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
             throw 'W17D8_THREE_FILE_BOUNDARY_DRIFT'
           }
           if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17D8_DIRTY_SOURCE'}
-          Write-Output '::notice::W21_IMMUTABLE_HEAD_TREE_AND_TWO_FILE_DELTA=PASS'
+          Write-Output '::notice::W22_IMMUTABLE_HEAD_TREE_AND_SIX_FILE_DELTA=PASS'
       - name: Native Windows Go 1.25 and Node 24
         uses: actions/setup-go@v5
         with:
@@ -220,6 +220,13 @@ jobs:
           $log=Join-Path $env:RUNNER_TEMP 'w17c6-build.log'
           Push-Location $src
           try {
+            & go test -race -count=1 -mod=readonly -tags ktrade_full -run '^TestW18CandidateOrigin|^TestRB3Wails' ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W22_ORIGIN_RECEIPT_AFFECTED_INTERFACE_FAILED'}
+            & go test -count=1 -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W22_FULL_ORIGINAL_GO_REGRESSION_FAILED'}
+            & go test -count=1 -mod=readonly -tags ktrade_full ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W22_FULL_TAGGED_APPLICATION_REGRESSION_FAILED'}
+            Write-Output '::notice::W22_ONE_FULL_WINDOWS_ORIGINAL_AND_TAGGED_REGRESSION=PASS'
             & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade *> $log
             if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W18B_TAGGED_ENGINE_VET_FAILED'}
             & go vet -mod=readonly ./... *> $log
@@ -287,18 +294,32 @@ jobs:
           }
           $originPort=$null
           try{
-            & $builder -OutputRoot $candidate -ExpectedSourceSha 'ba72465c606216d985122ae1d2b8f33938fc9eca' -ReleaseCandidate
+            & $builder -OutputRoot $candidate -ExpectedSourceSha '8f879fe6e98c3eef2a4ca6b0893897cd29493459' -ReleaseCandidate
             $stage=Join-Path $candidate 'KTRADE-WailsPortable'
             $receipt=Get-Content -Raw (Join-Path $stage 'release-candidate-proof.json')|ConvertFrom-Json
             $manifest=Get-Content -Raw (Join-Path $candidate 'source-manifest.json')|ConvertFrom-Json
-            if($receipt.live_armed -ne $false -or $receipt.release_authority -cne 'none' -or
+            if($receipt.schema -cne 'ktrade.fresh-release-candidate.v2' -or $receipt.asset_files -lt 1 -or
+               $receipt.asset_digest_sha256 -cnotmatch '^[a-f0-9]{64}$' -or
+               $receipt.live_armed -ne $false -or $receipt.release_authority -cne 'none' -or
                $receipt.installed_data -cne 'fresh-only' -or $manifest.fixture_mode -cne 'none' -or
                $manifest.release_candidate -ne $true){throw 'W18_CANDIDATE_RECEIPT_BOUNDARY_FAILED'}
+            $assetPath=Join-Path $stage 'templates/chart.tmpl'
+            $originalAsset=[IO.File]::ReadAllBytes($assetPath)
+            try{
+              [IO.File]::AppendAllText($assetPath,[Environment]::NewLine+'<!-- W22 harmless source tamper probe -->',[Text.UTF8Encoding]::new($false))
+              $process=Start-Process (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+              if(!$process.WaitForExit(15000) -or $process.ExitCode -eq 0){throw 'W22_TAMPERED_ASSET_LAUNCH_NOT_REFUSED'}
+              $unexpected=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'"|Where-Object{$_.ParentProcessId -eq $process.Id})
+              if($unexpected.Count -ne 0 -or (Test-Path (Join-Path $stage 'data/webview2-profile'))){throw 'W22_ASSET_VETO_OCCURRED_AFTER_CHILD_OR_PROFILE'}
+              Write-Output '::notice::W22_REAL_TAMPERED_CHART_REFUSED_BEFORE_GO_CHILD_AND_BROWSER_PROFILE=PASS'
+            }finally{
+              [IO.File]::WriteAllBytes($assetPath,$originalAsset)
+            }
             $sentinel=Join-Path $candidate 'unknown-files-must-survive.test'
             [IO.File]::WriteAllText($sentinel,'W18 synthetic independent unknown bytes')
             $before=(Get-FileHash $sentinel).Hash
             $refused=$false
-            try{& $builder -OutputRoot $candidate -ExpectedSourceSha 'ba72465c606216d985122ae1d2b8f33938fc9eca' -ReleaseCandidate}catch{$refused=$true}
+            try{& $builder -OutputRoot $candidate -ExpectedSourceSha '8f879fe6e98c3eef2a4ca6b0893897cd29493459' -ReleaseCandidate}catch{$refused=$true}
             if(!$refused -or (Get-FileHash $sentinel).Hash -cne $before){throw 'W18_EXISTING_CANDIDATE_OR_UNKNOWN_DATA_OVERWRITTEN'}
             for($cycle=1;$cycle -le 2;$cycle++){
               $process=Start-Process (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
