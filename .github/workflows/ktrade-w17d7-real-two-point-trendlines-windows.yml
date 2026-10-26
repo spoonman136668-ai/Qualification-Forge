@@ -1051,16 +1051,31 @@ jobs:
               if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
                 throw 'W17D7_CHART_CLICK_FOREIGN_FOCUS'
               }
-              foreach($at in @(@(0.34,0.36),@(0.66,0.60))){
-                $x=[int]($r.Left+$r.Width*$at[0])
-                $y=[int]($r.Top+$r.Height*$at[1])
+              # Named records avoid PowerShell enumerating nested two-element
+              # arrays into scalar values (a y=0 accidental click).
+              $targets=@(
+                @{X=0.34;Y=0.36},
+                @{X=0.66;Y=0.60}
+              )
+              $ordinal=0
+              foreach($at in $targets){
+                $ordinal++
+                $x=[int]($r.Left+$r.Width*$at.X)
+                $y=[int]($r.Top+$r.Height*$at.Y)
+                if($x -le $r.Left+20 -or $x -ge $r.Right-20 -or
+                   $y -le $r.Top+20 -or $y -ge $r.Bottom-20){
+                  throw 'W17D7_NATIVE_CHART_ANCHOR_INSIDE_MARGIN_REQUIRED'
+                }
                 if(-not [W17D1ANativeClick]::SetCursorPos($x,$y)){
                   throw 'W17D7_PRICE_CHART_POINTER_REFUSED'
                 }
                 [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
                 [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
-                Start-Sleep -Milliseconds 350
+                Start-Sleep -Milliseconds 400
+                Write-Output ('::notice::W17D7_REAL_ORIGINAL_CHART_NATIVE_POINT_'+$ordinal+'_CLICKED')
+                W17D7ReadNativeStatus $process
               }
+              if($ordinal -ne 2){throw 'W17D7_TWO_NATIVE_CHART_CLICKS_REQUIRED'}
               Write-Output '::notice::W17D7_REAL_ORIGINAL_PRICE_CHART_TWO_POINTS_CLICKED'
               W17D7ReadNativeStatus $process
               W17D7OpenManager $process
