@@ -1349,6 +1349,41 @@ jobs:
             Assert-W17D4Selected $parent '5m'
             Start-Sleep -Milliseconds 1100
             $coldGeometry=W17D8AssertRendered $parent 'AFTER_COLD_RESTART_MATCHING_5M'
+            # Exercise real native wheel zoom and window resize, without DOM
+            # injection or changing stored drawing coordinates.
+            $plot=Get-W17D8ChartBounds $parent
+            $zx=[int]($plot.Left+12+$coldGeometry.x)
+            $zy=[int]($plot.Top+12+$coldGeometry.y)
+            if(-not [W17D1ANativeClick]::SetCursorPos($zx,$zy)){throw 'W17D8_ZOOM_POINTER_REFUSED'}
+            [W17D1ANativeClick]::mouse_event(0x0800,0,0,120,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 650
+            $zoomGeometry=W17D8AssertRendered $parent 'AFTER_NATIVE_WHEEL_ZOOM'
+            if([Math]::Abs($zoomGeometry.x-$coldGeometry.x) -lt 0.5 -and
+               [Math]::Abs($zoomGeometry.y-$coldGeometry.y) -lt 0.5 -and
+               $zoomGeometry.count -eq $coldGeometry.count){
+              throw 'W17D8_NATIVE_ZOOM_DID_NOT_CHANGE_RENDERED_GEOMETRY'
+            }
+            Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class W17D8Window { [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h,int n); [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h,IntPtr after,int x,int y,int w,int height,uint flags); }'
+            [void][W17D8Window]::ShowWindow($parent.MainWindowHandle,9)
+            Start-Sleep -Milliseconds 350
+            $wr=[System.Windows.Automation.AutomationElement]::FromHandle($parent.MainWindowHandle).Current.BoundingRectangle
+            $beforeResize=Get-W17D8ChartBounds $parent
+            $newWidth=[int]$wr.Width-120
+            $newHeight=[int]$wr.Height-60
+            if($newWidth -lt 850 -or $newHeight -lt 550){throw 'W17D8_NATIVE_RESIZE_FIXTURE_TOO_SMALL'}
+            try {
+              if(-not [W17D8Window]::SetWindowPos($parent.MainWindowHandle,[IntPtr]::Zero,[int]$wr.Left,[int]$wr.Top,$newWidth,$newHeight,0x0004)){
+                throw 'W17D8_NATIVE_WINDOW_RESIZE_REFUSED'
+              }
+              Start-Sleep -Milliseconds 650
+              $resizedPlot=Get-W17D8ChartBounds $parent
+              if([Math]::Abs($resizedPlot.Width-$beforeResize.Width) -lt 50){throw 'W17D8_NATIVE_PLOT_DID_NOT_RESIZE'}
+              $resizeGeometry=W17D8AssertRendered $parent 'AFTER_NATIVE_WINDOW_RESIZE'
+              [Console]::WriteLine('::notice::W17D8_NATIVE_ZOOM_AND_RESIZE_PIXEL_PROOF=PASS')
+            } finally {
+              [void][W17D8Window]::SetWindowPos($parent.MainWindowHandle,[IntPtr]::Zero,[int]$wr.Left,[int]$wr.Top,[int]$wr.Width,[int]$wr.Height,0x0004)
+              Start-Sleep -Milliseconds 350
+            }
             Click-W17D4NativeButton $parent '15m'
             Assert-W17D4Selected $parent '15m'
             W17D7OpenManager $parent
