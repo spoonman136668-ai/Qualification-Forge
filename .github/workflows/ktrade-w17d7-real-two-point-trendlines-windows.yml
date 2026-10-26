@@ -937,11 +937,55 @@ jobs:
               [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
               Start-Sleep -Milliseconds 260
             }
+            function W17D7ReadNativeStatus([object]$process) {
+              $root=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle)
+              $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              $matches=@()
+              for($i=0;$i -lt [Math]::Min($nodes.Count,6500);$i++){
+                try {
+                  $el=$nodes.Item($i)
+                  $name=$el.Current.Name
+                  if(-not $el.Current.IsOffscreen -and $name -and
+                     $name -match '^(Trendlines ready|Select first chart point|First point selected|Choose a candle position|Second point must|Trendline saved|Trendline not saved|Drawing data unavailable|Unknown drawing schema)' -and
+                     $matches.Count -lt 5){
+                    $matches+=($name.Substring(0,[Math]::Min(115,$name.Length)))
+                  }
+                }catch{}
+              }
+              Write-Output ('::notice::W17D7_NATIVE_VISIBLE_STATUS='+($matches -join '|'))
+            }
             function W17D7OpenManager([object]$process) {
               Click-W17D7Named $process 'Manage trendlines'
-              if($null -eq (Wait-W17D1AButton $process 'Close trendlines')){
-                throw 'W17D7_ORIGINAL_DRAWINGS_MODAL_NOT_VISIBLE'
+              Start-Sleep -Milliseconds 400
+              $close=Get-W17D1AAccessibleButton $process 'Close trendlines'
+              if($null -eq $close){
+                # Invoke only the exact real WebView2 UI Automation toolbar
+                # button. This is an authenticated native UI action, not
+                # script injection or direct browser storage manipulation.
+                $manager=Get-W17D1AAccessibleButton $process 'Manage trendlines'
+                if($null -eq $manager){
+                  $manager=Get-W17D1AAccessibleButton $process 'Drawings'
+                }
+                if($null -ne $manager){
+                  try{
+                    $invoke=[System.Windows.Automation.InvokePattern]$manager.GetCurrentPattern(
+                      [System.Windows.Automation.InvokePattern]::Pattern)
+                    $invoke.Invoke()
+                    Write-Output '::notice::W17D7_REAL_NATIVE_TOOLBAR_INVOKEPATTERN_RETRY'
+                  }catch{
+                    Write-Output ('::notice::W17D7_REAL_NATIVE_INVOKE_UNAVAILABLE_'+$_.Exception.GetType().Name)
+                  }
+                }
+                Start-Sleep -Milliseconds 500
+                $close=Get-W17D1AAccessibleButton $process 'Close trendlines'
               }
+              if($null -eq $close){
+                W17D7ReadNativeStatus $process
+                throw 'W17D7_ORIGINAL_DRAWINGS_MODAL_NOT_VISIBLE_AFTER_REAL_NATIVE_ACTIONS'
+              }
+              Write-Output '::notice::W17D7_REAL_ORIGINAL_NATIVE_DRAWINGS_MODAL_VISIBLE=PASS'
             }
             function W17D7CloseManager([object]$process) {
               Click-W17D7Named $process 'Close trendlines'
@@ -1005,6 +1049,7 @@ jobs:
                 Start-Sleep -Milliseconds 350
               }
               Write-Output '::notice::W17D7_REAL_ORIGINAL_PRICE_CHART_TWO_POINTS_CLICKED'
+              W17D7ReadNativeStatus $process
               W17D7OpenManager $process
               W17D7AssertLine $process $true
               Write-Output '::notice::W17D7_ORIGINAL_WAILS_CHART_TWO_NATIVE_CANDLE_POINT_CLICKS=PASS'
