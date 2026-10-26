@@ -1174,9 +1174,9 @@ jobs:
                 throw ('W17D8_REAL_SCREEN_PLOTTED_LINE_PIXEL_PROOF_FAILED_'+
                        $label+'_count_'+$r.count)
               }
-              Write-Output ('::notice::W17D8_REAL_WAILS_PLOTTED_SVG_'+$label+
+              [Console]::WriteLine(('::notice::W17D8_REAL_WAILS_PLOTTED_SVG_'+$label+
                 '_PIXELS='+$r.count+'_CENTROID='+[Math]::Round($r.x,2)+
-                ','+[Math]::Round($r.y,2))
+                ','+[Math]::Round($r.y,2)))
               return $r
             }
             function W17D8PanAndZoom([object]$process) {
@@ -1199,7 +1199,7 @@ jobs:
               Start-Sleep -Milliseconds 125
               [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
               Start-Sleep -Milliseconds 450
-              Write-Output '::notice::W17D8_REAL_ORIGINAL_PRICE_CHART_NATIVE_PAN_PERFORMED=PASS'
+              [Console]::WriteLine('::notice::W17D8_REAL_ORIGINAL_PRICE_CHART_NATIVE_PAN_PERFORMED=PASS')
               return W17D8AssertRendered $process 'AFTER_PAN'
             }
             Assert-W17D4Selected $parent '1m'
