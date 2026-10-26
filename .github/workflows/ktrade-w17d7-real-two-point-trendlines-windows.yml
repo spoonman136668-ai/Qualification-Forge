@@ -942,19 +942,19 @@ jobs:
                 $process.MainWindowHandle)
               $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
                 [System.Windows.Automation.Condition]::TrueCondition)
-              $matches=@()
+              $visibleStates=@()
               for($i=0;$i -lt [Math]::Min($nodes.Count,6500);$i++){
                 try {
                   $el=$nodes.Item($i)
                   $name=$el.Current.Name
                   if(-not $el.Current.IsOffscreen -and $name -and
                      $name -match '^(Trendlines ready|Select first chart point|First point selected|Choose a candle position|Second point must|Trendline saved|Trendline not saved|Drawing data unavailable|Unknown drawing schema)' -and
-                     $matches.Count -lt 5){
-                    $matches+=($name.Substring(0,[Math]::Min(115,$name.Length)))
+                     $visibleStates.Count -lt 5){
+                    $visibleStates+=($name.Substring(0,[Math]::Min(115,$name.Length)))
                   }
                 }catch{}
               }
-              Write-Output ('::notice::W17D7_NATIVE_VISIBLE_STATUS='+($matches -join '|'))
+              Write-Output ('::notice::W17D7_NATIVE_VISIBLE_STATUS='+($visibleStates -join '|'))
             }
             function W17D7OpenManager([object]$process) {
               Click-W17D7Named $process 'Manage trendlines'
@@ -1009,6 +1009,19 @@ jobs:
             }
             function W17D7DrawUsingOriginalPriceChart([object]$process) {
               Click-W17D7Named $process 'Trend Line'
+              $realTool=Wait-W17D1AButton $process 'Trend Line'
+              try {
+                $toggle=[System.Windows.Automation.TogglePattern]$realTool.GetCurrentPattern(
+                  [System.Windows.Automation.TogglePattern]::Pattern)
+                if($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){
+                  W17D7ReadNativeStatus $process
+                  throw 'W17D7_GENUINE_ORIGINAL_TRENDLINE_TOOL_NOT_ARMED'
+                }
+                Write-Output '::notice::W17D7_GENUINE_WEBVIEW2_TRENDLINE_TOGGLE_ARMED=PASS'
+              }catch{
+                if($_.Exception.Message -like '*W17D7_GENUINE_ORIGINAL_TRENDLINE_TOOL_NOT_ARMED*'){throw}
+                Write-Output ('::notice::W17D7_ORIGINAL_TOOL_TOGGLE_PATTERN_UNAVAILABLE_'+$_.Exception.GetType().Name)
+              }
               $root=[System.Windows.Automation.AutomationElement]::FromHandle(
                 $process.MainWindowHandle)
               $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
@@ -1051,6 +1064,11 @@ jobs:
               Write-Output '::notice::W17D7_REAL_ORIGINAL_PRICE_CHART_TWO_POINTS_CLICKED'
               W17D7ReadNativeStatus $process
               W17D7OpenManager $process
+              $newLine=Get-W17D1AAccessibleButton $process 'Remove trendline 1'
+              if($null -eq $newLine){
+                W17D7ReadNativeStatus $process
+                throw 'W17D7_REAL_NATIVE_TWO_POINTS_DID_NOT_CREATE_SAVED_TRENDLINE'
+              }
               W17D7AssertLine $process $true
               Write-Output '::notice::W17D7_ORIGINAL_WAILS_CHART_TWO_NATIVE_CANDLE_POINT_CLICKS=PASS'
               W17D7CloseManager $process
