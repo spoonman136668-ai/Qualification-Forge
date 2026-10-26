@@ -1,4 +1,4 @@
-name: KTRADE W17D9 selected-market context and native chart Windows
+name: KTRADE W18A fresh candidate packaging and native Windows
 on:
   push:
     branches: [qualification/ktrade-w17d8-original-trendline-geometry-20261025]
@@ -36,12 +36,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: dee76619281f670b752159fe3f91ecbbde3525bb
+          ref: c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Verify immutable W17D9 source and exact two-path delta
+      - name: Verify immutable W18A source and exact four-path delta
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -51,20 +51,23 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne 'dee76619281f670b752159fe3f91ecbbde3525bb' -or
-             $tree -cne 'c13ccbc815d64872383cfc8c905becc559c675fb' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
-          $actual=@(& git -C $src diff --name-only bacaea4c52228ea89a3bb8dda579b9104b3a1e05 HEAD | Sort-Object)
-          $expected=@('templates/chart.tmpl','tests/w17d9_market_context.test.cjs') | Sort-Object
+          if($LASTEXITCODE -ne 0 -or $head -cne 'c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5' -or
+             $tree -cne 'e367b65e44a49795f60951780be05e8d8c79c8be' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
+          $actual=@(& git -C $src diff --name-only dee76619281f670b752159fe3f91ecbbde3525bb HEAD | Sort-Object)
+          $expected=@('tools/wails-pilot/backend/portable.go','tools/wails-pilot/backend/release_candidate.go','tools/wails-pilot/backend/release_candidate_test.go','windows/Build-KTRADE-WailsPortable.ps1') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
             throw 'W17D8_THREE_FILE_BOUNDARY_DRIFT'
           }
           if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17D8_DIRTY_SOURCE'}
-          Write-Output '::notice::W17D9_IMMUTABLE_HEAD_TREE_AND_TWO_FILE_DELTA=PASS'
+          Write-Output '::notice::W18A_IMMUTABLE_HEAD_TREE_AND_FOUR_FILE_DELTA=PASS'
       - name: Native Windows Go 1.25 and Node 24
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.0'
-          cache: false
+          cache: true
+          cache-dependency-path: |
+            checked-private/go.sum
+            checked-private/tools/wails-pilot/go.sum
       - name: Set up Node 24 for frontend contract tests
         uses: actions/setup-node@v4
         with:
@@ -222,6 +225,8 @@ jobs:
           } finally {Pop-Location}
           Push-Location (Join-Path $src 'tools/wails-pilot')
           try {
+            & go test -race -count=1 -mod=readonly ./backend *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W18_BACKEND_RACE_TEST_FAILED'}
             & go mod verify *> $log
             if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_GO_MODULES_FAILED'}
             & go vet -mod=readonly ./... *> $log
@@ -233,6 +238,69 @@ jobs:
             Write-Output '::notice::W17D3_REAL_WAILS_WEBVIEW2_SEEDER_NATIVE_WINDOWS_BUILD=PASS'
           } finally {Pop-Location}
           Write-Output '::notice::W17C6_WINDOWS_GO_VET_WAILS_NATIVE_BUILD=PASS'
+      - name: Build and cold-launch fresh candidate outside OS TEMP
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
+          $tokens=$null;$parseErrors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($builder,[ref]$tokens,[ref]$parseErrors)
+          if($parseErrors.Count){throw ('W18_BUILDER_PARSE_FAILED: '+($parseErrors -join ';'))}
+          $candidate=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N'))
+          $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
+          if($candidate.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase)){throw 'W18_ACTUAL_NON_TEMP_LOCATION_REQUIRED'}
+          $process=$null;$enginePid=0
+          try{
+            & $builder -OutputRoot $candidate -ExpectedSourceSha 'c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5' -ReleaseCandidate
+            $stage=Join-Path $candidate 'KTRADE-WailsPortable'
+            $receipt=Get-Content -Raw (Join-Path $stage 'release-candidate-proof.json')|ConvertFrom-Json
+            $manifest=Get-Content -Raw (Join-Path $candidate 'source-manifest.json')|ConvertFrom-Json
+            if($receipt.live_armed -ne $false -or $receipt.release_authority -cne 'none' -or
+               $receipt.installed_data -cne 'fresh-only' -or $manifest.fixture_mode -cne 'none' -or
+               $manifest.release_candidate -ne $true){throw 'W18_CANDIDATE_RECEIPT_BOUNDARY_FAILED'}
+            $sentinel=Join-Path $candidate 'unknown-files-must-survive.test'
+            [IO.File]::WriteAllText($sentinel,'W18 synthetic independent unknown bytes')
+            $before=(Get-FileHash $sentinel).Hash
+            $refused=$false
+            try{& $builder -OutputRoot $candidate -ExpectedSourceSha 'c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5' -ReleaseCandidate}catch{$refused=$true}
+            if(!$refused -or (Get-FileHash $sentinel).Hash -cne $before){throw 'W18_EXISTING_CANDIDATE_OR_UNKNOWN_DATA_OVERWRITTEN'}
+            for($cycle=1;$cycle -le 2;$cycle++){
+              $process=Start-Process (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+              $deadline=(Get-Date).AddSeconds(45)
+              do{
+                Start-Sleep -Milliseconds 350
+                $process.Refresh()
+                if($process.HasExited){throw 'W18_NATIVE_CANDIDATE_EXITED_BEFORE_WINDOW'}
+              }while($process.MainWindowHandle -eq [IntPtr]::Zero -and (Get-Date) -lt $deadline)
+              if($process.MainWindowHandle -eq [IntPtr]::Zero){throw 'W18_NATIVE_CANDIDATE_WINDOW_MISSING'}
+              $engine=Join-Path $stage 'ktrade-engine.exe'
+              $children=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'"|Where-Object{$_.ParentProcessId -eq $process.Id -and $_.ExecutablePath -ieq $engine})
+              if($children.Count -ne 1){throw 'W18_EXCLUSIVE_NATIVE_ENGINE_CHILD_NOT_PROVEN'}
+              $enginePid=[int]$children[0].ProcessId
+              $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $enginePid -ErrorAction Stop|Where-Object{$_.LocalAddress -ceq '127.0.0.1'})
+              if($listeners.Count -ne 1){throw 'W18_ENGINE_LOOPBACK_CUSTODY_NOT_PROVEN'}
+              $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$listeners[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
+              if($cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or
+                 $cap.live_orders_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W18_CANDIDATE_NOT_DISARMED'}
+              $profile=Join-Path $stage 'data/webview2-profile'
+              if(!(Test-Path $profile -PathType Container)){throw 'W18_CANDIDATE_PROFILE_MISSING'}
+              $marker=Join-Path $profile 'synthetic-profile-retention.test'
+              if($cycle -eq 1){[IO.File]::WriteAllText($marker,'W18 cold restart bytes')}
+              elseif((Get-Content -Raw $marker) -cne 'W18 cold restart bytes'){throw 'W18_CANDIDATE_PROFILE_LOST'}
+              if(!$process.CloseMainWindow() -or !$process.WaitForExit(15000)){throw 'W18_CANDIDATE_CLEAN_CLOSE_FAILED'}
+              Start-Sleep -Milliseconds 250
+              if(Get-Process -Id $enginePid -ErrorAction SilentlyContinue){throw 'W18_NATIVE_ENGINE_CHILD_LEAK'}
+              $enginePid=0
+              Write-Output ('::notice::W18_FRESH_NON_TEMP_WAILS_COLD_CYCLE_'+$cycle+'=PASS')
+            }
+            Write-Output '::notice::W18_FRESH_CANDIDATE_NO_INSTALL_NO_OWNER_DATA_NO_LIVE_NO_PAPER_START=PASS'
+          }finally{
+            if($process -and !$process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
+            if($enginePid){Stop-Process -Id $enginePid -Force -ErrorAction SilentlyContinue}
+            if(Test-Path $candidate){Remove-Item -LiteralPath $candidate -Recurse -Force -ErrorAction SilentlyContinue}
+          }
       - name: Real Wails desktop hosted Windows synthetic restored preview rehearsal
         shell: pwsh
         run: |
