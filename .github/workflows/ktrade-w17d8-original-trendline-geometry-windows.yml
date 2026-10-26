@@ -1183,22 +1183,31 @@ jobs:
               $r=Get-W17D8ChartBounds $process
               $x=[int]($r.Left+$r.Width*.57)
               $y=[int]($r.Top+$r.Height*.48)
-              $toX=$x-65
+              $distance=[Math]::Min(110,[Math]::Max(72,[int]($r.Width*.14)))
               if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
                 throw 'W17D8_PLOT_PAN_ORIGINAL_WAILS_FOREGROUND_REQUIRED'
               }
-              Start-Sleep -Milliseconds 100
+              Start-Sleep -Milliseconds 120
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D8_PLOT_PAN_NATIVE_FOREGROUND_LOST'
+              }
               if(-not [W17D1ANativeClick]::SetCursorPos($x,$y)){
                 throw 'W17D8_PLOT_PAN_NATIVE_POINTER_REFUSED'
               }
               [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
               Start-Sleep -Milliseconds 100
-              if(-not [W17D1ANativeClick]::SetCursorPos($toX,$y)){
-                throw 'W17D8_PLOT_SCROLL_NATIVE_POINTER_REFUSED'
+              # Preserve actual mouse-held motion: WebView2/Chromium input
+              # routing requires movement events, not one pointer teleport.
+              for($step=1;$step -le 10;$step++){
+                $position=$x-[int][Math]::Round($distance*$step/10)
+                if(-not [W17D1ANativeClick]::SetCursorPos($position,$y)){
+                  throw 'W17D8_PLOT_SCROLL_NATIVE_POINTER_REFUSED'
+                }
+                [W17D1ANativeClick]::mouse_event(0x0001,0,0,0,[UIntPtr]::Zero)
+                Start-Sleep -Milliseconds 50
               }
-              Start-Sleep -Milliseconds 125
               [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
-              Start-Sleep -Milliseconds 450
+              Start-Sleep -Milliseconds 550
               [Console]::WriteLine('::notice::W17D8_REAL_ORIGINAL_PRICE_CHART_NATIVE_PAN_PERFORMED=PASS')
               return W17D8AssertRendered $process 'AFTER_PAN'
             }
