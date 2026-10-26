@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 8d0987eb754e4b752d6e00d142b13983bc2293f0
+          ref: bacaea4c52228ea89a3bb8dda579b9104b3a1e05
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
@@ -51,8 +51,8 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '8d0987eb754e4b752d6e00d142b13983bc2293f0' -or
-             $tree -cne '92c90a1b416100af0c76a863395dd60910997003' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
+          if($LASTEXITCODE -ne 0 -or $head -cne 'bacaea4c52228ea89a3bb8dda579b9104b3a1e05' -or
+             $tree -cne '842bae48b6f18f43d184e9fe6adf7868fbe4b87c' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
           $actual=@(& git -C $src diff --name-only 81bf13e33e0ec6a1fa73102e423af7b65232761b HEAD | Sort-Object)
           $expected=@('static/w17d7_trendlines.js','templates/chart.tmpl',
                       'tests/w17d8_trendline_geometry.test.cjs',
