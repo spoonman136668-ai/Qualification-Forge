@@ -1,4 +1,4 @@
-name: KTRADE W18A fresh candidate packaging and native Windows
+name: KTRADE W18B fresh candidate stable-origin Windows
 on:
   push:
     branches: [qualification/ktrade-w17d8-original-trendline-geometry-20261025]
@@ -36,12 +36,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5
+          ref: ec2b20ff06ac0111fdb77059dfe611f513e51f35
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Verify immutable W18A source and exact four-path delta
+      - name: Verify immutable W18B source and exact three-path delta
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -51,15 +51,15 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne 'c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5' -or
-             $tree -cne 'e367b65e44a49795f60951780be05e8d8c79c8be' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
-          $actual=@(& git -C $src diff --name-only dee76619281f670b752159fe3f91ecbbde3525bb HEAD | Sort-Object)
-          $expected=@('tools/wails-pilot/backend/portable.go','tools/wails-pilot/backend/release_candidate.go','tools/wails-pilot/backend/release_candidate_test.go','windows/Build-KTRADE-WailsPortable.ps1') | Sort-Object
+          if($LASTEXITCODE -ne 0 -or $head -cne 'ec2b20ff06ac0111fdb77059dfe611f513e51f35' -or
+             $tree -cne 'e29835780e26f284e4a8652dd98bb57ee124618b' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
+          $actual=@(& git -C $src diff --name-only c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5 HEAD | Sort-Object)
+          $expected=@('cmd/ktrade/main_full.go','cmd/ktrade/w18_candidate_origin_full.go','cmd/ktrade/w18_candidate_origin_full_test.go') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
             throw 'W17D8_THREE_FILE_BOUNDARY_DRIFT'
           }
           if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17D8_DIRTY_SOURCE'}
-          Write-Output '::notice::W18A_IMMUTABLE_HEAD_TREE_AND_FOUR_FILE_DELTA=PASS'
+          Write-Output '::notice::W18B_IMMUTABLE_HEAD_TREE_AND_THREE_FILE_DELTA=PASS'
       - name: Native Windows Go 1.25 and Node 24
         uses: actions/setup-go@v5
         with:
@@ -210,6 +210,10 @@ jobs:
           $log=Join-Path $env:RUNNER_TEMP 'w17c6-build.log'
           Push-Location $src
           try {
+            & go test -race -count=1 -mod=readonly -tags ktrade_full -run '^TestW18CandidateOrigin|^TestW17D0|^TestRB3Wails' ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W18B_AFFECTED_ENGINE_ORIGIN_TEST_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W18B_TAGGED_ENGINE_VET_FAILED'}
             & go vet -mod=readonly ./... *> $log
             if($LASTEXITCODE -ne 0){throw 'W17C6_GO_VET_FAILED'}
             & go build -mod=readonly -tags ktrade_full -o (Join-Path $dir 'ktrade-engine.exe') ./cmd/ktrade *> $log
@@ -252,8 +256,30 @@ jobs:
           $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
           if($candidate.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase)){throw 'W18_ACTUAL_NON_TEMP_LOCATION_REQUIRED'}
           $process=$null;$enginePid=0
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -AssemblyName UIAutomationTypes
+          Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class W18BMouse { [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y); [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint x,uint y,uint data,UIntPtr extra); }'
+          function W18BButton($app,[string]$name){
+            $root=[System.Windows.Automation.AutomationElement]::FromHandle($app.MainWindowHandle)
+            $condition=[System.Windows.Automation.AndCondition]::new(
+              [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,$name),
+              [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button))
+            $deadline=(Get-Date).AddSeconds(25)
+            do{
+              $button=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
+              if($button){return $button}
+              Start-Sleep -Milliseconds 250
+            }while((Get-Date) -lt $deadline)
+            throw ('W18B_CANDIDATE_NATIVE_BUTTON_MISSING_'+$name)
+          }
+          function W18BAssert5m($app){
+            $button=W18BButton $app '5m'
+            $toggle=[System.Windows.Automation.TogglePattern]$button.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+            if($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){throw 'W18B_NATIVE_5M_NOT_RETAINED'}
+          }
+          $originPort=$null
           try{
-            & $builder -OutputRoot $candidate -ExpectedSourceSha 'c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5' -ReleaseCandidate
+            & $builder -OutputRoot $candidate -ExpectedSourceSha 'ec2b20ff06ac0111fdb77059dfe611f513e51f35' -ReleaseCandidate
             $stage=Join-Path $candidate 'KTRADE-WailsPortable'
             $receipt=Get-Content -Raw (Join-Path $stage 'release-candidate-proof.json')|ConvertFrom-Json
             $manifest=Get-Content -Raw (Join-Path $candidate 'source-manifest.json')|ConvertFrom-Json
@@ -264,7 +290,7 @@ jobs:
             [IO.File]::WriteAllText($sentinel,'W18 synthetic independent unknown bytes')
             $before=(Get-FileHash $sentinel).Hash
             $refused=$false
-            try{& $builder -OutputRoot $candidate -ExpectedSourceSha 'c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5' -ReleaseCandidate}catch{$refused=$true}
+            try{& $builder -OutputRoot $candidate -ExpectedSourceSha 'ec2b20ff06ac0111fdb77059dfe611f513e51f35' -ReleaseCandidate}catch{$refused=$true}
             if(!$refused -or (Get-FileHash $sentinel).Hash -cne $before){throw 'W18_EXISTING_CANDIDATE_OR_UNKNOWN_DATA_OVERWRITTEN'}
             for($cycle=1;$cycle -le 2;$cycle++){
               $process=Start-Process (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
@@ -281,6 +307,8 @@ jobs:
               $enginePid=[int]$children[0].ProcessId
               $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $enginePid -ErrorAction Stop|Where-Object{$_.LocalAddress -ceq '127.0.0.1'})
               if($listeners.Count -ne 1){throw 'W18_ENGINE_LOOPBACK_CUSTODY_NOT_PROVEN'}
+              if($cycle -eq 1){$originPort=[int]$listeners[0].LocalPort}
+              elseif([int]$listeners[0].LocalPort -ne $originPort){throw 'W18B_CANDIDATE_BROWSER_ORIGIN_CHANGED'}
               $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$listeners[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
               if($cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or
                  $cap.live_orders_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W18_CANDIDATE_NOT_DISARMED'}
@@ -289,12 +317,37 @@ jobs:
               $marker=Join-Path $profile 'synthetic-profile-retention.test'
               if($cycle -eq 1){[IO.File]::WriteAllText($marker,'W18 cold restart bytes')}
               elseif((Get-Content -Raw $marker) -cne 'W18 cold restart bytes'){throw 'W18_CANDIDATE_PROFILE_LOST'}
+              if($cycle -eq 1){
+                $button=W18BButton $process '5m'
+                $rect=$button.Current.BoundingRectangle
+                $window=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle).Current.BoundingRectangle
+                if($rect.IsEmpty -or $rect.Width -lt 15 -or $rect.Height -lt 15 -or $rect.Width -gt 160 -or
+                   $rect.Left -lt $window.Left -or $rect.Top -lt $window.Top -or $rect.Right -gt $window.Right -or $rect.Bottom -gt $window.Bottom){throw 'W18B_NATIVE_CLICK_OUTSIDE_APP'}
+                if(![W18BMouse]::SetForegroundWindow($process.MainWindowHandle)){throw 'W18B_NATIVE_FOCUS_REFUSED'}
+                Start-Sleep -Milliseconds 150
+                if(![W18BMouse]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W18B_NATIVE_POINTER_REFUSED'}
+                [W18BMouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+                [W18BMouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+                Start-Sleep -Milliseconds 450
+              }
+              W18BAssert5m $process
+              Write-Output ('::notice::W18B_REAL_CANDIDATE_STABLE_ORIGIN_5M_CYCLE_'+$cycle+'=PASS')
               if(!$process.CloseMainWindow() -or !$process.WaitForExit(15000)){throw 'W18_CANDIDATE_CLEAN_CLOSE_FAILED'}
               Start-Sleep -Milliseconds 250
               if(Get-Process -Id $enginePid -ErrorAction SilentlyContinue){throw 'W18_NATIVE_ENGINE_CHILD_LEAK'}
               $enginePid=0
               Write-Output ('::notice::W18_FRESH_NON_TEMP_WAILS_COLD_CYCLE_'+$cycle+'=PASS')
             }
+            $foreign=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,$originPort)
+            try{
+              $foreign.Start()
+              $process=Start-Process (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+              if(!$process.WaitForExit(15000)){throw 'W18B_OCCUPIED_ORIGIN_NOT_REFUSED'}
+              if($process.ExitCode -eq 0){throw 'W18B_OCCUPIED_ORIGIN_FALSE_SUCCESS'}
+              if(!$foreign.Server.IsBound){throw 'W18B_FOREIGN_LISTENER_WAS_DISTURBED'}
+              if((Get-Content -Raw $marker) -cne 'W18 cold restart bytes'){throw 'W18B_OCCUPIED_ORIGIN_CHANGED_PROFILE'}
+              Write-Output '::notice::W18B_OCCUPIED_ORIGIN_REFUSED_NO_FALLBACK_OR_FOREIGN_TERMINATION=PASS'
+            }finally{$foreign.Stop()}
             Write-Output '::notice::W18_FRESH_CANDIDATE_NO_INSTALL_NO_OWNER_DATA_NO_LIVE_NO_PAPER_START=PASS'
           }finally{
             if($process -and !$process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
