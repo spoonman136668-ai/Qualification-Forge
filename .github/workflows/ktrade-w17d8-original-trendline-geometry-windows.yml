@@ -1,4 +1,4 @@
-name: KTRADE W20 normal candidate native PAPER lifecycle
+name: KTRADE W21 truthful market readout native Windows
 on:
   push:
     branches: [qualification/ktrade-w17d8-original-trendline-geometry-20261025]
@@ -9,53 +9,197 @@ concurrency:
   group: ktrade-w17d8-chart-native-geometry-windows
   cancel-in-progress: false
 jobs:
-  wails-paper:
-    runs-on: windows-2022
-    timeout-minutes: 38
+  qualify:
+    name: Native trendline rendered pixels, scrolling, zoom and resize; cold restart
     if: github.repository == 'spoonman136668-ai/Qualification-Forge'
+    runs-on: windows-2022
+    timeout-minutes: 75
     env:
       CGO_ENABLED: '1'
       GOWORK: 'off'
       GOFLAGS: '-p=2'
       GOMAXPROCS: '2'
-      KTRADE_RECOVERY_ISOLATED: '0'
+      KTRADE_RECOVERY_ISOLATED: '1'
       KTRADE_PORTABLE_DISARMED: '0'
       KTRADE_WAILS_OWNED: '0'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_PAPER_SESSION_ROOT: ''
       KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
     steps:
-      - name: Checkout pinned qualification witness
+      - name: Checkout immutable qualification witness
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
           path: witness
           persist-credentials: false
-      - name: Checkout immutable private W20 source
+      - name: Checkout immutable private source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 8257f1410fa844e7868ad5772050ed7d2e867921
+          ref: ba72465c606216d985122ae1d2b8f33938fc9eca
           path: checked-private
-          fetch-depth: 2
+          fetch-depth: 10
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Authenticate Windows source parent tree witness
+      - name: Verify immutable W21 source and exact two-path delta
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W20_HOSTED_WINDOWS_REQUIRED'}
-          $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
-          $witness=Join-Path $env:GITHUB_WORKSPACE 'witness'
-          if((& git -C $root rev-parse HEAD).Trim() -cne '8257f1410fa844e7868ad5772050ed7d2e867921' -or
-             (& git -C $root rev-parse HEAD^).Trim() -cne '0b43c6edc6d792dda56bd1513766d4e3bd4ee975' -or
-             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne 'f8b36812e5894d30091f459e0ae2c414037ed9fc' -or
-             (& git -C $witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){
-            throw 'W20_EXACT_SOURCE_IDENTITY_DRIFT'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $wit=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W17D4_HOSTED_WINDOWS_REQUIRED'}
+          $head=(& git -C $src rev-parse HEAD).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          $witness=(& git -C $wit rev-parse HEAD).Trim()
+          if($LASTEXITCODE -ne 0 -or $head -cne 'ba72465c606216d985122ae1d2b8f33938fc9eca' -or
+             $tree -cne 'e5772788361b9b66ab9b464a0f474ff5cceaddff' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
+          $actual=@(& git -C $src diff --name-only 8257f1410fa844e7868ad5772050ed7d2e867921 HEAD | Sort-Object)
+          $expected=@('templates/chart.tmpl','tests/w21_market_readout_integrity.test.cjs') | Sort-Object
+          if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
+            throw 'W17D8_THREE_FILE_BOUNDARY_DRIFT'
           }
-          if(@(& git -C $root status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W20_SOURCE_DIRTY'}
-          Write-Output '::notice::W20_EXACT_SOURCE_PARENT_TREE_AND_WITNESS=PASS'
-      - name: Require exact completed W19A full regression foundation
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17D8_DIRTY_SOURCE'}
+          Write-Output '::notice::W21_IMMUTABLE_HEAD_TREE_AND_TWO_FILE_DELTA=PASS'
+      - name: Native Windows Go 1.25 and Node 24
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-private/go.sum
+            checked-private/tools/wails-pilot/go.sum
+      - name: Set up Node 24 for frontend contract tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Require exact existing W17C6 green Windows regression witness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $response=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40214120059' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+            'X-GitHub-Api-Version'='2022-11-28'
+          }
+          if($response.conclusion -cne 'success' -or $response.status -cne 'completed' -or
+             $response.head_sha -cne 'aaee1ed5d3bc74d4202f9b7e8b65353bd7da6154'){
+            throw 'W17D0_W17C6_ORIGINAL_FULL_WINDOWS_ACCEPTANCE_NOT_REUSABLE'
+          }
+          Write-Output '::notice::W17D0_W17C6_EXACT_SHA_REGRESSION_REUSED=PASS'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Reuse unchanged W17D0 exact full Go and Wails qualification
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40226971742' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or
+            $run.head_sha -cne '895619630ca9cbc695518afbe91ebeafcdb3f0a5'){
+            throw 'W17D1_UNCHANGED_GO_WAILS_NATIVE_EVIDENCE_NOT_REUSABLE'
+          }
+          $jobs=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40226971742/jobs?per_page=100' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          foreach($name in @('W17D0 focused Go and Wails safety tests',
+              'One full original Go Windows regression',
+              'Verify Go modules and build original engine and actual Wails shell',
+              'Real Wails desktop hosted Windows synthetic restored preview rehearsal')){
+            $step=@($jobs.jobs[0].steps|Where-Object{$_.name -eq $name})
+            if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){
+              throw ('W17D1_UNCHANGED_GO_REGRESSION_NOT_REUSABLE_'+$name)
+            }
+          }
+          Write-Output '::notice::W17D1_GO_AND_WAILS_NATIVE_FULL_EVIDENCE=REUSED_EXACT_TREE'
+      - name: Test original chart favorite storage with bounded collision veto
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
+          try{
+            & node --test tests/w17d1_chart_favorite_continuity.test.cjs tests/w17d1a_original_chart_uia.test.cjs tests/w17d2_legacy_favorite_import.test.cjs tests/w17d3_old_origin_fixture.test.cjs tests/w17d4_chart_timeframe_continuity.test.cjs tests/w17d5_chart_pane_layout.test.cjs tests/w17d6_chart_horizontal_lines.test.cjs tests/w17d7_original_trendlines.test.cjs tests/w17d8_trendline_geometry.test.cjs tests/w17d9_market_context.test.cjs tests/w19_paper_failure_feedback.test.cjs tests/w21_market_readout_integrity.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W17D1_CHART_BROWSER_STORAGE_FOCUSED_RED'}
+            Write-Output '::notice::W17D3_OLD_WEBVIEW2_SOURCE_UI_AND_NO_CLOBBER_CONTRACTS=PASS'
+          }finally{Pop-Location}
+      - name: Reuse unchanged W17D3 backend evidence with exact source-only delta
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40235573427' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or
+             $r.head_sha -cne '280444a435b329b18e3bea7b1621d75813b70c7c'){throw 'W17D4_PREVIOUS_W17D3_PROOF_UNAVAILABLE'}
+          Write-Output '::notice::W17D4_UNCHANGED_NATIVE_BACKEND_EVIDENCE_REUSED=PASS'
+      - name: Reuse immutable W17D4 completed real native Windows qualification
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40241232019' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or
+             $r.head_sha -cne 'cea9c16efd100cb483372890f81d704f72ea0e8b'){
+            throw 'W17D5_W17D4_EXACT_WINDOWS_WITNESS_NOT_REUSABLE'
+          }
+          Write-Output '::notice::W17D5_W17D4_EXACT_NATIVE_WAILS_SOURCE_EVIDENCE=REUSED'
+      - name: Reuse immutable W17D5 real Windows three-launch qualification
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40242145574' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or
+             $r.head_sha -cne 'b101ac30e56d70e7683e0ef497ae209103fb8d38'){
+            throw 'W17D6_W17D5_EXACT_WINDOWS_WITNESS_NOT_REUSABLE'
+          }
+          Write-Output '::notice::W17D6_W17D5_UNCHANGED_NATIVE_WINDOWS_FOUNDATION_REUSED=PASS'
+      - name: Reuse W17D6 exact-hosted-native-Wails qualification
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40244101689' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or
+             $r.head_sha -cne '3af5b4123e3473c6971360a81ca699f27a7355f5'){
+            throw 'W17D7_W17D6_EXACT_NATIVE_WAILS_QUALIFICATION_MISSING'
+          }
+          Write-Output '::notice::W17D7_W17D6_EXACT_NATIVE_WAILS_FOUNDATION=PASS'
+      - name: Reuse exact immutable W17D7 real three-launch native Windows witness
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40248517748' -Headers @{
+            Authorization='Bearer '+$env:GITHUB_TOKEN
+            Accept='application/vnd.github+json'
+          }
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or
+             $r.head_sha -cne 'c32bc5a228677deebd0f51fb712357c9e3100057'){
+            throw 'W17D8_W17D7_NATIVE_ACCEPTANCE_IDENTITY_MISMATCH'
+          }
+          Write-Output '::notice::W17D8_W17D7_IMMUTABLE_NATIVE_ACCEPTANCE_REUSED=PASS'
+      - name: Reuse exact W19A full Windows foundation across frontend-only delta
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -64,388 +208,1379 @@ jobs:
           $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40361865108' -Headers @{
             Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'
           }
-          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne '7b0832cab747721f129dfb303bfeecf16ac1738c'){throw 'W20_EXACT_W19A_FINAL_FOUNDATION_NOT_QUALIFIED'}
-      - name: Windows Go and locked node toolchains
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.25.0'
-          cache: true
-          cache-dependency-path: |
-            checked-private/go.sum
-            checked-private/tools/wails-pilot/go.sum
-      - name: Node for immutable offline Monaco and chart assets
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - name: Build normal-feed fresh candidate and exercise genuine native PAPER controls
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne '7b0832cab747721f129dfb303bfeecf16ac1738c'){throw 'W21_W19A_FULL_FOUNDATION_NOT_REUSABLE'}
+      - name: Verify Go modules and build original engine and actual Wails shell
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $dir=Join-Path $env:RUNNER_TEMP 'w17c6-build'
+          New-Item -ItemType Directory -Path $dir -Force|Out-Null
+          $log=Join-Path $env:RUNNER_TEMP 'w17c6-build.log'
+          Push-Location $src
+          try {
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W18B_TAGGED_ENGINE_VET_FAILED'}
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_GO_VET_FAILED'}
+            & go build -mod=readonly -tags ktrade_full -o (Join-Path $dir 'ktrade-engine.exe') ./cmd/ktrade *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_ORIGINAL_ENGINE_BUILD_FAILED'}
+            & npm ci --ignore-scripts --no-audit --no-fund --silent *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_OFFLINE_VENDOR_INSTALL_FAILED'}
+            & node scripts/stage_offline_vendor.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_OFFLINE_VENDOR_STAGING_FAILED'}
+            foreach($part in @('static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $src $part) -Destination (Join-Path $dir $part) -Recurse -Force
+            }
+            Write-Output '::notice::W17C6_ORIGINAL_ENGINE_AND_OFFLINE_EDITOR_ASSETS=PASS'
+          } finally {Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try {
+            & go test -race -count=1 -mod=readonly ./backend *> $log
+            if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W18_BACKEND_RACE_TEST_FAILED'}
+            & go mod verify *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_GO_MODULES_FAILED'}
+            & go vet -mod=readonly ./... *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_GO_VET_FAILED'}
+            & go build -mod=readonly -tags desktop,production -ldflags '-H windowsgui' -o (Join-Path $dir 'ktrade.exe') . *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17C6_WAILS_NATIVE_WINDOWS_BUILD_FAILED'}
+            & go build -mod=readonly -tags desktop,production -ldflags '-H windowsgui' -o (Join-Path $dir 'w17d3-old-webview2.exe') ./cmd/w17d3-legacy-seed *> $log
+            if($LASTEXITCODE -ne 0){throw 'W17D3_GENUINE_OLD_WEBVIEW2_SEEDER_BUILD_FAILED'}
+            Write-Output '::notice::W17D3_REAL_WAILS_WEBVIEW2_SEEDER_NATIVE_WINDOWS_BUILD=PASS'
+          } finally {Pop-Location}
+          Write-Output '::notice::W17C6_WINDOWS_GO_VET_WAILS_NATIVE_BUILD=PASS'
+      - name: Build and cold-launch fresh candidate outside OS TEMP
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           Set-StrictMode -Version Latest
-          $env:TMP=$env:RUNNER_TEMP
-          $env:TEMP=$env:RUNNER_TEMP
-          $env:KTRADE_W13_QUALIFICATION_ONLY='0'
           $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
-          $pkg=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
-          $capture=Join-Path $env:RUNNER_TEMP 'w13b-private.log'
-          $wailsErr=Join-Path $env:RUNNER_TEMP 'w13b-wails-private.log'
-          $app=$null;$child=$null
-          try{
-            Push-Location $src
-            try{
-              & npm ci --ignore-scripts --no-audit --no-fund --silent *> $capture
-              if($LASTEXITCODE -ne 0){throw 'W20_LOCKED_NPM_INSTALL_FAILED'}
-              & node scripts/stage_offline_vendor.cjs *> $capture
-              if($LASTEXITCODE -ne 0){throw 'W20_OFFLINE_VENDOR_STAGE_FAILED'}
-              if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W20_SOURCE_MODIFIED'}
-              $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
-              $proof=@(& $builder -OutputRoot $pkg -ExpectedSourceSha '8257f1410fa844e7868ad5772050ed7d2e867921' -ReleaseCandidate)
-              if($proof -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W20_PAIRED_DISPOSABLE_BUILD_FAILED'}
-            }finally{Pop-Location}
-            $receipt=Get-Content -LiteralPath (Join-Path $pkg 'source-manifest.json') -Raw | ConvertFrom-Json
-            if($receipt.source_sha -cne '8257f1410fa844e7868ad5772050ed7d2e867921' -or
-               $receipt.fixture_mode -cne 'none' -or $receipt.release_candidate -ne $true -or
-               $receipt.live_armed -ne $false -or $receipt.paper_started -ne $false){
-              throw 'W20_TAGGED_ENGINE_MANIFEST_IDENTITY_INVALID'
-            }
-            Write-Output '::notice::W20_NORMAL_ENGINE_PAIRED_PROOFS_AND_FRESH_DATA=PASS'
-            $stage=Join-Path $pkg 'KTRADE-WailsPortable'
-            $exe=Join-Path $stage 'ktrade.exe'
-            $engine=Join-Path $stage 'ktrade-engine.exe'
-            function Start-W20App(){
-              $script:app=Start-Process -FilePath $exe -WorkingDirectory $stage -RedirectStandardError $wailsErr -PassThru
-              $null=$script:app.Handle
-              $deadline=(Get-Date).AddSeconds(55)
-              while((Get-Date) -lt $deadline){
-                Start-Sleep -Milliseconds 400
-                $script:app.Refresh()
-                if($script:app.HasExited){throw 'W20_GENUINE_WAILS_EXITED'}
-                if($script:app.MainWindowHandle -ne [IntPtr]::Zero){break}
-              }
-              if($script:app.MainWindowHandle -eq [IntPtr]::Zero){throw 'W20_NATIVE_WINDOW_MISSING'}
-              $deadline=(Get-Date).AddSeconds(22)
-              $script:child=$null
-              while((Get-Date) -lt $deadline){
-                $matches=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" | Where-Object {
-                  $_.ExecutablePath -ieq $engine -and $_.ParentProcessId -eq $script:app.Id})
-                if($matches.Count -eq 1){$script:child=$matches[0];break}
-                Start-Sleep -Milliseconds 300
-              }
-              if(!$script:child){throw 'W20_ORIGINAL_GO_CHILD_MISSING'}
-              $listener=@(Get-NetTCPConnection -State Listen -OwningProcess $script:child.ProcessId -ErrorAction SilentlyContinue |
-                Where-Object {$_.LocalAddress -eq '127.0.0.1'})
-              if($listener.Count -ne 1){throw 'W20_ONE_LOCAL_GO_LISTENER_REQUIRED'}
-              return 'http://127.0.0.1:'+$listener[0].LocalPort
-            }
-            $base=Start-W20App
-            Write-Output '::notice::W20_GENUINE_WAILS_CHILD_AND_LOOPBACK=PASS'
-            $before=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
-            if($before.mode -cne 'PAPER_NOT_FUNDED' -or $before.live_armed -ne $false -or
-               $before.paper_orders_enabled -ne $false){throw 'W20_FRESH_PAPER_UNVERIFIED'}
-            $cap=Invoke-RestMethod -Uri ($base+'/api/operator/capabilities') -TimeoutSec 10
-            if($cap.live_orders_enabled -ne $false){throw 'W20_LIVE_OPERATOR_AUTHORITY_DETECTED'}
-            Write-Output '::notice::W20_GENUINE_WAILS_PAPER_FRESH_AND_LIVE_DISARMED=PASS'
-            # Store a disposable user-owned strategy via the application's
-            # ORIGINAL same-origin revisioned Pine library (no forged ID).
-            $scriptSource='//@version=5'+[Environment]::NewLine+
-              'strategy("W20 normal candidate paper")'+[Environment]::NewLine+
-              'if barstate.islast'+[Environment]::NewLine+
-              '    strategy.entry("L", strategy.long, qty=0.0001)'+[Environment]::NewLine
-            $json=@{display_name='W20 Candidate Strategy';kind='strategy';source=$scriptSource} | ConvertTo-Json -Compress
-            $saved=Invoke-RestMethod -Uri ($base+'/api/pine-library') -Method Post -Headers @{Origin=$base} -ContentType 'application/json' -Body $json -TimeoutSec 10
-            if($saved.metadata.ownership -cne 'user' -or $saved.metadata.kind -cne 'strategy' -or
-               $saved.metadata.id -cnotmatch '^[a-f0-9]{32}$'){
-              throw 'W20_ORIGINAL_CANONICAL_SAVED_PINE_ID_MISSING'
-            }
-            $scriptID=$saved.metadata.id
-            Write-Output '::notice::W20_ORIGINAL_DURABLE_PINE_SOURCE_SAVED=PASS'
-            # The fixture must satisfy ORIGINAL preview validation, including
-            # finality, SHA identity, canonical script ownership and no orders.
-            $previewJson=@{script_id=$scriptID;product_id='BTC-USDC';timeframe='1m'} | ConvertTo-Json -Compress
-            $preview=Invoke-RestMethod -Uri ($base+'/api/paper/strategy/preview') -Method Post -Headers @{Origin=$base} -ContentType 'application/json' -Body $previewJson -TimeoutSec 12
-            if($preview.schema -cne 'ktrade.paper.strategy-preview.review.v1' -or
-               $preview.source_sha256 -cnotmatch '^[a-f0-9]{64}$' -or
-               $preview.orders_enabled -ne $false -or $preview.live_armed -ne $false){
-              throw 'W20_ORIGINAL_PREVIEW_UNQUALIFIED_OR_AUTHORITY_LEAK'
-            }
-            if($preview.status -cne 'REVIEW_ONLY' -or $null -eq $preview.review_proposal -or
-               $preview.final_bar_sha256 -cnotmatch '^[a-f0-9]{64}$' -or $preview.final_bar_at -eq ''){throw 'W20_NORMAL_MARKET_FINAL_BAR_INTENT_NOT_VERIFIED'}
-            Write-Output '::notice::W20_NORMAL_SERVER_FINAL_CANDLE_PINE_PREVIEW=PASS'
-            # Windows UI Automation acts on the ORIGINAL embedded WebView2
-            # without CDP or privileged browser injection.
-            Add-Type -AssemblyName UIAutomationClient
-            Add-Type -AssemblyName UIAutomationTypes
-            Add-Type -TypeDefinition @'
-          using System;
-          using System.Runtime.InteropServices;
-          public class W20Mouse{
-            [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
-            [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr extra);
+          $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
+          $tokens=$null;$parseErrors=$null
+          [void][System.Management.Automation.Language.Parser]::ParseFile($builder,[ref]$tokens,[ref]$parseErrors)
+          if($parseErrors.Count){throw ('W18_BUILDER_PARSE_FAILED: '+($parseErrors -join ';'))}
+          $candidate=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N'))
+          $temp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\')
+          if($candidate.StartsWith($temp,[StringComparison]::OrdinalIgnoreCase)){throw 'W18_ACTUAL_NON_TEMP_LOCATION_REQUIRED'}
+          $process=$null;$enginePid=0
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -AssemblyName UIAutomationTypes
+          Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class W18BMouse { [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h); [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y); [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint x,uint y,uint data,UIntPtr extra); }'
+          function W18BButton($app,[string]$name){
+            $root=[System.Windows.Automation.AutomationElement]::FromHandle($app.MainWindowHandle)
+            $condition=[System.Windows.Automation.AndCondition]::new(
+              [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,$name),
+              [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button))
+            $deadline=(Get-Date).AddSeconds(25)
+            do{
+              $button=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
+              if($button){return $button}
+              Start-Sleep -Milliseconds 250
+            }while((Get-Date) -lt $deadline)
+            throw ('W18B_CANDIDATE_NATIVE_BUTTON_MISSING_'+$name)
           }
-          '@
-            $ui=[System.Windows.Automation.AutomationElement]::FromHandle([IntPtr]$app.MainWindowHandle)
-            if(!$ui){throw 'W20_UIA_WAILS_ROOT_MISSING'}
-            function Find-W20([string]$name){
-              $prop=[System.Windows.Automation.PropertyCondition]::new(
-               [System.Windows.Automation.AutomationElement]::NameProperty,$name)
-              return $ui.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$prop)
-            }
-            function Click-W20($element){
-              if(!$element){throw 'W20_REQUIRED_WEBVIEW2_CONTROL_NOT_FOUND'}
-              if(!$element.Current.IsEnabled){throw 'W20_REQUIRED_WEBVIEW2_CONTROL_DISABLED'}
-              $pattern=$null
-              if($element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern,[ref]$pattern)){
-                ([System.Windows.Automation.InvokePattern]$pattern).Invoke()
-                return
+          function W18BAssert5m($app){
+            $button=W18BButton $app '5m'
+            $toggle=[System.Windows.Automation.TogglePattern]$button.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+            if($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){throw 'W18B_NATIVE_5M_NOT_RETAINED'}
+          }
+          $originPort=$null
+          try{
+            & $builder -OutputRoot $candidate -ExpectedSourceSha 'ba72465c606216d985122ae1d2b8f33938fc9eca' -ReleaseCandidate
+            $stage=Join-Path $candidate 'KTRADE-WailsPortable'
+            $receipt=Get-Content -Raw (Join-Path $stage 'release-candidate-proof.json')|ConvertFrom-Json
+            $manifest=Get-Content -Raw (Join-Path $candidate 'source-manifest.json')|ConvertFrom-Json
+            if($receipt.live_armed -ne $false -or $receipt.release_authority -cne 'none' -or
+               $receipt.installed_data -cne 'fresh-only' -or $manifest.fixture_mode -cne 'none' -or
+               $manifest.release_candidate -ne $true){throw 'W18_CANDIDATE_RECEIPT_BOUNDARY_FAILED'}
+            $sentinel=Join-Path $candidate 'unknown-files-must-survive.test'
+            [IO.File]::WriteAllText($sentinel,'W18 synthetic independent unknown bytes')
+            $before=(Get-FileHash $sentinel).Hash
+            $refused=$false
+            try{& $builder -OutputRoot $candidate -ExpectedSourceSha 'ba72465c606216d985122ae1d2b8f33938fc9eca' -ReleaseCandidate}catch{$refused=$true}
+            if(!$refused -or (Get-FileHash $sentinel).Hash -cne $before){throw 'W18_EXISTING_CANDIDATE_OR_UNKNOWN_DATA_OVERWRITTEN'}
+            for($cycle=1;$cycle -le 2;$cycle++){
+              $process=Start-Process (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+              $deadline=(Get-Date).AddSeconds(45)
+              do{
+                Start-Sleep -Milliseconds 350
+                $process.Refresh()
+                if($process.HasExited){throw 'W18_NATIVE_CANDIDATE_EXITED_BEFORE_WINDOW'}
+              }while($process.MainWindowHandle -eq [IntPtr]::Zero -and (Get-Date) -lt $deadline)
+              if($process.MainWindowHandle -eq [IntPtr]::Zero){throw 'W18_NATIVE_CANDIDATE_WINDOW_MISSING'}
+              $engine=Join-Path $stage 'ktrade-engine.exe'
+              $children=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'"|Where-Object{$_.ParentProcessId -eq $process.Id -and $_.ExecutablePath -ieq $engine})
+              if($children.Count -ne 1){throw 'W18_EXCLUSIVE_NATIVE_ENGINE_CHILD_NOT_PROVEN'}
+              $enginePid=[int]$children[0].ProcessId
+              $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $enginePid -ErrorAction Stop|Where-Object{$_.LocalAddress -ceq '127.0.0.1'})
+              if($listeners.Count -ne 1){throw 'W18_ENGINE_LOOPBACK_CUSTODY_NOT_PROVEN'}
+              if($cycle -eq 1){$originPort=[int]$listeners[0].LocalPort}
+              elseif([int]$listeners[0].LocalPort -ne $originPort){throw 'W18B_CANDIDATE_BROWSER_ORIGIN_CHANGED'}
+              $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$listeners[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
+              if($cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or
+                 $cap.live_orders_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W18_CANDIDATE_NOT_DISARMED'}
+              $profile=Join-Path $stage 'data/webview2-profile'
+              if(!(Test-Path $profile -PathType Container)){throw 'W18_CANDIDATE_PROFILE_MISSING'}
+              $marker=Join-Path $profile 'synthetic-profile-retention.test'
+              if($cycle -eq 1){[IO.File]::WriteAllText($marker,'W18 cold restart bytes')}
+              elseif((Get-Content -Raw $marker) -cne 'W18 cold restart bytes'){throw 'W18_CANDIDATE_PROFILE_LOST'}
+              if($cycle -eq 1){
+                $button=W18BButton $process '5m'
+                $rect=$button.Current.BoundingRectangle
+                $window=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle).Current.BoundingRectangle
+                if($rect.IsEmpty -or $rect.Width -lt 15 -or $rect.Height -lt 15 -or $rect.Width -gt 160 -or
+                   $rect.Left -lt $window.Left -or $rect.Top -lt $window.Top -or $rect.Right -gt $window.Right -or $rect.Bottom -gt $window.Bottom){throw 'W18B_NATIVE_CLICK_OUTSIDE_APP'}
+                if(![W18BMouse]::SetForegroundWindow($process.MainWindowHandle)){throw 'W18B_NATIVE_FOCUS_REFUSED'}
+                Start-Sleep -Milliseconds 150
+                if(![W18BMouse]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W18B_NATIVE_POINTER_REFUSED'}
+                [W18BMouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+                [W18BMouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+                Start-Sleep -Milliseconds 450
               }
-              $rect=$element.Current.BoundingRectangle
-              if($rect.Width -lt 3 -or $rect.Height -lt 3){throw 'W20_UIA_CONTROL_NOT_VISIBLE'}
-              $x=[int]($rect.Left+$rect.Width/2)
-              $y=[int]($rect.Top+$rect.Height/2)
-              if(![W20Mouse]::SetCursorPos($x,$y)){throw 'W20_OS_POINTER_REFUSED'}
-              [W20Mouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
-              [W20Mouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              W18BAssert5m $process
+              Write-Output ('::notice::W18B_REAL_CANDIDATE_STABLE_ORIGIN_5M_CYCLE_'+$cycle+'=PASS')
+              if(!$process.CloseMainWindow() -or !$process.WaitForExit(15000)){throw 'W18_CANDIDATE_CLEAN_CLOSE_FAILED'}
+              Start-Sleep -Milliseconds 250
+              if(Get-Process -Id $enginePid -ErrorAction SilentlyContinue){throw 'W18_NATIVE_ENGINE_CHILD_LEAK'}
+              $enginePid=0
+              Write-Output ('::notice::W18_FRESH_NON_TEMP_WAILS_COLD_CYCLE_'+$cycle+'=PASS')
             }
-            $end=(Get-Date).AddSeconds(20)
-            $startCtrl=$null
-            while((Get-Date) -lt $end){
-              $startCtrl=Find-W20 'Start isolated paper'
-              if($startCtrl){break}
-              Start-Sleep -Milliseconds 400
+            $foreign=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,$originPort)
+            try{
+              $foreign.Start()
+              $process=Start-Process (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+              if(!$process.WaitForExit(15000)){throw 'W18B_OCCUPIED_ORIGIN_NOT_REFUSED'}
+              if($process.ExitCode -eq 0){throw 'W18B_OCCUPIED_ORIGIN_FALSE_SUCCESS'}
+              if(!$foreign.Server.IsBound){throw 'W18B_FOREIGN_LISTENER_WAS_DISTURBED'}
+              if((Get-Content -Raw $marker) -cne 'W18 cold restart bytes'){throw 'W18B_OCCUPIED_ORIGIN_CHANGED_PROFILE'}
+              Write-Output '::notice::W18B_OCCUPIED_ORIGIN_REFUSED_NO_FALLBACK_OR_FOREIGN_TERMINATION=PASS'
+            }finally{$foreign.Stop()}
+            Write-Output '::notice::W18_FRESH_CANDIDATE_NO_INSTALL_NO_OWNER_DATA_NO_LIVE_NO_PAPER_START=PASS'
+          }finally{
+            if($process -and !$process.HasExited){Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue}
+            if($enginePid){Stop-Process -Id $enginePid -Force -ErrorAction SilentlyContinue}
+            if(Test-Path $candidate){Remove-Item -LiteralPath $candidate -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+      - name: Real Wails desktop hosted Windows synthetic restored preview rehearsal
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $build=Join-Path $env:RUNNER_TEMP 'w17c6-build'
+          $nonce=[Guid]::NewGuid().ToString('N').ToLowerInvariant()
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-w06-install-'+$nonce)
+          $rel=Join-Path $root 'releases\v1'
+          $data=Join-Path $root 'app-data'
+          $preview=Join-Path $data 'w17c6-restored-preview'
+          $parent=$null
+          $child=@()
+          $http=$null
+          $legacyServer=$null
+          $legacySeeder=$null
+          # No WebView2 debugger or script injection. Original chart control
+          # must appear as a native Windows accessibility Button.
+          try{
+            New-Item -ItemType Directory -Path $rel,$data -Force|Out-Null
+            foreach($name in @('ktrade.exe','ktrade-engine.exe','static','templates','strategies')){
+              Copy-Item -LiteralPath (Join-Path $build $name) -Destination (Join-Path $rel $name) -Recurse -Force
             }
-            if(!$startCtrl){throw 'W20_EMBEDDED_PAPER_START_NOT_ACCESSIBLE'}
-            if(!(Find-W20 'Trade unavailable')){throw 'W20_EMBEDDED_LEGACY_BROKER_VETO_NOT_ACCESSIBLE'}
-            Write-Output '::notice::W20_ACTUAL_EMBEDDED_WEBVIEW2_PAPER_CONTROLS=PASS'
-            # UIA operator selection of ORIGINAL saved strategy, chart symbol,
-            # and fee consent. No direct API Start or synthetic fill injection.
-            function Find-W20Like([string]$fragment){
-              $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-                [System.Windows.Automation.Condition]::TrueCondition)
-              foreach($element in $nodes){
-                if($element.Current.Name -like ('*'+$fragment+'*') -and
-                   !$element.Current.IsOffscreen){return $element}
+            $wh=(Get-FileHash -LiteralPath (Join-Path $rel 'ktrade.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+            $eh=(Get-FileHash -LiteralPath (Join-Path $rel 'ktrade-engine.exe') -Algorithm SHA256).Hash.ToLowerInvariant()
+            function Write-Proof([string]$p,[object]$obj){
+              if(Test-Path -LiteralPath $p){throw 'W17C6_EXISTING_PROOF'}
+              $raw=($obj|ConvertTo-Json -Depth 12 -Compress)+[Environment]::NewLine
+              [IO.File]::WriteAllText($p,$raw,[Text.UTF8Encoding]::new($false))
+            }
+            Write-Proof (Join-Path $rel 'w06-readonly-release.json') ([ordered]@{
+              schema='ktrade.wails.w06.synthetic-readonly-release.v1'; install_id=$nonce;version='v1'
+              wails_exe_sha256=$wh;engine_exe_sha256=$eh;live_armed=$false;paper_orders_enabled=$false
+            })
+            Write-Proof (Join-Path $data 'w06-readonly-data.json') ([ordered]@{
+              schema='ktrade.wails.w06.synthetic-readonly-data.v1';install_id=$nonce;generation=1
+              live_armed=$false;paper_orders_enabled=$false
+            })
+            New-Item -ItemType Directory -Path $preview -Force|Out-Null
+            Write-Proof (Join-Path $preview 'config.json') ([ordered]@{paper_only=$true;chart=@{theme='dark'}})
+            Write-Proof (Join-Path $preview 'trading_pairs.json') ([ordered]@{pairs=@('BTC-USDC')})
+            $v5='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';$v6='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+            $r5='cccccccccccccccccccccccccccccccc';$r6='dddddddddddddddddddddddddddddddd'
+            $index=[ordered]@{schema_version=1;scripts=@{}}
+            $index.scripts[$v5]=@{metadata=@{id=$v5;display_name='Restored Pine v5';kind='indicator'
+              ownership='user';favorite=$true};revision=$r5}
+            $index.scripts[$v6]=@{metadata=@{id=$v6;display_name='Restored Pine v6';kind='strategy'
+              ownership='user';favorite=$false};revision=$r6}
+            $library=Join-Path $preview 'pine-library'
+            New-Item -ItemType Directory -Path $library -Force|Out-Null
+            Write-Proof (Join-Path $library 'index.json') $index
+            foreach($pair in @(@($r5,'5'),@($r6,'6'))){
+              $folder=Join-Path $library ('revisions\'+$pair[0])
+              New-Item -ItemType Directory -Path $folder -Force|Out-Null
+              [IO.File]::WriteAllText((Join-Path $folder 'source.pine'),
+                ('//@version='+$pair[1]+"`nplot(close)"),[Text.UTF8Encoding]::new($false))
+            }
+            Push-Location (Join-Path $src 'tools/wails-pilot')
+            try{
+              $digest=@(& go run -mod=readonly ./cmd/w17c6-preview-digest $preview)
+              if($LASTEXITCODE -ne 0 -or $digest.Count -ne 1 -or $digest[0] -cnotmatch '^[a-f0-9]{64}$'){
+                throw 'W17C6_PREVIEW_DIGEST_STAMP_FAILED'
+              }
+            }finally{Pop-Location}
+            Write-Proof (Join-Path $data 'w17c6-restored-preview-proof.json') ([ordered]@{
+              schema='ktrade.w17c6.synthetic-wails-restored-preview.v1';install_id=$nonce
+              source_full_sha256=('1'*64);preview_sha256=$digest[0]
+              live_armed=$false;paper_orders_enabled=$false
+            })
+            # Explicit synthetic original-port receipt, not a user profile.
+            $probe=[System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback,0)
+            $probe.Start()
+            $legacyPort=([System.Net.IPEndPoint]$probe.LocalEndpoint).Port
+            $probe.Stop()
+            Write-Proof (Join-Path $data 'w17d2-legacy-favorites-origin.json') ([ordered]@{
+              schema='ktrade.w17d2.w06.synthetic-old-origin.v1'
+              install_id=$nonce
+              legacy_port=$legacyPort
+              source_full_sha256=('a'*64)
+              live_armed=$false
+              paper_orders_enabled=$false
+            })
+            Write-Output '::notice::W17D2_SYNTHETIC_EXPLICIT_OLD_ORIGIN_CREATED=PASS'
+
+            # W17D3: prove a real, populated OLD Chromium origin using native
+            # Wails v2 and the exact same verified W06 WebView2 user-data path.
+            # The page's localStorage.setItem runs ONLY after a real UIA click
+            # on its visible "Save historical RSI favorite" button.
+            $oldURL='http://127.0.0.1:'+$legacyPort+'/seed-old-favorite'
+            $legacyLog=Join-Path $env:RUNNER_TEMP 'w17d3-old-http.stdout.log'
+            $legacyErr=Join-Path $env:RUNNER_TEMP 'w17d3-old-http.stderr.log'
+            $node=(Get-Command node).Source
+            $legacyServer=Start-Process -FilePath $node -ArgumentList @(
+              (Join-Path $src 'tests/w17d3_prior_origin_http.cjs'),[string]$legacyPort
+            ) -WorkingDirectory $src -RedirectStandardOutput $legacyLog -RedirectStandardError $legacyErr -PassThru
+            $deadline=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $deadline){
+              if($legacyServer.HasExited){throw 'W17D3_GENUINE_OLD_PORT_SERVER_EXITED'}
+              try{
+                $r=Invoke-WebRequest -Uri $oldURL -TimeoutSec 2
+                if([int]$r.StatusCode -eq 200){break}
+              }catch{}
+              Start-Sleep -Milliseconds 200
+            }
+            if(-not $r -or [int]$r.StatusCode -ne 200){throw 'W17D3_REAL_OLD_ORIGIN_NOT_SERVED'}
+            $legacySeeder=Start-Process -FilePath (Join-Path $build 'w17d3-old-webview2.exe') -ArgumentList @($rel,$oldURL) -WorkingDirectory $rel -PassThru
+            $deadline=(Get-Date).AddSeconds(35)
+            $seedWindow=$false
+            while((Get-Date) -lt $deadline){
+              $legacySeeder.Refresh()
+              if($legacySeeder.HasExited){throw 'W17D3_REAL_WAILS_WEBVIEW2_SEEDER_EXITED'}
+              if($legacySeeder.MainWindowHandle -ne [IntPtr]::Zero){$seedWindow=$true;break}
+              Start-Sleep -Milliseconds 300
+            }
+            if(-not $seedWindow){throw 'W17D3_OLD_WEBVIEW2_SEED_WINDOW_NOT_VISIBLE'}
+            Add-Type -AssemblyName UIAutomationClient -ErrorAction Stop
+            Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+            $w17d3Mouse=@(
+              'using System;',
+              'using System.Runtime.InteropServices;',
+              'public static class W17D3Mouse {',
+              ' [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
+              ' [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();',
+              ' [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);',
+              ' [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr info);',
+              '}'
+            ) -join [Environment]::NewLine
+            Add-Type -TypeDefinition $w17d3Mouse -ErrorAction Stop
+            function Find-W17D3Node([string]$name,[string]$type,[object]$process) {
+              $process.Refresh()
+              if($process.HasExited -or $process.MainWindowHandle -eq [IntPtr]::Zero){return $null}
+              $rootEl=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+              $all=$rootEl.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+              for($i=0;$i -lt [Math]::Min($all.Count,5000);$i++){
+                try{
+                  $e=$all.Item($i)
+                  if(-not $e.Current.IsOffscreen -and $e.Current.Name -ceq $name -and
+                    ($type -eq '' -or $e.Current.ControlType.ProgrammaticName -eq $type)){return $e}
+                }catch{}
               }
               return $null
             }
-            $library=Find-W20 'Open saved Pine library'
-            if(!$library){throw 'W20_DURABLE_PINE_LIBRARY_UI_CONTROL_MISSING'}
-            if($library.Current.IsOffscreen){
-              $pineToggle=Find-W20 'Pine Editor'
-              if(!$pineToggle){throw 'W20_ORIGINAL_PINE_TOGGLE_UNAVAILABLE'}
-              Click-W20 $pineToggle
-              Start-Sleep -Milliseconds 500
-              $library=Find-W20 'Open saved Pine library'
+            $seedButton=$null
+            $deadline=(Get-Date).AddSeconds(30)
+            while((Get-Date) -lt $deadline){
+              $seedButton=Find-W17D3Node 'Save historical RSI favorite' 'ControlType.Button' $legacySeeder
+              if($seedButton){break}
+              Start-Sleep -Milliseconds 350
             }
-            if(!$library -or $library.Current.IsOffscreen){
-              throw 'W20_ORIGINAL_PINE_LIBRARY_NOT_VISIBLE'
+            if(-not $seedButton){throw 'W17D3_ACTUAL_OLD_WEBVIEW2_BUTTON_NOT_ACCESSIBLE'}
+            try{
+              $invoke=$seedButton.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+              $invoke.Invoke()
+            }catch{
+              # Physical mouse event at the exact identified UIA button.
+              $rect=$seedButton.Current.BoundingRectangle
+              $win=[System.Windows.Automation.AutomationElement]::FromHandle($legacySeeder.MainWindowHandle).Current.BoundingRectangle
+              if($rect.IsEmpty -or $rect.Width -lt 16 -or $rect.Height -lt 16 -or
+                $rect.Left -lt $win.Left -or $rect.Top -lt $win.Top -or
+                $rect.Right -gt $win.Right -or $rect.Bottom -gt $win.Bottom){
+                throw 'W17D3_OLD_ORIGIN_BUTTON_OUTSIDE_WAILS_WINDOW'
+              }
+              $x=[int]($rect.Left+$rect.Width/2);$y=[int]($rect.Top+$rect.Height/2)
+              if(-not [W17D3Mouse]::SetForegroundWindow($legacySeeder.MainWindowHandle)){
+                throw 'W17D3_OLD_SEEDER_NOT_FOREGROUND'
+              }
+              Start-Sleep -Milliseconds 200
+              if([W17D3Mouse]::GetForegroundWindow() -ne $legacySeeder.MainWindowHandle){
+                throw 'W17D3_FOREIGN_WINDOW_REFUSED'
+              }
+              if(-not [W17D3Mouse]::SetCursorPos($x,$y)){throw 'W17D3_OLD_WEBVIEW_MOUSE_REFUSED'}
+              [W17D3Mouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W17D3Mouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
             }
-            Click-W20 $library
-            $stored=$null;$limit=(Get-Date).AddSeconds(12)
-            while((Get-Date) -lt $limit){
-              $stored=Find-W20Like 'W20 Candidate Strategy'
-              if($stored){break}
-              Start-Sleep -Milliseconds 400
+            $saved=$null
+            $deadline=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $deadline){
+              $saved=Find-W17D3Node 'Historical RSI favorite saved in genuine WebView2' '' $legacySeeder
+              if($saved){break}
+              Start-Sleep -Milliseconds 350
             }
-            if(!$stored){
-              $samples=@()
-              $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            if(-not $saved){throw 'W17D3_REAL_OLD_BROWSER_LOCALSTORAGE_CLICK_NOT_CONFIRMED'}
+            Write-Output '::notice::W17D3_REAL_OLD_PORT_WEBVIEW2_FAVORITE_CLICKED_AND_STORED=PASS'
+            if(-not $legacySeeder.CloseMainWindow()){throw 'W17D3_SEEDER_CLOSE_FAILED'}
+            if(-not $legacySeeder.WaitForExit(18000)){throw 'W17D3_SEEDER_PROFILE_NOT_CLOSED'}
+            $legacySeeder=$null
+            Stop-Process -Id $legacyServer.Id -Force -ErrorAction Stop
+            $legacyServer.WaitForExit(10000)|Out-Null
+            $legacyServer=$null
+            Start-Sleep -Milliseconds 500
+            if(@(Get-NetTCPConnection -LocalPort $legacyPort -State Listen -ErrorAction SilentlyContinue).Count -ne 0){
+              throw 'W17D3_OLD_ORIGIN_PORT_STILL_OWNED_BY_SEEDER'
+            }
+            Write-Output '::notice::W17D3_REAL_OLD_WEBVIEW2_SEEDER_SHUTDOWN_BEFORE_KTRADE=PASS'
+            $parent=Start-Process -FilePath (Join-Path $rel 'ktrade.exe') -WorkingDirectory $rel -PassThru
+            $window=$false
+            $deadline=(Get-Date).AddSeconds(50)
+            while((Get-Date) -lt $deadline){
+              Start-Sleep -Milliseconds 700
+              $parent.Refresh()
+              if($parent.HasExited){throw 'W17C6_WAILS_EXITED_BEFORE_REAL_WINDOW'}
+              if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(-not $window){throw 'W17C6_REAL_WAILS_WINDOW_NOT_VISIBLE'}
+            Write-Output '::notice::W17D0_GENUINE_WAILS_WEBVIEW2_WINDOW=PASS'
+            # Independent Windows UI Automation tree. The model/view cannot
+            # self-assert successful DOM rendering; actual WebView2 content
+            # must be exposed as visible Windows accessibility elements.
+            Add-Type -AssemblyName UIAutomationClient -ErrorAction Stop
+            Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+            $nativeDefinition=@(
+              'using System;',
+              'using System.Runtime.InteropServices;',
+              'public static class W17D1ANativeClick {',
+              ' [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
+              ' [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();',
+              ' [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);',
+              ' [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr info);',
+              '}'
+            ) -join [Environment]::NewLine
+            Add-Type -TypeDefinition $nativeDefinition -ErrorAction Stop
+            function Assert-VisibleRecoveredScripts([object]$process,[string]$phase) {
+              $sawV5=$false;$sawV6=$false;$sawPanel=$false;$sawDisarm=$false
+              $deadline=(Get-Date).AddSeconds(30)
+              do {
+                $process.Refresh()
+                if($process.HasExited){throw ('W17D0_DESKTOP_EXITED_'+$phase)}
+                try{
+                  $rootElement=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+                  if($null -eq $rootElement){throw 'UIA_ROOT_UNAVAILABLE'}
+                  $nodes=$rootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                  $names=New-Object System.Collections.Generic.List[string]
+                  for($i=0;$i -lt [Math]::Min($nodes.Count,2500);$i++){
+                    try{
+                      $element=$nodes.Item($i)
+                      if(!$element.Current.IsOffscreen -and ![string]::IsNullOrEmpty($element.Current.Name)){
+                        $names.Add([string]$element.Current.Name)
+                      }
+                    }catch{}
+                  }
+                  $namesText=$names -join '|'
+                  $sawPanel= $namesText.Contains('Recovered user data')
+                  $sawV5 = $namesText.Contains('Restored Pine v5')
+                  $sawV6 = $namesText.Contains('Restored Pine v6')
+                  $sawDisarm = $namesText.Contains('financial and unknown data remain inactive')
+                  if($sawPanel -and $sawV5 -and $sawV6 -and $sawDisarm){break}
+                }catch{}
+                Start-Sleep -Milliseconds 500
+              }while((Get-Date) -lt $deadline)
+              if(!$sawPanel -or !$sawV5 -or !$sawV6 -or !$sawDisarm){
+                throw ('W17D0_VISIBLE_WEBVIEW2_ACCESSIBILITY_MISSING_'+$phase)
+              }
+              Write-Output ('::notice::W17D0_UIA_VISIBLE_RESTORED_V5_V6_FAVORITES_'+$phase+'=PASS')
+            }
+            function Get-W17D1AAccessibleButton([object]$process,[string]$name) {
+              $process.Refresh()
+              if($process.HasExited -or $process.MainWindowHandle -eq [IntPtr]::Zero){return $null}
+              $root=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+              if($null -eq $root){return $null}
+              $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
                 [System.Windows.Automation.Condition]::TrueCondition)
-              foreach($element in $nodes){
-                $label=$element.Current.Name
-                if($label -match 'W13|Stored Pine|saved Pine library'){
-                  $samples+=('[UIA]'+$label+';offscreen='+$element.Current.IsOffscreen)
-                  if($samples.Count -ge 8){break}
+              for($i=0;$i -lt [Math]::Min($all.Count,6500);$i++){
+                try {
+                  $e=$all.Item($i)
+                  if($e.Current.IsOffscreen -eq $false -and
+                    $e.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+                    $e.Current.Name -ceq $name){return $e}
+                } catch {}
+              }
+              return $null
+            }
+            function Wait-W17D1AButton([object]$process,[string]$name,[int]$seconds=18) {
+              $deadline=(Get-Date).AddSeconds($seconds)
+              do {
+                $found=Get-W17D1AAccessibleButton $process $name
+                if($null -ne $found){return $found}
+                Start-Sleep -Milliseconds 350
+              } while((Get-Date) -lt $deadline)
+              # Report metadata only from this synthetic fixture, no
+              # browser profile, storage keys, trading actions or credentials.
+              $root=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+              $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              $sample=@()
+              for($i=0;$i -lt [Math]::Min($all.Count,3500);$i++){
+                try{
+                  $e=$all.Item($i)
+                  $n=$e.Current.Name
+                  if($n -and $n -match '^(Indicators|Technicals|Add Relative Strength Index|Remove Relative Strength Index)' -and
+                    $sample.Count -lt 8){$sample+=($e.Current.ControlType.ProgrammaticName+':'+$n)}
+                }catch{}
+              }
+              Write-Output ('::warning::W17D1A_NATIVE_UIA_VISIBLE_BUTTON_MISSING='+$name+' NODE_COUNT='+$all.Count+
+                ' MATCHING_SYNTHETIC_LABELS='+($sample -join ','))
+              throw 'W17D1A_ORIGINAL_WEBVIEW2_CHART_ACCESSIBILITY_NOT_EXPOSED'
+            }
+            function Invoke-W17D1AButton([object]$element,[string]$description,[object]$process) {
+              try{
+                $pattern=$element.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+                $pattern.Invoke()
+                return
+              }catch{
+                # Native WebView2 can expose HTML buttons to accessibility
+                # without supporting InvokePattern on every nested iframe.
+                # The fallback is an actual user keyboard action on the
+                # precisely identified, visible and focusable UIA control.
+                if($description -ceq 'ORIGINAL_FAVORITE_STAR' -and
+                   $null -ne (Get-W17D1AAccessibleButton $process 'Remove Relative Strength Index from favorites')){
+                  return
+                }
+                try{
+                  if($element.Current.IsOffscreen -or -not $element.Current.IsKeyboardFocusable){
+                    throw 'UIA_TARGET_NOT_KEYBOARD_FOCUSABLE'
+                  }
+                  $element.SetFocus()
+                  [System.Windows.Forms.SendKeys]::SendWait(' ')
+                  Start-Sleep -Milliseconds 150
+                  Write-Output ('::notice::W17D1A_REAL_UIA_FOCUSED_KEYBOARD_BUTTON='+$description)
+                  if($description -ceq 'ORIGINAL_FAVORITE_STAR' -and
+                     $null -eq (Get-W17D1AAccessibleButton $process 'Remove Relative Strength Index from favorites')){
+                    # The exact native UIA browser button is visible but
+                    # WebView2 did not accept either InvokePattern or SPACE.
+                    # Fall back to a *real Windows mouse* at its bounded
+                    # UIA rectangle, never DOM eval, JavaScript or storage
+                    # mutation. The following asserted state still decides.
+                    $rect=$element.Current.BoundingRectangle
+                    $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
+                      $process.MainWindowHandle).Current.BoundingRectangle
+                    if($rect.IsEmpty -or $rect.Width -lt 10 -or $rect.Height -lt 10 -or
+                       $rect.Width -gt 160 -or $rect.Height -gt 160 -or
+                       $rect.Left -lt $outer.Left -or $rect.Top -lt $outer.Top -or
+                       $rect.Right -gt $outer.Right -or $rect.Bottom -gt $outer.Bottom){
+                       throw 'W17D1A_MOUSE_CLICK_OUTSIDE_ORIGINAL_UIA_BUTTON'
+                    }
+                    $x=[int]($rect.Left+$rect.Width/2)
+                    $y=[int]($rect.Top+$rect.Height/2)
+                    if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                       throw 'W17D1A_DISPOSABLE_WAILS_NOT_FOREGROUND'
+                    }
+                    Start-Sleep -Milliseconds 120
+                    if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                       throw 'W17D1A_FOREIGN_WINDOWS_WINDOW_REFUSED'
+                    }
+                    if(-not [W17D1ANativeClick]::SetCursorPos($x,$y)){
+                       throw 'W17D1A_NATIVE_POINTER_TARGET_REFUSED'
+                    }
+                    [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+                    [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+                    Start-Sleep -Milliseconds 300
+                    Write-Output '::notice::W17D1A_NATIVE_WAILS_EXACT_UIA_BUTTON_MOUSE_ACTIVATION=EXECUTED'
+                  }
+                }catch{
+                  throw ('W17D1A_NATIVE_BUTTON_INVOKE_AND_KEYBOARD_NOT_SUPPORTED_'+$description)
                 }
               }
-              Write-Output ('::warning::W20_SAVED_LIBRARY_UIA_DIAGNOSTIC='+($samples -join '|'))
-              throw 'W20_CANONICAL_SAVED_STRATEGY_NOT_IN_REAL_WEBVIEW2'
             }
-            Click-W20 $stored
-            $savedUI=Find-W20Like 'W20 Candidate Strategy'
-            if(!$savedUI){throw 'W20_SAVED_STRATEGY_NOT_REFLECTED_IN_EMBEDDED_EDITOR'}
-            Write-Output '::notice::W20_REAL_EMBEDDED_SAVED_PINE_LIBRARY_SELECTED=PASS'
-            $header=Find-W20Like 'BTCUSD'
-            if(!$header){$header=Find-W20Like 'BTC-USD'}
-            if(!$header){throw 'W20_ORIGINAL_SYMBOL_PICKER_NOT_ACCESSIBLE'}
-            Click-W20 $header
-            $usdc=$null;$limit=(Get-Date).AddSeconds(12)
-            while((Get-Date) -lt $limit){
-              # Choose the exact accessible market TEXT node, not a modal
-              # container whose descendant name happens to include BTC-USDC.
-              $usdc=Find-W20 'BTC-USDC'
-              if($usdc -and !$usdc.Current.IsOffscreen){break}
-              $usdc=$null
+            function Assert-W17D1AChartFavorite([object]$process,[string]$phase) {
+              $indicator=Wait-W17D1AButton $process 'Indicators'
+              Invoke-W17D1AButton $indicator 'OPEN_INDICATORS' $process
+              $category=Wait-W17D1AButton $process 'Technicals'
+              Invoke-W17D1AButton $category 'TECHNICALS_CATEGORY' $process
+              if($phase -ceq 'WRITE'){
+                $star=Wait-W17D1AButton $process 'Add Relative Strength Index to favorites'
+                Invoke-W17D1AButton $star 'ORIGINAL_FAVORITE_STAR' $process
+              }
+              # This is an actual original chart DOM button rendered inside
+              # the real WebView2 iframe, never a synthetic Wails host label.
+              $active=Wait-W17D1AButton $process 'Remove Relative Strength Index from favorites'
+              if($null -eq $active){throw 'W17D1A_ACTIVE_FAVORITE_BUTTON_ABSENT'}
+              if($phase -ceq 'WRITE'){
+                Write-Output '::notice::W17D1A_NATIVE_ORIGINAL_IFRAME_ADD_TO_REMOVE_STATE=PASS'
+              }else{
+                Write-Output '::notice::W17D1A_COLD_ORIGINAL_IFRAME_RETURNS_ACTIVE_FAVORITE=PASS'
+              }
+            }
+            Assert-VisibleRecoveredScripts $parent 'FIRST_LAUNCH'
+            $engine=Join-Path $rel 'ktrade-engine.exe'
+            $deadline=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $deadline){
+              $child=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'"|Where-Object{
+                $_.ExecutablePath -ieq $engine -and $_.ParentProcessId -eq $parent.Id
+              })
+              if($child.Count -eq 1){break}
               Start-Sleep -Milliseconds 300
             }
-            if(!$usdc){throw 'W20_ORIGINAL_USDC_MARKET_NOT_ACCESSIBLE'}
-            $rect=$usdc.Current.BoundingRectangle
-            if($rect.Width -lt 3 -or $rect.Height -lt 3){throw 'W20_USDC_SYMBOL_UIA_TEXT_HAS_NO_RECTANGLE'}
-            $ux=[int]($rect.Left+[math]::Min(15,$rect.Width/2))
-            $uy=[int]($rect.Top+$rect.Height/2)
-            if(![W20Mouse]::SetCursorPos($ux,$uy)){throw 'W20_SYMBOL_OS_POINTER_REFUSED'}
-            [W20Mouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
-            [W20Mouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
-            $usdcSelected=$null;$limit=(Get-Date).AddSeconds(5)
-            while((Get-Date) -lt $limit){
-              $usdcSelected=Find-W20Like 'BTCUSDC'
-              if($usdcSelected){break}
+            if($child.Count -ne 1){throw 'W17C6_EXPECTED_ONE_DISARMED_GO_CHILD'}
+            $listeners=@(Get-NetTCPConnection -State Listen -OwningProcess $child[0].ProcessId -ErrorAction SilentlyContinue)
+            if($listeners.Count -ne 1 -or $listeners[0].LocalAddress -cne '127.0.0.1'){
+              throw 'W17C6_LOOPBACK_ONLY_REQUIRED'
+            }
+            $http=[System.Net.Http.HttpClient]::new()
+            $firstPort=[int]$listeners[0].LocalPort
+            if($firstPort -lt 42000 -or $firstPort -ge 47000){
+              throw 'W17D0_SYNTHETIC_FIXED_ORIGIN_OUT_OF_RANGE'
+            }
+            $base='http://127.0.0.1:'+$listeners[0].LocalPort
+            Write-Output '::notice::W17D0_NATIVE_W06_HOST_FIRST_FIXED_ORIGIN=PASS'
+            $legacyListener=@(Get-NetTCPConnection -LocalPort $legacyPort -State Listen -ErrorAction SilentlyContinue|
+              Where-Object{ $_.LocalAddress -eq '127.0.0.1' -and $_.OwningProcess -eq $parent.Id })
+            if($legacyListener.Count -ne 1){throw 'W17D2_ORIGINAL_WEBVIEW2_HOST_LEGACY_PORT_MISSING'}
+            $deny=Invoke-WebRequest -Uri ('http://127.0.0.1:'+$legacyPort+'/w17d2-favorites-bridge?ticket=incorrect') -SkipHttpErrorCheck
+            if([int]$deny.StatusCode -ne 423){throw 'W17D2_UNTICKETED_OLD_ORIGIN_REQUEST_ACCEPTED'}
+            Write-Output '::notice::W17D2_REAL_WAILS_SINGLE_OLD_PORT_READONLY_REJECTION=PASS'
+            # No chart-star click and no JavaScript/storage injection here:
+            # the active state MUST arrive automatically from the seeded
+            # OLD origin through W17D2's authenticated bridge.
+            Assert-W17D1AChartFavorite $parent 'REOPEN'
+            Write-Output '::notice::W17D3_POPULATED_OLD_BROWSER_ORIGIN_AUTOMATICALLY_IMPORTED_IN_REAL_WAILS=PASS'
+            $base='http://127.0.0.1:'+$listeners[0].LocalPort
+            $cap=$http.GetAsync($base+'/api/operator/capabilities').GetAwaiter().GetResult()
+            $caps=$cap.Content.ReadAsStringAsync().GetAwaiter().GetResult()|ConvertFrom-Json
+            if([int]$cap.StatusCode -ne 200 -or $caps.mode -cne 'PAPER_STOPPED' -or
+              $caps.paper_orders_enabled -ne $false -or $caps.live_orders_enabled -ne $false -or
+              $caps.strategy_execution_enabled -ne $false){
+              throw 'W17C6_BACKEND_NOT_EXPLICITLY_DISARMED'
+            }
+            $blocked=$http.PostAsync($base+'/api/orders/place',[System.Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+            if([int]$blocked.StatusCode -ne 423){throw 'W17C6_LEGACY_ORDER_ROUTE_UNLOCKED'}
+            Write-Output '::notice::W17D0_REAL_GO_CHILD_AND_ORDER_ROUTES_DISARMED=PASS'
+            # No privileged WebView2 DOM/screenshot capture: the desktop
+            # displayed preview text itself is not yet independently certified.
+            # Genuine native WebView2 accessibility: no DOM injection, CDP or storage writes.
+            function Assert-W17D4Selected([object]$process,[string]$value) {
+              $btn=Wait-W17D1AButton $process $value
+              if($null -eq $btn){throw ('W17D4_REAL_CHART_TIMEFRAME_NOT_VISIBLE_'+$value)}
+              try{
+                $pat=[System.Windows.Automation.TogglePattern]$btn.GetCurrentPattern(
+                  [System.Windows.Automation.TogglePattern]::Pattern)
+                if($pat.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){
+                  throw 'W17D4_SELECTED_TOGGLE_STATE_NOT_ON'
+                }
+              }catch{
+                throw ('W17D4_NATIVE_TIMEFRAME_SELECTED_STATE_NOT_PROVEN_'+$value+':'+$_.Exception.Message)
+              }
+              $first=Wait-W17D1AButton $process '1m'
+              $p1=[System.Windows.Automation.TogglePattern]$first.GetCurrentPattern(
+                [System.Windows.Automation.TogglePattern]::Pattern)
+              $want=if($value -ceq '1m'){
+                [System.Windows.Automation.ToggleState]::On
+              }else{
+                [System.Windows.Automation.ToggleState]::Off
+              }
+              if($p1.Current.ToggleState -ne $want){
+                throw 'W17D4_DEFAULT_TIMEFRAME_SELECTION_CONFLICT'
+              }
+              Write-Output ('::notice::W17D4_NATIVE_WAILS_CHART_TIMEFRAME_'+$value+'=PASS')
+            }
+            function Click-W17D4NativeButton([object]$process,[string]$value) {
+              $btn=Wait-W17D1AButton $process $value
+              $rect=$btn.Current.BoundingRectangle
+              $bounds=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle).Current.BoundingRectangle
+              if($rect.IsEmpty -or $rect.Width -lt 15 -or $rect.Height -lt 15 -or
+                 $rect.Width -gt 160 -or $rect.Height -gt 100 -or
+                 $rect.Left -lt $bounds.Left -or $rect.Top -lt $bounds.Top -or
+                 $rect.Right -gt $bounds.Right -or $rect.Bottom -gt $bounds.Bottom){
+                throw 'W17D4_CHART_BUTTON_OUTSIDE_GENUINE_WAILS'
+              }
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D4_FOREGROUND_WAILS_REQUIRED'
+              }
+              Start-Sleep -Milliseconds 150
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D4_FOREIGN_FOCUS_REFUSED'
+              }
+              if(-not [W17D1ANativeClick]::SetCursorPos(
+                [int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){
+                throw 'W17D4_MOUSE_POINTER_REFUSED'
+              }
+              [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 350
+              Assert-W17D4Selected $process $value
+            }
+            # The Indicators overlay is initially open; native foreground
+            # custody and disappearance of its accessible star are mandatory.
+            # The user-visible chart dialog must be explicitly closed by its
+            # genuine accessible button, not ESC sent to a possibly foreign focus.
+            function Close-W17D4Indicators([object]$process) {
+              $close=Wait-W17D1AButton $process 'Close indicators'
+              if($null -eq $close){throw 'W17D4_VISIBLE_NATIVE_MODAL_CLOSE_BUTTON_MISSING'}
+              $rect=$close.Current.BoundingRectangle
+              $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
+                 $process.MainWindowHandle).Current.BoundingRectangle
+              if($rect.IsEmpty -or $rect.Width -lt 10 -or $rect.Height -lt 10 -or
+                 $rect.Width -gt 110 -or $rect.Height -gt 110 -or
+                 $rect.Left -lt $outer.Left -or $rect.Top -lt $outer.Top -or
+                 $rect.Right -gt $outer.Right -or $rect.Bottom -gt $outer.Bottom){
+                throw 'W17D4_NATIVE_MODAL_CLOSE_OUTSIDE_VERIFIED_WAILS'
+              }
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D4_WAILS_MODAL_FOREGROUND_REQUIRED'
+              }
+              Start-Sleep -Milliseconds 150
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D4_FOREIGN_WINDOW_REFUSED_BEFORE_CLOSE'
+              }
+              if(-not [W17D1ANativeClick]::SetCursorPos(
+                 [int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){
+                throw 'W17D4_CLOSE_BUTTON_NATIVE_POINTER_REFUSED'
+              }
+              [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              $deadline=(Get-Date).AddSeconds(8)
+              do {
+                $star=Get-W17D1AAccessibleButton $process 'Remove Relative Strength Index from favorites'
+                $closedButton=Get-W17D1AAccessibleButton $process 'Close indicators'
+                if($null -eq $star -and $null -eq $closedButton){
+                  Write-Output '::notice::W17D4_ORIGINAL_NATIVE_CLOSE_INDICATORS_CLICKED_AND_VERIFIED=PASS'
+                  return
+                }
+                Start-Sleep -Milliseconds 200
+              } while((Get-Date) -lt $deadline)
+              throw 'W17D4_NATIVE_MODAL_CLOSE_DID_NOT_DISMISS_OVERLAY'
+            }
+            # W17D5: enforce native UI Automation state of the actual
+            # original chart's volume-pane control, not a host-emulated label.
+            function Assert-W17D5Pane([object]$process,[int]$percent) {
+              if($percent -notin @(28,40)){throw 'W17D5_UNEXPECTED_TEST_LAYOUT'}
+              $name=if($percent -eq 40){'Restore standard volume pane'}else{'Expand volume pane'}
+              $btn=Wait-W17D1AButton $process $name
+              if($null -eq $btn){throw ('W17D5_NATIVE_CHART_VOLUME_CONTROL_ABSENT_'+$percent)}
+              try {
+                $toggle=[System.Windows.Automation.TogglePattern]$btn.GetCurrentPattern(
+                  [System.Windows.Automation.TogglePattern]::Pattern)
+                $wanted=if($percent -eq 40){
+                  [System.Windows.Automation.ToggleState]::On
+                }else{
+                  [System.Windows.Automation.ToggleState]::Off
+                }
+                if($toggle.Current.ToggleState -ne $wanted){
+                  throw 'W17D5_WRONG_VOLUME_PANE_TOGGLE_STATE'
+                }
+              } catch {
+                throw ('W17D5_NATIVE_VOLUME_PANE_ACCESSIBILITY_NOT_PROVEN_'+$percent+
+                       ':'+$_.Exception.Message)
+              }
+              Write-Output ('::notice::W17D5_REAL_WEBVIEW2_VOLUME_PANE_'+$percent+'=PASS')
+            }
+            function Click-W17D5Pane([object]$process,[int]$from,[int]$to) {
+              $name=if($from -eq 40){'Restore standard volume pane'}else{'Expand volume pane'}
+              $btn=Wait-W17D1AButton $process $name
+              $rect=$btn.Current.BoundingRectangle
+              $bounds=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle).Current.BoundingRectangle
+              if($rect.IsEmpty -or $rect.Width -lt 25 -or $rect.Height -lt 12 -or
+                 $rect.Width -gt 220 -or $rect.Height -gt 80 -or
+                 $rect.Left -lt $bounds.Left -or $rect.Top -lt $bounds.Top -or
+                 $rect.Right -gt $bounds.Right -or $rect.Bottom -gt $bounds.Bottom){
+                throw 'W17D5_VOLUME_PANE_NATIVE_CLICK_BOUNDS_REFUSED'
+              }
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D5_WAILS_FOREGROUND_CUSTODY_REQUIRED'
+              }
+              Start-Sleep -Milliseconds 150
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D5_FOREIGN_FOCUS_REFUSED'
+              }
+              if(-not [W17D1ANativeClick]::SetCursorPos(
+                 [int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){
+                throw 'W17D5_NATIVE_POINTER_REFUSED'
+              }
+              [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 300
+              Assert-W17D5Pane $process $to
+            }
+            # W17D6: original chart drawing creation is native Windows user input.
+            # No WebView2 DOM eval, direct storage writes, CDP or mocked chart action.
+            function Click-W17D6Button([object]$process,[string]$name) {
+              $button=Wait-W17D1AButton $process $name
+              $r=$button.Current.BoundingRectangle
+              $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle).Current.BoundingRectangle
+              # The exact saved-line removal button occupies the editor width,
+              # unlike compact toolbar buttons; never relax outer-window custody.
+              $limit=if($name -ceq 'Remove horizontal line at 42500'){480}else{250}
+              if($r.IsEmpty -or $r.Width -lt 14 -or $r.Height -lt 12 -or
+                 $r.Width -gt $limit -or $r.Height -gt 125 -or
+                 $r.Left -lt $outer.Left -or $r.Top -lt $outer.Top -or
+                 $r.Right -gt $outer.Right -or $r.Bottom -gt $outer.Bottom){
+                throw ('W17D6_NATIVE_BUTTON_OUTSIDE_WAILS_'+$name)
+              }
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D6_WAILS_FOREGROUND_CUSTODY_REQUIRED'
+              }
+              Start-Sleep -Milliseconds 180
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D6_FOREIGN_FOCUS_REFUSED'
+              }
+              if(-not [W17D1ANativeClick]::SetCursorPos(
+                [int]($r.Left+$r.Width/2),[int]($r.Top+$r.Height/2))){
+                throw 'W17D6_NATIVE_POINTER_REFUSED'
+              }
+              [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
               Start-Sleep -Milliseconds 200
             }
-            if(!$usdcSelected){
-              $marketNames=@()
-              $buttons=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-                [System.Windows.Automation.PropertyCondition]::new(
-                 [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-                 [System.Windows.Automation.ControlType]::Button))
-              foreach($button in $buttons){
-                $name=$button.Current.Name
-                if($name -match 'BTC|USDC|Coinbase'){
-                  $marketNames+=($name+';offscreen='+$button.Current.IsOffscreen)
-                  if($marketNames.Count -ge 8){break}
+            function Assert-W17D6Drawing([object]$process,[bool]$exists) {
+              $name='Remove horizontal line at 42500'
+              if($exists){
+                if($null -eq (Wait-W17D1AButton $process $name)){
+                  throw 'W17D6_REAL_ORIGINAL_LINE_NOT_LISTED'
+                }
+              }else{
+                Start-Sleep -Milliseconds 450
+                if($null -ne (Get-W17D1AAccessibleButton $process $name)){
+                  throw 'W17D6_DELETED_LINE_REAPPEARED'
                 }
               }
-              Write-Output ('::warning::W20_USDC_PICKER_UIA_READBACK='+($marketNames -join '|'))
-              throw 'W20_ORIGINAL_CHART_USDC_SELECTION_NOT_REFLECTED'
+              Write-Output ('::notice::W17D6_NATIVE_SAVED_ORIGINAL_LINE_PRESENT_'+$exists+'=PASS')
             }
-            Write-Output '::notice::W20_REAL_WEBVIEW2_USDC_MARKET_SELECTED=PASS'
-            $feeAck=$null
-            $checkboxes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-              [System.Windows.Automation.PropertyCondition]::new(
-               [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-               [System.Windows.Automation.ControlType]::CheckBox))
-            foreach($check in $checkboxes){
-              if($check.Current.Name -match 'Fee estimate|exchange quote'){$feeAck=$check;break}
-            }
-            if(!$feeAck){throw 'W20_SIMULATED_FEE_ACK_CHECKBOX_MISSING'}
-            $toggleCheck=$null
-            if(!$feeAck.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$toggleCheck)){
-              throw 'W20_REAL_EMBEDDED_FEE_CHECKBOX_NOT_TOGGLEABLE'
-            }
-            $toggle=[System.Windows.Automation.TogglePattern]$toggleCheck
-            if($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){
-              # WebView2's UIA TogglePattern can report an operation without
-              # producing the DOM click event. Use real Windows pointer input
-              # once on the exact accessible <input type=checkbox> rectangle.
-              $rect=$feeAck.Current.BoundingRectangle
-              if($feeAck.Current.IsOffscreen -or $rect.Width -lt 2 -or $rect.Height -lt 2){
-                throw 'W20_REAL_FEE_CHECKBOX_NOT_VISIBLE'
-              }
-              $x=[int]($rect.Left+$rect.Width/2)
-              $y=[int]($rect.Top+$rect.Height/2)
-              if(![W20Mouse]::SetCursorPos($x,$y)){throw 'W20_FEE_ACK_OS_POINTER_REFUSED'}
-              [W20Mouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
-              [W20Mouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
-              Start-Sleep -Milliseconds 450
-            }
-            $refreshed=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-              [System.Windows.Automation.PropertyCondition]::new(
-               [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-               [System.Windows.Automation.ControlType]::CheckBox))
-            $verified=$false
-            foreach($box in $refreshed){
-              if($box.Current.Name -match 'Fee estimate|exchange quote'){
-                $pattern=$null
-                if($box.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$pattern)){
-                  $verified=([System.Windows.Automation.TogglePattern]$pattern).Current.ToggleState -eq
-                    [System.Windows.Automation.ToggleState]::On
-                }
-                break
+            function W17D6OpenDrawingEditor([object]$process) {
+              Click-W17D6Button $process 'Horizontal Line'
+              if($null -eq (Wait-W17D1AButton $process 'Save horizontal line')){
+                throw 'W17D6_ORIGINAL_CHART_DRAWING_EDITOR_NOT_VISIBLE'
               }
             }
-            if(!$verified){throw 'W20_REAL_EMBEDDED_SIMULATED_FEE_ACK_NOT_SET'}
-            Write-Output '::notice::W20_REAL_WEBVIEW2_FEE_ACK_TOGGLE_ON=PASS'
-            if(!$startCtrl.Current.IsEnabled){throw 'W20_PAPER_START_DISABLED_AFTER_CANONICAL_SETUP'}
-            Click-W20 $startCtrl
-            $running=$false;$limit=(Get-Date).AddSeconds(16)
-            while((Get-Date) -lt $limit){
-              Start-Sleep -Milliseconds 450
-              $s=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
-              if($s.mode -ceq 'PAPER_ISOLATED_RUNNING'){
-                if($s.paper_orders_enabled -ne $true -or $s.live_armed -ne $false -or
-                   $s.durable_custody_enabled -ne $true){throw 'W20_RUNNING_WITHOUT_TRADEGUARD_CUSTODY'}
-                $running=$true;break
-              }
-            }
-            if(!$running){
-              $statusNodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            function W17D6CreateLine([object]$process) {
+              W17D6OpenDrawingEditor $process
+              $rootEl=[System.Windows.Automation.AutomationElement]::FromHandle(
+                 $process.MainWindowHandle)
+              $nodes=$rootEl.FindAll([System.Windows.Automation.TreeScope]::Descendants,
                 [System.Windows.Automation.Condition]::TrueCondition)
-              $messages=@()
-              foreach($node in $statusNodes){
-                $name=$node.Current.Name
-                if($name -match 'Paper operation|Save a user|PAPER_|Fresh isolated|Select a Coinbase|Explicitly acknowledge|source or market|fee|TradeGuard'){
-                  $safe=[regex]::Replace($name,'(?i)[A-Za-z]:\\[^\s]+','[REDACTED]')
-                  if($safe.Length -gt 180){$safe=$safe.Substring(0,180)}
-                  $messages+= $safe
-                  if($messages.Count -ge 6){break}
+              $edit=$null
+              for($i=0;$i -lt [Math]::Min($nodes.Count,6500);$i++){
+                try{
+                  $el=$nodes.Item($i)
+                  if(-not $el.Current.IsOffscreen -and
+                     $el.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and
+                     $el.Current.Name -ceq 'Horizontal line price'){$edit=$el;break}
+                }catch{}
+              }
+              if(!$edit){throw 'W17D6_REAL_PRICE_EDIT_NOT_EXPOSED'}
+              if(!$edit.Current.IsKeyboardFocusable){throw 'W17D6_PRICE_EDIT_NOT_FOCUSABLE'}
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D6_WAILS_PRICE_ENTRY_FOREGROUND_REQUIRED'
+              }
+              Start-Sleep -Milliseconds 150
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D6_PRICE_ENTRY_FOREIGN_WINDOW_REFUSED'
+              }
+              $value=$edit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+              if(-not $value.Current.IsReadOnly){
+                # SetValue targets the real WebView2 accessible Edit control,
+                # never JavaScript/DOM/localStorage injection.
+                try{$value.SetValue('42500')}catch{}
+              }
+              if($value.Current.Value -cne '42500'){
+                $edit.SetFocus()
+                [System.Windows.Forms.SendKeys]::SendWait('^a')
+                [System.Windows.Forms.SendKeys]::SendWait('42500')
+                Start-Sleep -Milliseconds 250
+              }
+              if($value.Current.Value -cne '42500'){
+                throw 'W17D6_NATIVE_PRICE_INPUT_NOT_CONFIRMED'
+              }
+              Write-Output '::notice::W17D6_REAL_NATIVE_WEBVIEW2_PRICE_EDIT_42500=PASS'
+              Click-W17D6Button $process 'Save horizontal line'
+              Assert-W17D6Drawing $process $true
+              Write-Output '::notice::W17D6_GENUINE_ORIGINAL_CHART_PRICE_LINE_USER_CREATED=PASS'
+            }
+            # W17D7: actual original Wails Windows UIA price-chart click points.
+            # Two native pointer events, no DOM, CDP, canvas JS or localStorage writes.
+            function Click-W17D7Named([object]$process,[string]$name) {
+              Write-Output ('::notice::W17D7_GENUINE_BUTTON_LOOKUP_'+$name)
+              $button=$null
+              if($name -ceq 'Manage trendlines'){
+                # WebView2 can expose the visible title "Drawings" instead
+                # of the supplied aria-label; insist on its exact original
+                # position directly below the native Trend Line tool.
+                $button=Get-W17D1AAccessibleButton $process 'Manage trendlines'
+                if($null -eq $button){
+                  $button=Get-W17D1AAccessibleButton $process 'Drawings'
+                }
+                if($null -eq $button){
+                  throw 'W17D7_FIXED_ORIGINAL_DRAWINGS_BUTTON_NOT_EXPOSED'
+                }
+                $trend=Wait-W17D1AButton $process 'Trend Line'
+                $b=$button.Current.BoundingRectangle
+                $a=$trend.Current.BoundingRectangle
+                if($b.IsEmpty -or [Math]::Abs($b.Left-$a.Left) -gt 8 -or
+                   $b.Top -lt $a.Bottom-4 -or $b.Top -gt $a.Bottom+16){
+                  throw 'W17D7_DRAWINGS_BUTTON_NOT_ADJACENT_TO_ORIGINAL_TOOL'
+                }
+                Write-Output ('::notice::W17D7_MANAGER_ACCESSIBLE_NAME='+$button.Current.Name)
+              }else{
+                $button=Wait-W17D1AButton $process $name
+              }
+              $r=$button.Current.BoundingRectangle
+              $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle).Current.BoundingRectangle
+              $min=if($name -ceq 'Close trendlines'){4}else{12}
+              $max=if($name -ceq 'Remove trendline 1'){450}else{250}
+              if($r.IsEmpty -or $r.Width -lt $min -or $r.Height -lt $min -or
+                 $r.Width -gt $max -or $r.Height -gt 125 -or
+                 $r.Left -lt $outer.Left -or $r.Top -lt $outer.Top -or
+                 $r.Right -gt $outer.Right -or $r.Bottom -gt $outer.Bottom){
+                throw ('W17D7_NATIVE_BUTTON_OUTSIDE_WAILS_'+$name)
+              }
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D7_ORIGINAL_WAILS_FOREGROUND_REQUIRED'
+              }
+              Start-Sleep -Milliseconds 125
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D7_FOREIGN_WINDOW_FOCUS_REFUSED'
+              }
+              if(-not [W17D1ANativeClick]::SetCursorPos(
+                [int]($r.Left+$r.Width/2),[int]($r.Top+$r.Height/2))){
+                throw 'W17D7_MOUSE_POINTER_REFUSED'
+              }
+              [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 260
+            }
+            function W17D7ReadNativeStatus([object]$process) {
+              $root=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle)
+              $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              $visibleStates=@()
+              for($i=0;$i -lt [Math]::Min($nodes.Count,6500);$i++){
+                try {
+                  $el=$nodes.Item($i)
+                  $name=$el.Current.Name
+                  if(-not $el.Current.IsOffscreen -and $name -and
+                     $name -match '^(Trendlines ready|Select first chart point|First point selected|Choose a candle position|Second point must|Trendline saved|Trendline not saved|Drawing data unavailable|Unknown drawing schema)' -and
+                     $visibleStates.Count -lt 5){
+                    $visibleStates+=($name.Substring(0,[Math]::Min(115,$name.Length)))
+                  }
+                }catch{}
+              }
+              Write-Output ('::notice::W17D7_NATIVE_VISIBLE_STATUS='+($visibleStates -join '|'))
+            }
+            function W17D7OpenManager([object]$process) {
+              Click-W17D7Named $process 'Manage trendlines'
+              Start-Sleep -Milliseconds 400
+              $close=Get-W17D1AAccessibleButton $process 'Close trendlines'
+              if($null -eq $close){
+                # Invoke only the exact real WebView2 UI Automation toolbar
+                # button. This is an authenticated native UI action, not
+                # script injection or direct browser storage manipulation.
+                $manager=Get-W17D1AAccessibleButton $process 'Manage trendlines'
+                if($null -eq $manager){
+                  $manager=Get-W17D1AAccessibleButton $process 'Drawings'
+                }
+                if($null -ne $manager){
+                  try{
+                    $invoke=[System.Windows.Automation.InvokePattern]$manager.GetCurrentPattern(
+                      [System.Windows.Automation.InvokePattern]::Pattern)
+                    $invoke.Invoke()
+                    Write-Output '::notice::W17D7_REAL_NATIVE_TOOLBAR_INVOKEPATTERN_RETRY'
+                  }catch{
+                    Write-Output ('::notice::W17D7_REAL_NATIVE_INVOKE_UNAVAILABLE_'+$_.Exception.GetType().Name)
+                  }
+                }
+                Start-Sleep -Milliseconds 500
+                $close=Get-W17D1AAccessibleButton $process 'Close trendlines'
+              }
+              if($null -eq $close){
+                W17D7ReadNativeStatus $process
+                throw 'W17D7_ORIGINAL_DRAWINGS_MODAL_NOT_VISIBLE_AFTER_REAL_NATIVE_ACTIONS'
+              }
+              Write-Output '::notice::W17D7_REAL_ORIGINAL_NATIVE_DRAWINGS_MODAL_VISIBLE=PASS'
+            }
+            function W17D7CloseManager([object]$process) {
+              Click-W17D7Named $process 'Close trendlines'
+              Start-Sleep -Milliseconds 120
+              if($null -ne (Get-W17D1AAccessibleButton $process 'Close trendlines')){
+                throw 'W17D7_REAL_NATIVE_DRAWINGS_MANAGER_STILL_OPEN'
+              }
+            }
+            function W17D7AssertLine([object]$process,[bool]$exists) {
+              if($exists){
+                if($null -eq (Wait-W17D1AButton $process 'Remove trendline 1')){
+                  throw 'W17D7_SAVED_REAL_TRENDLINE_NOT_PRESENT'
+                }
+              } else {
+                Start-Sleep -Milliseconds 250
+                if($null -ne (Get-W17D1AAccessibleButton $process 'Remove trendline 1')){
+                  throw 'W17D7_DELETED_TRENDLINE_WAS_RESTORED'
                 }
               }
-              Write-Output ('::warning::W20_EMBEDDED_START_STATUS_DIAGNOSTIC='+($messages -join ' | '))
-              Write-Output ('::warning::W20_START_STATE_MODE='+$s.mode+';custody='+$s.durable_custody_enabled+';fills='+$s.fill_count)
-              throw 'W20_ACTUAL_WEBVIEW2_OPERATOR_PAPER_START_NOT_ADMITTED'
+              Write-Output ('::notice::W17D7_REAL_ORIGINAL_CHART_TRENDLINE_PRESENT_'+$exists+'=PASS')
             }
-            Write-Output '::notice::W20_GUI_START_ESTABLISHED_ORIGINAL_DURABLE_PAPER_OWNER=PASS'
-            $evaluateCtrl=Find-W20 'Evaluate final bar'
-            if(!$evaluateCtrl){throw 'W20_NATIVE_EVALUATION_CONTROL_MISSING'}
-            if($evaluateCtrl.Current.IsEnabled){Click-W20 $evaluateCtrl}
-            $limit=(Get-Date).AddSeconds(14);$filled=$null
-            while((Get-Date) -lt $limit){
-              Start-Sleep -Milliseconds 400
-              $s=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
-              if($s.fill_count -ge 1){$filled=$s;break}
+            function W17D7DrawUsingOriginalPriceChart([object]$process) {
+              Click-W17D7Named $process 'Trend Line'
+              $realTool=Wait-W17D1AButton $process 'Trend Line'
+              try {
+                $toggle=[System.Windows.Automation.TogglePattern]$realTool.GetCurrentPattern(
+                  [System.Windows.Automation.TogglePattern]::Pattern)
+                if($toggle.Current.ToggleState -ne [System.Windows.Automation.ToggleState]::On){
+                  W17D7ReadNativeStatus $process
+                  throw 'W17D7_GENUINE_ORIGINAL_TRENDLINE_TOOL_NOT_ARMED'
+                }
+                Write-Output '::notice::W17D7_GENUINE_WEBVIEW2_TRENDLINE_TOGGLE_ARMED=PASS'
+              }catch{
+                if($_.Exception.Message -like '*W17D7_GENUINE_ORIGINAL_TRENDLINE_TOOL_NOT_ARMED*'){throw}
+                Write-Output ('::notice::W17D7_ORIGINAL_TOOL_TOGGLE_PATTERN_UNAVAILABLE_'+$_.Exception.GetType().Name)
+              }
+              $root=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle)
+              $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              $surface=$null
+              for($i=0;$i -lt [Math]::Min($nodes.Count,6500);$i++){
+                try{
+                  $el=$nodes.Item($i)
+                  if(-not $el.Current.IsOffscreen -and
+                     $el.Current.Name -ceq 'Price chart drawing surface'){
+                    $surface=$el;break
+                  }
+                }catch{}
+              }
+              if($null -eq $surface){throw 'W17D7_REAL_CHART_DRAWING_SURFACE_NOT_EXPOSED'}
+              $r=$surface.Current.BoundingRectangle
+              $outer=$root.Current.BoundingRectangle
+              if($r.IsEmpty -or $r.Width -lt 320 -or $r.Height -lt 150 -or
+                 $r.Left -lt $outer.Left -or $r.Top -lt $outer.Top -or
+                 $r.Right -gt $outer.Right -or $r.Bottom -gt $outer.Bottom){
+                throw 'W17D7_REAL_CANDLE_SURFACE_OUTSIDE_ORIGINAL_WAILS'
+              }
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D7_WAILS_CHART_CLICK_NOT_FOREGROUND'
+              }
+              Start-Sleep -Milliseconds 150
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D7_CHART_CLICK_FOREIGN_FOCUS'
+              }
+              # Named records avoid PowerShell enumerating nested two-element
+              # arrays into scalar values (a y=0 accidental click).
+              $targets=@(
+                @{X=0.34;Y=0.36},
+                @{X=0.66;Y=0.60}
+              )
+              $ordinal=0
+              foreach($at in $targets){
+                $ordinal++
+                $x=[int]($r.Left+$r.Width*$at.X)
+                $y=[int]($r.Top+$r.Height*$at.Y)
+                if($x -le $r.Left+20 -or $x -ge $r.Right-20 -or
+                   $y -le $r.Top+20 -or $y -ge $r.Bottom-20){
+                  throw 'W17D7_NATIVE_CHART_ANCHOR_INSIDE_MARGIN_REQUIRED'
+                }
+                if(-not [W17D1ANativeClick]::SetCursorPos($x,$y)){
+                  throw 'W17D7_PRICE_CHART_POINTER_REFUSED'
+                }
+                [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+                [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+                Start-Sleep -Milliseconds 400
+                Write-Output ('::notice::W17D7_REAL_ORIGINAL_CHART_NATIVE_POINT_'+$ordinal+'_CLICKED')
+                W17D7ReadNativeStatus $process
+              }
+              if($ordinal -ne 2){throw 'W17D7_TWO_NATIVE_CHART_CLICKS_REQUIRED'}
+              Write-Output '::notice::W17D7_REAL_ORIGINAL_PRICE_CHART_TWO_POINTS_CLICKED'
+              W17D7ReadNativeStatus $process
+              W17D7OpenManager $process
+              $newLine=Get-W17D1AAccessibleButton $process 'Remove trendline 1'
+              if($null -eq $newLine){
+                W17D7ReadNativeStatus $process
+                throw 'W17D7_REAL_NATIVE_TWO_POINTS_DID_NOT_CREATE_SAVED_TRENDLINE'
+              }
+              W17D7AssertLine $process $true
+              Write-Output '::notice::W17D7_ORIGINAL_WAILS_CHART_TWO_NATIVE_CANDLE_POINT_CLICKS=PASS'
+              W17D7CloseManager $process
             }
-            if(!$filled -or $filled.fill_count -ne 1 -or $filled.last_ledger_hash -cnotmatch '^[a-f0-9]{64}$' -or
-               $filled.live_armed -ne $false){throw 'W20_SINGLE_ORIGINAL_LEDGER_FILL_NOT_VERIFIED'}
-            Write-Output '::notice::W20_GUI_PINE_TRADEGUARD_SINGLE_NORMAL_SOURCE_PAPER_FILL=PASS'
-            $stopCtrl=Find-W20 'Stop paper'
-            if(!$stopCtrl){throw 'W20_OPERATOR_STOP_CONTROL_MISSING'}
-            Click-W20 $stopCtrl
-            $limit=(Get-Date).AddSeconds(15);$stopped=$null
-            while((Get-Date) -lt $limit){
-              Start-Sleep -Milliseconds 450
-              $s=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
-              if($s.mode -ceq 'PAPER_STOPPED' -and $s.stopped -eq $true){$stopped=$s;break}
+            # W17D8 screenshot sampling is purely in-memory on the disposable
+            # hosted Windows synthetic profile. Count actual original chart
+            # pixels; never evaluate DOM JS or inject a mock line.
+            Add-Type -AssemblyName System.Drawing -ErrorAction Stop
+            function Get-W17D8ChartBounds([object]$process) {
+              $root=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle)
+              $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.Condition]::TrueCondition)
+              for($i=0;$i -lt [Math]::Min($all.Count,6500);$i++){
+                try {
+                  $node=$all.Item($i)
+                  if(-not $node.Current.IsOffscreen -and
+                     $node.Current.Name -ceq 'Price chart drawing surface'){
+                    $rect=$node.Current.BoundingRectangle
+                    $winRect=$root.Current.BoundingRectangle
+                    if($rect.IsEmpty -or $rect.Width -lt 420 -or
+                       $rect.Height -lt 200 -or $rect.Left -lt $winRect.Left -or
+                       $rect.Right -gt $winRect.Right -or $rect.Top -lt $winRect.Top -or
+                       $rect.Bottom -gt $winRect.Bottom){
+                      throw 'W17D8_CHART_BOUNDS_OUTSIDE_NATIVE_WAILS'
+                    }
+                    return $rect
+                  }
+                }catch{
+                  if($_.Exception.Message -like 'W17D8_CHART_BOUNDS_*'){throw}
+                }
+              }
+              throw 'W17D8_ORIGINAL_PRICE_CHART_NOT_FOUND'
             }
-            if(!$stopped -or $stopped.paper_orders_enabled -ne $false -or $stopped.live_armed -ne $false){
-              throw 'W20_ORIGINAL_OPERATOR_STOP_NOT_SEALED'
+            function Get-W17D8RealOrangePixels([object]$process) {
+              $rect=Get-W17D8ChartBounds $process
+              # Sample plot interior, excluding native right price scale and
+              # bottom time scale; ensure no other window owns foreground.
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D8_NATIVE_CHART_SCREENSHOT_FOREGROUND_CUSTODY_REQUIRED'
+              }
+              $left=[int][Math]::Ceiling($rect.Left+12)
+              $top=[int][Math]::Ceiling($rect.Top+12)
+              $w=[int][Math]::Floor($rect.Width-100)
+              $h=[int][Math]::Floor($rect.Height-60)
+              if($w -lt 250 -or $h -lt 100){throw 'W17D8_PLOT_CAPTURE_TOO_SMALL'}
+              $bmp=[System.Drawing.Bitmap]::new($w,$h)
+              $gfx=[System.Drawing.Graphics]::FromImage($bmp)
+              try {
+                $gfx.CopyFromScreen($left,$top,0,0,[System.Drawing.Size]::new($w,$h))
+                $count=0;$sx=0;$sy=0
+                for($py=0;$py -lt $h;$py+=2){
+                  for($px=0;$px -lt $w;$px+=2){
+                    $color=$bmp.GetPixel($px,$py)
+                    if($color.R -ge 214 -and $color.G -ge 115 -and
+                       $color.G -le 187 -and $color.B -le 65 -and
+                       $color.R -gt $color.G+38){
+                      $count++;$sx+=$px;$sy+=$py
+                    }
+                  }
+                }
+                return [pscustomobject]@{
+                  count=$count
+                  x=if($count){[double]$sx/$count}else{0}
+                  y=if($count){[double]$sy/$count}else{0}
+                  capture_width=$w;capture_height=$h
+                }
+              } finally { $gfx.Dispose();$bmp.Dispose() }
             }
-            Write-Output '::notice::W20_GUI_STOP_ORIGINAL_PAPER_WRITER_SEALED=PASS'
-            $archive=Invoke-RestMethod -Uri ($base+'/api/paper/session/archive') -TimeoutSec 10
-            if($archive.schema -cne 'ktrade.paper.cold-archive.read-only.v1' -or
-               $archive.snapshot_seal -cnotmatch '^[a-f0-9]{64}$' -or
-               $archive.live_armed -ne $false -or $archive.orders_enabled -ne $false -or
-               $archive.account.schema -cne 'ktrade.paper.account.read-only.v1'){
-              throw 'W20_COLD_LEDGER_ACCOUNT_ARCHIVE_UNVERIFIED'
+            function W17D8AssertRendered([object]$process,[string]$label) {
+              $r=Get-W17D8RealOrangePixels $process
+              if($r.count -lt 12 -or $r.count -gt 12000){
+                throw ('W17D8_REAL_SCREEN_PLOTTED_LINE_PIXEL_PROOF_FAILED_'+
+                       $label+'_count_'+$r.count)
+              }
+              [Console]::WriteLine(('::notice::W17D8_REAL_WAILS_PLOTTED_SVG_'+$label+
+                '_PIXELS='+$r.count+'_CENTROID='+[Math]::Round($r.x,2)+
+                ','+[Math]::Round($r.y,2)))
+              return $r
             }
-            $product=@($archive.account.products|Where-Object {$_.product_id -ceq 'BTC-USDC'})
-            if($product.Count -ne 1 -or $product[0].fill_count -ne 1 -or
-               $null -eq $product[0].realized_pnl -or $null -eq $product[0].fees_paid){
-              throw 'W20_COLD_ACCOUNT_PNL_OR_FEE_UNVERIFIED'
+            function W17D8PanAndZoom([object]$process) {
+              $r=Get-W17D8ChartBounds $process
+              $x=[int]($r.Left+$r.Width*.57)
+              $y=[int]($r.Top+$r.Height*.48)
+              $distance=[Math]::Min(110,[Math]::Max(72,[int]($r.Width*.14)))
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D8_PLOT_PAN_ORIGINAL_WAILS_FOREGROUND_REQUIRED'
+              }
+              Start-Sleep -Milliseconds 120
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D8_PLOT_PAN_NATIVE_FOREGROUND_LOST'
+              }
+              if(-not [W17D1ANativeClick]::SetCursorPos($x,$y)){
+                throw 'W17D8_PLOT_PAN_NATIVE_POINTER_REFUSED'
+              }
+              [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 100
+              # Preserve actual mouse-held motion: WebView2/Chromium input
+              # routing requires movement events, not one pointer teleport.
+              for($step=1;$step -le 10;$step++){
+                $position=$x-[int][Math]::Round($distance*$step/10)
+                if(-not [W17D1ANativeClick]::SetCursorPos($position,$y)){
+                  throw 'W17D8_PLOT_SCROLL_NATIVE_POINTER_REFUSED'
+                }
+                [W17D1ANativeClick]::mouse_event(0x0001,0,0,0,[UIntPtr]::Zero)
+                Start-Sleep -Milliseconds 50
+              }
+              [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 550
+              [Console]::WriteLine('::notice::W17D8_REAL_ORIGINAL_PRICE_CHART_NATIVE_PAN_PERFORMED=PASS')
+              return W17D8AssertRendered $process 'AFTER_PAN'
             }
-            Write-Output '::notice::W20_COLD_FEE_PNL_SINGLE_LEDGER_REPLAY=PASS'
-            if(!$app.CloseMainWindow() -or !$app.WaitForExit(20000)){throw 'W20_WAILS_SHUTDOWN_FAILED'}
-            $app=$null
-            if($child){Start-Sleep -Milliseconds 700; if(Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue){throw 'W20_ORIGINAL_GO_CHILD_LEAK'};$child=$null}
-            $base=Start-W20App
-            $cold=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
-            if($cold.mode -ceq 'PAPER_ISOLATED_RUNNING' -or $cold.live_armed -ne $false -or
-               $cold.paper_orders_enabled -ne $false){throw 'W20_COLD_RESTART_AUTO_REARMED'}
-            $reopen=Invoke-RestMethod -Uri ($base+'/api/paper/session/archive') -TimeoutSec 10
-            if($reopen.snapshot_seal -cne $archive.snapshot_seal -or
-               $reopen.account.schema -cne 'ktrade.paper.account.read-only.v1'){
-              throw 'W20_COLD_RESTART_ORIGINAL_PNL_REPLAY_CHANGED'
+            Assert-W17D4Selected $parent '1m'
+            Close-W17D4Indicators $parent
+            Click-W17D4NativeButton $parent '5m'
+            Assert-W17D5Pane $parent 28
+            Click-W17D5Pane $parent 28 40
+            Write-Output '::notice::W17D5_FIRST_NATIVE_VOLUME_EXPANSION=PASS'
+            W17D7DrawUsingOriginalPriceChart $parent
+            Start-Sleep -Milliseconds 300
+            $initialGeometry=W17D8AssertRendered $parent 'CREATED'
+            $afterPan=W17D8PanAndZoom $parent
+            if([Math]::Abs($afterPan.x-$initialGeometry.x) -lt 10){
+              throw 'W17D8_REAL_VISIBLE_TRENDLINE_DID_NOT_MOVE_WITH_NATIVE_SCROLL'
             }
-            Write-Output '::notice::W20_GENUINE_WAILS_COLD_RESTART_READ_ONLY_NO_REARM=PASS'
-            Write-Output '::notice::W20_NO_BROKER_NO_LIVE_NO_INSTALLED_USER_DATA=PASS'
-          }finally{
-            if($app){try{if(-not $app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}catch{}}
-            if($child){try{Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue}catch{}}
-            if(Test-Path -LiteralPath $pkg){Remove-Item -LiteralPath $pkg -Force -Recurse -ErrorAction SilentlyContinue}
-            Remove-Item -LiteralPath $capture -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath $wailsErr -Force -ErrorAction SilentlyContinue
+            Write-Output '::notice::W17D8_NATIVE_SCROLL_SHIFTED_SCREEN_PIXELS=PASS'
+            W17D6CreateLine $parent
+            Write-Output '::notice::W17D4_FIRST_WAILS_USER_CLICK_5M=PASS'
+            Write-Output '::notice::W17D0_WINDOWS_UIA_ACCESSIBLE_PREVIEW=VERIFIED'
+            if(-not $parent.CloseMainWindow()){throw 'W17C6_WINDOW_CLOSE_FAILED'}
+            if(-not $parent.WaitForExit(15000)){throw 'W17C6_WINDOW_SHUTDOWN_TIMEOUT'}
+            Write-Output '::notice::W17D0_REAL_WINDOW_FIRST_CLOSE=PASS'
+            # A real second OS process must reopen the same persisted
+            # synthetic release and WebView2 profile, not merely reconstruct
+            # an in-memory mock. The exact v5/v6 preview must remain visible.
+            $parent=Start-Process -FilePath (Join-Path $rel 'ktrade.exe') -WorkingDirectory $rel -PassThru
+            $deadline=(Get-Date).AddSeconds(50)
+            $window=$false
+            while((Get-Date) -lt $deadline){
+              Start-Sleep -Milliseconds 700
+              $parent.Refresh()
+              if($parent.HasExited){throw 'W17D0_WAILS_COLD_START_EXITED'}
+              if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(!$window){throw 'W17D0_WAILS_COLD_WINDOW_MISSING'}
+            Assert-VisibleRecoveredScripts $parent 'COLD_RESTART'
+            $coldChild=@()
+            $deadline=(Get-Date).AddSeconds(20)
+            while((Get-Date) -lt $deadline){
+              $coldChild=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'"|Where-Object{
+                $_.ExecutablePath -ieq $engine -and $_.ParentProcessId -eq $parent.Id
+              })
+              if($coldChild.Count -eq 1){break}
+              Start-Sleep -Milliseconds 250
+            }
+            if($coldChild.Count -ne 1){throw 'W17D0_COLD_GO_CHILD_UNAVAILABLE'}
+            $coldListeners=@(Get-NetTCPConnection -State Listen -OwningProcess $coldChild[0].ProcessId -ErrorAction SilentlyContinue)
+            if($coldListeners.Count -ne 1 -or $coldListeners[0].LocalAddress -cne '127.0.0.1' -or
+               [int]$coldListeners[0].LocalPort -ne $firstPort){
+              throw 'W17D0_ORIGIN_CHANGED_ACROSS_WAILS_COLD_RESTART'
+            }
+            Write-Output '::notice::W17D0_REAL_WAILS_GO_IFRAME_ORIGIN_SAME_AFTER_COLD_RESTART=PASS'
+            $rebound=@(Get-NetTCPConnection -LocalPort $legacyPort -State Listen -ErrorAction SilentlyContinue|
+               Where-Object{$_.LocalAddress -eq '127.0.0.1' -and $_.OwningProcess -eq $parent.Id})
+            if($rebound.Count -ne 1){throw 'W17D2_SINGLE_HISTORICAL_LISTENER_MISSING_ON_COLD_WAILS'}
+            Write-Output '::notice::W17D2_REAL_WAILS_HISTORICAL_ORIGIN_REBINDS_ON_COLD_RESTART=PASS'
+            Assert-W17D1AChartFavorite $parent 'REOPEN'
+            Write-Output '::notice::W17D1A_ACTUAL_WEBVIEW2_UIA_COLD_FAVORITE_ACTIVE=PASS'
+            Assert-W17D4Selected $parent '5m'
+            Close-W17D4Indicators $parent
+            Click-W17D4NativeButton $parent '15m'
+            Assert-W17D5Pane $parent 40
+            Click-W17D5Pane $parent 40 28
+            Write-Output '::notice::W17D5_SECOND_NATIVE_COLD_RESTART_EXPANDED_LAYOUT_RESTORED_AND_STANDARD_SAVED=PASS'
+            Write-Output '::notice::W17D4_REAL_SECOND_LAUNCH_5M_PERSISTED_THEN_15M_SET=PASS'
+            $indicator=Wait-W17D1AButton $parent 'Indicators'
+            Invoke-W17D1AButton $indicator 'OPEN_INDICATORS' $parent
+            $category=Wait-W17D1AButton $parent 'Technicals'
+            Invoke-W17D1AButton $category 'TECHNICALS_CATEGORY' $parent
+            # Real browser conflict test: the user removes the imported RSI
+            # and chooses a DIFFERENT, newer catalog favorite (MACD). A
+            # third cold KTRADE startup must retain MACD and MUST NOT
+            # overwrite it with the still-present OLD-origin RSI value.
+            function Invoke-W17D3ExactChartStar([object]$process,[string]$label) {
+              $button=Wait-W17D1AButton $process $label
+              if($null -eq $button){throw ('W17D3_STAR_NOT_VISIBLE_'+$label)}
+              # WebView2 exposes the star as a real UIA Button, but hosted
+              # InvokePattern may return without triggering the web click.
+              # Use the exact physically visible UIA bounds as W17D1A's
+              # already qualified real Windows pointer path.
+              $rect=$button.Current.BoundingRectangle
+              $outer=[System.Windows.Automation.AutomationElement]::FromHandle(
+                $process.MainWindowHandle).Current.BoundingRectangle
+              if($rect.IsEmpty -or $rect.Width -lt 10 -or $rect.Height -lt 10 -or
+                 $rect.Width -gt 160 -or $rect.Height -gt 160 -or
+                 $rect.Left -lt $outer.Left -or $rect.Top -lt $outer.Top -or
+                 $rect.Right -gt $outer.Right -or $rect.Bottom -gt $outer.Bottom){
+                throw 'W17D3_CONFLICT_UIA_STAR_BOUNDARY_REFUSED'
+              }
+              # The qualified W17D1A control sequence first focuses the
+              # exact accessibility button and sends SPACE; only then
+              # falls back to a physical pointer when necessary.
+              if($button.Current.IsKeyboardFocusable){
+                try{
+                  $button.SetFocus()
+                  [System.Windows.Forms.SendKeys]::SendWait(' ')
+                  Start-Sleep -Milliseconds 250
+                  if($label -ceq 'Add MACD to favorites' -and
+                     $null -ne (Get-W17D1AAccessibleButton $process 'Remove MACD from favorites')){
+                    Write-Output '::notice::W17D3_NATIVE_WEBVIEW2_FOCUSED_KEYBOARD_NEWER_MACD=PASS'
+                    return
+                  }
+                }catch{
+                  Write-Output '::warning::W17D3_FOCUSED_WEBVIEW2_BUTTON_NOT_INVOKABLE'
+                }
+              }
+              if(-not [W17D1ANativeClick]::SetForegroundWindow($process.MainWindowHandle)){
+                throw 'W17D3_CONFLICT_WAILS_NOT_FOREGROUND'
+              }
+              Start-Sleep -Milliseconds 150
+              if([W17D1ANativeClick]::GetForegroundWindow() -ne $process.MainWindowHandle){
+                throw 'W17D3_FOREIGN_FOCUS_REFUSED'
+              }
+              $x=[int]($rect.Left+$rect.Width/2);$y=[int]($rect.Top+$rect.Height/2)
+              if(-not [W17D1ANativeClick]::SetCursorPos($x,$y)){
+                throw 'W17D3_CONFLICT_NATIVE_POINTER_REFUSED'
+              }
+              [W17D1ANativeClick]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+              [W17D1ANativeClick]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 250
+              Write-Output '::notice::W17D3_CONFLICT_REAL_ORIGINAL_CHART_UIA_MOUSE_CLICK=PASS'
+            }
+            # User ADDS a newer MACD favorite to historical RSI. If the
+            # cold W17D2 bridge ever blindly reimports its old RSI-only list,
+            # the new MACD disappears. No need to remove historical RSI.
+            Invoke-W17D3ExactChartStar $parent 'Add MACD to favorites'
+            $newSelected=Wait-W17D1AButton $parent 'Remove MACD from favorites'
+            if($null -eq $newSelected){throw 'W17D3_NEWER_DIFFERENT_FAVORITE_NOT_SAVED'}
+            Write-Output '::notice::W17D3_REAL_WEBVIEW2_USER_ADDS_NEWER_MACD_AFTER_OLD_RSI=PASS'
+            Close-W17D4Indicators $parent
+            W17D7OpenManager $parent
+            W17D7AssertLine $parent $true
+            W17D7CloseManager $parent
+            # Creation above selects 5m BEFORE drawing. Restore that same
+            # native candle interval before judging cold-restart geometry.
+            # Keep both the earlier and third-launch 15m continuity checks.
+            Click-W17D4NativeButton $parent '5m'
+            Assert-W17D4Selected $parent '5m'
+            Start-Sleep -Milliseconds 1100
+            $coldGeometry=W17D8AssertRendered $parent 'AFTER_COLD_RESTART_MATCHING_5M'
+            # Exercise real native wheel zoom and window resize, without DOM
+            # injection or changing stored drawing coordinates.
+            $plot=Get-W17D8ChartBounds $parent
+            $zx=[int]($plot.Left+12+$coldGeometry.x)
+            $zy=[int]($plot.Top+12+$coldGeometry.y)
+            if(-not [W17D1ANativeClick]::SetCursorPos($zx,$zy)){throw 'W17D8_ZOOM_POINTER_REFUSED'}
+            [W17D1ANativeClick]::mouse_event(0x0800,0,0,120,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 650
+            $zoomGeometry=W17D8AssertRendered $parent 'AFTER_NATIVE_WHEEL_ZOOM'
+            if([Math]::Abs($zoomGeometry.x-$coldGeometry.x) -lt 0.5 -and
+               [Math]::Abs($zoomGeometry.y-$coldGeometry.y) -lt 0.5 -and
+               $zoomGeometry.count -eq $coldGeometry.count){
+              throw 'W17D8_NATIVE_ZOOM_DID_NOT_CHANGE_RENDERED_GEOMETRY'
+            }
+            Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class W17D8Window { [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h,int n); [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h,IntPtr after,int x,int y,int w,int height,uint flags); }'
+            [void][W17D8Window]::ShowWindow($parent.MainWindowHandle,9)
+            Start-Sleep -Milliseconds 350
+            $wr=[System.Windows.Automation.AutomationElement]::FromHandle($parent.MainWindowHandle).Current.BoundingRectangle
+            $beforeResize=Get-W17D8ChartBounds $parent
+            $newWidth=[int]$wr.Width-120
+            $newHeight=[int]$wr.Height-60
+            if($newWidth -lt 850 -or $newHeight -lt 550){throw 'W17D8_NATIVE_RESIZE_FIXTURE_TOO_SMALL'}
+            try {
+              if(-not [W17D8Window]::SetWindowPos($parent.MainWindowHandle,[IntPtr]::Zero,[int]$wr.Left,[int]$wr.Top,$newWidth,$newHeight,0x0004)){
+                throw 'W17D8_NATIVE_WINDOW_RESIZE_REFUSED'
+              }
+              Start-Sleep -Milliseconds 650
+              $resizedPlot=Get-W17D8ChartBounds $parent
+              if([Math]::Abs($resizedPlot.Width-$beforeResize.Width) -lt 50){throw 'W17D8_NATIVE_PLOT_DID_NOT_RESIZE'}
+              $resizeGeometry=W17D8AssertRendered $parent 'AFTER_NATIVE_WINDOW_RESIZE'
+              [Console]::WriteLine('::notice::W17D8_NATIVE_ZOOM_AND_RESIZE_PIXEL_PROOF=PASS')
+            } finally {
+              [void][W17D8Window]::SetWindowPos($parent.MainWindowHandle,[IntPtr]::Zero,[int]$wr.Left,[int]$wr.Top,[int]$wr.Width,[int]$wr.Height,0x0004)
+              Start-Sleep -Milliseconds 350
+            }
+            Click-W17D4NativeButton $parent '15m'
+            Assert-W17D4Selected $parent '15m'
+            W17D7OpenManager $parent
+            Write-Output '::notice::W17D7_REAL_WAILS_COLD_RESTART_TRENDLINE_RETAINED=PASS'
+            Click-W17D7Named $parent 'Remove trendline 1'
+            W17D7AssertLine $parent $false
+            Write-Output '::notice::W17D7_GENUINE_ORIGINAL_CHART_USER_DELETED_TRENDLINE=PASS'
+            W17D7CloseManager $parent
+            W17D6OpenDrawingEditor $parent
+            Assert-W17D6Drawing $parent $true
+            Write-Output '::notice::W17D6_REAL_WAILS_COLD_RESTART_HLINE_PERSISTED=PASS'
+            Click-W17D6Button $parent 'Remove horizontal line at 42500'
+            Assert-W17D6Drawing $parent $false
+            Write-Output '::notice::W17D6_REAL_ORIGINAL_CHART_USER_DELETES_LINE=PASS'
+            if(-not $parent.CloseMainWindow()){throw 'W17D0_COLD_WINDOW_CLOSE_FAILED'}
+            if(-not $parent.WaitForExit(15000)){throw 'W17D0_COLD_WINDOW_SHUTDOWN_FAILED'}
+            Write-Output '::notice::W17D0_REAL_WAILS_COLD_RESTART_AND_CLEAN_SHUTDOWN=PASS'
+            # Third ORIGINAL Wails process, same source identity and browser
+            # directory, legacy RSI source still present. User's NEWER MACD
+            # preference must win; never reimport RSI at cold start.
+            $parent=Start-Process -FilePath (Join-Path $rel 'ktrade.exe') -WorkingDirectory $rel -PassThru
+            $window=$false
+            $deadline=(Get-Date).AddSeconds(50)
+            while((Get-Date) -lt $deadline){
+              Start-Sleep -Milliseconds 500
+              $parent.Refresh()
+              if($parent.HasExited){throw 'W17D3_NEWER_PREFERENCE_COLD_START_EXITED'}
+              if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(-not $window){throw 'W17D3_NEWER_PREFERENCE_WAILS_WINDOW_MISSING'}
+            Assert-VisibleRecoveredScripts $parent 'NEWER_FAVORITE_COLD'
+            Assert-W17D4Selected $parent '15m'
+            Assert-W17D5Pane $parent 28
+            Write-Output '::notice::W17D5_THIRD_REAL_WAILS_WEBVIEW2_COLD_RESTART_STANDARD_LAYOUT=PASS'
+            Write-Output '::notice::W17D4_THIRD_REAL_WAILS_WEBVIEW2_COLD_RESTART_15M=PASS'
+            $indicator=Wait-W17D1AButton $parent 'Indicators'
+            Invoke-W17D1AButton $indicator 'OPEN_INDICATORS' $parent
+            $category=Wait-W17D1AButton $parent 'Technicals'
+            Invoke-W17D1AButton $category 'TECHNICALS_CATEGORY' $parent
+            $newFav=Wait-W17D1AButton $parent 'Remove MACD from favorites'
+            $oldRetained=Wait-W17D1AButton $parent 'Remove Relative Strength Index from favorites'
+            if($null -eq $newFav -or $null -eq $oldRetained){
+              throw 'W17D3_HISTORICAL_RSI_REIMPORT_CLOBBERED_NEWER_WEBVIEW2_MACD'
+            }
+            Write-Output '::notice::W17D3_REAL_WEBVIEW2_THIRD_COLD_RESTART_NEWER_MACD_NOT_CLOBBERED=PASS'
+            Close-W17D4Indicators $parent
+            W17D7OpenManager $parent
+            W17D7AssertLine $parent $false
+            Write-Output '::notice::W17D7_THIRD_REAL_WAILS_COLD_RESTART_DELETION_RETAINED=PASS'
+            W17D7CloseManager $parent
+            W17D6OpenDrawingEditor $parent
+            Assert-W17D6Drawing $parent $false
+            Write-Output '::notice::W17D6_THIRD_REAL_WAILS_COLD_RESTART_DELETION_PERSISTED=PASS'
+            if(-not $parent.CloseMainWindow()){throw 'W17D3_THIRD_WAILS_CLOSE_REFUSED'}
+            if(-not $parent.WaitForExit(15000)){throw 'W17D3_THIRD_WAILS_SHUTDOWN_REFUSED'}
+            Write-Output '::notice::W17D0_NO_LIVE_NO_PAPER_NO_USER_DATA_NO_INSTALLED_MIGRATION=PASS'
+          } finally {
+            if($legacySeeder -and -not $legacySeeder.HasExited){Stop-Process -Id $legacySeeder.Id -Force -ErrorAction SilentlyContinue}
+            if($legacyServer -and -not $legacyServer.HasExited){Stop-Process -Id $legacyServer.Id -Force -ErrorAction SilentlyContinue}
+            if($http){$http.Dispose()}
+            if($parent -and -not $parent.HasExited){Stop-Process -Id $parent.Id -Force -ErrorAction SilentlyContinue}
+            foreach($p in $child){
+              Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue
+            }
+            if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue}
           }
-      - name: Purge private source
+      - name: Scrub all private candidate and scratch files
         if: always()
         shell: pwsh
         run: |
-          $private=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
-          if(Test-Path -LiteralPath $private){Remove-Item -LiteralPath $private -Recurse -Force -ErrorAction SilentlyContinue}
+          foreach($path in @((Join-Path $env:GITHUB_WORKSPACE 'checked-private'),(Join-Path $env:RUNNER_TEMP 'w17c6-build'))){
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force -Recurse -ErrorAction SilentlyContinue}
+          }
