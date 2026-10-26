@@ -36,12 +36,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 8769395031a469bb4725b8d1949322328334c78e
+          ref: 0b43c6edc6d792dda56bd1513766d4e3bd4ee975
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Verify immutable W19A source and exact four-path delta
+      - name: Verify immutable W19A source and exact six-path delta
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -51,15 +51,15 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '8769395031a469bb4725b8d1949322328334c78e' -or
-             $tree -cne '78e14d737923cdf01d5024fcca9fead827b89e9c' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
+          if($LASTEXITCODE -ne 0 -or $head -cne '0b43c6edc6d792dda56bd1513766d4e3bd4ee975' -or
+             $tree -cne '66d415f98c9771a4c5ae4274024cf0193b33bc23' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
           $actual=@(& git -C $src diff --name-only ec2b20ff06ac0111fdb77059dfe611f513e51f35 HEAD | Sort-Object)
-          $expected=@('cmd/ktrade/paper_strategy_preview_full.go','cmd/ktrade/paper_session_full.go','cmd/ktrade/paper_session_runner_full.go','cmd/ktrade/w19_unsupported_pine_order_full_test.go') | Sort-Object
+          $expected=@('cmd/ktrade/paper_strategy_preview_full.go','cmd/ktrade/paper_session_full.go','cmd/ktrade/paper_session_runner_full.go','cmd/ktrade/w19_unsupported_pine_order_full_test.go','static/paper_session_controls.js','tests/w19_paper_failure_feedback.test.cjs') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
             throw 'W17D8_THREE_FILE_BOUNDARY_DRIFT'
           }
           if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W17D8_DIRTY_SOURCE'}
-          Write-Output '::notice::W19A_IMMUTABLE_HEAD_TREE_AND_FOUR_FILE_DELTA=PASS'
+          Write-Output '::notice::W19A_IMMUTABLE_HEAD_TREE_AND_SIX_FILE_DELTA=PASS'
       - name: Native Windows Go 1.25 and Node 24
         uses: actions/setup-go@v5
         with:
@@ -122,7 +122,7 @@ jobs:
           $ErrorActionPreference='Stop'
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
           try{
-            & node --test tests/w17d1_chart_favorite_continuity.test.cjs tests/w17d1a_original_chart_uia.test.cjs tests/w17d2_legacy_favorite_import.test.cjs tests/w17d3_old_origin_fixture.test.cjs tests/w17d4_chart_timeframe_continuity.test.cjs tests/w17d5_chart_pane_layout.test.cjs tests/w17d6_chart_horizontal_lines.test.cjs tests/w17d7_original_trendlines.test.cjs tests/w17d8_trendline_geometry.test.cjs tests/w17d9_market_context.test.cjs
+            & node --test tests/w17d1_chart_favorite_continuity.test.cjs tests/w17d1a_original_chart_uia.test.cjs tests/w17d2_legacy_favorite_import.test.cjs tests/w17d3_old_origin_fixture.test.cjs tests/w17d4_chart_timeframe_continuity.test.cjs tests/w17d5_chart_pane_layout.test.cjs tests/w17d6_chart_horizontal_lines.test.cjs tests/w17d7_original_trendlines.test.cjs tests/w17d8_trendline_geometry.test.cjs tests/w17d9_market_context.test.cjs tests/w19_paper_failure_feedback.test.cjs
             if($LASTEXITCODE -ne 0){throw 'W17D1_CHART_BROWSER_STORAGE_FOCUSED_RED'}
             Write-Output '::notice::W17D3_OLD_WEBVIEW2_SOURCE_UI_AND_NO_CLOBBER_CONTRACTS=PASS'
           }finally{Pop-Location}
@@ -284,7 +284,7 @@ jobs:
           }
           $originPort=$null
           try{
-            & $builder -OutputRoot $candidate -ExpectedSourceSha '8769395031a469bb4725b8d1949322328334c78e' -ReleaseCandidate
+            & $builder -OutputRoot $candidate -ExpectedSourceSha '0b43c6edc6d792dda56bd1513766d4e3bd4ee975' -ReleaseCandidate
             $stage=Join-Path $candidate 'KTRADE-WailsPortable'
             $receipt=Get-Content -Raw (Join-Path $stage 'release-candidate-proof.json')|ConvertFrom-Json
             $manifest=Get-Content -Raw (Join-Path $candidate 'source-manifest.json')|ConvertFrom-Json
@@ -295,7 +295,7 @@ jobs:
             [IO.File]::WriteAllText($sentinel,'W18 synthetic independent unknown bytes')
             $before=(Get-FileHash $sentinel).Hash
             $refused=$false
-            try{& $builder -OutputRoot $candidate -ExpectedSourceSha '8769395031a469bb4725b8d1949322328334c78e' -ReleaseCandidate}catch{$refused=$true}
+            try{& $builder -OutputRoot $candidate -ExpectedSourceSha '0b43c6edc6d792dda56bd1513766d4e3bd4ee975' -ReleaseCandidate}catch{$refused=$true}
             if(!$refused -or (Get-FileHash $sentinel).Hash -cne $before){throw 'W18_EXISTING_CANDIDATE_OR_UNKNOWN_DATA_OVERWRITTEN'}
             for($cycle=1;$cycle -le 2;$cycle++){
               $process=Start-Process (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
