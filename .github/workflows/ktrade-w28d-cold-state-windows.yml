@@ -133,15 +133,23 @@ jobs:
           $state=Join-Path $env:GITHUB_WORKSPACE 'release-state-escrow.exe'
           $oldZip=[IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE 'old-zip-path.txt'))
           $newZip=[IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE 'new-zip-path.txt'))
-          $oldStage=[string](((& $extract $oldZip $parent '9774043a769e8d9865c7b60dfdab95691f562b05') -join [Environment]::NewLine | ConvertFrom-Json).candidate_directory
-          if($LASTEXITCODE -ne 0 -or !$oldStage){throw 'W28D_OLD_GENUINE_ZIP_VERIFICATION_FAILED'}
-          $newStage=[string](((& $extract $newZip $parent '914b03cc117fd387b1fda1d23d489103f385a705') -join [Environment]::NewLine | ConvertFrom-Json).candidate_directory
-          if($LASTEXITCODE -ne 0 -or !$newStage){throw 'W28D_NEW_GENUINE_ZIP_VERIFICATION_FAILED'}
+          $oldOutput=@(& $extract $oldZip $parent '9774043a769e8d9865c7b60dfdab95691f562b05')
+          if($LASTEXITCODE -ne 0){throw 'W28D_OLD_GENUINE_ZIP_VERIFICATION_FAILED'}
+          $oldRecord=(($oldOutput -join [Environment]::NewLine) | ConvertFrom-Json)
+          $oldStage=[string]$oldRecord.candidate_directory
+          if(!$oldStage){throw 'W28D_OLD_GENUINE_STAGE_MISSING'}
+          $newOutput=@(& $extract $newZip $parent '914b03cc117fd387b1fda1d23d489103f385a705')
+          if($LASTEXITCODE -ne 0){throw 'W28D_NEW_GENUINE_ZIP_VERIFICATION_FAILED'}
+          $newRecord=(($newOutput -join [Environment]::NewLine) | ConvertFrom-Json)
+          $newStage=[string]$newRecord.candidate_directory
+          if(!$newStage){throw 'W28D_NEW_GENUINE_STAGE_MISSING'}
           if((Get-FileHash (Join-Path $oldStage 'ktrade.exe') -Algorithm SHA256).Hash -ceq (Get-FileHash (Join-Path $newStage 'ktrade.exe') -Algorithm SHA256).Hash){
             throw 'W28D_REQUIRES_ACTUALLY_DISTINCT_WAILS_EXECUTABLES'
           }
           $comparison=@(& $compare $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage '914b03cc117fd387b1fda1d23d489103f385a705')
-          if($LASTEXITCODE -ne 0 -or (($comparison -join [Environment]::NewLine)|ConvertFrom-Json).distinct_binaries -ne $true){throw 'W28D_VERSION_PAIR_PROOF_REFUSED'}
+          if($LASTEXITCODE -ne 0){throw 'W28D_VERSION_PAIR_COMPARISON_FAILED'}
+          $comparisonRecord=(($comparison -join [Environment]::NewLine) | ConvertFrom-Json)
+          if($comparisonRecord.distinct_binaries -ne $true){throw 'W28D_VERSION_PAIR_PROOF_REFUSED'}
           $choice=@(& $selector select $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05')
           if($LASTEXITCODE -ne 0){throw 'W28D_OLD_SELECTION_REFUSED'}
           $data=Join-Path $oldStage 'data'
@@ -171,7 +179,9 @@ jobs:
           $rollback=@(& $selector rollback $parent)
           if($LASTEXITCODE -ne 0){throw 'W28D_REAL_ROLLBACK_REFUSED'}
           $resolved=@(& $selector status $parent)
-          if($LASTEXITCODE -ne 0 -or [string](($resolved -join [Environment]::NewLine | ConvertFrom-Json).candidate_directory) -cne $oldStage){throw 'W28D_ROLLBACK_DID_NOT_REVERIFY_ORIGINAL'}
+          if($LASTEXITCODE -ne 0){throw 'W28D_RELEASE_STATUS_FAILED'}
+          $statusRecord=(($resolved -join [Environment]::NewLine) | ConvertFrom-Json)
+          if([string]$statusRecord.candidate_directory -cne $oldStage){throw 'W28D_ROLLBACK_DID_NOT_REVERIFY_ORIGINAL'}
           $verified=@(& $state verify $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' ([string]$snapshot.escrow_directory))
           if($LASTEXITCODE -ne 0){throw 'W28D_NATIVE_ESCROW_REVERIFY_AFTER_ROLLBACK_FAILED'}
           $v=($verified -join [Environment]::NewLine)|ConvertFrom-Json
