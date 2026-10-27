@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   qualify:
-    name: W28K exact source genuine WebView2 native interaction
+    name: W28L startup-fixed exact source genuine WebView2 native interaction
     if: github.repository == 'spoonman136668-ai/Qualification-Forge'
     runs-on: windows-2022
     timeout-minutes: 75
@@ -36,9 +36,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 56ce927f086910e31a827d705b5b9fec7ac36a35
+          ref: 7301a2a1117ed2ad556cc69fbe50595195d16848
           path: checked-private
-          fetch-depth: 10
+          fetch-depth: 2
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Require immutable W28K source and independent full Windows qualification
@@ -48,11 +48,15 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '56ce927f086910e31a827d705b5b9fec7ac36a35' -or
-             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '8809d5418a5843bc2cf9e3c0f04245ed5a7e4f89'){throw 'W28L_SOURCE_DRIFT'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '7301a2a1117ed2ad556cc69fbe50595195d16848' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'e4c96788a425fad15871fbd20263dff802ddb219'){throw 'W28L_SOURCE_DRIFT'}
           $prior=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40529259550' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
           if($prior.status -cne 'completed' -or $prior.conclusion -cne 'success' -or $prior.head_sha -cne '4608dd7c20f92184a8b152033e32faab8d70f141'){throw 'W28L_W28K_QUALIFICATION_MISSING'}
-          Write-Output '::notice::W28L_EXACT_W28K_SOURCE_TREE_AND_GREEN_FOUNDATION=PASS'
+          if((& git -C $src rev-parse HEAD^).Trim() -cne '56ce927f086910e31a827d705b5b9fec7ac36a35'){throw 'W28L_PARENT_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD | Sort-Object)
+          $expected=@('tests/rb3_w28l_verifier_startup.test.cjs','tools/wails-pilot/frontend/index.html','tools/wails-pilot/frontend/w28i_desktop_verify.js' | Sort-Object)
+          if(Compare-Object $delta $expected){throw 'W28L_THREE_FILE_SCOPE_DRIFT'}
+          Write-Output '::notice::W28L_CORRECTED_SOURCE_TREE_BOUNDED_DELTA_AND_W28K_GREEN_FOUNDATION=PASS'
       - name: Native Windows Go 1.25 and Node 24
         uses: actions/setup-go@v5
         with:
@@ -71,6 +75,8 @@ jobs:
           $ErrorActionPreference='Stop'
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private')
           try{
+            & node tests/rb3_w28l_verifier_startup.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W28L_STARTUP_RACE_REGRESSION'}
             & node --test tests/w17d1_chart_favorite_continuity.test.cjs tests/w17d1a_original_chart_uia.test.cjs tests/w17d2_legacy_favorite_import.test.cjs tests/w17d3_old_origin_fixture.test.cjs tests/w17d4_chart_timeframe_continuity.test.cjs tests/w17d5_chart_pane_layout.test.cjs
             if($LASTEXITCODE -ne 0){throw 'W17D1_CHART_BROWSER_STORAGE_FOCUSED_RED'}
             Write-Output '::notice::W17D3_OLD_WEBVIEW2_SOURCE_UI_AND_NO_CLOBBER_CONTRACTS=PASS'
