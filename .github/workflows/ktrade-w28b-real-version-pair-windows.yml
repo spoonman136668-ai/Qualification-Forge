@@ -151,7 +151,7 @@ jobs:
           $cmpOut=@(& $compare $dest $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage 'cbe4aa2acae70534a87905fd9ac915cbee9eafac')
           if($LASTEXITCODE -ne 0){throw 'W28B_REAL_VERSION_COMPARATOR_REFUSED'}
           $cmp=($cmpOut -join [Environment]::NewLine)|ConvertFrom-Json
-          if($cmp.DistinctBinaries -ne $true -or $cmp.LiveArmed -ne $false -or $cmp.Launched -ne $false -or $cmp.StateMigrated -ne $false){throw 'W28B_COMPARISON_MISREPRESENTED_BOUNDARY'}
+          if($cmp.distinct_binaries -ne $true -or $cmp.live_armed -ne $false -or $cmp.launched -ne $false -or $cmp.state_migrated -ne $false){throw 'W28B_COMPARISON_MISREPRESENTED_BOUNDARY'}
           $marker=Join-Path $dest 'existing-owner-settings-paper-history.marker'
           [IO.File]::WriteAllText($marker,'OWNER_PREFERENCES_PINE_STRATEGIES_PAPER_LEDGER_PRESERVED')
           $profile=Join-Path $oldStage 'data/webview2-profile'
