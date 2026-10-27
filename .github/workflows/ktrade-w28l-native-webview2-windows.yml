@@ -975,38 +975,17 @@ jobs:
               Write-Output ('::warning::W28L_NATIVE_DIALOG_METADATA='+($diagnostic -join '|'))
               throw 'W28L_NATIVE_FILE_PICKER_NOT_OBSERVED'
             }
-            # Common file dialogs need not expose the legacy IDCANCEL
-            # numeric ID to UIA. Bind the exact semantic Button and label
-            # within the already verified owned dialog instead.
-            $cancel=$null
-            $deadline=(Get-Date).AddSeconds(10)
-            do{
-              $buttons=$dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-                [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button))
-              foreach($button in $buttons){
-                if(!$button.Current.IsOffscreen -and $button.Current.IsEnabled -and $button.Current.Name -cin @('Cancel','&Cancel')){$cancel=$button;break}
-              }
-              if($cancel){break}
-              Start-Sleep -Milliseconds 250
-            }while((Get-Date) -lt $deadline)
-            if(!$cancel){
-              $details=@()
-              foreach($button in $buttons){$details+=($button.Current.Name+';id='+$button.Current.AutomationId+';offscreen='+$button.Current.IsOffscreen)}
-              Write-Output ('::warning::W28L_OWNED_DIALOG_BUTTONS='+($details -join '|'))
-              throw 'W28L_NATIVE_PICKER_CANCEL_ABSENT'
-            }
-
-            $dr=$dialog.Current.BoundingRectangle
-            $cr=$cancel.Current.BoundingRectangle
-            if($cr.IsEmpty -or $cr.Width -lt 8 -or $cr.Height -lt 8 -or $cr.Left -lt $dr.Left -or $cr.Right -gt $dr.Right -or $cr.Top -lt $dr.Top -or $cr.Bottom -gt $dr.Bottom){throw 'W28L_NATIVE_CANCEL_BOUNDS_REFUSED'}
+            # Native Windows Escape is the documented user cancellation
+            # gesture for a file chooser. Bind foreground custody to this
+            # verified owned dialog and require actual native destruction
+            # and re-enabled original owner afterwards.
             $dh=[IntPtr]$dialog.Current.NativeWindowHandle
-            if($dh -eq [IntPtr]::Zero){throw 'W28L_DIALOG_NATIVE_HANDLE_REQUIRED'}
+            if($dh -eq [IntPtr]::Zero -or ![W17D1ANativeClick]::IsWindowVisible($dh)){throw 'W28L_NATIVE_DIALOG_NOT_VISIBLE'}
             [void][W17D1ANativeClick]::SetForegroundWindow($dh)
             Start-Sleep -Milliseconds 200
             if([W17D1ANativeClick]::GetForegroundWindow() -ne $dh){throw 'W28L_DIALOG_FOREGROUND_CUSTODY_REQUIRED'}
-            if(![W17D1ANativeClick]::SetCursorPos([int]($cr.Left+$cr.Width/2),[int]($cr.Top+$cr.Height/2))){throw 'W28L_CANCEL_POINTER_REFUSED'}
-            [W17D1ANativeClick]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
-            [W17D1ANativeClick]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+            [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
+
             $deadline=(Get-Date).AddSeconds(15)
             $ready=$false
             do{
@@ -1022,7 +1001,7 @@ jobs:
               Start-Sleep -Milliseconds 250
             }while((Get-Date) -lt $deadline)
             if(!$ready){
-              Write-Output ('::warning::W28L_NATIVE_MODAL_STATE=main='+$w28main+';cached='+$parent.MainWindowHandle+';dialog='+$dh+';dialog_visible='+[W17D1ANativeClick]::IsWindowVisible($dh)+';main_enabled='+[W17D1ANativeClick]::IsWindowEnabled($w28main)+';cancel_name='+$cancel.Current.Name+';cancel_type='+$cancel.Current.ControlType.ProgrammaticName)
+              Write-Output ('::warning::W28L_NATIVE_MODAL_STATE=main='+$w28main+';cached='+$parent.MainWindowHandle+';dialog='+$dh+';dialog_visible='+[W17D1ANativeClick]::IsWindowVisible($dh)+';main_enabled='+[W17D1ANativeClick]::IsWindowEnabled($w28main))
               throw 'W28L_NATIVE_PICKER_CANCEL_DID_NOT_RELEASE_MODAL_OWNER'
             }
             $nativeOwnerPID=[uint32]0
