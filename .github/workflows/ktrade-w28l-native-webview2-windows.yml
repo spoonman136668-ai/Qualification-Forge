@@ -329,6 +329,11 @@ jobs:
               'using System.Runtime.InteropServices;',
               'public static class W17D1ANativeClick {',
               ' [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr hWnd,uint cmd);',
+              ' [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);',
+              ' [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr hWnd);',
+              ' [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);',
+              ' [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd,out uint processId);',
+              ' [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd,uint msg,IntPtr wp,IntPtr lp);',
               ' [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
               ' [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();',
               ' [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);',
@@ -907,6 +912,8 @@ jobs:
             $archive=Get-Content -LiteralPath $download -Raw|ConvertFrom-Json
             if($archive.schema -cne 'ktrade.w28k.real-chart-preferences.v1'){throw 'W28L_DOWNLOAD_NOT_ORIGINAL_ARCHIVE'}
             Write-Output '::notice::W28L_ACTUAL_WEBVIEW2_EXPORT_CREATED_ORIGINAL_JSON=PASS'
+            $w28main=$parent.MainWindowHandle
+            if($w28main -eq [IntPtr]::Zero -or ![W17D1ANativeClick]::IsWindowEnabled($w28main)){throw 'W28L_ORIGINAL_MAIN_HANDLE_NOT_READY'}
             Click-W28L 'Import settings'
             $dialog=$null
             $deadline=(Get-Date).AddSeconds(20)
@@ -924,7 +931,7 @@ jobs:
                   $owned=($win.Current.ProcessId -in $allowed)
                   $handle=[IntPtr]$win.Current.NativeWindowHandle
                   for($k=0;$k -lt 12 -and $handle -ne [IntPtr]::Zero;$k++){
-                    if($handle -eq $parent.MainWindowHandle){$owned=$true;break}
+                    if($handle -eq $w28main){$owned=$true;break}
                     $handle=[W17D1ANativeClick]::GetWindow($handle,4)
                   }
                   if(!$win.Current.IsOffscreen -and $owned -and $win.Current.ClassName -ceq '#32770'){$dialog=$win;break}
@@ -962,32 +969,31 @@ jobs:
               $parent.Refresh()
               if($parent.HasExited){throw 'W28L_WAILS_EXITED_AFTER_PICKER_CANCEL'}
               try{
-                $pe=[System.Windows.Automation.AutomationElement]::FromHandle($parent.MainWindowHandle)
-                if($pe.Current.IsEnabled){
+                $pickerGone=(![W17D1ANativeClick]::IsWindow($dh) -or ![W17D1ANativeClick]::IsWindowVisible($dh))
+                $ownerEnabled=[W17D1ANativeClick]::IsWindowEnabled($w28main)
+                if($pickerGone -and $ownerEnabled){
                   $ready=$true;break
                 }
               }catch{}
               Start-Sleep -Milliseconds 250
             }while((Get-Date) -lt $deadline)
-            if(!$ready){throw 'W28L_NATIVE_PICKER_CANCEL_DID_NOT_RELEASE_MODAL_OWNER'}
+            if(!$ready){
+              Write-Output ('::warning::W28L_NATIVE_MODAL_STATE=main='+$w28main+';cached='+$parent.MainWindowHandle+';dialog='+$dh+';dialog_visible='+[W17D1ANativeClick]::IsWindowVisible($dh)+';main_enabled='+[W17D1ANativeClick]::IsWindowEnabled($w28main)+';cancel_name='+$cancel.Current.Name+';cancel_type='+$cancel.Current.ControlType.ProgrammaticName)
+              throw 'W28L_NATIVE_PICKER_CANCEL_DID_NOT_RELEASE_MODAL_OWNER'
+            }
+            $nativeOwnerPID=[uint32]0
+            [void][W17D1ANativeClick]::GetWindowThreadProcessId($w28main,[ref]$nativeOwnerPID)
+            if($nativeOwnerPID -ne $parent.Id){throw 'W28L_MAIN_HANDLE_PROCESS_ID_CHANGED'}
             Write-Output '::notice::W28L_REAL_NATIVE_FILE_PICKER_OPEN_AND_CANCEL=PASS'
             $caps=Invoke-RestMethod -Uri ($base+'/api/operator/capabilities') -TimeoutSec 10
             if($caps.paper_orders_enabled -ne $false -or $caps.live_orders_enabled -ne $false -or $caps.strategy_execution_enabled -ne $false){throw 'W28L_FINAL_DISARM_FAILED'}
             Remove-Item -LiteralPath $download -Force
             Write-Output '::notice::W28L_NO_IMPORT_NO_OWNER_DATA_NO_TRADING=PASS'
 
-            $parent.Refresh()
-            [void][W17D1ANativeClick]::SetForegroundWindow($parent.MainWindowHandle)
-            Start-Sleep -Milliseconds 500
-            $closed=$parent.CloseMainWindow()
-            if(!$closed){
-              # Process.MainWindowHandle may temporarily cache the owned
-              # modal handle. Refresh after the canceled native dialog.
-              $parent.Refresh()
-              Start-Sleep -Milliseconds 1000
-              $closed=$parent.CloseMainWindow()
-            }
-            if(!$closed){throw 'W17D3_THIRD_WAILS_CLOSE_REFUSED'}
+            # Normal WM_CLOSE to the exact original HWND, with independent
+            # process ownership and modal release already verified above.
+            if(![W17D1ANativeClick]::PostMessage($w28main,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'W28L_GRACEFUL_NATIVE_CLOSE_POST_FAILED'}
+
             if(-not $parent.WaitForExit(15000)){throw 'W17D3_THIRD_WAILS_SHUTDOWN_REFUSED'}
             Write-Output '::notice::W17D0_NO_LIVE_NO_PAPER_NO_USER_DATA_NO_INSTALLED_MIGRATION=PASS'
           } finally {
