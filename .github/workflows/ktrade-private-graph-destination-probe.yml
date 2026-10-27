@@ -1,0 +1,38 @@
+name: KTRADE private knowledge graph destination probe
+on:
+  push:
+    branches:
+      - qualification/ktrade-private-graph-destination-probe-20261027
+    paths:
+      - .github/workflows/ktrade-private-graph-destination-probe.yml
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - name: Verify private source and knowledge read permissions without disclosure
+        shell: pwsh
+        env:
+          PRIVATE_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'UNTRUSTED_RUNNER'}
+          if([string]::IsNullOrWhiteSpace($env:PRIVATE_TOKEN)){throw 'PRIVATE_SOURCE_TOKEN_ABSENT'}
+          $headers=@{Accept='application/vnd.github+json';Authorization=('Bearer '+$env:PRIVATE_TOKEN)}
+          foreach($item in @(
+            @{repo='spoonman136668-ai/ktrade';sha='a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58';file='go.mod'},
+            @{repo='spoonman136668-ai/ktrade-knowledge';sha='bff5c67f0d9af2af7b653bd9351a9d1ef99c3822';file='Graphify/README.md'}
+          )){
+            try{
+              $url='https://api.github.com/repos/'+$item.repo+'/contents/'+$item.file+'?ref='+$item.sha
+              $r=Invoke-RestMethod -Uri $url -Headers $headers -TimeoutSec 30
+              if($r.type -cne 'file' -or [string]::IsNullOrEmpty($r.sha)){throw 'INVALID_RESPONSE'}
+            }catch{throw ('PRIVATE_GRAPH_SOURCE_OR_DESTINATION_UNAVAILABLE_'+$item.repo.Split('/')[-1])}
+          }
+          Remove-Variable headers,r -ErrorAction SilentlyContinue
+          Write-Host 'PRIVATE_KTRADE_SOURCE_READ=PASS'
+          Write-Host 'PRIVATE_KTRADE_KNOWLEDGE_READ=PASS'
+          Write-Host 'NO_PRIVATE_CONTENT_EMITTED=PASS'
