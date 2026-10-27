@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: c3864bab900fa5ab148c5746622ca2857139c373
+          ref: 0e6d2c4073e20bc05096299e3ac96c6671fa333b
           path: new
           fetch-depth: 6
           persist-credentials: false
@@ -47,9 +47,9 @@ jobs:
           $src=Join-Path $env:GITHUB_WORKSPACE 'new'
           if((& git -C $old rev-parse HEAD).Trim() -cne 'a282385f776295eb0013c9904e6a9306595c06f1' -or
              (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'd22dcb6389d0b15ad2af97461a0366ed079c7de5' -or
-             (& git -C $src rev-parse HEAD).Trim() -cne 'c3864bab900fa5ab148c5746622ca2857139c373' -or
-             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '25decc4856d56f3f77a5424222826c413393b389' -or
-             (& git -C $src rev-parse HEAD~4).Trim() -cne 'a282385f776295eb0013c9904e6a9306595c06f1'){throw 'W28J_SOURCE_TREE_OR_PARENT_DIFFERS_FROM_QUALIFIED'}
+             (& git -C $src rev-parse HEAD).Trim() -cne '0e6d2c4073e20bc05096299e3ac96c6671fa333b' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'cbfcf267173ec509963279ba721221858a2bd016' -or
+             (& git -C $src rev-parse HEAD~5).Trim() -cne 'a282385f776295eb0013c9904e6a9306595c06f1'){throw 'W28J_SOURCE_TREE_OR_PARENT_DIFFERS_FROM_QUALIFIED'}
           $expected=@('tools/wails-pilot/backend/w28j_stopped_history.go',
              'tools/wails-pilot/backend/w28j_stopped_history_test.go',
              'tools/wails-pilot/cmd/release-history-preflight/main.go',
