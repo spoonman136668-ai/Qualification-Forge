@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 494a22f0d78f9f2effd12cabcd8181e07c0631b7
+          ref: 74d0f6a10f6d12615018a2fc81a2d76c956d4d70
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -36,7 +36,7 @@ jobs:
           $got=(& git -C $src rev-parse HEAD).Trim()
           $prior=(& git -C $src rev-parse HEAD^).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
-          if($got -cne '494a22f0d78f9f2effd12cabcd8181e07c0631b7' -or $prior -cne '471a04176e4d0d2c14979951aa38ce3e25c67541' -or $tree -cne 'f79bcfd47a5da040404d92ce72487f59f705613c'){throw 'W26_IMMUTABLE_SOURCE_DRIFT'}
+          if($got -cne '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' -or $prior -cne '471a04176e4d0d2c14979951aa38ce3e25c67541' -or $tree -cne '2fe3e82285d558feb01d54849a46b3d6915235fc'){throw 'W26_IMMUTABLE_SOURCE_DRIFT'}
           $actual=@(& git -C $src diff --name-only 471a04176e4d0d2c14979951aa38ce3e25c67541 HEAD | Sort-Object -CaseSensitive)
           $expected=@('tools/wails-pilot/backend/release_extract.go','tools/wails-pilot/backend/release_extract_test.go','tools/wails-pilot/cmd/release-extract/main.go' | Sort-Object -CaseSensitive)
           if((Compare-Object -ReferenceObject $expected -DifferenceObject $actual)){throw 'W26_THREE_PATH_BOUNDARY_DRIFT'}
@@ -94,7 +94,7 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W26_OFFLINE_VENDOR_ASSETS_FAIL'}
             if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W26_BUILD_CHANGED_SOURCE'}
-            $lines=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha '494a22f0d78f9f2effd12cabcd8181e07c0631b7' -ReleaseCandidate)
+            $lines=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' -ReleaseCandidate)
             if($lines -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W26_REAL_CANDIDATE_BUILD_FAIL'}
           }finally{Pop-Location}
           $zip=Join-Path $root 'KTRADE-WailsPortable.zip'
@@ -102,11 +102,11 @@ jobs:
           $destination=Join-Path $env:GITHUB_WORKSPACE 'verified-fresh-extract'
           New-Item -ItemType Directory -Path $destination -ErrorAction Stop | Out-Null
           $extract=Join-Path $env:GITHUB_WORKSPACE 'release-extract.exe'
-          $receipt=@(& $extract $zip $destination '494a22f0d78f9f2effd12cabcd8181e07c0631b7')
+          $receipt=@(& $extract $zip $destination '74d0f6a10f6d12615018a2fc81a2d76c956d4d70')
           if($LASTEXITCODE -ne 0){throw 'W26_ORIGINAL_W23_ZIP_NOT_EXTRACTABLE'}
           $report=($receipt -join [Environment]::NewLine)|ConvertFrom-Json
           $fresh=[string]$report.candidate_directory
-          if($report.source_sha -cne '494a22f0d78f9f2effd12cabcd8181e07c0631b7' -or $report.live_armed -ne $false -or
+          if($report.source_sha -cne '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' -or $report.live_armed -ne $false -or
              $report.launched -ne $false -or !(Test-Path -LiteralPath $fresh -PathType Container)){
             throw 'W26_EXTRACTED_CANDIDATE_RECEIPT_INVALID'
           }
@@ -118,7 +118,7 @@ jobs:
           if(Test-Path -LiteralPath (Join-Path $fresh 'data/webview2-profile')){
             throw 'W26_EXTRACTED_BROWSER_PROFILE_NOT_FRESH'
           }
-          $second=@(& $extract $zip $destination '494a22f0d78f9f2effd12cabcd8181e07c0631b7' 2>&1)
+          $second=@(& $extract $zip $destination '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' 2>&1)
           if($LASTEXITCODE -eq 0){throw 'W26_EXISTING_CANDIDATE_OVERWRITE_ALLOWED'}
           Write-Output '::notice::W26_REAL_W23_ZIP_VERIFIED_AND_EXTRACTED_ON_WINDOWS=PASS'
           Write-Output '::notice::W26_FRESH_ONLY_NO_PROFILE_NO_LIVE_NO_APP_START=PASS'
