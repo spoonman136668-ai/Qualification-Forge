@@ -1,0 +1,111 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W29C self-contained unsigned setup bundle",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+  "source_tree": "c704ae502556f6395bb55b9bd7fa413d24eacbb1",
+  "parent_sha": "2ef4b548b1776ade4a05f99a3943568c88c1f725",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/159",
+  "changed_paths": [
+    "tools/wails-pilot/backend/fresh_install.go",
+    "tools/wails-pilot/backend/setup_bundle.go",
+    "tools/wails-pilot/backend/setup_bundle_test.go",
+    "tools/wails-pilot/cmd/release-setup/main.go",
+    "windows/Build-KTRADE-FreshInstaller.ps1",
+    "windows/Install-KTRADE-Fresh.ps1"
+  ],
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "witness_sha": "a3caed1b64b02a9c6217ae7c2e6eacf6d59d29c3",
+  "run_id": 40595157843,
+  "job_id": 122509111871,
+  "foundation": {
+    "gate": "W29B shortcuts/uninstall",
+    "run_id": 40591669507,
+    "witness_sha": "94c2463b4406e7d956e92566bbf41b951fb03c31",
+    "source_sha": "2ef4b548b1776ade4a05f99a3943568c88c1f725"
+  },
+  "signature_status": "unsigned",
+  "release_authority": "none",
+  "paper_orders_enabled": false,
+  "live_armed": false,
+  "owner_data_touched": false,
+  "protected_refs_changed": false,
+  "merged": false,
+  "no_claims": [
+    "graphical installer UI or Windows Apps & Features registration",
+    "installed-root update/rollback",
+    "owner installation or historical data cutover",
+    "candle rendering or Pine execution acceptance",
+    "whole product release acceptance or source promotion",
+    "signature/authenticity beyond unsigned content-integrity receipts",
+    "production deployment or broker orders"
+  ],
+  "go_qualification": {
+    "run_id": 40593504684,
+    "job_id": 122503441705,
+    "witness_sha": "58e8f25d08c9a99b7cbb03f31b1e4d30d7031550",
+    "workflow_blob_sha": "972ca26d5868017f1af25955f3331da5569f579a",
+    "source_sha": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+    "source_tree": "c704ae502556f6395bb55b9bd7fa413d24eacbb1",
+    "required_completed_steps": [
+      "Stage unchanged assets parse shell script and run affected interfaces",
+      "One frozen-source full original Go and Wails regression and vet before build"
+    ],
+    "overall_run_conclusion": "failure",
+    "failure_scope": "Later native cold launch harness child module environment; Go proof steps succeeded",
+    "go_version": "1.25.0",
+    "node_version": "24",
+    "runner": "windows-2022",
+    "config": {
+      "CGO_ENABLED": "1",
+      "GOWORK": "off",
+      "GOFLAGS": "-p=2",
+      "GOMAXPROCS": "2"
+    }
+  },
+  "status": "completed",
+  "conclusion": "success",
+  "setup_build": {
+    "schema": "ktrade.setup-build.v1",
+    "source_sha": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+    "manifest_sha256": "bc771944fde33fde378fe714bc9d76769bed519c16a16c098a020160119a9fca",
+    "archive_sha256": "80f35823e4ba51dc97c5b9872b805400be07be876b67d05471b6118a09a93f96",
+    "signature_status": "unsigned",
+    "live_armed": false,
+    "release_authority": "none"
+  },
+  "focused_backend_race_seconds": 3.242,
+  "final_backend_suite_seconds": 1.943,
+  "diagnostic_runs": [
+    {
+      "run_id": 40593504684,
+      "witness_sha": "58e8f25d08c9a99b7cbb03f31b1e4d30d7031550",
+      "conclusion": "failure",
+      "scope": "Focused/full Go qualification and build succeeded; second native cold launch failed"
+    },
+    {
+      "run_id": 40594538358,
+      "witness_sha": "e237fc265039f54785d0076ecce033c281e158a7",
+      "conclusion": "failure",
+      "scope": "Cold child Windows PowerShell process failed to load Get-FileHash under inherited PowerShell 7 module environment"
+    }
+  ],
+  "harness_fix": "Start-Process child receives explicit Windows PowerShell built-in module path; source remained frozen; no waits or controls relaxed",
+  "private_compiled_artifact_cache_enabled": false,
+  "passed": [
+    "Exact source/tree/six-path delta and qualified W29B foundation verified",
+    "Bounded manifest parser rejects duplicate keys, trailing content, unknown asset paths, source/authority/disarm and size/hash drift before destination claim",
+    "Original W29 finish callback holds incomplete-install launch quarantine through maintenance copy and manifest revalidation; failure remains quarantined",
+    "Exact completed source/toolchain affected-interface race and full original Go/Wails test/vet proof reused from first W29C witness; successful step identity checked server-side",
+    "Original native release ZIP and source-bound setup/maintenance tools built into self-contained unsigned distribution ZIP with manifest/archive SHA256",
+    "Actual distribution ZIP extracted and invoked using Windows PowerShell 5.1 with Go/Node absent from PATH",
+    "Tampered payload and existing destination refused; install produced no application/browser startup",
+    "Distribution folder removed; installed maintenance inspection succeeded and altered installed maintenance refused",
+    "Actual Start Menu .lnk launch and separate installed Windows PowerShell Launch action cold-opened original installed Wails/WebView2",
+    "Native PID/source/path, original engine child/loopback and stopped/disarmed capabilities verified; UIA-bound physical original Verify chart UI nonce clicks passed both launches",
+    "Installed Uninstall action refused while original lease active; normal shell shutdown ended original engine, released lease and returned installed launcher successfully",
+    "Installed PowerShell-only uninstall removed verified app executables/assets and owned shortcut while retaining every data/profile file name/count/SHA256, original install receipt and unknown bytes",
+    "Uninstalled Launch action refused",
+    "Private source, packages, disposable installation and ephemeral shortcut cleaned; compiled artifact cache disabled"
+  ]
+}
