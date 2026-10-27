@@ -325,6 +325,7 @@ jobs:
               'using System;',
               'using System.Runtime.InteropServices;',
               'public static class W17D1ANativeClick {',
+              ' [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr hWnd,uint cmd);',
               ' [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);',
               ' [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();',
               ' [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);',
@@ -914,16 +915,31 @@ jobs:
               for($j=0;$j -lt 8;$j++){
                 $allowed=@($allowed+@($processes|Where-Object {$_.ParentProcessId -in $allowed}|ForEach-Object {[int]$_.ProcessId})|Select-Object -Unique)
               }
-              $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,[System.Windows.Automation.Condition]::TrueCondition)
+              $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Window))
               foreach($win in $windows){
                 try{
-                  if(!$win.Current.IsOffscreen -and $win.Current.ProcessId -in $allowed -and $win.Current.ClassName -ceq '#32770'){$dialog=$win;break}
+                  $owned=($win.Current.ProcessId -in $allowed)
+                  $handle=[IntPtr]$win.Current.NativeWindowHandle
+                  for($k=0;$k -lt 12 -and $handle -ne [IntPtr]::Zero;$k++){
+                    if($handle -eq $parent.MainWindowHandle){$owned=$true;break}
+                    $handle=[W17D1ANativeClick]::GetWindow($handle,4)
+                  }
+                  if(!$win.Current.IsOffscreen -and $owned -and $win.Current.ClassName -ceq '#32770'){$dialog=$win;break}
                 }catch{}
               }
               if($dialog){break}
               Start-Sleep -Milliseconds 300
             }while((Get-Date) -lt $deadline)
-            if(!$dialog){throw 'W28L_NATIVE_FILE_PICKER_NOT_OBSERVED'}
+            if(!$dialog){
+              $diagnostic=@()
+              foreach($win in $windows){try{
+                if(!$win.Current.IsOffscreen -and ($win.Current.ProcessId -in $allowed -or $win.Current.ClassName -ceq '#32770')){
+                  $diagnostic+=('pid='+$win.Current.ProcessId+';class='+$win.Current.ClassName+';name='+$win.Current.Name)
+                }
+              }catch{}}
+              Write-Output ('::warning::W28L_NATIVE_DIALOG_METADATA='+($diagnostic -join '|'))
+              throw 'W28L_NATIVE_FILE_PICKER_NOT_OBSERVED'
+            }
             $cancel=$dialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty,'2'))
             if(!$cancel -or $cancel.Current.IsOffscreen){throw 'W28L_NATIVE_PICKER_CANCEL_ABSENT'}
             $cp=$cancel.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
