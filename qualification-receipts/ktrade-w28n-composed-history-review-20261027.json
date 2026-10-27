@@ -1,0 +1,41 @@
+{
+  "schema": "ktrade.w28n.composed-stopped-history-review.v1",
+  "status": "BOUNDED_NATIVE_ENGINEERING_PASS_NOT_PRODUCT_COMPLETION",
+  "source_sha": "7301a2a1117ed2ad556cc69fbe50595195d16848",
+  "source_tree": "e4c96788a425fad15871fbd20263dff802ddb219",
+  "source_changes_this_gate": 0,
+  "witness_sha": "56dda0a3bb0d266e8a66b5b51a8b96ce9902e458",
+  "run_id": 40582128409,
+  "job_id": 122464010590,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40582128409",
+  "conclusion": "success",
+  "passed": [
+    "real source-built paired Wails and original Go release ZIP",
+    "source-bound native extraction and W27 selected release",
+    "source-authentic W28H synthetic financial history with two sealed checkpoints",
+    "original W28D full stopped-state escrow",
+    "complete source-original PowerShell wrapper invoking separate native preflight and financial reader CLIs",
+    "exact nominated source ID, original snapshot seal, archive SHA256 and ledger head",
+    "original cash 559.7, position 1, fee 0.3 and one original synthetic settled BUY",
+    "wrong valid-format source nomination veto",
+    "data mutation veto by original escrow gate",
+    "restored exact original bytes then cold repeated native review",
+    "final complete escrow parity",
+    "full original Go and nested Wails tests and vet",
+    "private checkout, binary and synthetic history cleanup"
+  ],
+  "qualification_fixture": "Witness test reuses unchanged original w28hCompleteFixture and ReviewExplicitW28HStoppedHistory; transient untracked fixture adapter removed before full regression. No copied financial formulas or replacement ledger parser.",
+  "no_claims": [
+    "real installed owner-profile admission or financial history access",
+    "financial execution restoration or PAPER resumption",
+    "production upgrade or installer/rollback acceptance",
+    "whole-product completion"
+  ],
+  "paper_orders_enabled": false,
+  "live_armed": false,
+  "app_started_this_gate": false,
+  "owner_data_accessed": false,
+  "protected_refs_modified": false,
+  "source_pr": 155,
+  "pr_draft": true
+}
