@@ -90,6 +90,8 @@ jobs:
           if($LASTEXITCODE -eq 0){throw 'W28H_UNAUTHORIZED_FINANCIAL_SOURCE_ADMITTED'}
           Write-Output '::notice::W28H_ORIGINAL_PAPER_RECONCILIATION_STOPPED_COLD_HISTORY_NEGATIVES=PASS'
           Write-Output '::notice::W28H_REAL_NATIVE_READ_ONLY_OPERATOR_CLI_BUILT_AND_FAIL_CLOSED=PASS'
+          # Negative CLI probes intentionally return nonzero; clear their exit code.
+          exit 0
       - name: Complete original Go engine plus nested Wails Go test and vet
         shell: pwsh
         run: |
