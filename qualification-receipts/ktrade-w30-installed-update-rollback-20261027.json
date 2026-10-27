@@ -1,0 +1,113 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W30 stopped installed update and rollback core",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "608f1290745b84e882a9f6a8b64793cb6cf012a5",
+  "source_tree": "fe8a3f5d301b431f16b5c36b76fe1584583254ff",
+  "parent_sha": "a95bba7bfdc869e0025c7752034c94d3b48b1769",
+  "baseline_sha": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+  "baseline_tree": "c704ae502556f6395bb55b9bd7fa413d24eacbb1",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/160",
+  "changed_paths": [
+    "tools/wails-pilot/backend/installed_update.go",
+    "tools/wails-pilot/backend/installed_update_test.go",
+    "tools/wails-pilot/backend/setup_bundle.go",
+    "tools/wails-pilot/cmd/release-setup/main.go",
+    "windows/Install-KTRADE-Fresh.ps1"
+  ],
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "witness_sha": "96593eca1febc9c81cedf88a5773e265c595c96d",
+  "run_id": 40598355341,
+  "job_id": 122519971182,
+  "foundation": {
+    "gate": "W29C setup bundle",
+    "run_id": 40595157843,
+    "witness_sha": "a3caed1b64b02a9c6217ae7c2e6eacf6d59d29c3",
+    "source_sha": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+    "source_tree": "c704ae502556f6395bb55b9bd7fa413d24eacbb1"
+  },
+  "initial_failed_compile": {
+    "run_id": 40597332106,
+    "witness_sha": "76197f3879af9731737e3c1f607b53f92c54eef7",
+    "source_sha": "944f99ab964d1d1db4023f9937c9dcf1cb230a74",
+    "reason": "Extracted maintenance copier retained an out-of-scope source variable; corrected to manifest.SourceSHA before tests/build"
+  },
+  "signature_status": "unsigned",
+  "release_authority": "none",
+  "paper_orders_enabled": false,
+  "live_armed": false,
+  "owner_data_touched": false,
+  "protected_refs_changed": false,
+  "merged": false,
+  "private_compiled_artifact_cache_enabled": false,
+  "no_claims": [
+    "automatic browser-profile, financial-ledger or unknown-state migration",
+    "shortcut refresh or multi-version uninstall integration",
+    "graphical installer or Apps & Features registration",
+    "owner installation or production data cutover",
+    "candle-rendering or Pine-execution acceptance",
+    "whole-product release acceptance or protected promotion",
+    "signing, publication, production deployment or broker orders"
+  ],
+  "functional_predecessor": {
+    "source_sha": "a95bba7bfdc869e0025c7752034c94d3b48b1769",
+    "run_id": 40597592531,
+    "witness_sha": "f486c13bbf4909939a5abb1ad8321520fe4426a3",
+    "conclusion": "success",
+    "scope": "Full functional two-build Windows flow passed before additional selector-history/authority negative tests; final hardened source is independently requalified"
+  },
+  "status": "completed",
+  "conclusion": "success",
+  "setup_builds": [
+    {
+      "schema": "ktrade.setup-build.v1",
+      "source_sha": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+      "manifest_sha256": "632d7c4e40bfdd004727c98583b7e3daec2e080b0a7937606a2646a63cba88df",
+      "archive_sha256": "e0665077b538ac7db3efe6af9453b3dd299a71a40c77b59f505732d4916510bd",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    },
+    {
+      "schema": "ktrade.setup-build.v1",
+      "source_sha": "608f1290745b84e882a9f6a8b64793cb6cf012a5",
+      "manifest_sha256": "94ec1c97f009a53849894e83f72b12e525f6f51e8e9f248fb7fc8e9bb3c8c64b",
+      "archive_sha256": "3c9ec59877a2c54bd49913f2f70200eeb43b5b1ee9ba9c937f616ebe6775ae84",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    }
+  ],
+  "toolchain": {
+    "go": "1.25.0",
+    "node": "24",
+    "runner": "windows-2022",
+    "CGO_ENABLED": "1",
+    "GOWORK": "off",
+    "GOFLAGS": "-p=2",
+    "GOMAXPROCS": "2"
+  },
+  "focused_backend_race_seconds": 6.056,
+  "final_backend_suite_seconds": 2.831,
+  "passed": [
+    "Exact current SHA/tree, cumulative five-path source delta, exact qualified W29C previous SHA/tree and foundation native success checked",
+    "Focused original extractor/selector/process-lease/full-data escrow/supported restore and new setup/update/rollback -race tests",
+    "Native unit tests preserve both version data trees and original receipt bytes; refuse source/tool/data/backup drift, active/orphan owners and writer locks",
+    "Interrupted commit preserves durable W29 launch veto and original selector lock, blocking legacy-shell lease admission without lock stealing",
+    "Coordinated rollback metadata rewrite refused through preceding W27 selector-entry and installation authority checks",
+    "One final frozen-candidate complete original Go and Wails test and vet pass before builds",
+    "Two real immutable source-bound original Go/Wails installer packages built, with independent unsigned archive/manifest SHA256 receipts",
+    "Windows PowerShell 5.1 previous package install and original installed Wails/WebView2 launch with Go/Node absent from runtime PATH",
+    "Active update refused without changing original root receipt or creating transaction marker",
+    "Real distinct-build update imports only original W28E-supported Pine/strategy bytes; prior full data tree and original maintenance retained",
+    "Original W29 installation receipt bytes backed up exactly; W27 selection history appended and selected receipt updated under original lock/veto",
+    "Both extracted distribution folders removed; new retained maintenance inspection and cold launch succeeded",
+    "Native PID/source/executable path, original engine child/loopback, real UIA-bound physical chart nonce clicks and PAPER_STOPPED/disarmed capabilities verified for all three phases",
+    "Active rollback and altered-prior-data rollback refused while keeping the updated selection",
+    "Successful installed rollback appends original selector history and restores prior source/stage with complete old/new data file-count/name/SHA256 parity",
+    "Original legacy W29C installed maintenance remains usable and cold launches the original version after rollback",
+    "Original/new browser and financial/unknown state remain version-local, with no automatic migration, start, rearm or process-owner takeover",
+    "Unknown root sentinel preserved; normal shell/engine/launcher close and process-lease release in all phases",
+    "Private sources, both packages, disposable install and ephemeral shortcut cleaned; no private compiled object cache"
+  ]
+}
