@@ -68,7 +68,12 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw 'KTERMINAL_ICE_GRAPHIFY_PREFLIGHT_FAILED_WITHHELD' }
             Write-Host 'KTERMINAL_ICE_GRAPHIFY_PREFLIGHT=PASS'
             & python -B -m unittest discover -s tools/source_intake -p test_*.py -v *> $log
-            if ($LASTEXITCODE -ne 0) { throw 'KTERMINAL_21_FOCUSED_TESTS_FAILED_WITHHELD' }
+            if ($LASTEXITCODE -ne 0) {
+              $failed = @(Get-Content -LiteralPath $log | Select-String -Pattern '^(FAIL|ERROR): test_[A-Za-z_0-9]+ ' | ForEach-Object { $_.Matches[0].Value.Trim() })
+              if ($failed.Count -eq 0) { Write-Host 'KTERMINAL_TEST_FAILURE_IDENTITY=NOT_EXTRACTABLE' }
+              foreach ($name in $failed) { Write-Host ('KTERMINAL_SYNTHETIC_TEST_FAILURE=' + $name) }
+              throw 'KTERMINAL_21_FOCUSED_TESTS_FAILED_WITHHELD'
+            }
             Write-Host 'KTERMINAL_11_FOCUSED_TESTS=PASS'
             if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'KTERMINAL_SOURCE_MUTATED' }
             if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_FINAL_SHA_DRIFT' }
