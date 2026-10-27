@@ -104,8 +104,14 @@ jobs:
           $tokens=$null;$problems=$null
           $ast=[System.Management.Automation.Language.Parser]::ParseFile($s,[ref]$tokens,[ref]$problems)
           if($null -eq $ast -or $problems.Count -ne 0){throw 'W28J_ORIGINAL_OPERATOR_WINDOWS_SCRIPT_PARSE_FAILED'}
-          $blocked=@(& $s -Parent $src -SelectedStage $src -SourceSHA ('a'*40) -Escrow $src -SourceID 'bad-identity' -ReleasePreflightExe (Join-Path $env:GITHUB_WORKSPACE 'release-history-preflight.exe') -OriginalPaperReviewExe (Join-Path $env:GITHUB_WORKSPACE 'ktrade-paper-history-review.exe') 2>$null)
-          if($?){throw 'W28J_ARBITRARY_HISTORY_SCRIPT_ACCEPTED_UNSELECTED_ID'}
+          $expectedReject=$false
+          try{
+            & $s -Parent $src -SelectedStage $src -SourceSHA ('a'*40) -Escrow $src -SourceID 'bad-identity' -ReleasePreflightExe (Join-Path $env:GITHUB_WORKSPACE 'release-history-preflight.exe') -OriginalPaperReviewExe (Join-Path $env:GITHUB_WORKSPACE 'ktrade-paper-history-review.exe') | Out-Null
+          }catch{
+            if($_.Exception.Message -like '*W28J_EXPLICIT_ORIGINAL_SOURCE_ID_REQUIRED*'){$expectedReject=$true}
+            else{throw}
+          }
+          if(!$expectedReject){throw 'W28J_ARBITRARY_HISTORY_SCRIPT_ACCEPTED_UNSELECTED_ID'}
           Write-Output '::notice::W28J_ORIGINAL_ACCOUNT_COLD_FINANCIAL_REPLAY_AND_WINDOWS_MANUAL_SCRIPT_NEGATIVES=PASS'
           exit 0
       - name: Full original application and Wails Go test vet
