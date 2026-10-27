@@ -1,0 +1,123 @@
+name: KTRADE W28H original stopped PAPER history read-only Windows
+on:
+  push:
+    branches: [qualification/ktrade-w28h-explicit-cold-paper-windows-20261027]
+    paths: [.github/workflows/ktrade-w28h-explicit-cold-paper-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28h-original-financial-cold-review
+  cancel-in-progress: false
+jobs:
+  cold-paper:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    steps:
+      - name: Checkout immutable witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout frozen source before W28H
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 76df3e29cbe89403eeef6075ba4484a488312484
+          path: checked-old
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact new W28H private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 67052a04eda51320da7d99dcafa65b6c22a4708d
+          path: checked-new
+          fetch-depth: 5
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify original and new source tree three-path delta and W28G run
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'checked-old'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          if((& git -C $old rev-parse HEAD).Trim() -cne '76df3e29cbe89403eeef6075ba4484a488312484' -or
+             (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne '386e5dcfa2a1e8839f753b900ff87c9023b6e692' -or
+             (& git -C $src rev-parse HEAD).Trim() -cne '67052a04eda51320da7d99dcafa65b6c22a4708d' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '9112062b3183a113dfc84b8b7a62f1b7676dbfc5' -or
+             (& git -C $src rev-parse HEAD~3).Trim() -cne '76df3e29cbe89403eeef6075ba4484a488312484'){throw 'W28H_EXACT_ORIGINAL_SOURCE_TREE_DRIFT'}
+          $want=@('cmd/ktrade-paper-history-review/main.go','internal/papercustody/w28h_explicit_history.go','internal/papercustody/w28h_explicit_history_test.go' | Sort-Object -CaseSensitive)
+          $got=@(& git -C $src diff --name-only 76df3e29cbe89403eeef6075ba4484a488312484 HEAD | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $want -DifferenceObject $got){throw 'W28H_THREE_FILE_SCOPE_DRIFT'}
+          foreach($r in @($old,$src)){
+            if(@(& git -C $r status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28H_SOURCE_CHANGED'}
+          }
+          $prior=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40508396041' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($prior.status -cne 'completed' -or $prior.conclusion -cne 'success' -or
+             $prior.head_sha -cne '9957895de73562be9536241961b7233fa3176c1f'){throw 'W28H_PREDECESSOR_W28G_NOT_AUTHENTIC'}
+          Write-Output '::notice::W28H_PINNED_ORIGINAL_SOURCE_EXACT_THREE_FILES_AND_W28G_WITNESS=PASS'
+      - name: Install Go 1.25 Windows
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-new/go.sum
+            checked-new/tools/wails-pilot/go.sum
+      - name: Original stopped historical financial archive and read-only negative controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $source=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          Push-Location $source
+          try{
+            & go test -mod=readonly -count=1 -timeout 5m -run '^TestW28H' -v ./internal/papercustody
+            if($LASTEXITCODE -ne 0){throw 'W28H_EXPLICIT_SOURCE_FINANCIAL_REPLAY_FAILED'}
+            & go test -mod=readonly -count=1 -tags ktrade_full -timeout 5m -run '^TestRB2PortableColdRestartDiscoversOnlySealedOriginalFinancialSource$' ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W28H_ORIGINAL_COLD_PAPER_ARCHIVE_ROUTE_FAILED'}
+            & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE 'ktrade-paper-history-review.exe') ./cmd/ktrade-paper-history-review
+            if($LASTEXITCODE -ne 0){throw 'W28H_SOURCE_AUTHENTIC_REVIEW_CLI_BUILD_FAILED'}
+          }finally{Pop-Location}
+          $cli=Join-Path $env:GITHUB_WORKSPACE 'ktrade-paper-history-review.exe'
+          $blocked=@(& $cli list (Join-Path $env:GITHUB_WORKSPACE 'checked-new'))
+          if($LASTEXITCODE -eq 0){throw 'W28H_ARBITRARY_INSTALLED_ROOT_ADMITTED'}
+          $blocked=@(& $cli inspect (Join-Path $env:GITHUB_WORKSPACE 'checked-new') 'ktrade-reconcile-aaaaaaaaaaaa')
+          if($LASTEXITCODE -eq 0){throw 'W28H_UNAUTHORIZED_FINANCIAL_SOURCE_ADMITTED'}
+          Write-Output '::notice::W28H_ORIGINAL_PAPER_RECONCILIATION_STOPPED_COLD_HISTORY_NEGATIVES=PASS'
+          Write-Output '::notice::W28H_REAL_NATIVE_READ_ONLY_OPERATOR_CLI_BUILT_AND_FAIL_CLOSED=PASS'
+      - name: Complete original Go engine plus nested Wails Go test and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28H_FULL_ORIGINAL_ENGINE_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28H_ORIGINAL_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28H_WAILS_FULL_GO_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28H_WAILS_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W28H_COMPLETE_NATIVE_ORIGINAL_ENGINE_AND_WAILS_TEST_VET=PASS'
+      - name: Purge checked private KTRADE sources and review tool
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('checked-old','checked-new')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          $tool=Join-Path $env:GITHUB_WORKSPACE 'ktrade-paper-history-review.exe'
+          if(Test-Path -LiteralPath $tool){Remove-Item -LiteralPath $tool -Force -ErrorAction SilentlyContinue}
