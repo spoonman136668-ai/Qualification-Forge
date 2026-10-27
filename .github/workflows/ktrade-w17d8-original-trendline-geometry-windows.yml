@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 3b16cf3816cb2e12ba581fd14050172418889249
+          ref: 471a04176e4d0d2c14979951aa38ce3e25c67541
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
@@ -47,9 +47,9 @@ jobs:
           if($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W20_HOSTED_WINDOWS_REQUIRED'}
           $root=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $witness=Join-Path $env:GITHUB_WORKSPACE 'witness'
-          if((& git -C $root rev-parse HEAD).Trim() -cne '3b16cf3816cb2e12ba581fd14050172418889249' -or
-             (& git -C $root rev-parse HEAD^).Trim() -cne '36635f32f860eca3cacc7a9ede87b13d5f335858' -or
-             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne 'fa76f0c4fed575624b382e41545a76cde2b20cdb' -or
+          if((& git -C $root rev-parse HEAD).Trim() -cne '471a04176e4d0d2c14979951aa38ce3e25c67541' -or
+             (& git -C $root rev-parse HEAD^).Trim() -cne '3b16cf3816cb2e12ba581fd14050172418889249' -or
+             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne 'da2aae83a252c8936a423f6fa1e24e3e431ca406' -or
              (& git -C $witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){
             throw 'W20_EXACT_SOURCE_IDENTITY_DRIFT'
           }
@@ -99,11 +99,11 @@ jobs:
               if($LASTEXITCODE -ne 0){throw 'W20_OFFLINE_VENDOR_STAGE_FAILED'}
               if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W20_SOURCE_MODIFIED'}
               $builder=Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'
-              $proof=@(& $builder -OutputRoot $pkg -ExpectedSourceSha '3b16cf3816cb2e12ba581fd14050172418889249' -ReleaseCandidate)
+              $proof=@(& $builder -OutputRoot $pkg -ExpectedSourceSha '471a04176e4d0d2c14979951aa38ce3e25c67541' -ReleaseCandidate)
               if($proof -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W20_PAIRED_DISPOSABLE_BUILD_FAILED'}
             }finally{Pop-Location}
             $receipt=Get-Content -LiteralPath (Join-Path $pkg 'source-manifest.json') -Raw | ConvertFrom-Json
-            if($receipt.source_sha -cne '3b16cf3816cb2e12ba581fd14050172418889249' -or
+            if($receipt.source_sha -cne '471a04176e4d0d2c14979951aa38ce3e25c67541' -or
                $receipt.fixture_mode -cne 'none' -or $receipt.release_candidate -ne $true -or
                $receipt.live_armed -ne $false -or $receipt.paper_started -ne $false){
               throw 'W20_TAGGED_ENGINE_MANIFEST_IDENTITY_INVALID'
@@ -179,6 +179,7 @@ jobs:
           using System;
           using System.Runtime.InteropServices;
           public class W20Mouse{
+            [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
             [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
             [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr extra);
           }
@@ -459,32 +460,38 @@ jobs:
               $archiveButton=Find-W20 'Cold archive'
             }
             if(!$archiveButton -or $archiveButton.Current.IsOffscreen){throw 'W24_COLD_ARCHIVE_CONTROL_NOT_VISIBLE'}
+            if(![W20Mouse]::SetForegroundWindow($app.MainWindowHandle)){throw 'W25_NATIVE_FOREGROUND_REQUIRED'}
+            Start-Sleep -Milliseconds 200
             $rect=$archiveButton.Current.BoundingRectangle
             if($rect.Width -lt 3 -or $rect.Height -lt 3){throw 'W24_ARCHIVE_BUTTON_BOUNDS_INVALID'}
             if(![W20Mouse]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W24_ARCHIVE_POINTER_REFUSED'}
             [W20Mouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
             [W20Mouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
-            $dialog=$null;$limit=(Get-Date).AddSeconds(12)
+            $select=$null;$openHistory=$null;$limit=(Get-Date).AddSeconds(12)
             while((Get-Date) -lt $limit){
-              $dialog=Find-W20Like 'Select a read-only paper history by number'
-              if($dialog){break}
+              $select=Find-W20 'Paper history'
+              $openHistory=Find-W20 'Open selected archive'
+              if($select -and $openHistory -and !$openHistory.Current.IsOffscreen -and $openHistory.Current.IsEnabled){break}
               Start-Sleep -Milliseconds 250
             }
-            if(!$dialog){throw 'W24_NATIVE_ARCHIVE_SELECTION_PROMPT_NOT_VISIBLE'}
-            Add-Type -AssemblyName System.Windows.Forms
-            [System.Windows.Forms.SendKeys]::SendWait('1{ENTER}')
+            if(!$select -or !$openHistory -or $openHistory.Current.IsOffscreen){throw 'W25_NATIVE_HISTORY_SELECTOR_NOT_VISIBLE'}
+            $rect=$openHistory.Current.BoundingRectangle
+            if($rect.Width -lt 3 -or $rect.Height -lt 3){throw 'W25_OPEN_ARCHIVE_BUTTON_BOUNDS_INVALID'}
+            if(![W20Mouse]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W25_OPEN_POINTER_REFUSED'}
+            [W20Mouse]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+            [W20Mouse]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)
             $reportNode=$null;$limit=(Get-Date).AddSeconds(12)
             while((Get-Date) -lt $limit){
               $reportNode=Find-W20Like 'COLD ACCOUNT'
               if($reportNode){break}
               Start-Sleep -Milliseconds 250
             }
-            if(!$reportNode -or $reportNode.Current.Name -notmatch 'READ ONLY' -or $reportNode.Current.Name -notmatch 'REVIEW REQUIRED'){
+            if(!$reportNode -or $reportNode.Current.Name -notmatch 'READ ONLY' -or $reportNode.Current.Name -notmatch 'REVIEW REQUIRED' -or $reportNode.Current.Name -notlike ('*'+$choices.sources[0]+'*')){
               throw 'W24_NATIVE_SELECTED_ARCHIVE_REPORT_NOT_VISIBLE'
             }
             $after=Invoke-RestMethod -Uri ($base+'/api/paper/session') -TimeoutSec 10
             if($after.paper_orders_enabled -ne $false -or $after.live_armed -ne $false){throw 'W24_REVIEW_REARMED_TRADING'}
-            Write-Output '::notice::W24_REAL_WAILS_MULTI_HISTORY_PROMPT_AND_READ_ONLY_ACCOUNT=PASS'
+            Write-Output '::notice::W25_REAL_WAILS_MULTI_HISTORY_SELECTOR_AND_READ_ONLY_ACCOUNT=PASS'
             Write-Output '::notice::W20_NO_BROKER_NO_LIVE_NO_INSTALLED_USER_DATA=PASS'
           }finally{
             if($app){try{if(-not $app.HasExited){Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue}}catch{}}
