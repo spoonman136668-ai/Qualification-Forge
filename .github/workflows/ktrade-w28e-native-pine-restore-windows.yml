@@ -1,0 +1,262 @@
+name: KTRADE W28E original Pine reader cold restore Windows
+on:
+  push:
+    branches: [qualification/ktrade-w28e-native-pine-restore-20261027]
+    paths: [.github/workflows/ktrade-w28e-native-pine-restore-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28e-native-pine-restore
+  cancel-in-progress: false
+jobs:
+  original-pine-reader:
+    runs-on: windows-2022
+    timeout-minutes: 65
+    steps:
+      - name: Checkout frozen witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact original predecessor W27 private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9774043a769e8d9865c7b60dfdab95691f562b05
+          path: checked-old
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact new W28E private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: c71932245f2bc9a2d8a456cdbc31adc0b7acc03c
+          path: checked-new
+          fetch-depth: 7
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source tree and exact five-file change boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'checked-old'
+          $new=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          if((& git -C $old rev-parse HEAD).Trim() -cne '9774043a769e8d9865c7b60dfdab95691f562b05' -or
+             (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'a928e1c45b6c1495b0d3304361f794d73d5f1ed8' -or
+             (& git -C $new rev-parse HEAD).Trim() -cne 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c' -or
+             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '96ee3de6a387f1f0f0432053193985f0c9e509f0' -or
+             (& git -C $new rev-parse HEAD~5).Trim() -cne '914b03cc117fd387b1fda1d23d489103f385a705'){throw 'W28E_IMMUTABLE_SOURCE_OR_ANCESTRY_NOT_PROVEN'}
+          $got=@(& git -C $new diff --name-only 914b03cc117fd387b1fda1d23d489103f385a705 HEAD | Sort-Object -CaseSensitive)
+          $want=@('cmd/ktrade-pine-restore-proof/main.go','tools/wails-pilot/backend/release_supported_restore.go','tools/wails-pilot/backend/release_supported_restore_test.go','tools/wails-pilot/backend/release_switch.go','tools/wails-pilot/cmd/release-supported-restore/main.go' | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $want -DifferenceObject $got){throw 'W28E_FIVE_FILE_SCOPE_DRIFT'}
+          foreach($path in @($old,$new)){
+            if(@(& git -C $path status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28E_TRACKED_SOURCE_DIRTY'}
+          }
+          Write-Output '::notice::W28E_TWO_IMMUTABLE_SOURCES_TREE_PARENT_FIVE_FILE_DELTA=PASS'
+      - name: Check last qualified cold full-state escrow predecessor
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40491615701' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne '2c6383270162691a87d5ab8fdde89a305c41e09f'){throw 'W28E_W28D_WITNESS_NOT_VERIFIED'}
+          Write-Output '::notice::W28E_IMMUTABLE_W28D_COLD_ESCROW_PREDECESSOR=PASS'
+      - name: Windows Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-new/go.sum
+            checked-new/tools/wails-pilot/go.sum
+      - name: Qualify original native Pine reader, supported restore negatives and utilities
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-new/tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 -timeout 4m -run '^TestW28E' -v ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28E_SUPPORTED_RESTORE_NEGATIVES_FAILED'}
+            & go test -mod=readonly -count=1 -run '^TestW2[678]' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28E_EARLIER_NATIVE_RELEASE_INTERFACES_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28E_RELEASE_GO_VET_FAILED'}
+            foreach($cmd in @('release-extract','release-switch','release-compare','release-state-escrow','release-supported-restore')){
+              & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE ($cmd+'.exe')) ('./cmd/'+$cmd)
+              if($LASTEXITCODE -ne 0){throw ('W28E_RELEASE_TOOL_BUILD_FAILED_'+$cmd)}
+            }
+          }finally{Pop-Location}
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-new')
+          try{
+            & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE 'ktrade-pine-restore-proof.exe') ./cmd/ktrade-pine-restore-proof
+            if($LASTEXITCODE -ne 0){throw 'W28E_ORIGINAL_KTRADE_PINE_STORAGE_READER_BUILD_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W28E_PINE_READER_AND_RESTORE_NEGATIVES_ALL_NATIVE_TOOLS=PASS'
+      - name: Install Node and original offline Wails assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Independently build two genuine Wails plus Go-engine releases
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $env:KTRADE_W13_QUALIFICATION_ONLY='0'
+          foreach($pair in @(@{label='old';dir='checked-old';sha='9774043a769e8d9865c7b60dfdab95691f562b05'},@{label='new';dir='checked-new';sha='c71932245f2bc9a2d8a456cdbc31adc0b7acc03c'})){
+            $repo=Join-Path $env:GITHUB_WORKSPACE $pair.dir
+            $root=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+            Push-Location $repo
+            try{
+              & npm ci --ignore-scripts --no-audit --no-fund --silent
+              if($LASTEXITCODE -ne 0){throw 'W28E_OFFLINE_NPM_DEPENDENCIES_FAILED'}
+              & node scripts/stage_offline_vendor.cjs
+              if($LASTEXITCODE -ne 0){throw 'W28E_VENDOR_ASSET_STAGING_FAILED'}
+              if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28E_PACKAGE_CHANGED_TRACKED_SOURCE'}
+              $out=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha $pair.sha -ReleaseCandidate)
+              if($out -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W28E_AUTHENTIC_PORTABLE_WAILS_BUILD_FAILED'}
+            }finally{Pop-Location}
+            $zip=Join-Path $root 'KTRADE-WailsPortable.zip'
+            if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W28E_REAL_ZIP_MISSING'}
+            [IO.File]::WriteAllText((Join-Path $env:GITHUB_WORKSPACE ($pair.label+'-zip.txt')),$zip)
+          }
+          Write-Output '::notice::W28E_SOURCE_BUILT_TWO_DIFFERENT_WAILS_AND_GO_EXE_RELEASES=PASS'
+      - name: Cold restore Pine into independently verified new candidate and original reader reopen
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $env:KTRADE_W28E_NATIVE_QUALIFICATION_ONLY='1'
+          $parent=Join-Path $env:GITHUB_WORKSPACE 'verified-original-pine-restore-trial'
+          New-Item -ItemType Directory -Path $parent -ErrorAction Stop | Out-Null
+          $extract=Join-Path $env:GITHUB_WORKSPACE 'release-extract.exe'
+          $switch=Join-Path $env:GITHUB_WORKSPACE 'release-switch.exe'
+          $compare=Join-Path $env:GITHUB_WORKSPACE 'release-compare.exe'
+          $state=Join-Path $env:GITHUB_WORKSPACE 'release-state-escrow.exe'
+          $restore=Join-Path $env:GITHUB_WORKSPACE 'release-supported-restore.exe'
+          $pine=Join-Path $env:GITHUB_WORKSPACE 'ktrade-pine-restore-proof.exe'
+          $oldZip=[IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE 'old-zip.txt'))
+          $newZip=[IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE 'new-zip.txt'))
+          $oldOut=@(& $extract $oldZip $parent '9774043a769e8d9865c7b60dfdab95691f562b05')
+          if($LASTEXITCODE -ne 0){throw 'W28E_OLD_VERIFIED_ZIP_REJECTED'}
+          $oldStage=[string]((($oldOut -join [Environment]::NewLine)|ConvertFrom-Json).candidate_directory)
+          if(!$oldStage){throw 'W28E_OLD_STAGE_UNKNOWN'}
+          $newOut=@(& $extract $newZip $parent 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c')
+          if($LASTEXITCODE -ne 0){throw 'W28E_NEW_VERIFIED_ZIP_REJECTED'}
+          $newStage=[string]((($newOut -join [Environment]::NewLine)|ConvertFrom-Json).candidate_directory)
+          if(!$newStage){throw 'W28E_NEW_STAGE_UNKNOWN'}
+          if((Get-FileHash -LiteralPath (Join-Path $oldStage 'ktrade.exe') -Algorithm SHA256).Hash -ceq
+             (Get-FileHash -LiteralPath (Join-Path $newStage 'ktrade.exe') -Algorithm SHA256).Hash){throw 'W28E_NO_DIFFERENT_REAL_VERSION'}
+          $pair=@(& $compare $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c')
+          if($LASTEXITCODE -ne 0){throw 'W28E_DISTINCT_BUILD_COMPARISON_FAILED'}
+          if((($pair -join [Environment]::NewLine)|ConvertFrom-Json).distinct_binaries -ne $true){throw 'W28E_PREVIOUS_NEXT_NOT_REAL_DIFFERENT_BUILDS'}
+          $s1=@(& $switch select $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05')
+          if($LASTEXITCODE -ne 0){throw 'W28E_OLD_SELECTED_BEFORE_SEED_FAILED'}
+          $seed=@(& $pine seed $oldStage)
+          if($LASTEXITCODE -ne 0){throw 'W28E_REAL_ORIGINAL_PINE_SEED_FAILED'}
+          $seedReceipt=(($seed -join [Environment]::NewLine)|ConvertFrom-Json)
+          if(!$seedReceipt.reopened -or !$seedReceipt.favorite -or
+             [string]::IsNullOrEmpty([string]$seedReceipt.script_id) -or
+             [string]::IsNullOrEmpty([string]$seedReceipt.source_sha256)){throw 'W28E_REAL_ORIGINAL_PINE_SEED_INVALID'}
+          $oldBefore=@(& $pine read $oldStage ([string]$seedReceipt.script_id))
+          if($LASTEXITCODE -ne 0){throw 'W28E_ORIGINAL_PINE_READER_CANNOT_REOPEN_SEED'}
+          $oldBeforeRecord=(($oldBefore -join [Environment]::NewLine)|ConvertFrom-Json)
+          if($oldBeforeRecord.source_sha256 -cne $seedReceipt.source_sha256){throw 'W28E_OLD_NATIVE_PINE_CONTENT_CHANGED'}
+          $oldData=Join-Path $oldStage 'data'
+          $extra=@{
+           'strategies/disarmed-strategy.json'='{"user":"owner","paper":true}';
+           'webview2-profile/Default/Local Storage/leveldb/000003.log'='ktrade_indicator_favorites;ktrade_layout_state';
+           'paper-history/paper.ndjson'='{"order":"paper-only","live":false}';
+           'unclassified/credential-shape.bin'='MUST_NOT_COPY_UNKNOWN_DATA'
+          }
+          foreach($rel in $extra.Keys){
+           $path=Join-Path $oldData ($rel.Replace('/','\'))
+           New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
+           [IO.File]::WriteAllText($path,$extra[$rel])
+          }
+          $beforeBytes=@{}
+          foreach($rel in $extra.Keys){
+           $beforeBytes[$rel]=(Get-FileHash -LiteralPath (Join-Path $oldData ($rel.Replace('/','\'))) -Algorithm SHA256).Hash
+          }
+          $escrowOutput=@(& $state create $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05')
+          if($LASTEXITCODE -ne 0){throw 'W28E_OLD_COMPLETE_COLD_ESCROW_FAILED'}
+          $escrow=(($escrowOutput -join [Environment]::NewLine)|ConvertFrom-Json)
+          if($escrow.safe_to_migrate -ne $false -or $escrow.live_armed -ne $false){throw 'W28E_ESCROW_GRANTS_AUTHORITY'}
+          $restored=@(& $restore restore $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c' ([string]$escrow.escrow_directory))
+          if($LASTEXITCODE -ne 0){throw 'W28E_SUPPORTED_COLD_RESTORE_FAILED'}
+          $report=(($restored -join [Environment]::NewLine)|ConvertFrom-Json)
+          if($report.supported_files -lt 4 -or [string]::IsNullOrEmpty([string]$report.supported_digest_sha256) -or
+             $report.browser_profile_activated -ne $false -or $report.paper_ledger_activated -ne $false -or
+             $report.installed_owner_touched -ne $false -or $report.safe_to_migrate -ne $false -or
+             $report.live_armed -ne $false -or $report.app_launched -ne $false){
+            throw 'W28E_SUPPORTED_RESTORE_REPORT_INVALID'
+          }
+          $pineAfter=@(& $pine read $newStage ([string]$seedReceipt.script_id))
+          if($LASTEXITCODE -ne 0){throw 'W28E_ORIGINAL_PINE_READER_CANNOT_REOPEN_RESTORED_SCRIPT'}
+          $newRead=(($pineAfter -join [Environment]::NewLine)|ConvertFrom-Json)
+          if($newRead.script_id -cne $seedReceipt.script_id -or
+             $newRead.source_sha256 -cne $seedReceipt.source_sha256 -or
+             $newRead.favorite -ne $true -or $newRead.reopened -ne $true){
+            throw 'W28E_ORIGINAL_PINE_SCRIPT_SEMANTIC_DRIFT'
+          }
+          foreach($rel in @('webview2-profile','paper-history','unclassified')){
+           if(Test-Path -LiteralPath (Join-Path $newStage ('data\'+$rel))){throw 'W28E_UNSUPPORTED_BROWSER_PAPER_UNKNOWN_STATE_ACTIVATED'}
+          }
+          $s2=@(& $switch select $parent $newStage 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c')
+          if($LASTEXITCODE -ne 0){throw 'W28E_RESTORED_NEW_RELEASE_NOT_VERIFIED_FOR_SELECTION'}
+          $s3=@(& $switch rollback $parent)
+          if($LASTEXITCODE -ne 0){throw 'W28E_OLD_VERSION_ROLLBACK_FAILED'}
+          $current=@(& $switch status $parent)
+          if($LASTEXITCODE -ne 0){throw 'W28E_ROLLBACK_STATUS_FAILED'}
+          $status=(($current -join [Environment]::NewLine)|ConvertFrom-Json)
+          if([string]$status.candidate_directory -cne $oldStage){throw 'W28E_OLD_VERSION_NOT_RESTORED'}
+          $verify=@(& $state verify $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' ([string]$escrow.escrow_directory))
+          if($LASTEXITCODE -ne 0){throw 'W28E_COMPLETE_PREVIOUS_USER_ESCROW_CHANGED'}
+          $oldAfter=@(& $pine read $oldStage ([string]$seedReceipt.script_id))
+          if($LASTEXITCODE -ne 0){throw 'W28E_ORIGINAL_SCRIPT_MISSING_AFTER_ROLLBACK'}
+          if((($oldAfter -join [Environment]::NewLine)|ConvertFrom-Json).source_sha256 -cne $seedReceipt.source_sha256){throw 'W28E_OLD_ORIGINAL_PINE_SOURCE_CHANGED_AFTER_ROLLBACK'}
+          foreach($rel in $extra.Keys){
+           if((Get-FileHash -LiteralPath (Join-Path $oldData ($rel.Replace('/','\'))) -Algorithm SHA256).Hash -cne $beforeBytes[$rel]){
+            throw 'W28E_OLD_PAPER_BROWSER_UNKNOWN_BYTES_CHANGED'
+           }
+          }
+          Write-Output '::notice::W28E_REAL_NATIVE_PINE_SOURCE_FAVORITE_REOPEN_IN_DIFFERENT_RELEASE=PASS'
+          Write-Output '::notice::W28E_ORIGINAL_SOURCE_COLD_ESCROW_AND_ROLLBACK_STABLE=PASS'
+          Write-Output '::notice::W28E_BROWSER_PAPER_UNKNOWN_DATA_NOT_IMPORTED_OR_ACTIVATED=PASS'
+          Write-Output '::notice::W28E_NO_INSTALLED_OWNER_PROFILE_APP_START_OR_LIVE_TRADE=PASS'
+      - name: Complete final original Go and nested Wails regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28E_FINAL_ORIGINAL_ENGINE_FULL_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28E_FINAL_ORIGINAL_ENGINE_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28E_FINAL_WAILS_FULL_REGRESSION_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W28E_FINAL_ORIGINAL_ENGINE_AND_WAILS_FULL_TEST_VET_PASS=PASS'
+      - name: Purge private original source packages and transient state
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($dir in @('checked-old','checked-new','verified-original-pine-restore-trial')){
+            $path=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          foreach($name in @('release-extract','release-switch','release-compare','release-state-escrow','release-supported-restore','ktrade-pine-restore-proof')){
+            $path=Join-Path $env:GITHUB_WORKSPACE ($name+'.exe')
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue}
+          }
