@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 17914d7a69a41b0fe832cb0824ae5cbd487a1087
+          ref: 56ce927f086910e31a827d705b5b9fec7ac36a35
           path: current
           persist-credentials: false
           fetch-depth: 7
@@ -47,17 +47,18 @@ jobs:
           $new=Join-Path $env:GITHUB_WORKSPACE 'current'
           if((& git -C $old rev-parse HEAD).Trim() -cne '0e6d2c4073e20bc05096299e3ac96c6671fa333b' -or
              (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'cbfcf267173ec509963279ba721221858a2bd016' -or
-             (& git -C $new rev-parse HEAD).Trim() -cne '17914d7a69a41b0fe832cb0824ae5cbd487a1087' -or
-             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '61ef3bfbb84418f7b1a2563ad98ee4f91f93667e' -or
-             (& git -C $new rev-parse HEAD~5).Trim() -cne '0e6d2c4073e20bc05096299e3ac96c6671fa333b'){throw 'W28K_NOT_EXACT_ORIGINAL_CHART_SOURCE'}
+             (& git -C $new rev-parse HEAD).Trim() -cne '56ce927f086910e31a827d705b5b9fec7ac36a35' -or
+             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '8809d5418a5843bc2cf9e3c0f04245ed5a7e4f89' -or
+             (& git -C $new rev-parse HEAD~7).Trim() -cne '0e6d2c4073e20bc05096299e3ac96c6671fa333b'){throw 'W28K_NOT_EXACT_ORIGINAL_CHART_SOURCE'}
           $want=@('static/w28i_chart_probe.js','static/w28k_real_chart_transfer.js',
-             'templates/chart.tmpl','tests/rb3_w28k_real_served_chart_transfer.test.cjs' | Sort-Object -CaseSensitive)
+             'templates/chart.tmpl','tests/rb3_w28k_real_served_chart_transfer.test.cjs',
+             'tools/wails-pilot/frontend/index.html' | Sort-Object -CaseSensitive)
           $got=@(& git -C $new diff --name-only 0e6d2c4073e20bc05096299e3ac96c6671fa333b HEAD | Sort-Object -CaseSensitive)
-          if(Compare-Object -ReferenceObject $want -DifferenceObject $got){throw 'W28K_FOUR_FILE_CHART_ONLY_SCOPE_DRIFT'}
+          if(Compare-Object -ReferenceObject $want -DifferenceObject $got){throw 'W28K_FIVE_FILE_CHART_ONLY_SCOPE_DRIFT'}
           $prior=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40520642221' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
           if($prior.status -cne 'completed' -or $prior.conclusion -cne 'success' -or
              $prior.head_sha -cne 'ea5bb092ee0b5b53a041ffcbca9589fb8a5ae3a2'){throw 'W28K_ORIGINAL_W28J_FINANCIAL_PREDECESSOR_NOT_QUALIFIED'}
-          Write-Output '::notice::W28K_ACTUAL_GO_CHART_SOURCE_FOUR_FILE_SCOPE_AND_W28J_PREDECESSOR=PASS'
+          Write-Output '::notice::W28K_ACTUAL_GO_CHART_SOURCE_FIVE_FILE_SCOPE_AND_W28J_PREDECESSOR=PASS'
       - name: Native Windows Node 24 for genuine chart and source readers
         uses: actions/setup-node@v4
         with:
@@ -100,7 +101,7 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W28K_NATIVE_OFFLINE_VENDOR_STAGING_FAILED'}
             if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28K_BUILD_MUTATED_TRACKED_ORIGINAL_SOURCE'}
-            $build=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha '17914d7a69a41b0fe832cb0824ae5cbd487a1087' -ReleaseCandidate)
+            $build=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha '56ce927f086910e31a827d705b5b9fec7ac36a35' -ReleaseCandidate)
             if($LASTEXITCODE -ne 0 -or $build -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){
               throw 'W28K_ORIGINAL_SOURCE_BOUND_NATIVE_RELEASE_BUILD_FAILED'
             }
