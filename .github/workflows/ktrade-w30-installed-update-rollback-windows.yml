@@ -28,9 +28,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 944f99ab964d1d1db4023f9937c9dcf1cb230a74
+          ref: a95bba7bfdc869e0025c7752034c94d3b48b1769
           path: current
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Checkout exact qualified previous package source
@@ -48,16 +48,16 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '944f99ab964d1d1db4023f9937c9dcf1cb230a74' -or
-             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '90e630e08c09bb24a0dd2dc47c7636c864412823'){throw 'W30_SOURCE_IDENTITY_DRIFT'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'a95bba7bfdc869e0025c7752034c94d3b48b1769' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'c53743efc1b882416bdaa5b6d0074c7ddd16197e'){throw 'W30_SOURCE_IDENTITY_DRIFT'}
           foreach($pin in @(
             @{run=40595157843;sha='a3caed1b64b02a9c6217ae7c2e6eacf6d59d29c3'}
           )){
             $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
             if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W30_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
           }
-          if((& git -C $src rev-parse HEAD^).Trim() -cne 'b377a28051cb9594ddeb2da1ffe4252d418f0a6f'){throw 'W30_PARENT_DRIFT'}
-          $delta=@(& git -C $src diff --name-only HEAD^ HEAD|Sort-Object)
+          if((& git -C $src rev-parse HEAD~2).Trim() -cne 'b377a28051cb9594ddeb2da1ffe4252d418f0a6f'){throw 'W30_PARENT_DRIFT'}
+          $delta=@(& git -C $src diff --name-only b377a28051cb9594ddeb2da1ffe4252d418f0a6f HEAD|Sort-Object)
           $want=@('tools/wails-pilot/backend/setup_bundle.go','tools/wails-pilot/backend/installed_update.go','tools/wails-pilot/backend/installed_update_test.go','tools/wails-pilot/cmd/release-setup/main.go','windows/Install-KTRADE-Fresh.ps1'|Sort-Object)
           if(Compare-Object $delta $want){throw 'W30_FIVE_PATH_SCOPE_DRIFT'}
           $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
@@ -128,7 +128,7 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'W30_PREVIOUS_ASSET_STAGE_FAILED'}
           }finally{Pop-Location}
           $roots=[ordered]@{}
-          foreach($item in @(@{path='previous';sha='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'},@{path='current';sha='944f99ab964d1d1db4023f9937c9dcf1cb230a74'})){
+          foreach($item in @(@{path='previous';sha='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'},@{path='current';sha='a95bba7bfdc869e0025c7752034c94d3b48b1769'})){
             $src=Join-Path $env:GITHUB_WORKSPACE $item.path
             $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
             & (Join-Path $src 'windows/Build-KTRADE-FreshInstaller.ps1') -OutputRoot $build -ExpectedSourceSha $item.sha
@@ -199,7 +199,7 @@ jobs:
           $programs=[Environment]::GetFolderPath('Programs')
           if(!(Test-Path -LiteralPath $programs)){New-Item -ItemType Directory -Path $programs -Force|Out-Null}
           $oldSHA='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'
-          $newSHA='944f99ab964d1d1db4023f9937c9dcf1cb230a74'
+          $newSHA='a95bba7bfdc869e0025c7752034c94d3b48b1769'
           $oldSetup=Join-Path $oldBundle 'KTRADE-Setup.ps1'
           $newSetup=Join-Path $newBundle 'KTRADE-Setup.ps1'
           $savedPath=$env:PATH
