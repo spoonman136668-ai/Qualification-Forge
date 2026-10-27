@@ -1,0 +1,274 @@
+name: KTRADE W29A verified installed launch and cold reopen Windows
+on:
+  push:
+    branches: [qualification/ktrade-w29a-installed-launch-20261027]
+    paths: [.github/workflows/ktrade-w29a-installed-launch-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w29a-installed-launch
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact KTRADE installed-launch candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: f744558d2380dca1f7e1d67aa44990f8552d2907
+          path: current
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source and completed native foundations
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'f744558d2380dca1f7e1d67aa44990f8552d2907' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '0971c64fbb3273041e1a855e63341292e3af0cb0'){throw 'W29A_SOURCE_IDENTITY_DRIFT'}
+          foreach($pin in @(
+            @{run=40586940178;sha='773232260723c6398f5e7fd1121114cc8f2c5d59'}
+          )){
+            $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+            if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W29A_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
+          }
+          if((& git -C $src rev-parse HEAD^).Trim() -cne '960caae504e19c4ceb27e681e59eaa50199a06fd'){throw 'W29A_PARENT_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD|Sort-Object)
+          $want=@('tools/wails-pilot/backend/fresh_launch.go','tools/wails-pilot/backend/fresh_launch_test.go','tools/wails-pilot/cmd/release-launch/main.go','tools/wails-pilot/main_windows.go'|Sort-Object)
+          if(Compare-Object $delta $want){throw 'W29A_FOUR_PATH_SCOPE_DRIFT'}
+          Write-Output '::notice::W29A_EXACT_SOURCE_FOUR_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS'
+      - name: Native Windows Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            current/go.sum
+            current/tools/wails-pilot/go.sum
+      - name: Native Windows Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build actual paired release and installed launch tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N'))
+          $tools=Join-Path $env:RUNNER_TEMP 'w29a-launch-tools'
+          New-Item -ItemType Directory -Path $tools|Out-Null
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W29A_NPM_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W29A_ASSET_STAGE_FAILED'}
+            & './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $build -ExpectedSourceSha 'f744558d2380dca1f7e1d67aa44990f8552d2907' -ReleaseCandidate
+            if($LASTEXITCODE -ne 0){throw 'W29A_NATIVE_RELEASE_BUILD_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            foreach($cmd in @('release-install','release-launch','release-switch')){
+              & go build -mod=readonly -o (Join-Path $tools ($cmd+'.exe')) ('./cmd/'+$cmd)
+              if($LASTEXITCODE -ne 0){throw ('W29A_NATIVE_TOOL_BUILD_FAILED_'+$cmd)}
+            }
+            & go test -mod=readonly -race -count=1 -run '^Test(W29|W26|W27|W28C)' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W29A_ACTIVE_ORPHAN_ESCROW_NEGATIVES_FAILED'}
+          }finally{Pop-Location}
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w29a-build-root.txt'),$build)
+          Write-Output '::notice::W29A_GENUINE_RELEASE_PAIR_AND_ORIGINAL_NATIVE_REVIEW_TOOLS=PASS'
+      - name: Real installed-root native Wails WebView2 launch refusal and cold reopen
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W29A_EPHEMERAL_HOST_REQUIRED'}
+          $build=[IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'w29a-build-root.txt'))
+          $tools=Join-Path $env:RUNNER_TEMP 'w29a-launch-tools'
+          $installer=Join-Path $tools 'release-install.exe'
+          $launcher=Join-Path $tools 'release-launch.exe'
+          $switcher=Join-Path $tools 'release-switch.exe'
+          $target=Join-Path $env:GITHUB_WORKSPACE 'w29a fresh installation with spaces'
+          $sha='f744558d2380dca1f7e1d67aa44990f8552d2907'
+          $out=@(& $installer install (Join-Path $build 'KTRADE-WailsPortable.zip') $target $sha)
+          if($LASTEXITCODE -ne 0){throw 'W29A_FRESH_INSTALL_FAILED'}
+          $r=($out -join [Environment]::NewLine)|ConvertFrom-Json
+          $stage=$r.candidate_directory
+          $lease=Join-Path $r.root '.ktrade-w28c-active-process.lock'
+          $receipt=Join-Path $r.root '.ktrade-w29-install.json'
+          $receiptHash=(Get-FileHash -LiteralPath $receipt).Hash
+          $profile=Join-Path $stage 'data/webview2-profile'
+          $sentinel=Join-Path $target 'unknown-owner-sentinel'
+          [IO.File]::WriteAllText($sentinel,'KEEP_UNKNOWN_BYTES')
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class W29ANative {
+           [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+           [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+           [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+           [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr info);
+           [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd,uint msg,IntPtr w,IntPtr l);
+          }
+          '@
+          function Wait-Visible([object]$process,[string]$label,[bool]$button=$false){
+           $deadline=(Get-Date).AddSeconds(35)
+           do{
+            $process.Refresh()
+            if($process.HasExited){throw 'W29A_ORIGINAL_SHELL_EXITED'}
+            if($process.MainWindowHandle -ne [IntPtr]::Zero){
+             $ui=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+             $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+             foreach($el in $nodes){
+              try{
+               if(!$el.Current.IsOffscreen -and $el.Current.Name.Contains($label) -and (!$button -or ($el.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $el.Current.Name -ceq $label -and $el.Current.IsEnabled))){return $el}
+              }catch{}
+             }
+            }
+            Start-Sleep -Milliseconds 350
+           }while((Get-Date) -lt $deadline)
+           throw ('W29A_VISIBLE_UI_ABSENT_'+$label)
+          }
+          function Click-Verified([object]$process,[string]$label){
+           $el=Wait-Visible $process $label $true
+           $rect=$el.Current.BoundingRectangle
+           $outer=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle).Current.BoundingRectangle
+           if($rect.IsEmpty -or $rect.Width -lt 8 -or $rect.Height -lt 8 -or $rect.Left -lt $outer.Left -or $rect.Right -gt $outer.Right -or $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){throw 'W29A_FOREIGN_OR_HIDDEN_CONTROL'}
+           [void][W29ANative]::SetForegroundWindow($process.MainWindowHandle)
+           Start-Sleep -Milliseconds 200
+           if([W29ANative]::GetForegroundWindow() -ne $process.MainWindowHandle){throw 'W29A_FOREIGN_FOCUS'}
+           if(![W29ANative]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W29A_NATIVE_POINTER_REFUSED'}
+           [W29ANative]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+           [W29ANative]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+          }
+          function Refuse-Launch([string]$phase){
+           & $launcher $target 2>&1|Out-Null
+           if($LASTEXITCODE -eq 0){throw ('W29A_BAD_LAUNCH_ACCEPTED_'+$phase)}
+          }
+          function Assert-Unchanged{
+           if((Get-FileHash -LiteralPath $receipt).Hash -cne $receiptHash -or [IO.File]::ReadAllText($sentinel) -cne 'KEEP_UNKNOWN_BYTES'){throw 'W29A_RECEIPT_OR_OWNER_BYTES_CHANGED'}
+          }
+          # Refusals must happen before profile allocation or lease acquisition.
+          $marker=Join-Path $target '.ktrade-w29-install-incomplete'
+          [IO.File]::WriteAllText($marker,'INTERRUPTED_KEEP')
+          Refuse-Launch 'INCOMPLETE'
+          # Direct original shell startup must obey the same installation quarantine.
+          $direct=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+          if(!$direct.WaitForExit(20000) -or $direct.ExitCode -eq 0){throw 'W29A_DIRECT_SHELL_BYPASSED_QUARANTINE'}
+          if((Test-Path -LiteralPath $profile) -or (Test-Path -LiteralPath $lease) -or [IO.File]::ReadAllText($marker) -cne 'INTERRUPTED_KEEP'){throw 'W29A_REFUSAL_CHANGED_CUSTODY'}
+          Remove-Item -LiteralPath $marker
+          [IO.File]::WriteAllText($lease,'ORPHAN_KEEP')
+          Refuse-Launch 'ORPHAN'
+          if([IO.File]::ReadAllText($lease) -cne 'ORPHAN_KEEP'){throw 'W29A_ORPHAN_SILENTLY_STOLEN'}
+          Remove-Item -LiteralPath $lease
+          $asset=Get-ChildItem -LiteralPath (Join-Path $stage 'static') -File -Recurse|Sort-Object FullName|Select-Object -First 1
+          $raw=[IO.File]::ReadAllBytes($asset.FullName)
+          try{
+           [IO.File]::WriteAllBytes($asset.FullName,[byte[]]($raw+[byte]120))
+           Refuse-Launch 'ASSET_TAMPER'
+           if((Test-Path -LiteralPath $profile) -or (Test-Path -LiteralPath $lease)){throw 'W29A_BAD_ASSETS_ALLOCATED_RUNTIME'}
+          }finally{[IO.File]::WriteAllBytes($asset.FullName,$raw)}
+          Assert-Unchanged
+          Write-Output '::notice::W29A_NATIVE_LAUNCH_AND_DIRECT_SHELL_QUARANTINE_ORPHAN_ASSET_REFUSALS=PASS'
+          $shell=$null;$launch=$null
+          try{
+           for($round=1;$round -le 2;$round++){
+            $errLog=Join-Path $env:RUNNER_TEMP ('w29a-launch-'+$round+'.stderr')
+            # Poisoned parent environment must not select another profile or debugger.
+            $env:WEBVIEW2_USER_DATA_FOLDER=Join-Path $env:RUNNER_TEMP 'w29a-forbidden-profile'
+            $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=19229'
+            $env:KTRADE_PAPER_SESSION_ROOT='foreign-never-adopt'
+            try{$launch=Start-Process -FilePath $launcher -ArgumentList ('"'+$target+'"') -WorkingDirectory $env:RUNNER_TEMP -PassThru -RedirectStandardError $errLog}
+            finally{Remove-Item Env:WEBVIEW2_USER_DATA_FOLDER,Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS,Env:KTRADE_PAPER_SESSION_ROOT -ErrorAction SilentlyContinue}
+            $deadline=(Get-Date).AddSeconds(40)
+            do{
+             $launch.Refresh()
+             if($launch.HasExited){throw 'W29A_LAUNCHER_EXITED_BEFORE_SHELL'}
+             if(Test-Path -LiteralPath $lease){
+              try{$owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json;if($owner.pid -gt 0){break}}catch{}
+             }
+             Start-Sleep -Milliseconds 300
+            }while((Get-Date) -lt $deadline)
+            if(!(Test-Path -LiteralPath $lease)){throw 'W29A_ORIGINAL_SHELL_LEASE_ABSENT'}
+            $owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json
+            $shell=Get-Process -Id $owner.pid
+            $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
+            if($owner.source_sha -cne $sha -or $owner.live_armed -or $cim.ParentProcessId -ne $launch.Id -or ![string]::Equals($cim.ExecutablePath,(Join-Path $stage 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'W29A_NATIVE_PROCESS_CUSTODY_DRIFT'}
+            Click-Verified $shell 'Verify chart UI'
+            $null=Wait-Visible $shell 'Original chart DOM, Monaco editor and preferences controls observed.'
+            $engines=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+            if($engines.Count -ne 1 -or ![string]::Equals($engines[0].ExecutablePath,(Join-Path $stage 'ktrade-engine.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'W29A_ORIGINAL_ENGINE_OWNER_DRIFT'}
+            $engineID=[int]$engines[0].ProcessId
+            $ports=@(Get-NetTCPConnection -OwningProcess $engineID -State Listen|Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+            if($ports.Count -ne 1){throw 'W29A_ORIGINAL_ENGINE_LOOPBACK_UNCLEAR'}
+            $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$ports[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
+            if($cap.schema -cne 'ktrade.operator.capabilities.v1' -or $cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or $cap.live_orders_enabled -ne $false -or $cap.strategy_execution_enabled -ne $false -or $cap.paper_accounting_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W29A_DISARM_NOT_PROVEN'}
+            if(!(Test-Path -LiteralPath $profile) -or (Test-Path -LiteralPath (Join-Path $env:RUNNER_TEMP 'w29a-forbidden-profile'))){throw 'W29A_PRIVATE_PROFILE_CUSTODY_DRIFT'}
+            Refuse-Launch 'SECOND_ACTIVE_INSTANCE'
+            & $switcher select $target $stage $sha 2>&1|Out-Null
+            if($LASTEXITCODE -eq 0){throw 'W29A_ACTIVE_SELECTION_SWITCHED'}
+            if(![W29ANative]::PostMessage($shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'W29A_NORMAL_CLOSE_REFUSED'}
+            if(!$launch.WaitForExit(25000)){throw 'W29A_LAUNCHER_DID_NOT_WAIT_FOR_CLEAN_SHELL_SHUTDOWN'}
+            $launch.Refresh()
+            if($launch.ExitCode -ne 0){throw 'W29A_ORIGINAL_SHELL_FAILED_AT_SHUTDOWN'}
+            if((Get-Process -Id $shell.Id -ErrorAction SilentlyContinue) -or (Get-Process -Id $engineID -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $lease)){throw 'W29A_CHILD_OR_ACTIVE_LEASE_LEFT_AFTER_CLEAN_CLOSE'}
+            & $installer inspect $target|Out-Null
+            if($LASTEXITCODE -ne 0){throw 'W29A_COLD_INSTALLATION_INSPECTION_FAILED'}
+            Assert-Unchanged
+            Write-Output ('::notice::W29A_REAL_INSTALLED_WEBVIEW2_CHART_CLICK_DISARM_CHILD_CLEAN_CLOSE_ROUND_'+$round+'=PASS')
+            $shell=$null;$launch=$null
+           }
+          }finally{
+           # PID-bound disposable CI cleanup only, never a broad process name kill.
+           if($null -ne $shell){Stop-Process -Id $shell.Id -Force -ErrorAction SilentlyContinue}
+           if($null -ne $launch){Stop-Process -Id $launch.Id -Force -ErrorAction SilentlyContinue}
+          }
+          Write-Output '::notice::W29A_NATIVE_INSTALLED_LAUNCH_COLD_REOPEN_AND_NO_AUTO_REARM=PASS'
+      - name: One final full original Go and Wails regression and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
+            Push-Location $dir
+            try{
+              & go test -mod=readonly -count=1 ./...
+              if($LASTEXITCODE -ne 0){throw 'W29A_FINAL_FULL_REGRESSION_FAILED'}
+              & go vet -mod=readonly ./...
+              if($LASTEXITCODE -ne 0){throw 'W29A_FINAL_VET_FAILED'}
+            }finally{Pop-Location}
+          }
+          Write-Output '::notice::W29A_FULL_ORIGINAL_ENGINE_AND_WAILS_REGRESSION_VET=PASS'
+      - name: Purge private source and disposable installed launch candidate
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($p in @((Join-Path $env:GITHUB_WORKSPACE 'current'),(Join-Path $env:GITHUB_WORKSPACE 'w29a fresh installation with spaces'),(Join-Path $env:GITHUB_WORKSPACE 'w29a-never-used'),(Join-Path $env:RUNNER_TEMP 'w29a-launch-tools'))){
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*'|Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          foreach($name in @('w29a-build-root.txt','w28n-original-fixture.json')){
+            $p=Join-Path $env:RUNNER_TEMP $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue}
+          }
+
