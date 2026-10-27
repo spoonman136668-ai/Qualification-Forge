@@ -1,0 +1,203 @@
+name: KTRADE W28N composed stopped release original financial-history review
+on:
+  push:
+    branches: [qualification/ktrade-w28n-composed-history-review-20261027]
+    paths: [.github/workflows/ktrade-w28n-composed-history-review-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28n-composed-history-review
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout unchanged qualified KTRADE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7301a2a1117ed2ad556cc69fbe50595195d16848
+          path: current
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source and completed native foundations
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '7301a2a1117ed2ad556cc69fbe50595195d16848' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'e4c96788a425fad15871fbd20263dff802ddb219'){throw 'W28N_SOURCE_IDENTITY_DRIFT'}
+          foreach($pin in @(
+            @{run=40578329822;sha='95be0a64027f054446db98699e4c0d8a9f97b843'},
+            @{run=40520642221;sha='ea5bb092ee0b5b53a041ffcbca9589fb8a5ae3a2'}
+          )){
+            $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+            if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W28N_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
+          }
+          Write-Output '::notice::W28N_IMMUTABLE_SOURCE_AND_NATIVE_FOUNDATIONS=PASS'
+      - name: Native Windows Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            current/go.sum
+            current/tools/wails-pilot/go.sum
+      - name: Native Windows Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build actual paired portable release and native original review tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N'))
+          $tools=Join-Path $env:RUNNER_TEMP 'w28n-review-tools'
+          New-Item -ItemType Directory -Path $tools|Out-Null
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W28N_NPM_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W28N_ASSET_STAGE_FAILED'}
+            & './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $build -ExpectedSourceSha '7301a2a1117ed2ad556cc69fbe50595195d16848' -ReleaseCandidate
+            if($LASTEXITCODE -ne 0){throw 'W28N_NATIVE_RELEASE_BUILD_FAILED'}
+            & go build -mod=readonly -o (Join-Path $tools 'paper-review.exe') ./cmd/ktrade-paper-history-review
+            if($LASTEXITCODE -ne 0){throw 'W28N_FINANCIAL_REVIEW_BUILD_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            foreach($cmd in @('release-extract','release-switch','release-state-escrow','release-history-preflight')){
+              & go build -mod=readonly -o (Join-Path $tools ($cmd+'.exe')) ('./cmd/'+$cmd)
+              if($LASTEXITCODE -ne 0){throw ('W28N_NATIVE_TOOL_BUILD_FAILED_'+$cmd)}
+            }
+            & go test -mod=readonly -count=1 -run '^TestW28J' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28N_ACTIVE_ORPHAN_ESCROW_NEGATIVES_FAILED'}
+          }finally{Pop-Location}
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w28n-build-root.txt'),$build)
+          Write-Output '::notice::W28N_GENUINE_RELEASE_PAIR_AND_ORIGINAL_NATIVE_REVIEW_TOOLS=PASS'
+      - name: Compose real selection full escrow and original financial review wrapper
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $tools=Join-Path $env:RUNNER_TEMP 'w28n-review-tools'
+          $build=[IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'w28n-build-root.txt'))
+          $parent=Join-Path $env:GITHUB_WORKSPACE 'w28n-disposable-release-parent'
+          New-Item -ItemType Directory -Path $parent|Out-Null
+          $extract=@(& (Join-Path $tools 'release-extract.exe') (Join-Path $build 'KTRADE-WailsPortable.zip') $parent '7301a2a1117ed2ad556cc69fbe50595195d16848')
+          if($LASTEXITCODE -ne 0){throw 'W28N_NATIVE_RELEASE_EXTRACTION_FAILED'}
+          $stage=($extract -join [Environment]::NewLine|ConvertFrom-Json).candidate_directory
+          $fixturePath=Join-Path $src 'internal/papercustody/w28n_qualification_fixture_test.go'
+          $env:W28N_DATA_ROOT=Join-Path $stage 'data'
+          $env:W28N_FIXTURE_RECEIPT=Join-Path $env:RUNNER_TEMP 'w28n-original-fixture.json'
+          Copy-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'witness/witnesses/ktrade-w28n-fixture_test.go') -Destination $fixturePath
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -run '^TestW28NExportOriginalStoppedFixture$' ./internal/papercustody
+            if($LASTEXITCODE -ne 0){throw 'W28N_ORIGINAL_STOPPED_HISTORY_FIXTURE_FAILED'}
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $fixturePath -Force
+          }
+          $fixture=Get-Content -LiteralPath $env:W28N_FIXTURE_RECEIPT -Raw|ConvertFrom-Json
+          $source='7301a2a1117ed2ad556cc69fbe50595195d16848'
+          & (Join-Path $tools 'release-switch.exe') select $parent $stage $source
+          if($LASTEXITCODE -ne 0){throw 'W28N_NATIVE_SELECTION_FAILED'}
+          $capture=@(& (Join-Path $tools 'release-state-escrow.exe') create $parent $stage $source)
+          if($LASTEXITCODE -ne 0){throw 'W28N_FULL_COLD_ESCROW_FAILED'}
+          $escrow=($capture -join [Environment]::NewLine|ConvertFrom-Json).escrow_directory
+          $wrapper=Join-Path $src 'windows/Review-KTRADE-SelectedPaperHistory.ps1'
+          $reviewArgs=@{
+            Parent=$parent;SelectedStage=$stage;SourceSHA=$source;Escrow=$escrow
+            SourceID=$fixture.source_id
+            ReleasePreflightExe=(Join-Path $tools 'release-history-preflight.exe')
+            OriginalPaperReviewExe=(Join-Path $tools 'paper-review.exe')
+          }
+          $out=@(& $wrapper @reviewArgs)
+          $review=($out -join [Environment]::NewLine)|ConvertFrom-Json
+          if($review.schema -cne 'ktrade.w28j.operator-stopped-owner-history-review.v1' -or
+             $review.historical_source_id -cne $fixture.source_id -or
+             $review.original_snapshot_seal -cne $fixture.snapshot_seal -or
+             $review.original_archive_sha256 -cne $fixture.archive_sha256 -or
+             !$review.stopped -or $review.orders_enabled -or $review.live_armed -or
+             $review.owner_data_mutated -or $review.safe_to_migrate -or $review.execution_restore_eligible){throw 'W28N_COMPOSED_REVIEW_IDENTITY_OR_DISARM_FAILED'}
+          $product=$review.original_account.products[0]
+          if(@($review.original_account.products).Count -ne 1 -or
+             $product.cash -cne '559.7' -or $product.position_qty -cne '1' -or
+             $product.fees_paid -cne '0.3' -or $product.fill_count -ne 1 -or
+             $product.ledger_hash -cne $fixture.ledger_hash){throw 'W28N_ORIGINAL_RECONCILIATION_DRIFT'}
+          Write-Output '::notice::W28N_REAL_SELECTED_RELEASE_ESCROW_WRAPPER_ORIGINAL_FINANCIAL_REPLAY=PASS'
+          $wrong=$false
+          $reviewArgs.SourceID='ktrade-reconcile-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz'
+          try{& $wrapper @reviewArgs|Out-Null}catch{
+            if($_.Exception.Message -like '*W28J_SELECTED_HISTORY_NOT_INIGINAL_SOURCE_LIST*'){$wrong=$true}else{throw}
+          }
+          if(!$wrong){throw 'W28N_WRONG_NOMINATED_HISTORY_ACCEPTED'}
+          $reviewArgs.SourceID=$fixture.source_id
+          $history=Join-Path (Join-Path $stage 'data/paper-history') $fixture.source_id
+          $victim=Get-ChildItem -LiteralPath $history -File|Sort-Object Name|Select-Object -First 1
+          $original=[IO.File]::ReadAllBytes($victim.FullName)
+          $tamper=$false
+          try{
+            [IO.File]::WriteAllBytes($victim.FullName,[byte[]]($original+[byte]120))
+            try{& $wrapper @reviewArgs|Out-Null}catch{
+              if($_.Exception.Message -like '*W28J_RELEASE_VERSION_OR_ESCROW_NOT_QUALIFIED*'){$tamper=$true}else{throw}
+            }
+          }finally{[IO.File]::WriteAllBytes($victim.FullName,$original)}
+          if(!$tamper){throw 'W28N_MUTATED_HISTORY_ACCEPTED'}
+          $cold=@(& $wrapper @reviewArgs)
+          $again=($cold -join [Environment]::NewLine)|ConvertFrom-Json
+          if($again.original_archive_sha256 -cne $fixture.archive_sha256 -or $again.original_snapshot_seal -cne $fixture.snapshot_seal){throw 'W28N_COLD_REVIEW_MUTATED_HISTORY'}
+          & (Join-Path $tools 'release-state-escrow.exe') verify $parent $stage $source $escrow
+          if($LASTEXITCODE -ne 0){throw 'W28N_FINAL_FULL_ESCROW_PARITY_FAILED'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0 -or (Test-Path $fixturePath)){throw 'W28N_HARNESS_CHANGED_SOURCE'}
+          Write-Output '::notice::W28N_WRONG_NOMINATION_MUTATION_VETO_COLD_REPEAT_FULL_ESCROW_PARITY=PASS'
+          exit 0
+      - name: One final full original Go and Wails regression and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
+            Push-Location $dir
+            try{
+              & go test -mod=readonly -count=1 ./...
+              if($LASTEXITCODE -ne 0){throw 'W28N_FINAL_FULL_REGRESSION_FAILED'}
+              & go vet -mod=readonly ./...
+              if($LASTEXITCODE -ne 0){throw 'W28N_FINAL_VET_FAILED'}
+            }finally{Pop-Location}
+          }
+          Write-Output '::notice::W28N_FULL_ORIGINAL_ENGINE_AND_WAILS_REGRESSION_VET=PASS'
+      - name: Purge private source synthetic history and review binaries
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($p in @((Join-Path $env:GITHUB_WORKSPACE 'current'),(Join-Path $env:GITHUB_WORKSPACE 'w28n-disposable-release-parent'),(Join-Path $env:RUNNER_TEMP 'w28n-review-tools'))){
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*'|Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          foreach($name in @('w28n-build-root.txt','w28n-original-fixture.json')){
+            $p=Join-Path $env:RUNNER_TEMP $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue}
+          }
