@@ -16,7 +16,7 @@ jobs:
       - name: Checkout qualified witness
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: \${{ github.sha }}
+          ref: ${{ github.sha }}
           path: witness
           persist-credentials: false
       - name: Checkout immutable W26 KTRADE
@@ -27,7 +27,7 @@ jobs:
           path: checked-private
           fetch-depth: 2
           persist-credentials: false
-          token: \${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Verify exact candidate ancestry and three-file delta
         shell: pwsh
         run: |
@@ -45,7 +45,7 @@ jobs:
       - name: Require exact unchanged W25 native Windows acceptance
         shell: pwsh
         env:
-          GITHUB_TOKEN: \${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference='Stop'
           $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40465675475' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
