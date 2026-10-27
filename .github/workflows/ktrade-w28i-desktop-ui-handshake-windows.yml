@@ -1,0 +1,164 @@
+name: KTRADE W28I real Wails desktop chart handshake Windows
+on:
+  push:
+    branches: [qualification/ktrade-w28i-desktop-ui-handshake-windows-20261027]
+    paths: [.github/workflows/ktrade-w28i-desktop-ui-handshake-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28i-native-desktop-ui
+  cancel-in-progress: false
+jobs:
+  desktop-ui:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    steps:
+      - name: Checkout witness exact SHA
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout pinned prior W28H private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 67052a04eda51320da7d99dcafa65b6c22a4708d
+          path: checked-old
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout pinned new W28I KTRADE private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a282385f776295eb0013c9904e6a9306595c06f1
+          path: checked-new
+          fetch-depth: 9
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Qualify exact source trees seven-file desktop-only delta and W28H predecessor
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'checked-old'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          if((& git -C $old rev-parse HEAD).Trim() -cne '67052a04eda51320da7d99dcafa65b6c22a4708d' -or
+             (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne '9112062b3183a113dfc84b8b7a62f1b7676dbfc5' -or
+             (& git -C $src rev-parse HEAD).Trim() -cne 'a282385f776295eb0013c9904e6a9306595c06f1' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'd22dcb6389d0b15ad2af97461a0366ed079c7de5' -or
+             (& git -C $src rev-parse HEAD~7).Trim() -cne '67052a04eda51320da7d99dcafa65b6c22a4708d'){throw 'W28I_EXACT_SOURCE_TREE_OR_ANCESTRY_DRIFT'}
+          $expected=@('static/trading.html','static/w28i_chart_probe.js','tests/rb3_w28i_desktop_chart_handshake.test.cjs',
+             'tools/wails-pilot/frontend/boot.js','tools/wails-pilot/frontend/index.html',
+             'tools/wails-pilot/frontend/style.css','tools/wails-pilot/frontend/w28i_desktop_verify.js' | Sort-Object -CaseSensitive)
+          $actual=@(& git -C $src diff --name-only 67052a04eda51320da7d99dcafa65b6c22a4708d HEAD | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $expected -DifferenceObject $actual){throw 'W28I_DESKTOP_ONLY_CHANGED_FILES_DRIFT'}
+          foreach($r in @($old,$src)){
+            if(@(& git -C $r status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28I_PRIVATE_SOURCE_DIRTY'}
+          }
+          $prior=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40510767323' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($prior.status -cne 'completed' -or $prior.conclusion -cne 'success' -or
+             $prior.head_sha -cne 'edb04f1213d4d9190f3852716b1017c1d3ce4656'){throw 'W28I_PREVIOUS_W28H_UNQUALIFIED'}
+          Write-Output '::notice::W28I_IMMUTABLE_EXACT_SEVEN_FILE_DESKTOP_DELTA_AND_W28H_GREEN=PASS'
+      - name: Install native Windows Node.js 24 for real source UI harness
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original KTRADE Wails desktop and chart message handshake
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          foreach($p in @('static/w28i_chart_probe.js','tools/wails-pilot/frontend/w28i_desktop_verify.js','tools/wails-pilot/frontend/boot.js')){
+            & node --check (Join-Path $src $p)
+            if($LASTEXITCODE -ne 0){throw 'W28I_JS_SOURCE_SYNTAX_INVALID'}
+          }
+          & node (Join-Path $src 'tests/rb3_w28i_desktop_chart_handshake.test.cjs') $src
+          if($LASTEXITCODE -ne 0){throw 'W28I_SOURCE_AUTHENTIC_WAILS_DESKTOP_BUTTON_HANDSHAKE_FAILED'}
+          & node (Join-Path $src 'tests/rb3_w28g_browser_preferences_transfer.test.cjs') $src
+          if($LASTEXITCODE -ne 0){throw 'W28I_ORIGINAL_BROWSER_PREFERENCES_UI_REGRESSED'}
+          Write-Output '::notice::W28I_ORIGINAL_CHART_DOM_WAILS_OPERATOR_BUTTON_NONCE_ORIGIN_NEGATIVES=PASS'
+      - name: Install Go 1.25 Windows
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-new/go.sum
+            checked-new/tools/wails-pilot/go.sum
+      - name: Source-built real Wails plus Go engine ZIP includes original chart probe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          $root=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W28I_OFFLINE_NPM_VENDOR_DEPENDENCIES_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W28I_OFFLINE_VENDOR_STAGE_FAILED'}
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28I_PACKAGE_BUILD_MUTATED_TRACKED_SOURCE'}
+            $build=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha 'a282385f776295eb0013c9904e6a9306595c06f1' -ReleaseCandidate)
+            if($LASTEXITCODE -ne 0 -or
+               $build -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){
+              throw 'W28I_SOURCE_PINNED_REAL_NATIVE_WAILS_RELEASE_PACKAGE_FAILED'
+            }
+          }finally{Pop-Location}
+          $zipPath=Join-Path $root 'KTRADE-WailsPortable.zip'
+          if(!(Test-Path -LiteralPath $zipPath)){throw 'W28I_RELEASE_ZIP_MISSING'}
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip=[IO.Compression.ZipFile]::OpenRead($zipPath)
+          try{
+            $probe=@($zip.Entries | Where-Object {$_.FullName -match '/static/w28i_chart_probe\.js$'})
+            $chart=@($zip.Entries | Where-Object {$_.FullName -match '/static/trading\.html$'})
+            if($probe.Count -ne 1 -or $chart.Count -ne 1){throw 'W28I_REAL_RELEASE_MISSING_ORIGINAL_CHART_HANDSHAKE'}
+            foreach($row in @(@{entry=$probe[0];src=(Join-Path $src 'static/w28i_chart_probe.js')},@{entry=$chart[0];src=(Join-Path $src 'static/trading.html')})){
+              $zipStream=$row.entry.Open()
+              try{
+                $mem=[IO.MemoryStream]::new()
+                $zipStream.CopyTo($mem)
+                if(![Linq.Enumerable]::SequenceEqual([byte[]]$mem.ToArray(),[byte[]][IO.File]::ReadAllBytes($row.src))){
+                  throw 'W28I_RELEASE_EMBEDDED_CHART_CONTENT_DRIFT'
+                }
+              }finally{$zipStream.Dispose()}
+            }
+            $shell=Join-Path $root 'KTRADE-WailsPortable/ktrade.exe'
+            if(!(Test-Path -LiteralPath $shell) -or (Get-Item -LiteralPath $shell).Length -lt 100000){
+              throw 'W28I_NATIVE_WAILS_EXE_NOT_BUILT'
+            }
+          }finally{$zip.Dispose()}
+          Write-Output '::notice::W28I_REAL_RELEASE_BINARIES_AND_ORIGINAL_CHART_PROBE_SOURCE_BYTES=PASS'
+      - name: Complete original Go engine and nested Wails Go tests vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28I_ORIGINAL_GO_FULL_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28I_ORIGINAL_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28I_WAILS_NATIVE_GO_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28I_WAILS_NATIVE_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W28I_FULL_ORIGINAL_ENGINE_AND_WAILS_GO_TEST_VET=PASS'
+      - name: Purge private source and synthetic Wails package
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($d in @('checked-old','checked-new')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $d
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*' -ErrorAction SilentlyContinue | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
