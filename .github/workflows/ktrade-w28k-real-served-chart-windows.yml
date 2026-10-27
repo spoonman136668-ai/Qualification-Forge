@@ -139,16 +139,26 @@ jobs:
           $env:KTRADE_PAPER_SESSION_ROOT=''
           $env:KTRADE_PAPER_CUSTODY_REVIEW_ROOT=''
           $env:KTRADE_W17D0_SYNTHETIC_ORIGIN_PORT=''
-          $errLog=Join-Path $env:RUNNER_TEMP 'w28k-isolated-go-stderr.txt'
-          $outLog=Join-Path $env:RUNNER_TEMP 'w28k-isolated-go-stdout.txt'
-          $child=Start-Process -FilePath (Join-Path $stage 'ktrade-engine.exe') -WorkingDirectory $stage -RedirectStandardError $errLog -RedirectStandardOutput $outLog -PassThru
+          # Read Go's stdout/stderr through process pipes. Start-Process
+          # redirects into exclusively held Windows files; reading those
+          # paths concurrently is not reliable on Windows Server 2022.
+          $psi=[System.Diagnostics.ProcessStartInfo]::new()
+          $psi.FileName=Join-Path $stage 'ktrade-engine.exe'
+          $psi.WorkingDirectory=$stage
+          $psi.UseShellExecute=$false
+          $psi.CreateNoWindow=$true
+          $psi.RedirectStandardError=$true
+          $psi.RedirectStandardOutput=$true
+          $child=[System.Diagnostics.Process]::Start($psi)
           try{
             $listen=$null
-            for($i=0;$i -lt 60;$i++){
-              Start-Sleep -Milliseconds 350
-              if(Test-Path -LiteralPath $errLog){
-                $txt=[IO.File]::ReadAllText($errLog)
-                if($txt -match 'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:[0-9]{1,5})'){$listen=$Matches[1];break}
+            $lineTask=$child.StandardError.ReadLineAsync()
+            for($i=0;$i -lt 90;$i++){
+              if($lineTask.Wait(350)){
+                $line=$lineTask.GetAwaiter().GetResult()
+                if($null -ne $line -and $line -match 'KTRADE_ISOLATED_LISTEN=(127\\.0\\.0\\.1:[0-9]{1,5})'){$listen=$Matches[1];break}
+                if($child.HasExited){throw 'W28K_REAL_ORIGINAL_DISARMED_GO_SERVER_EXITED'}
+                $lineTask=$child.StandardError.ReadLineAsync()
               }
               if($child.HasExited){throw 'W28K_REAL_ORIGINAL_DISARMED_GO_SERVER_EXITED'}
             }
@@ -175,7 +185,10 @@ jobs:
             Write-Output '::notice::W28K_ACTUAL_NATIVE_RUNNING_GO_GET_CHART_UI_AND_SOURCE_JS=PASS'
             Write-Output '::notice::W28K_ORIGINAL_ISOLATED_GO_PAPER_LIVE_STRATEGY_ALL_DISARMED=PASS'
           }finally{
-            if($child -and !$child.HasExited){Stop-Process -Id $child.Id -Force -ErrorAction SilentlyContinue}
+            if($child){
+              if(!$child.HasExited){$child.Kill();[void]$child.WaitForExit(5000)}
+              $child.Dispose()
+            }
           }
       - name: Complete original engine and nested Wails Go test and vet
         shell: pwsh
