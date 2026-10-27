@@ -832,7 +832,37 @@ jobs:
             # successful import or installed owner adoption.
             Close-W17D4Indicators $parent
             function Click-W28L([string]$label) {
-              $e=Wait-W17D1AButton $parent $label 25
+              $spec=@{
+                'Export settings'=@('w28k-export','Export selected original chart preferences only')
+                'Import settings'=@('w28k-import','Import selected original chart preferences; no trading or browser credentials')
+                'Verify chart UI'=@('w28i-verify-chart','Verify chart UI')
+              }
+              if(!$spec.ContainsKey($label)){throw 'W28L_UNKNOWN_CONTROL'}
+              $e=$null
+              $deadline=(Get-Date).AddSeconds(25)
+              do{
+                $rootEl=[System.Windows.Automation.AutomationElement]::FromHandle($parent.MainWindowHandle)
+                $nodes=$rootEl.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                foreach($node in $nodes){
+                  try{
+                    if($node.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+                       ($node.Current.AutomationId -ceq $spec[$label][0] -or $node.Current.Name -ceq $label -or $node.Current.Name -ceq $spec[$label][1])){
+                      if($node.Current.IsOffscreen){
+                        try{$scroll=$node.GetCurrentPattern([System.Windows.Automation.ScrollItemPattern]::Pattern);$scroll.ScrollIntoView();Start-Sleep -Milliseconds 250}catch{}
+                      }
+                      if(!$node.Current.IsOffscreen){$e=$node;break}
+                    }
+                  }catch{}
+                }
+                if($e){break}
+                Start-Sleep -Milliseconds 300
+              }while((Get-Date) -lt $deadline)
+              if(!$e){
+                $sample=@()
+                foreach($node in $nodes){try{if($node.Current.Name -match '(?i)export|import|settings|preferences' -and $sample.Count -lt 15){$sample+=($node.Current.Name+';id='+$node.Current.AutomationId+';offscreen='+$node.Current.IsOffscreen)}}catch{}}
+                Write-Output ('::warning::W28L_SOURCE_CONTROL_DIAGNOSTIC='+($sample -join '|'))
+                throw ('W28L_SOURCE_CONTROL_NOT_VISIBLE_'+$label)
+              }
               $r=$e.Current.BoundingRectangle
               $outer=[System.Windows.Automation.AutomationElement]::FromHandle($parent.MainWindowHandle).Current.BoundingRectangle
               if($e.Current.IsOffscreen -or !$e.Current.IsEnabled -or $r.IsEmpty -or $r.Width -lt 8 -or $r.Height -lt 8 -or $r.Left -lt $outer.Left -or $r.Right -gt $outer.Right -or $r.Top -lt $outer.Top -or $r.Bottom -gt $outer.Bottom){throw 'W28L_NATIVE_CONTROL_BOUNDS_REFUSED'}
