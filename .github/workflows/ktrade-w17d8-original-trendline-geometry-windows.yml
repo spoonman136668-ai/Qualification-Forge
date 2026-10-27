@@ -1,4 +1,4 @@
-name: KTRADE W22 candidate asset integrity full Windows
+name: KTRADE W24 read-only paper history selection Windows
 on:
   push:
     branches: [qualification/ktrade-w17d8-original-trendline-geometry-20261025]
@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 36635f32f860eca3cacc7a9ede87b13d5f335858
+          ref: 3b16cf3816cb2e12ba581fd14050172418889249
           path: checked-private
           fetch-depth: 10
           persist-credentials: false
@@ -51,10 +51,10 @@ jobs:
           $head=(& git -C $src rev-parse HEAD).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
           $witness=(& git -C $wit rev-parse HEAD).Trim()
-          if($LASTEXITCODE -ne 0 -or $head -cne '36635f32f860eca3cacc7a9ede87b13d5f335858' -or
-             $tree -cne 'b6a846e94219768bae1604278ab4141233ee0bb3' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
-          $actual=@(& git -C $src diff --name-only 8f879fe6e98c3eef2a4ca6b0893897cd29493459 HEAD | Sort-Object)
-          $expected=@('windows/Build-KTRADE-WailsPortable.ps1') | Sort-Object
+          if($LASTEXITCODE -ne 0 -or $head -cne '3b16cf3816cb2e12ba581fd14050172418889249' -or
+             $tree -cne 'fa76f0c4fed575624b382e41545a76cde2b20cdb' -or $witness -cne $env:GITHUB_SHA){throw 'W17D8_SOURCE_OR_WITNESS_DRIFT'}
+          $actual=@(& git -C $src diff --name-only 36635f32f860eca3cacc7a9ede87b13d5f335858 HEAD | Sort-Object)
+          $expected=@('cmd/ktrade/paper_session_full.go','cmd/ktrade/rb2_portable_paper_owner_full.go','cmd/ktrade/rb2_portable_paper_owner_full_test.go','static/paper_session_controls.js') | Sort-Object
           if($LASTEXITCODE -ne 0 -or ($actual -join '|') -cne ($expected -join '|')){
             throw 'W17D8_THREE_FILE_BOUNDARY_DRIFT'
           }
@@ -220,7 +220,7 @@ jobs:
           $log=Join-Path $env:RUNNER_TEMP 'w17c6-build.log'
           Push-Location $src
           try {
-            & go test -race -count=1 -mod=readonly -tags ktrade_full -run '^TestW18CandidateOrigin|^TestRB3Wails' ./cmd/ktrade *> $log
+            & go test -race -count=1 -mod=readonly -tags ktrade_full -run '^TestW18CandidateOrigin|^TestRB3Wails|^TestW24ExplicitReadOnlySelectionOfMultiplePortableHistories' ./cmd/ktrade *> $log
             if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W22_ORIGIN_RECEIPT_AFFECTED_INTERFACE_FAILED'}
             & go test -count=1 -mod=readonly ./... *> $log
             if($LASTEXITCODE -ne 0){Get-Content $log;throw 'W22_FULL_ORIGINAL_GO_REGRESSION_FAILED'}
@@ -294,7 +294,7 @@ jobs:
           }
           $originPort=$null
           try{
-            & $builder -OutputRoot $candidate -ExpectedSourceSha '36635f32f860eca3cacc7a9ede87b13d5f335858' -ReleaseCandidate
+            & $builder -OutputRoot $candidate -ExpectedSourceSha '3b16cf3816cb2e12ba581fd14050172418889249' -ReleaseCandidate
             $stage=Join-Path $candidate 'KTRADE-WailsPortable'
             $receipt=Get-Content -Raw (Join-Path $stage 'release-candidate-proof.json')|ConvertFrom-Json
             $manifest=Get-Content -Raw (Join-Path $candidate 'source-manifest.json')|ConvertFrom-Json
@@ -319,7 +319,7 @@ jobs:
             [IO.File]::WriteAllText($sentinel,'W18 synthetic independent unknown bytes')
             $before=(Get-FileHash $sentinel).Hash
             $refused=$false
-            try{& $builder -OutputRoot $candidate -ExpectedSourceSha '36635f32f860eca3cacc7a9ede87b13d5f335858' -ReleaseCandidate}catch{$refused=$true}
+            try{& $builder -OutputRoot $candidate -ExpectedSourceSha '3b16cf3816cb2e12ba581fd14050172418889249' -ReleaseCandidate}catch{$refused=$true}
             if(!$refused -or (Get-FileHash $sentinel).Hash -cne $before){throw 'W18_EXISTING_CANDIDATE_OR_UNKNOWN_DATA_OVERWRITTEN'}
             $extract=Join-Path $env:GITHUB_WORKSPACE ('w23-extract-'+[guid]::NewGuid().ToString('N'))
             Expand-Archive -LiteralPath (Join-Path $candidate 'KTRADE-WailsPortable.zip') -DestinationPath $extract
