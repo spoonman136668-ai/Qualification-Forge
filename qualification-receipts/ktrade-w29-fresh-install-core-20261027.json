@@ -1,0 +1,49 @@
+{
+  "schema": "ktrade.w29.fresh-install-core-qualification.v1",
+  "status": "BOUNDED_NATIVE_ENGINEERING_PASS_NOT_PRODUCT_COMPLETION",
+  "source_sha": "960caae504e19c4ceb27e681e59eaa50199a06fd",
+  "source_tree": "2024351becb790da1c975a188f269b42c82a6f77",
+  "parent_sha": "7301a2a1117ed2ad556cc69fbe50595195d16848",
+  "source_paths": [
+    "tools/wails-pilot/backend/fresh_install.go",
+    "tools/wails-pilot/backend/fresh_install_test.go",
+    "tools/wails-pilot/cmd/release-install/main.go"
+  ],
+  "witness_sha": "773232260723c6398f5e7fd1121114cc8f2c5d59",
+  "run_id": 40586940178,
+  "job_id": 122480804357,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40586940178",
+  "conclusion": "success",
+  "passed": [
+    "exact immutable source tree parent and three-path addition-only scope",
+    "native paired Wails and original Go release build",
+    "native release-install CLI build",
+    "focused race tests for fresh installation and existing extractor/selector/history interfaces",
+    "exactly one concurrent installation winner",
+    "existing owner-root byte preservation",
+    "wrong source and failed-install quarantine with no automatic retry",
+    "receipt, asset and interrupted-install refusal tests",
+    "actual native CLI installs source-authentic ZIP and W27 selection into new disposable root",
+    "real installed executable byte parity with built package",
+    "repeat overwrite and installed-asset mutation refusals",
+    "restored exact asset bytes reverified",
+    "full original Go and Wails test and vet",
+    "private source, built packages and synthetic directories cleaned"
+  ],
+  "no_claims": [
+    "complete installer UI",
+    "desktop/start-menu shortcuts",
+    "app launch from installed root",
+    "uninstall/updater/rollback product acceptance",
+    "owner-data upgrade or migration",
+    "release/production acceptance",
+    "whole-product completion"
+  ],
+  "app_launched": false,
+  "owner_data_imported": false,
+  "orders_enabled": false,
+  "live_armed": false,
+  "protected_refs_modified": false,
+  "pr": 156,
+  "draft": true
+}
