@@ -1,0 +1,58 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W29A verified installed launch",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "f744558d2380dca1f7e1d67aa44990f8552d2907",
+  "source_tree": "0971c64fbb3273041e1a855e63341292e3af0cb0",
+  "parent_sha": "960caae504e19c4ceb27e681e59eaa50199a06fd",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/157",
+  "changed_paths": [
+    "tools/wails-pilot/backend/fresh_launch.go",
+    "tools/wails-pilot/backend/fresh_launch_test.go",
+    "tools/wails-pilot/cmd/release-launch/main.go",
+    "tools/wails-pilot/main_windows.go"
+  ],
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "witness_sha": "bf644b7364b451b1299d256c81cffeaa9efd4116",
+  "run_id": 40589825348,
+  "job_id": 122490840550,
+  "foundation": {
+    "gate": "W29 fresh installation core",
+    "source_sha": "960caae504e19c4ceb27e681e59eaa50199a06fd",
+    "run_id": 40586940178,
+    "witness_sha": "773232260723c6398f5e7fd1121114cc8f2c5d59"
+  },
+  "no_claims": [
+    "shortcuts or uninstaller integration",
+    "polished installer UI",
+    "update or rollback of W29 installed roots",
+    "owner installation or historical-data cutover",
+    "whole-product or protected release acceptance",
+    "production deployment or broker orders"
+  ],
+  "paper_orders_enabled": false,
+  "live_armed": false,
+  "owner_data_touched": false,
+  "protected_refs_changed": false,
+  "merged": false,
+  "status": "completed",
+  "conclusion": "success",
+  "focused_backend_race_seconds": 2.728,
+  "final_backend_suite_seconds": 1.558,
+  "passed": [
+    "Immutable source/tree, four-path delta and exact prior W29 success verified",
+    "Focused original extractor/selector/process-lease and new installation/launch -race tests",
+    "Native source-built paired release ZIP installed into fresh local path containing spaces",
+    "Native launcher refuses incomplete receipt, altered asset and orphan lease before profile/runtime allocation",
+    "Direct original shell startup obeys W29 incomplete-install quarantine",
+    "Original installed shell PID is child of native launcher; original engine PID and exact executable paths verified",
+    "Two real installed Wails/WebView2 launches and UIA-bound physical Verify chart UI clicks receive original chart nonce response",
+    "Loopback original engine capabilities prove PAPER_STOPPED and disabled PAPER/LIVE/strategy/accounting with requires_review",
+    "Poisoned parent browser profile and launch overrides excluded; original private profile created within installed stage",
+    "Second active launch and active W27 selection change refused",
+    "Normal HWND-bound WM_CLOSE ends shell, original Go engine and launcher successfully; original active lease removed",
+    "Cold reopen and installed receipt reinspection; receipt and unknown sentinel bytes unchanged",
+    "Final complete original Go and Wails tests and vet",
+    "Disposable install, private source, package and native tools cleanup"
+  ]
+}
