@@ -23,9 +23,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: e8dfcae4934134a6aa956c51ddde65ce59ef8a27
+          ref: 9774043a769e8d9865c7b60dfdab95691f562b05
           path: checked-private
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Verify exact W27 ancestry and three-path engineering delta
@@ -35,8 +35,9 @@ jobs:
           $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $got=(& git -C $src rev-parse HEAD).Trim()
           $prior=(& git -C $src rev-parse HEAD^).Trim()
+          $w26=(& git -C $src rev-parse HEAD~2).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
-          if($got -cne 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27' -or $prior -cne '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' -or $tree -cne '6dfc30ca9ff89af9a8efe33a117af6d03306dd7a'){
+          if($got -cne '9774043a769e8d9865c7b60dfdab95691f562b05' -or $prior -cne 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27' -or $w26 -cne '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' -or $tree -cne 'a928e1c45b6c1495b0d3304361f794d73d5f1ed8'){
             throw 'W27_IMMUTABLE_SOURCE_OR_ANCESTRY_DRIFT'
           }
           $actual=@(& git -C $src diff --name-only 74d0f6a10f6d12615018a2fc81a2d76c956d4d70 HEAD | Sort-Object -CaseSensitive)
@@ -97,14 +98,14 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W27_OFFLINE_ASSETS_FAIL'}
             if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W27_BUILD_CHANGED_TRACKED_SOURCE'}
-            $lines=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27' -ReleaseCandidate)
+            $lines=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha '9774043a769e8d9865c7b60dfdab95691f562b05' -ReleaseCandidate)
             if($lines -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W27_REAL_WAILS_ZIP_BUILD_FAIL'}
           } finally { Pop-Location }
           $zip=Join-Path $root 'KTRADE-WailsPortable.zip'
           $dest=Join-Path $env:GITHUB_WORKSPACE 'isolated-release-selection'
           New-Item -ItemType Directory -Path $dest -ErrorAction Stop | Out-Null
           $extract=Join-Path $env:GITHUB_WORKSPACE 'release-extract.exe'
-          $firstReceipt=@(& $extract $zip $dest 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27')
+          $firstReceipt=@(& $extract $zip $dest '9774043a769e8d9865c7b60dfdab95691f562b05')
           if($LASTEXITCODE -ne 0){throw 'W27_GENUINE_ZIP_EXTRACTION_REFUSED'}
           $firstInfo=($firstReceipt -join [Environment]::NewLine)|ConvertFrom-Json
           $old=[string]$firstInfo.candidate_directory
@@ -113,7 +114,7 @@ jobs:
           Copy-Item -LiteralPath (Split-Path -Parent $old) -Destination $otherParent -Recurse -Force
           $new=Join-Path $otherParent 'KTRADE-WailsPortable'
           $switch=Join-Path $env:GITHUB_WORKSPACE 'release-switch.exe'
-          $r1=@(& $switch select $dest $old 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27')
+          $r1=@(& $switch select $dest $old '9774043a769e8d9865c7b60dfdab95691f562b05')
           if($LASTEXITCODE -ne 0){throw 'W27_FIRST_GENUINE_SELECTOR_FAIL'}
           $first=($r1 -join [Environment]::NewLine)|ConvertFrom-Json
           if($first.selection.Sequence -ne 1 -or $first.launched -ne $false -or $first.profile_migrated -ne $false){throw 'W27_FIRST_DISARMED_SELECTION_INVALID'}
@@ -123,7 +124,7 @@ jobs:
           [IO.File]::WriteAllText($oldMarker,'OLD_PROFILE_UNCHANGED')
           $ownerMarker=Join-Path $dest 'original-owner-settings-and-paper.marker'
           [IO.File]::WriteAllText($ownerMarker,'OWNER_AND_PAPER_UNCHANGED')
-          $r2=@(& $switch select $dest $new 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27')
+          $r2=@(& $switch select $dest $new '9774043a769e8d9865c7b60dfdab95691f562b05')
           if($LASTEXITCODE -ne 0){throw 'W27_SECOND_GENUINE_SELECTOR_FAIL'}
           $second=($r2 -join [Environment]::NewLine)|ConvertFrom-Json
           if($second.selection.Sequence -ne 2 -or $second.selection.PreviousDigest -cne $first.selection.Digest){throw 'W27_SELECTION_CHAIN_BROKEN'}
