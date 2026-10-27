@@ -1,0 +1,143 @@
+name: KTRADE W28J stopped owner release and paper review admission Windows
+on:
+  push:
+    branches: [qualification/ktrade-w28j-stopped-history-admission-windows-20261027]
+    paths: [.github/workflows/ktrade-w28j-stopped-history-admission-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28j-source-authentic-original-cold-review
+  cancel-in-progress: false
+jobs:
+  selected-history:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact W28J witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout original W28I source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a282385f776295eb0013c9904e6a9306595c06f1
+          path: old
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact W28J new original source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: c3864bab900fa5ab148c5746622ca2857139c373
+          path: new
+          fetch-depth: 6
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact original tree W28I predecessor and scoped four-file changes
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'old'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'new'
+          if((& git -C $old rev-parse HEAD).Trim() -cne 'a282385f776295eb0013c9904e6a9306595c06f1' -or
+             (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'd22dcb6389d0b15ad2af97461a0366ed079c7de5' -or
+             (& git -C $src rev-parse HEAD).Trim() -cne 'c3864bab900fa5ab148c5746622ca2857139c373' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '25decc4856d56f3f77a5424222826c413393b389' -or
+             (& git -C $src rev-parse HEAD~4).Trim() -cne 'a282385f776295eb0013c9904e6a9306595c06f1'){throw 'W28J_SOURCE_TREE_OR_PARENT_DIFFERS_FROM_QUALIFIED'}
+          $expected=@('tools/wails-pilot/backend/w28j_stopped_history.go',
+             'tools/wails-pilot/backend/w28j_stopped_history_test.go',
+             'tools/wails-pilot/cmd/release-history-preflight/main.go',
+             'windows/Review-KTRADE-SelectedPaperHistory.ps1' | Sort-Object -CaseSensitive)
+          $got=@(& git -C $src diff --name-only a282385f776295eb0013c9904e6a9306595c06f1 HEAD | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $expected -DifferenceObject $got){throw 'W28J_FOUR_SOURCE_PATH_SCOPE_DRIFT'}
+          $prior=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40513940041' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($prior.status -cne 'completed' -or $prior.conclusion -cne 'success' -or
+             $prior.head_sha -cne 'e34c4fce9603cf8b311d04723b9a4ef63b0ce410'){throw 'W28J_W28I_INDEPENDENT_WINDOWS_PREDECESSOR_FAILED'}
+          Write-Output '::notice::W28J_EXACT_IMMUTABLE_SOURCE_FOUR_PATHS_AND_W28I_PREDECESSOR=PASS'
+      - name: Native Windows Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            new/go.sum
+            new/tools/wails-pilot/go.sum
+      - name: Original source W27 W28C W28D W28E candidate plus independent W28J custody negatives
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'new'
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 -run '^TestW28J' -v ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28J_REAL_ORIGINAL_CANDIDATE_COLD_ESCROW_TEST_FAILED'}
+            & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE 'release-history-preflight.exe') ./cmd/release-history-preflight
+            if($LASTEXITCODE -ne 0){throw 'W28J_NATIVE_REVIEW_PREFLIGHT_CLI_FAILED'}
+          }finally{Pop-Location}
+          $exe=Join-Path $env:GITHUB_WORKSPACE 'release-history-preflight.exe'
+          $negative=@(& $exe inspect (Join-Path $env:GITHUB_WORKSPACE 'new') (Join-Path $env:GITHUB_WORKSPACE 'new') ('a'*40) (Join-Path $env:GITHUB_WORKSPACE 'new'))
+          if($LASTEXITCODE -eq 0){throw 'W28J_ARBITRARY_UNSELECTED_RELEASE_ADMITTED'}
+          Write-Output '::notice::W28J_EXACT_SELECTION_STOPPED_FULL_ESCROW_ORPHAN_FAIL_CLOSED=PASS'
+          Write-Output '::notice::W28J_NATIVE_OPERATOR_PREFLIGHT_EXE_AND_UNSELECTED_NEGATIVE=PASS'
+          exit 0
+      - name: Original historical paper ledger and operator Windows script syntax
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'new'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -run '^TestW28H' ./internal/papercustody
+            if($LASTEXITCODE -ne 0){throw 'W28J_ORIGINAL_W28H_FINANCIAL_READER_REGRESSION_FAILED'}
+            & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE 'ktrade-paper-history-review.exe') ./cmd/ktrade-paper-history-review
+            if($LASTEXITCODE -ne 0){throw 'W28J_ORIGINAL_PAPER_HISTORY_CLI_BUILD_FAILED'}
+          }finally{Pop-Location}
+          $s=Join-Path $src 'windows/Review-KTRADE-SelectedPaperHistory.ps1'
+          $tokens=$null;$problems=$null
+          $ast=[System.Management.Automation.Language.Parser]::ParseFile($s,[ref]$tokens,[ref]$problems)
+          if($null -eq $ast -or $problems.Count -ne 0){throw 'W28J_ORIGINAL_OPERATOR_WINDOWS_SCRIPT_PARSE_FAILED'}
+          $blocked=@(& $s -Parent $src -SelectedStage $src -SourceSHA ('a'*40) -Escrow $src -SourceID 'bad-identity' -ReleasePreflightExe (Join-Path $env:GITHUB_WORKSPACE 'release-history-preflight.exe') -OriginalPaperReviewExe (Join-Path $env:GITHUB_WORKSPACE 'ktrade-paper-history-review.exe') 2>$null)
+          if($?){throw 'W28J_ARBITRARY_HISTORY_SCRIPT_ACCEPTED_UNSELECTED_ID'}
+          Write-Output '::notice::W28J_ORIGINAL_ACCOUNT_COLD_FINANCIAL_REPLAY_AND_WINDOWS_MANUAL_SCRIPT_NEGATIVES=PASS'
+          exit 0
+      - name: Full original application and Wails Go test vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'new'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28J_ORIGINAL_GO_TEST_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28J_ORIGINAL_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28J_WAILS_GO_TEST_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28J_WAILS_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W28J_FULL_ORIGINAL_GO_ENGINE_AND_WAILS_TEST_VET=PASS'
+      - name: Purge isolated source checkouts and review binaries
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('old','new')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          foreach($name in @('release-history-preflight.exe','ktrade-paper-history-review.exe')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue}
+          }
