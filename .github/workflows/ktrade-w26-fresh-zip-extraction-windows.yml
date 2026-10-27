@@ -126,6 +126,10 @@ jobs:
           }
           $second=@(& $extract $zip $destination '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' 2>&1)
           if($LASTEXITCODE -eq 0){throw 'W26_EXISTING_CANDIDATE_OVERWRITE_ALLOWED'}
+          # The negative overwrite trial intentionally exits nonzero. Clear
+          # only its process exit state after proving refusal, otherwise pwsh
+          # reports the whole qualification step as a false failure.
+          $global:LASTEXITCODE=0
           Write-Output '::notice::W26_REAL_W23_ZIP_VERIFIED_AND_EXTRACTED_ON_WINDOWS=PASS'
           Write-Output '::notice::W26_FRESH_ONLY_NO_PROFILE_NO_LIVE_NO_APP_START=PASS'
       - name: Purge checked private source
