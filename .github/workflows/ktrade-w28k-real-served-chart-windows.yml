@@ -35,7 +35,7 @@ jobs:
           ref: 56ce927f086910e31a827d705b5b9fec7ac36a35
           path: current
           persist-credentials: false
-          fetch-depth: 7
+          fetch-depth: 9
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Verify pinned original Go source trees scope and W28J Windows predecessor
         shell: pwsh
