@@ -945,8 +945,17 @@ jobs:
             }
             $cancel=$dialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty,'2'))
             if(!$cancel -or $cancel.Current.IsOffscreen){throw 'W28L_NATIVE_PICKER_CANCEL_ABSENT'}
-            $cp=$cancel.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
-            $cp.Invoke()
+            $dr=$dialog.Current.BoundingRectangle
+            $cr=$cancel.Current.BoundingRectangle
+            if($cr.IsEmpty -or $cr.Width -lt 8 -or $cr.Height -lt 8 -or $cr.Left -lt $dr.Left -or $cr.Right -gt $dr.Right -or $cr.Top -lt $dr.Top -or $cr.Bottom -gt $dr.Bottom){throw 'W28L_NATIVE_CANCEL_BOUNDS_REFUSED'}
+            $dh=[IntPtr]$dialog.Current.NativeWindowHandle
+            if($dh -eq [IntPtr]::Zero){throw 'W28L_DIALOG_NATIVE_HANDLE_REQUIRED'}
+            [void][W17D1ANativeClick]::SetForegroundWindow($dh)
+            Start-Sleep -Milliseconds 200
+            if([W17D1ANativeClick]::GetForegroundWindow() -ne $dh){throw 'W28L_DIALOG_FOREGROUND_CUSTODY_REQUIRED'}
+            if(![W17D1ANativeClick]::SetCursorPos([int]($cr.Left+$cr.Width/2),[int]($cr.Top+$cr.Height/2))){throw 'W28L_CANCEL_POINTER_REFUSED'}
+            [W17D1ANativeClick]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+            [W17D1ANativeClick]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
             $deadline=(Get-Date).AddSeconds(15)
             $ready=$false
             do{
