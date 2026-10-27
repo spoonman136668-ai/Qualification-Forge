@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: c71932245f2bc9a2d8a456cdbc31adc0b7acc03c
+          ref: 9a525c0ac1b1481c1ba9532080d52e4c94ac5b39
           path: checked-new
           fetch-depth: 7
           persist-credentials: false
@@ -45,9 +45,9 @@ jobs:
           $new=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
           if((& git -C $old rev-parse HEAD).Trim() -cne '9774043a769e8d9865c7b60dfdab95691f562b05' -or
              (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'a928e1c45b6c1495b0d3304361f794d73d5f1ed8' -or
-             (& git -C $new rev-parse HEAD).Trim() -cne 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c' -or
-             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '96ee3de6a387f1f0f0432053193985f0c9e509f0' -or
-             (& git -C $new rev-parse HEAD~5).Trim() -cne '914b03cc117fd387b1fda1d23d489103f385a705'){throw 'W28E_IMMUTABLE_SOURCE_OR_ANCESTRY_NOT_PROVEN'}
+             (& git -C $new rev-parse HEAD).Trim() -cne '9a525c0ac1b1481c1ba9532080d52e4c94ac5b39' -or
+             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne 'fb924c5a2603ceaf3ab72192ceca8ab98e290250' -or
+             (& git -C $new rev-parse HEAD~6).Trim() -cne '914b03cc117fd387b1fda1d23d489103f385a705'){throw 'W28E_IMMUTABLE_SOURCE_OR_ANCESTRY_NOT_PROVEN'}
           $got=@(& git -C $new diff --name-only 914b03cc117fd387b1fda1d23d489103f385a705 HEAD | Sort-Object -CaseSensitive)
           $want=@('cmd/ktrade-pine-restore-proof/main.go','tools/wails-pilot/backend/release_supported_restore.go','tools/wails-pilot/backend/release_supported_restore_test.go','tools/wails-pilot/backend/release_switch.go','tools/wails-pilot/cmd/release-supported-restore/main.go' | Sort-Object -CaseSensitive)
           if(Compare-Object -ReferenceObject $want -DifferenceObject $got){throw 'W28E_FIVE_FILE_SCOPE_DRIFT'}
@@ -106,7 +106,7 @@ jobs:
           $ErrorActionPreference='Stop'
           $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
           $env:KTRADE_W13_QUALIFICATION_ONLY='0'
-          foreach($pair in @(@{label='old';dir='checked-old';sha='9774043a769e8d9865c7b60dfdab95691f562b05'},@{label='new';dir='checked-new';sha='c71932245f2bc9a2d8a456cdbc31adc0b7acc03c'})){
+          foreach($pair in @(@{label='old';dir='checked-old';sha='9774043a769e8d9865c7b60dfdab95691f562b05'},@{label='new';dir='checked-new';sha='9a525c0ac1b1481c1ba9532080d52e4c94ac5b39'})){
             $repo=Join-Path $env:GITHUB_WORKSPACE $pair.dir
             $root=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
             Push-Location $repo
@@ -145,13 +145,13 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'W28E_OLD_VERIFIED_ZIP_REJECTED'}
           $oldStage=[string]((($oldOut -join [Environment]::NewLine)|ConvertFrom-Json).candidate_directory)
           if(!$oldStage){throw 'W28E_OLD_STAGE_UNKNOWN'}
-          $newOut=@(& $extract $newZip $parent 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c')
+          $newOut=@(& $extract $newZip $parent '9a525c0ac1b1481c1ba9532080d52e4c94ac5b39')
           if($LASTEXITCODE -ne 0){throw 'W28E_NEW_VERIFIED_ZIP_REJECTED'}
           $newStage=[string]((($newOut -join [Environment]::NewLine)|ConvertFrom-Json).candidate_directory)
           if(!$newStage){throw 'W28E_NEW_STAGE_UNKNOWN'}
           if((Get-FileHash -LiteralPath (Join-Path $oldStage 'ktrade.exe') -Algorithm SHA256).Hash -ceq
              (Get-FileHash -LiteralPath (Join-Path $newStage 'ktrade.exe') -Algorithm SHA256).Hash){throw 'W28E_NO_DIFFERENT_REAL_VERSION'}
-          $pair=@(& $compare $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c')
+          $pair=@(& $compare $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage '9a525c0ac1b1481c1ba9532080d52e4c94ac5b39')
           if($LASTEXITCODE -ne 0){throw 'W28E_DISTINCT_BUILD_COMPARISON_FAILED'}
           if((($pair -join [Environment]::NewLine)|ConvertFrom-Json).distinct_binaries -ne $true){throw 'W28E_PREVIOUS_NEXT_NOT_REAL_DIFFERENT_BUILDS'}
           $s1=@(& $switch select $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05')
@@ -186,7 +186,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'W28E_OLD_COMPLETE_COLD_ESCROW_FAILED'}
           $escrow=(($escrowOutput -join [Environment]::NewLine)|ConvertFrom-Json)
           if($escrow.safe_to_migrate -ne $false -or $escrow.live_armed -ne $false){throw 'W28E_ESCROW_GRANTS_AUTHORITY'}
-          $restored=@(& $restore restore $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c' ([string]$escrow.escrow_directory))
+          $restored=@(& $restore restore $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage '9a525c0ac1b1481c1ba9532080d52e4c94ac5b39' ([string]$escrow.escrow_directory))
           if($LASTEXITCODE -ne 0){throw 'W28E_SUPPORTED_COLD_RESTORE_FAILED'}
           $report=(($restored -join [Environment]::NewLine)|ConvertFrom-Json)
           if($report.supported_files -lt 4 -or [string]::IsNullOrEmpty([string]$report.supported_digest_sha256) -or
@@ -206,7 +206,7 @@ jobs:
           foreach($rel in @('webview2-profile','paper-history','unclassified')){
            if(Test-Path -LiteralPath (Join-Path $newStage ('data\'+$rel))){throw 'W28E_UNSUPPORTED_BROWSER_PAPER_UNKNOWN_STATE_ACTIVATED'}
           }
-          $s2=@(& $switch select $parent $newStage 'c71932245f2bc9a2d8a456cdbc31adc0b7acc03c')
+          $s2=@(& $switch select $parent $newStage '9a525c0ac1b1481c1ba9532080d52e4c94ac5b39')
           if($LASTEXITCODE -ne 0){throw 'W28E_RESTORED_NEW_RELEASE_NOT_VERIFIED_FOR_SELECTION'}
           $s3=@(& $switch rollback $parent)
           if($LASTEXITCODE -ne 0){throw 'W28E_OLD_VERSION_ROLLBACK_FAILED'}
