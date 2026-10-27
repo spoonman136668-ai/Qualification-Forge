@@ -955,12 +955,27 @@ jobs:
               Write-Output ('::warning::W28L_NATIVE_DIALOG_METADATA='+($diagnostic -join '|'))
               throw 'W28L_NATIVE_FILE_PICKER_NOT_OBSERVED'
             }
-            $cancelCondition=[System.Windows.Automation.AndCondition]::new(
-              [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::AutomationIdProperty,'2'),
-              [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button),
-              [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,'Cancel'))
-            $cancel=$dialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$cancelCondition)
-            if(!$cancel -or $cancel.Current.IsOffscreen){throw 'W28L_NATIVE_PICKER_CANCEL_ABSENT'}
+            # Common file dialogs need not expose the legacy IDCANCEL
+            # numeric ID to UIA. Bind the exact semantic Button and label
+            # within the already verified owned dialog instead.
+            $cancel=$null
+            $deadline=(Get-Date).AddSeconds(10)
+            do{
+              $buttons=$dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+                [System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Button))
+              foreach($button in $buttons){
+                if(!$button.Current.IsOffscreen -and $button.Current.IsEnabled -and $button.Current.Name -cin @('Cancel','&Cancel')){$cancel=$button;break}
+              }
+              if($cancel){break}
+              Start-Sleep -Milliseconds 250
+            }while((Get-Date) -lt $deadline)
+            if(!$cancel){
+              $details=@()
+              foreach($button in $buttons){$details+=($button.Current.Name+';id='+$button.Current.AutomationId+';offscreen='+$button.Current.IsOffscreen)}
+              Write-Output ('::warning::W28L_OWNED_DIALOG_BUTTONS='+($details -join '|'))
+              throw 'W28L_NATIVE_PICKER_CANCEL_ABSENT'
+            }
+
             $dr=$dialog.Current.BoundingRectangle
             $cr=$cancel.Current.BoundingRectangle
             if($cr.IsEmpty -or $cr.Width -lt 8 -or $cr.Height -lt 8 -or $cr.Left -lt $dr.Left -or $cr.Right -gt $dr.Right -or $cr.Top -lt $dr.Top -or $cr.Bottom -gt $dr.Bottom){throw 'W28L_NATIVE_CANCEL_BOUNDS_REFUSED'}
