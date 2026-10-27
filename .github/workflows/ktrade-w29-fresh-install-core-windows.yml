@@ -1,0 +1,174 @@
+name: KTRADE W29 exclusive fresh installation core Windows
+on:
+  push:
+    branches: [qualification/ktrade-w29-fresh-install-core-20261027]
+    paths: [.github/workflows/ktrade-w29-fresh-install-core-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w29-fresh-install-core
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout unchanged qualified KTRADE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 960caae504e19c4ceb27e681e59eaa50199a06fd
+          path: current
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source and completed native foundations
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '960caae504e19c4ceb27e681e59eaa50199a06fd' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '2024351becb790da1c975a188f269b42c82a6f77'){throw 'W28N_SOURCE_IDENTITY_DRIFT'}
+          foreach($pin in @(
+            @{run=40578329822;sha='95be0a64027f054446db98699e4c0d8a9f97b843'},
+            @{run=40582128409;sha='56dda0a3bb0d266e8a66b5b51a8b96ce9902e458'}
+          )){
+            $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+            if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W28N_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
+          }
+          if((& git -C $src rev-parse HEAD^).Trim() -cne '7301a2a1117ed2ad556cc69fbe50595195d16848'){throw 'W29_PARENT_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD|Sort-Object)
+          $want=@('tools/wails-pilot/backend/fresh_install.go','tools/wails-pilot/backend/fresh_install_test.go','tools/wails-pilot/cmd/release-install/main.go'|Sort-Object)
+          if(Compare-Object $delta $want){throw 'W29_THREE_PATH_SCOPE_DRIFT'}
+          Write-Output '::notice::W29_EXACT_SOURCE_THREE_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS'
+      - name: Native Windows Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            current/go.sum
+            current/tools/wails-pilot/go.sum
+      - name: Native Windows Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build actual paired portable release and native original review tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N'))
+          $tools=Join-Path $env:RUNNER_TEMP 'w28n-review-tools'
+          New-Item -ItemType Directory -Path $tools|Out-Null
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W28N_NPM_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W28N_ASSET_STAGE_FAILED'}
+            & './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $build -ExpectedSourceSha '960caae504e19c4ceb27e681e59eaa50199a06fd' -ReleaseCandidate
+            if($LASTEXITCODE -ne 0){throw 'W28N_NATIVE_RELEASE_BUILD_FAILED'}
+            & go build -mod=readonly -o (Join-Path $tools 'paper-review.exe') ./cmd/ktrade-paper-history-review
+            if($LASTEXITCODE -ne 0){throw 'W28N_FINANCIAL_REVIEW_BUILD_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            foreach($cmd in @('release-install')){
+              & go build -mod=readonly -o (Join-Path $tools ($cmd+'.exe')) ('./cmd/'+$cmd)
+              if($LASTEXITCODE -ne 0){throw ('W28N_NATIVE_TOOL_BUILD_FAILED_'+$cmd)}
+            }
+            & go test -mod=readonly -race -count=1 -run '^Test(W29|W26|W27|W28J)' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28N_ACTIVE_ORPHAN_ESCROW_NEGATIVES_FAILED'}
+          }finally{Pop-Location}
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w28n-build-root.txt'),$build)
+          Write-Output '::notice::W28N_GENUINE_RELEASE_PAIR_AND_ORIGINAL_NATIVE_REVIEW_TOOLS=PASS'
+      - name: Real source-built fresh installation and failure custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $build=[IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'w28n-build-root.txt'))
+          $exe=Join-Path $env:RUNNER_TEMP 'w28n-review-tools/release-install.exe'
+          $zip=Join-Path $build 'KTRADE-WailsPortable.zip'
+          $target=Join-Path $env:GITHUB_WORKSPACE 'w29-disposable-install'
+          $sha='960caae504e19c4ceb27e681e59eaa50199a06fd'
+          $out=@(& $exe install $zip $target $sha)
+          if($LASTEXITCODE -ne 0){throw 'W29_REAL_NATIVE_FRESH_INSTALL_FAILED'}
+          $r=($out -join [Environment]::NewLine)|ConvertFrom-Json
+          if($r.schema -cne 'ktrade.fresh-installation.v1' -or $r.source_sha -cne $sha -or !$r.fresh_only -or $r.app_launched -or $r.owner_data_imported -or $r.orders_enabled -or $r.live_armed -or $r.release_accepted){throw 'W29_RECEIPT_AUTHORITY_DRIFT'}
+          $out=@(& $exe inspect $target)
+          if($LASTEXITCODE -ne 0){throw 'W29_INSPECT_FAILED'}
+          if((($out -join [Environment]::NewLine)|ConvertFrom-Json).selection_digest -cne $r.selection_digest){throw 'W29_SELECTION_CUSTODY_DRIFT'}
+          foreach($name in @('ktrade.exe','ktrade-engine.exe')){
+            if((Get-FileHash -LiteralPath (Join-Path $build ('KTRADE-WailsPortable/'+$name))).Hash -cne (Get-FileHash -LiteralPath (Join-Path $r.candidate_directory $name)).Hash){throw 'W29_INSTALLED_BINARY_BYTES_DIFFER'}
+          }
+          if(Test-Path -LiteralPath (Join-Path $r.candidate_directory 'data/webview2-profile')){throw 'W29_INSTALLER_OPENED_PROFILE'}
+          $sentinel=Join-Path $target 'owner-state-sentinel'
+          [IO.File]::WriteAllText($sentinel,'KEEP_OWNER_BYTES')
+          & $exe install $zip $target $sha|Out-Null
+          if($LASTEXITCODE -eq 0){throw 'W29_EXISTING_INSTALL_OVERWRITTEN'}
+          if([IO.File]::ReadAllText($sentinel) -cne 'KEEP_OWNER_BYTES'){throw 'W29_OWNER_BYTES_CHANGED'}
+          $victim=Get-ChildItem -LiteralPath (Join-Path $r.candidate_directory 'static') -File -Recurse|Sort-Object FullName|Select-Object -First 1
+          $raw=[IO.File]::ReadAllBytes($victim.FullName)
+          try{
+            [IO.File]::WriteAllBytes($victim.FullName,[byte[]]($raw+[byte]120))
+            & $exe inspect $target|Out-Null
+            if($LASTEXITCODE -eq 0){throw 'W29_TAMPERED_ASSETS_ACCEPTED'}
+          }finally{[IO.File]::WriteAllBytes($victim.FullName,$raw)}
+          & $exe inspect $target|Out-Null
+          if($LASTEXITCODE -ne 0){throw 'W29_RESTORED_ASSETS_REFUSED'}
+          Write-Output '::notice::W29_REAL_NATIVE_INSTALL_SELECTION_BINARY_PARITY_OVERWRITE_AND_TAMPER=PASS'
+          $failed=Join-Path $env:GITHUB_WORKSPACE 'w29-disposable-failed'
+          & $exe install $zip $failed ('f'*40)|Out-Null
+          if($LASTEXITCODE -eq 0){throw 'W29_WRONG_SOURCE_INSTALLED'}
+          if(!(Test-Path -LiteralPath (Join-Path $failed '.ktrade-w29-install-incomplete'))){throw 'W29_QUARANTINE_MISSING'}
+          & $exe inspect $failed|Out-Null
+          if($LASTEXITCODE -eq 0){throw 'W29_INCOMPLETE_INSPECTED_AS_USABLE'}
+          & $exe install $zip $failed $sha|Out-Null
+          if($LASTEXITCODE -eq 0){throw 'W29_QUARANTINE_RETRIED'}
+          Write-Output '::notice::W29_FAILURE_QUARANTINE_RETRY_VETO_NO_LAUNCH_NO_TRADING=PASS'
+          exit 0
+      - name: One final full original Go and Wails regression and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
+            Push-Location $dir
+            try{
+              & go test -mod=readonly -count=1 ./...
+              if($LASTEXITCODE -ne 0){throw 'W28N_FINAL_FULL_REGRESSION_FAILED'}
+              & go vet -mod=readonly ./...
+              if($LASTEXITCODE -ne 0){throw 'W28N_FINAL_VET_FAILED'}
+            }finally{Pop-Location}
+          }
+          Write-Output '::notice::W29_FULL_ORIGINAL_ENGINE_AND_WAILS_REGRESSION_VET=PASS'
+      - name: Purge private source synthetic history and review binaries
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($p in @((Join-Path $env:GITHUB_WORKSPACE 'current'),(Join-Path $env:GITHUB_WORKSPACE 'w29-disposable-install'),(Join-Path $env:GITHUB_WORKSPACE 'w29-disposable-failed'),(Join-Path $env:RUNNER_TEMP 'w28n-review-tools'))){
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*'|Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          foreach($name in @('w28n-build-root.txt','w28n-original-fixture.json')){
+            $p=Join-Path $env:RUNNER_TEMP $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue}
+          }
