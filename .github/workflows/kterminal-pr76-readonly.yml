@@ -1,0 +1,113 @@
+name: K-Terminal PR76 temporary read-only Windows qualification
+
+# Owner invocation only. No PR/push trigger, no unattended private-source fetch.
+# A separate, least-privilege GitHub secret is required on this public repository.
+# Never use the CKB/KTRADE token for Kboomllc private source.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Access-only probe, or exact-source focused qualification'
+        required: true
+        type: choice
+        default: probe
+        options:
+          - probe
+          - focused
+
+permissions:
+  contents: read
+
+jobs:
+  kterminal-source-intake:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/main'
+    runs-on: windows-2022
+    timeout-minutes: 12
+    env:
+      EXPECTED_SHA: '5fdf19a6f8a02cc61b6b38bf4eace7fe13cddfcf'
+      KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+      QUAL_MODE: ${{ inputs.mode }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      KTERMINAL_LIVE_AUTHORITY: '0'
+      KTERMINAL_BROKER_ACCESS: '0'
+      KTERMINAL_PROMOTION: '0'
+
+    steps:
+      - name: Verify independent hosted runner and secret availability
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows') { throw 'KTERMINAL_WRONG_RUNNER' }
+          if ($env:QUAL_MODE -cnotin @('probe','focused')) { throw 'KTERMINAL_INVALID_MODE' }
+          if ([string]::IsNullOrWhiteSpace($env:KTERMINAL_READ_TOKEN)) { throw 'KTERMINAL_READ_SECRET_NOT_CONFIGURED' }
+          Write-Host 'KTERMINAL_EPHEMERAL_WINDOWS_RUNNER=PASS'
+
+      - name: Probe exact-commit private metadata without printing response
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{
+            Accept='application/vnd.github+json'
+            Authorization=('Bearer '+$env:KTERMINAL_READ_TOKEN)
+            'X-GitHub-Api-Version'='2022-11-28'
+          }
+          try {
+            $uri = 'https://api.github.com/repos/Kboomllc/K-Terminal/commits/' + $env:EXPECTED_SHA
+            $answer = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers -TimeoutSec 25
+            if ($answer.sha -cne $env:EXPECTED_SHA) { throw 'IDENTITY_DRIFT' }
+          } catch {
+            throw 'KTERMINAL_PRIVATE_COMMIT_READ_UNVERIFIED'
+          } finally {
+            Remove-Variable headers,answer -ErrorAction SilentlyContinue
+          }
+          Write-Host 'KTERMINAL_PINNED_PRIVATE_READ=PASS'
+
+      - name: Checkout exact private K-Terminal source
+        if: inputs.mode == 'focused'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: '5fdf19a6f8a02cc61b6b38bf4eace7fe13cddfcf'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: checked-private
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Focused read-only qualification with output withheld
+        if: inputs.mode == 'focused'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $log = Join-Path $env:RUNNER_TEMP 'kterminal-private-intake.log'
+          Push-Location $source
+          try {
+            $head = (& git rev-parse HEAD).Trim()
+            if ($LASTEXITCODE -ne 0 -or $head -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_HEAD_MISMATCH' }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'KTERMINAL_CHECKOUT_DIRTY' }
+            & python -B tools/source_intake/validate_intake.py --root . --sha $env:EXPECTED_SHA *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'KTERMINAL_REAL_TREE_PREFLIGHT_FAILED_PRIVATE_OUTPUT_WITHHELD' }
+            & python -B -m unittest discover -s tools/source_intake -p test_validate_intake.py -v *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'KTERMINAL_FOCUSED_TESTS_FAILED_PRIVATE_OUTPUT_WITHHELD' }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'KTERMINAL_SOURCE_MUTATED' }
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_FINAL_HEAD_DRIFT' }
+            Write-Host ('KTERMINAL_FOCUSED_WINDOWS=PASS; EXACT_SHA=' + $env:EXPECTED_SHA)
+            Write-Host 'KTERMINAL_APP_REGRESSION_NOT_TESTED=TRUE'
+            Write-Host 'KTERMINAL_LIVE_TRADING_NOT_TESTED=TRUE'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Erase private checkout from ephemeral workspace
+        if: always() && inputs.mode == 'focused'
+        shell: pwsh
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if (Test-Path -LiteralPath $source) {
+            Remove-Item -LiteralPath $source -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          Write-Host 'KTERMINAL_PRIVATE_SOURCE_ARTIFACTS=DISABLED'
