@@ -25,7 +25,7 @@ jobs:
           repository: spoonman136668-ai/ktrade
           ref: 74d0f6a10f6d12615018a2fc81a2d76c956d4d70
           path: checked-private
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Verify exact candidate ancestry and three-file delta
@@ -35,8 +35,14 @@ jobs:
           $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           $got=(& git -C $src rev-parse HEAD).Trim()
           $prior=(& git -C $src rev-parse HEAD^).Trim()
+          $w25=(& git -C $src rev-parse HEAD~2).Trim()
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
-          if($got -cne '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' -or $prior -cne '471a04176e4d0d2c14979951aa38ce3e25c67541' -or $tree -cne '2fe3e82285d558feb01d54849a46b3d6915235fc'){throw 'W26_IMMUTABLE_SOURCE_DRIFT'}
+          if($got -cne '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' -or
+             $prior -cne '494a22f0d78f9f2effd12cabcd8181e07c0631b7' -or
+             $w25 -cne '471a04176e4d0d2c14979951aa38ce3e25c67541' -or
+             $tree -cne '2fe3e82285d558feb01d54849a46b3d6915235fc'){
+            throw 'W26_IMMUTABLE_SOURCE_DRIFT'
+          }
           $actual=@(& git -C $src diff --name-only 471a04176e4d0d2c14979951aa38ce3e25c67541 HEAD | Sort-Object -CaseSensitive)
           $expected=@('tools/wails-pilot/backend/release_extract.go','tools/wails-pilot/backend/release_extract_test.go','tools/wails-pilot/cmd/release-extract/main.go' | Sort-Object -CaseSensitive)
           if((Compare-Object -ReferenceObject $expected -DifferenceObject $actual)){throw 'W26_THREE_PATH_BOUNDARY_DRIFT'}
