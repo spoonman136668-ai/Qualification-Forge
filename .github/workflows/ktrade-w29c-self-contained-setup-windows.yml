@@ -57,7 +57,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.0'
-          cache: true
+          cache: false
           cache-dependency-path: |
             current/go.sum
             current/tools/wails-pilot/go.sum
@@ -226,7 +226,14 @@ jobs:
              $launchArguments='-NoProfile -ExecutionPolicy Bypass -File "'+$installedSetup+'" -Action Launch -InstallRoot "'+$target+'"'
              $launchLog=Join-Path $env:RUNNER_TEMP 'w29c-launch.stderr'
              $launchOut=Join-Path $env:RUNNER_TEMP 'w29c-launch.stdout'
-             $launch=Start-Process -FilePath $ps51 -ArgumentList $launchArguments -PassThru -RedirectStandardError $launchLog -RedirectStandardOutput $launchOut
+             $inheritedModules=$env:PSModulePath
+             try{
+               # Start-Process does not perform the PS7 native-invocation
+               # compatibility cleanup for Windows PowerShell child hosts.
+               # Admit only the child's actual Windows built-in modules.
+               $env:PSModulePath=Join-Path (Split-Path -Parent $ps51) 'Modules'
+               $launch=Start-Process -FilePath $ps51 -ArgumentList $launchArguments -PassThru -RedirectStandardError $launchLog -RedirectStandardOutput $launchOut
+             }finally{$env:PSModulePath=$inheritedModules}
             }
             $deadline=(Get-Date).AddSeconds(40)
             do{
