@@ -840,6 +840,10 @@ jobs:
             # followed by a genuine OS picker open/cancel. This does not claim
             # successful import or installed owner adoption.
             Close-W17D4Indicators $parent
+            $w28Window=[System.Windows.Automation.AutomationElement]::FromHandle($parent.MainWindowHandle)
+            $w28Pattern=$w28Window.GetCurrentPattern([System.Windows.Automation.WindowPattern]::Pattern)
+            $w28Pattern.SetWindowVisualState([System.Windows.Automation.WindowVisualState]::Maximized)
+            Start-Sleep -Milliseconds 500
             function Click-W28L([string]$label) {
               $spec=@{
                 'Export settings'=@('w28k-export','Export selected original chart preferences only')
@@ -858,6 +862,7 @@ jobs:
                        ($node.Current.AutomationId -ceq $spec[$label][0] -or $node.Current.Name -ceq $label -or $node.Current.Name -ceq $spec[$label][1])){
                       if($node.Current.IsOffscreen){
                         try{$scroll=$node.GetCurrentPattern([System.Windows.Automation.ScrollItemPattern]::Pattern);$scroll.ScrollIntoView();Start-Sleep -Milliseconds 250}catch{}
+                        try{if($node.Current.IsKeyboardFocusable){$node.SetFocus();Start-Sleep -Milliseconds 250}}catch{}
                       }
                       if(!$node.Current.IsOffscreen -and $node.Current.IsEnabled){$e=$node;break}
                     }
