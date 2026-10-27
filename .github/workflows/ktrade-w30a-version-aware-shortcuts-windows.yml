@@ -106,7 +106,8 @@ jobs:
         }
         # Witness 060fe5af pins the same source/tree, dependencies, Go 1.25.0,
         # Node 24, staged assets and Windows-2022 harness for these completed steps.
-        # Only the native harness's post-reopen uninstall snapshot timing changed.
+        # Only the native harness changed: retain the ShellExecute process exit
+        # handle and compare uninstall retention with the exact post-reopen snapshot.
         # An overall failed run is never promoted to success; exact successful steps
         # are reused, and all native package/lifecycle behavior must pass this run.
         Write-Output '::notice::W30A_EXACT_FROZEN_SOURCE_FULL_REGRESSION_VET_AND_RACE_REUSED=PASS'
@@ -147,6 +148,7 @@ jobs:
         using System;
         using System.Runtime.InteropServices;
         public static class W30Native {
+         [DllImport("kernel32.dll",SetLastError=true)] public static extern bool GetExitCodeProcess(IntPtr process,out uint code);
          [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
          [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
          [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
@@ -240,6 +242,9 @@ jobs:
          if(!(Test-Path -LiteralPath $lease)){throw ('W30_ORIGINAL_LEASE_ABSENT_'+$phase)}
          $owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json
          $shell=Get-Process -Id $owner.pid
+         # Cache the exact process handle before normal close; ShellExecute does not
+         # return a launcher-owned Process object with a retained native exit handle.
+         $handle=$shell.Handle
          $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
          if($owner.source_sha -cne $source -or $owner.live_armed -or ![string]::Equals($cim.ExecutablePath,(Join-Path $stage 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'W30_NATIVE_RELEASE_CUSTODY_DRIFT'}
          Click-Verified $shell 'Verify chart UI'
@@ -252,11 +257,13 @@ jobs:
          $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$ports[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
          if($cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or $cap.live_orders_enabled -ne $false -or $cap.strategy_execution_enabled -ne $false -or $cap.paper_accounting_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W30_DISARM_NOT_PROVEN'}
          Write-Output ('::notice::W30_REAL_INSTALLED_ORIGINAL_WEBVIEW2_NONCE_AND_DISARM_'+$phase+'=PASS')
-         return [pscustomobject]@{shell=$shell;launcher=$null;engineID=$engineID;stage=$stage}
+         return [pscustomobject]@{shell=$shell;handle=$handle;launcher=$null;engineID=$engineID;stage=$stage}
         }
         function Close-Original([object]$process){
          if(![W30Native]::PostMessage($process.shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'W30_NORMAL_CLOSE_REFUSED'}
-         if(!$process.shell.WaitForExit(25000) -or $process.shell.ExitCode -ne 0){throw 'W30_ORIGINAL_SHUTDOWN_FAILED'}
+         if(!$process.shell.WaitForExit(25000)){throw 'W30A_ORIGINAL_SHUTDOWN_TIMEOUT'}
+         [uint32]$nativeExit=259
+         if(![W30Native]::GetExitCodeProcess($process.handle,[ref]$nativeExit) -or $nativeExit -ne 0){throw ('W30A_ORIGINAL_NATIVE_SHUTDOWN_FAILED_'+$nativeExit)}
          if((Get-Process -Id $process.engineID -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath (Join-Path $target '.ktrade-w28c-active-process.lock'))){throw 'W30_ENGINE_OR_LEASE_REMAINED'}
          # Let the closed WebView2 profile's last handles and flushes settle before
          # original W28D performs its own bounded race-detecting full-data capture.
