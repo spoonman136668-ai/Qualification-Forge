@@ -1,0 +1,41 @@
+{
+  "schema": "ktrade.w28m.native-settings-import.v1",
+  "status": "BOUNDED_NATIVE_ENGINEERING_PASS_NOT_PRODUCT_COMPLETION",
+  "source_sha": "7301a2a1117ed2ad556cc69fbe50595195d16848",
+  "source_tree": "e4c96788a425fad15871fbd20263dff802ddb219",
+  "source_changes_this_gate": 0,
+  "witness_sha": "95be0a64027f054446db98699e4c0d8a9f97b843",
+  "run_id": 40578329822,
+  "job_id": 122450666326,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40578329822",
+  "conclusion": "success",
+  "foundation_run_id": 40577002698,
+  "fixture": "Two separate proof-bound disposable W06 WebView2 profiles on GitHub-hosted Windows. Same exact source-built binaries. Original exported archive copied without content modification, no direct browser storage injection.",
+  "passed": [
+    "native file-picker selects original exported JSON",
+    "visible source-defined import confirmation verified before native keyboard consent",
+    "original import reports all three original categories restored",
+    "original source archive SHA256 unchanged",
+    "real Wails/Go cold restart",
+    "original UIA timeframe 15m restored",
+    "original UIA volume pane 28 percent restored",
+    "original UIA RSI and MACD favorite states restored",
+    "actual native re-export has exact same category names and raw category bytes",
+    "fresh target Go child identity, loopback ownership and disarmed capability checks",
+    "clean native shutdown",
+    "full original Go and nested Wails Go test and vet"
+  ],
+  "no_claims": [
+    "installed owner data/profile migration",
+    "historical financial state import or execution restoration",
+    "WebView2 cookies, credentials or DPAPI portability",
+    "full chart/Pine/strategy/product acceptance",
+    "production release"
+  ],
+  "paper_orders_enabled": false,
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "protected_refs_modified": false,
+  "source_pr": 155,
+  "pr_draft": true
+}
