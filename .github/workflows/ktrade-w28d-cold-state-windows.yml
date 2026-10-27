@@ -1,0 +1,225 @@
+name: KTRADE W28D cold full-state escrow on native Windows
+on:
+  push:
+    branches: [qualification/ktrade-w28d-cold-state-windows-20261027]
+    paths: [.github/workflows/ktrade-w28d-cold-state-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28d-cold-state-escrow
+  cancel-in-progress: false
+jobs:
+  escrow:
+    runs-on: windows-2022
+    timeout-minutes: 65
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable old original W27 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9774043a769e8d9865c7b60dfdab95691f562b05
+          path: checked-old
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact new W28D source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 914b03cc117fd387b1fda1d23d489103f385a705
+          path: checked-new
+          fetch-depth: 5
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact W28D tree parent and three-file proof
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $a=Join-Path $env:GITHUB_WORKSPACE 'checked-old'
+          $b=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          if((& git -C $a rev-parse HEAD).Trim() -cne '9774043a769e8d9865c7b60dfdab95691f562b05' -or
+             (& git -C $a rev-parse 'HEAD^{tree}').Trim() -cne 'a928e1c45b6c1495b0d3304361f794d73d5f1ed8' -or
+             (& git -C $b rev-parse HEAD).Trim() -cne '914b03cc117fd387b1fda1d23d489103f385a705' -or
+             (& git -C $b rev-parse 'HEAD^{tree}').Trim() -cne 'f9f51be376696b172c68b99e234a5958bbaf01ae' -or
+             (& git -C $b rev-parse HEAD~3).Trim() -cne '40bde6f352a4ca9ecdd41d1064cb0044295137b8'){throw 'W28D_SOURCE_TREE_ANCESTRY_DRIFT'}
+          $actual=@(& git -C $b diff --name-only 40bde6f352a4ca9ecdd41d1064cb0044295137b8 HEAD | Sort-Object -CaseSensitive)
+          $expected=@('tools/wails-pilot/backend/release_state_escrow.go','tools/wails-pilot/backend/release_state_escrow_test.go','tools/wails-pilot/cmd/release-state-escrow/main.go' | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $expected -DifferenceObject $actual){throw 'W28D_THREE_PATH_SCOPE_DRIFT'}
+          foreach($s in @($a,$b)){
+            if(@(& git -C $s status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28D_DIRTY_SOURCE'}
+          }
+          Write-Output '::notice::W28D_PINNED_REAL_SOURCE_PARENT_TREE_AND_THREE_PATH_DELTA=PASS'
+      - name: Require existing native W28C process lease evidence
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40484803793' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne 'ad8d5eb1493ed4f6991b225cd79eec2b31a6c8a7'){throw 'W28D_PREDECESSOR_WIN_PROCESS_LEASE_NOT_VERIFIED'}
+          Write-Output '::notice::W28D_W28C_INDEPENDENT_WINDOWS_PROCESS_LEASE_REUSED=PASS'
+      - name: Install Windows Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-new/go.sum
+            checked-new/tools/wails-pilot/go.sum
+      - name: Qualify cold Pine WebView2 PAPER unknown and orphaned lease preservation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-new/tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 -timeout 4m -run '^TestW28D' -v ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28D_COMPLETE_DATA_ESCROW_FOCUSED_TEST_FAIL'}
+            & go test -mod=readonly -count=1 -run '^TestW2[678]' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28D_AFFECTED_NATIVE_INTERFACE_FAIL'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28D_WAILS_VET_FAIL'}
+            foreach($cmd in @('release-extract','release-switch','release-compare','release-state-escrow')){
+              & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE ($cmd+'.exe')) ('./cmd/'+$cmd)
+              if($LASTEXITCODE -ne 0){throw ('W28D_NATIVE_CLI_BUILD_FAIL_'+$cmd)}
+            }
+          }finally{Pop-Location}
+          Write-Output '::notice::W28D_PINE_BROWSER_PAPER_UNKNOWN_FULL_COLD_DATA_NEGATIVES_AND_CLI=PASS'
+      - name: Install Node for source-authentic offline Wails builds
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build two genuinely different full offline Wails release candidates
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $env:KTRADE_W13_QUALIFICATION_ONLY='0'
+          foreach($pair in @(@{source='checked-old';sha='9774043a769e8d9865c7b60dfdab95691f562b05';label='old'},@{source='checked-new';sha='914b03cc117fd387b1fda1d23d489103f385a705';label='new'})){
+            $source=Join-Path $env:GITHUB_WORKSPACE $pair.source
+            $root=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+            Push-Location $source
+            try{
+              & npm ci --ignore-scripts --no-audit --no-fund --silent
+              if($LASTEXITCODE -ne 0){throw 'W28D_OFFLINE_NPM_FAIL'}
+              & node scripts/stage_offline_vendor.cjs
+              if($LASTEXITCODE -ne 0){throw 'W28D_OFFLINE_VENDOR_STAGING_FAIL'}
+              if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28D_BUILD_CHANGED_TRACKED_SOURCE'}
+              $lines=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha $pair.sha -ReleaseCandidate)
+              if($lines -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W28D_GENUINE_WAILS_PACKAGE_BUILD_FAIL'}
+            }finally{Pop-Location}
+            $zip=Join-Path $root 'KTRADE-WailsPortable.zip'
+            if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W28D_RELEASE_ZIP_MISSING'}
+            [IO.File]::WriteAllText((Join-Path $env:GITHUB_WORKSPACE ($pair.label+'-zip-path.txt')),$zip)
+          }
+          Write-Output '::notice::W28D_BOTH_IMMUTABLE_NATIVE_WAILS_AND_GO_ENGINE_BUILD_ZIP=PASS'
+      - name: Verify full cold escrow of representative state across real two-version switch and rollback
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $parent=Join-Path $env:GITHUB_WORKSPACE 'verified-escrow-rollback-trial'
+          New-Item -ItemType Directory -Path $parent -ErrorAction Stop | Out-Null
+          $extract=Join-Path $env:GITHUB_WORKSPACE 'release-extract.exe'
+          $selector=Join-Path $env:GITHUB_WORKSPACE 'release-switch.exe'
+          $compare=Join-Path $env:GITHUB_WORKSPACE 'release-compare.exe'
+          $state=Join-Path $env:GITHUB_WORKSPACE 'release-state-escrow.exe'
+          $oldZip=[IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE 'old-zip-path.txt'))
+          $newZip=[IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE 'new-zip-path.txt'))
+          $oldStage=[string](((& $extract $oldZip $parent '9774043a769e8d9865c7b60dfdab95691f562b05') -join [Environment]::NewLine | ConvertFrom-Json).candidate_directory
+          if($LASTEXITCODE -ne 0 -or !$oldStage){throw 'W28D_OLD_GENUINE_ZIP_VERIFICATION_FAILED'}
+          $newStage=[string](((& $extract $newZip $parent '914b03cc117fd387b1fda1d23d489103f385a705') -join [Environment]::NewLine | ConvertFrom-Json).candidate_directory
+          if($LASTEXITCODE -ne 0 -or !$newStage){throw 'W28D_NEW_GENUINE_ZIP_VERIFICATION_FAILED'}
+          if((Get-FileHash (Join-Path $oldStage 'ktrade.exe') -Algorithm SHA256).Hash -ceq (Get-FileHash (Join-Path $newStage 'ktrade.exe') -Algorithm SHA256).Hash){
+            throw 'W28D_REQUIRES_ACTUALLY_DISTINCT_WAILS_EXECUTABLES'
+          }
+          $comparison=@(& $compare $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage '914b03cc117fd387b1fda1d23d489103f385a705')
+          if($LASTEXITCODE -ne 0 -or (($comparison -join [Environment]::NewLine)|ConvertFrom-Json).distinct_binaries -ne $true){throw 'W28D_VERSION_PAIR_PROOF_REFUSED'}
+          $choice=@(& $selector select $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05')
+          if($LASTEXITCODE -ne 0){throw 'W28D_OLD_SELECTION_REFUSED'}
+          $data=Join-Path $oldStage 'data'
+          $files=@{
+            'pine-library/revisions/custom-v6/source.pine'='//@version=6 synthetic strategy owner state';
+            'pine-library/index.json'='{"favorites":["custom-v6"]}';
+            'strategies/owner-strategy.json'='{"paper":true,"strategy":"custom-v6"}';
+            'webview2-profile/Default/Local Storage/leveldb/000003.log'='ktrade_watchlists=2;ktrade_drawings=1;ktrade_layout_state=retained';
+            'paper-ledger/historical.ndjson'='{"mode":"PAPER","order":"synthetic-historical"}';
+            'unknown/custom-user-file.blob'='UNCLASSIFIED_OWNER_DATA_SURVIVES'
+          }
+          foreach($rel in $files.Keys){
+            $path=Join-Path $data ($rel.Replace('/','\'))
+            New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force | Out-Null
+            [IO.File]::WriteAllText($path,$files[$rel])
+          }
+          $before=@{}
+          foreach($rel in $files.Keys){$before[$rel]=(Get-FileHash (Join-Path $data ($rel.Replace('/','\'))) -Algorithm SHA256).Hash}
+          $snapshot=@(& $state create $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05')
+          if($LASTEXITCODE -ne 0){throw 'W28D_REAL_NATIVE_ESCROW_CREATE_REFUSED'}
+          $snapshot=($snapshot -join [Environment]::NewLine)|ConvertFrom-Json
+          if($snapshot.safe_to_migrate -ne $false -or $snapshot.app_launched -ne $false -or
+             $snapshot.owner_installed_data_accessed -ne $false -or $snapshot.data_files -lt $files.Count+2 -or
+             [string]::IsNullOrEmpty($snapshot.data_sha256)){throw 'W28D_COLD_RECEIPT_INVALID'}
+          $selected=@(& $selector select $parent $newStage '914b03cc117fd387b1fda1d23d489103f385a705')
+          if($LASTEXITCODE -ne 0){throw 'W28D_SELECT_SECOND_GENUINE_VERSION_REFUSED'}
+          $rollback=@(& $selector rollback $parent)
+          if($LASTEXITCODE -ne 0){throw 'W28D_REAL_ROLLBACK_REFUSED'}
+          $resolved=@(& $selector status $parent)
+          if($LASTEXITCODE -ne 0 -or [string](($resolved -join [Environment]::NewLine | ConvertFrom-Json).candidate_directory) -cne $oldStage){throw 'W28D_ROLLBACK_DID_NOT_REVERIFY_ORIGINAL'}
+          $verified=@(& $state verify $parent $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' ([string]$snapshot.escrow_directory))
+          if($LASTEXITCODE -ne 0){throw 'W28D_NATIVE_ESCROW_REVERIFY_AFTER_ROLLBACK_FAILED'}
+          $v=($verified -join [Environment]::NewLine)|ConvertFrom-Json
+          if($v.data_sha256 -cne $snapshot.data_sha256 -or $v.data_files -ne $snapshot.data_files){throw 'W28D_ESCROW_DIGEST_DRIFT'}
+          foreach($rel in $files.Keys){
+            $path=Join-Path $data ($rel.Replace('/','\'))
+            $escrowFile=Join-Path ([string]$snapshot.escrow_directory) ('data\'+($rel.Replace('/','\')))
+            if((Get-FileHash $path -Algorithm SHA256).Hash -cne $before[$rel] -or
+               (Get-FileHash $escrowFile -Algorithm SHA256).Hash -cne $before[$rel]){
+              throw 'W28D_USER_STATE_OR_ESCROW_BYTES_CHANGED'
+            }
+          }
+          if((Test-Path -LiteralPath (Join-Path $newStage 'data/webview2-profile')) -or
+             (Test-Path -LiteralPath (Join-Path $newStage 'data/paper-ledger'))){
+            throw 'W28D_COLD_ESCROW_INCORRECTLY_ACTIVATED_BROWSER_OR_PAPER_STATE'
+          }
+          Write-Output '::notice::W28D_REAL_SOURCE_BUILT_RELEASES_SELECT_NEW_ROLLBACK_OLD=PASS'
+          Write-Output '::notice::W28D_COMPLETE_PINE_BROWSER_PAPER_UNKNOWN_BYTES_ESCROW_REVERIFIED=PASS'
+          Write-Output '::notice::W28D_NO_DATA_ACTIVATION_NO_INSTALLED_OWNER_ACCESS_LIVE_DISARMED=PASS'
+      - name: Final complete original Go engine plus Wails regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          Push-Location $src
+          try {
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28D_ORIGINAL_ENGINE_FULL_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28D_ORIGINAL_ENGINE_VET_FAILED'}
+          } finally {Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try {
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28D_WAILS_FULL_REGRESSION_FAILED'}
+          } finally {Pop-Location}
+          Write-Output '::notice::W28D_FINAL_ORIGINAL_ENGINE_AND_WAILS_FULL_REGRESSION=PASS'
+      - name: Purge checked private source and candidate packages
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('checked-old','checked-new','verified-escrow-rollback-trial')){
+            $path=Join-Path $env:GITHUB_WORKSPACE $name
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          foreach($cmd in @('release-extract.exe','release-switch.exe','release-compare.exe','release-state-escrow.exe')){
+            $path=Join-Path $env:GITHUB_WORKSPACE $cmd
+            if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Force -ErrorAction SilentlyContinue}
+          }
