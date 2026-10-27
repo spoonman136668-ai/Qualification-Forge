@@ -1,6 +1,6 @@
 name: K-Terminal PR76 temporary read-only Windows qualification
 
-# Owner invocation only. No PR/push trigger, no unattended private-source fetch.
+# Private source qualification requires owner dispatch; PR-only runner smoke uses no secret.
 # A separate, least-privilege GitHub secret is required on this public repository.
 # Never use the CKB/KTRADE token for Kboomllc private source.
 on:
