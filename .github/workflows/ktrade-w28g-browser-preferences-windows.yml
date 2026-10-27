@@ -1,0 +1,158 @@
+name: KTRADE W28G explicit browser preference transfer Windows
+on:
+  push:
+    branches: [qualification/ktrade-w28g-browser-preferences-windows-20261027]
+    paths: [.github/workflows/ktrade-w28g-browser-preferences-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28g-browser-preferences
+  cancel-in-progress: false
+jobs:
+  browser-transfer:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact W28G qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout frozen W28F private original-browser source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b332d3c556290791108b63912da8e207f09718a2
+          path: checked-old
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout frozen new KTRADE W28G private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0bc9ff7feb240970257510106f87186bfe8a5cae
+          path: checked-new
+          fetch-depth: 4
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Prove three-file change immutable source trees and verified W28F
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'checked-old'
+          $new=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          if((& git -C $old rev-parse HEAD).Trim() -cne 'b332d3c556290791108b63912da8e207f09718a2' -or
+             (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne '6e7ac4532fb28431656d358e71165d00e4ccdf55' -or
+             (& git -C $new rev-parse HEAD).Trim() -cne '0bc9ff7feb240970257510106f87186bfe8a5cae' -or
+             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '6f91aad13eab9923fbb389d97a62acca604bbd25' -or
+             (& git -C $new rev-parse HEAD~3).Trim() -cne 'b332d3c556290791108b63912da8e207f09718a2'){throw 'W28G_EXACT_SOURCES_NOT_PINNED'}
+          $got=@(& git -C $new diff --name-only b332d3c556290791108b63912da8e207f09718a2 HEAD | Sort-Object -CaseSensitive)
+          $want=@('static/ktrade_preferences_transfer.js','static/trading.html','tests/rb3_w28g_browser_preferences_transfer.test.cjs' | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $want -DifferenceObject $got){throw 'W28G_DELTA_OUTSIDE_CHART_SETTINGS_SCOPE'}
+          foreach($p in @($old,$new)){
+            if(@(& git -C $p status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28G_DIRTY_SOURCE'}
+          }
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40502175906' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or
+             $r.head_sha -cne 'edbd7ace206f0f515583aec6181f7bd91569320d'){throw 'W28G_W28F_PREDECESSOR_NOT_VERIFIED'}
+          Write-Output '::notice::W28G_EXACT_SOURCE_TREE_THREE_FILES_AND_W28F_PREDECESSOR=PASS'
+      - name: Install native Node.js for authentic UI and original readers
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify user-operated transfers and unchanged original browser readers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'checked-old'
+          & node --check (Join-Path $src 'static/ktrade_preferences_transfer.js')
+          if($LASTEXITCODE -ne 0){throw 'W28G_ORIGINAL_BROWSER_TRANSFER_JS_SYNTAX_FAIL'}
+          & node (Join-Path $src 'tests/rb3_w28g_browser_preferences_transfer.test.cjs') $src
+          if($LASTEXITCODE -ne 0){throw 'W28G_EXPLICIT_BROWSER_TRANSFER_TEST_FAIL'}
+          & node (Join-Path $src 'tests/rb3_w28f_original_browser_state.test.cjs') $old $src
+          if($LASTEXITCODE -ne 0){throw 'W28G_ORIGINAL_BROWSER_READER_REGRESSION_FAIL'}
+          Write-Output '::notice::W28G_OPERATOR_BROWSER_EXPORT_IMPORT_ORIGINAL_READERS_AND_NEGATIVES=PASS'
+      - name: Install Windows Go 1.25 for original full regression
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-new/go.sum
+            checked-new/tools/wails-pilot/go.sum
+      - name: Build source-pinned Go Wails release and verify bundled original chart UI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          $root=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W28G_OFFLINE_NPM_DEPENDENCIES_FAIL'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W28G_OFFLINE_VENDOR_STAGING_FAIL'}
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28G_NATIVE_BUILD_MUTATED_TRACKED_SOURCE'}
+            $build=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha '0bc9ff7feb240970257510106f87186bfe8a5cae' -ReleaseCandidate)
+            if($LASTEXITCODE -ne 0 -or
+               $build -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){
+              throw 'W28G_ORIGINAL_SOURCE_BOUND_WAILS_PACKAGE_BUILD_FAIL'
+            }
+          }finally{Pop-Location}
+          $zip=Join-Path $root 'KTRADE-WailsPortable.zip'
+          if(!(Test-Path -LiteralPath $zip)){throw 'W28G_PACKAGE_ZIP_ABSENT'}
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $z=[IO.Compression.ZipFile]::OpenRead($zip)
+          try {
+            $js=@($z.Entries|Where-Object {$_.FullName -match '/static/ktrade_preferences_transfer\.js$'})
+            $html=@($z.Entries|Where-Object {$_.FullName -match '/static/trading\.html$'})
+            if($js.Count -ne 1 -or $html.Count -ne 1){throw 'W28G_OPERATOR_UI_NOT_PRESENT_IN_RELEASE_PACKAGE'}
+            foreach($item in @(@{member=$js[0];src=(Join-Path $src 'static/ktrade_preferences_transfer.js')},@{member=$html[0];src=(Join-Path $src 'static/trading.html')})){
+              $zipStream=$item.member.Open()
+              try{
+                $reader=[IO.MemoryStream]::new()
+                $zipStream.CopyTo($reader)
+                $bytes=$reader.ToArray()
+                if(![Linq.Enumerable]::SequenceEqual([byte[]]$bytes,[byte[]][IO.File]::ReadAllBytes($item.src))){
+                  throw 'W28G_RELEASE_UI_BYTES_DIFFER_FROM_SOURCE'
+                }
+              }finally{$zipStream.Dispose()}
+            }
+          }finally{$z.Dispose()}
+          Write-Output '::notice::W28G_NATIVE_WAILS_ENGINE_DISARMED_RELEASE_CONTAINS_EXACT_OPERATOR_UI=PASS'
+      - name: Full original Go application and Wails nested Go regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28G_ORIGINAL_ENGINE_FULL_TEST_FAIL'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28G_ORIGINAL_ENGINE_FULL_VET_FAIL'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28G_WAILS_FULL_REGRESSION_FAIL'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28G_WAILS_FULL_VET_FAIL'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W28G_ORIGINAL_ENGINE_WAILS_GO_TEST_AND_VET_ALL_PASS=PASS'
+      - name: Remove private checkouts and candidate packages
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($dir in @('checked-old','checked-new')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
