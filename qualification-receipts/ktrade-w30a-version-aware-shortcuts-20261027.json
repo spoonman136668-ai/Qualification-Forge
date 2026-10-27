@@ -1,0 +1,133 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W30A",
+  "status": "PASS",
+  "date": "2026-10-27",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "sha": "f5d9a1e7859b5b62b36a37e9b6469c372a177a02",
+    "tree": "2a18f67aaf608520e2265f62afe32dbf23df3511",
+    "base_sha": "608f1290745b84e882a9f6a8b64793cb6cf012a5",
+    "branch": "feature/rb3-w30a-version-aware-shortcuts-20261027",
+    "draft_pr": 161,
+    "changed_paths": [
+      "tools/wails-pilot/backend/installed_shortcuts.go",
+      "tools/wails-pilot/backend/installed_shortcuts_test.go",
+      "tools/wails-pilot/cmd/release-setup/main.go",
+      "windows/Install-KTRADE-Fresh.ps1",
+      "windows/Manage-KTRADE-FreshInstall.ps1"
+    ]
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "witness_sha": "67d2a6586d6d2ffcb39bf40004dea266bbdf36e4",
+    "run_id": 40601840142,
+    "job_id": 122533210088,
+    "workflow": ".github/workflows/ktrade-w30a-version-aware-shortcuts-windows.yml",
+    "conclusion": "success"
+  },
+  "foundation": {
+    "source_sha": "608f1290745b84e882a9f6a8b64793cb6cf012a5",
+    "run_id": 40598355341,
+    "witness_sha": "96593eca1febc9c81cedf88a5773e265c595c96d",
+    "conclusion": "success"
+  },
+  "exact_source_reused_proofs": {
+    "source_sha": "f5d9a1e7859b5b62b36a37e9b6469c372a177a02",
+    "source_tree": "2a18f67aaf608520e2265f62afe32dbf23df3511",
+    "witness_sha": "060fe5af438692b21155dab9041374a5312c62aa",
+    "run_id": 40601077307,
+    "job_id": 122529063305,
+    "overall_conclusion": "failure",
+    "only_successful_steps": [
+      "Verify immutable source and completed native foundations",
+      "Stage unchanged assets parse shell script and run affected interfaces",
+      "One frozen-source full original Go and Wails regression and vet before build"
+    ],
+    "toolchain": {
+      "go": "1.25.0",
+      "node": "24",
+      "os": "windows-2022",
+      "cgo": true,
+      "gowork": "off",
+      "goflags": "-p=2",
+      "gomaxprocs": 2,
+      "compiled_cache_uploaded": false
+    },
+    "commands": [
+      "go test -mod=readonly -race -count=1 -run '^Test(W30A|W30|W29|W26|W27|W28[CDE])' ./backend",
+      "root and tools/wails-pilot: go test -mod=readonly -count=1 ./...; go vet -mod=readonly ./..."
+    ],
+    "backend_race_seconds": 5.962,
+    "backend_full_seconds": 2.442,
+    "reuse_reason": "Identical immutable source, tree, dependency manifests, toolchain and staged-asset commands. Final witness only changes native test-harness process-exit handling and post-reopen uninstall comparison timing. Failed native steps are not reused or certified."
+  },
+  "native_proofs": [
+    "Actual Windows ShellExecute .lnk activation for previous b377a28051cb9594ddeb2da1ffe4252d418f0a6f, updated current source and rolled-back previous source.",
+    "Each original Wails/WebView2 window: native pointer click of Verify chart UI, original chart/editor/preferences nonce, exact source/PID/executable custody, one original Go engine child and strict loopback PAPER_STOPPED capability flags.",
+    "Automatic update shortcut reconciliation; original owned link and receipt retired while unknown Start Menu note survives.",
+    "Idempotent refresh retains current link bytes; modified link, foreign ownership receipt, partial historical ownership and existing original writer lock refuse without changing their bytes.",
+    "Active refresh, update and rollback refuse; no active-source receipt or shortcut changes.",
+    "Only original W28E supported Pine/strategy files transfer; old full data bytes remain; browser/unknown state is not activated in successor.",
+    "Both distribution folders deleted before installed successor launch and rollback.",
+    "Automatic rollback creates a newly digest-bound old-version shortcut and retires successor link; retained newer maintenance refreshes verified older selection.",
+    "Altered retained old data refuses rollback without selection change; restored bytes allow actual rollback.",
+    "Legacy old maintenance recognizes corrected rollback receipt; native selected-version uninstall removes selected shortcut while old and new full stopped data and unknown Start Menu note survive.",
+    "Original WM_CLOSE normal shutdown verified using retained exact native process handle, zero native exit code, no engine child and no process lease."
+  ],
+  "packages": [
+    {
+      "schema": "ktrade.setup-build.v1",
+      "source_sha": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+      "manifest_sha256": "d5ccf879ca13f39ea3fc31615c463a19125334b0b2c65cec6ee9c6bf55f1bb37",
+      "archive_sha256": "1f8078002b63728ffd71a8ac380af22a92a11cff1d0e219f214255a369438567",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    },
+    {
+      "schema": "ktrade.setup-build.v1",
+      "source_sha": "f5d9a1e7859b5b62b36a37e9b6469c372a177a02",
+      "manifest_sha256": "8609bd72038d1571571ba547cf2480e85debd776ebe36525ace400d5c9a79d8b",
+      "archive_sha256": "cc4f2c2bc403a66b2034194c9af93a24dab7c73baa112918470986c942f2dcd2",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    }
+  ],
+  "preserved_failed_runs": [
+    {
+      "run_id": 40601077307,
+      "witness_sha": "060fe5af438692b21155dab9041374a5312c62aa",
+      "source_sha": "f5d9a1e7859b5b62b36a37e9b6469c372a177a02",
+      "reason": "First real ShellExecute-launched previous-version window passed UI/custody/disarm; harness then used unretained Get-Process.ExitCode and failed close assertion. Successful exact Go proofs preserved separately."
+    },
+    {
+      "run_id": 40601647777,
+      "witness_sha": "89a267166bea81b2a91ea4175df83c557a3dbdba",
+      "source_sha": "f5d9a1e7859b5b62b36a37e9b6469c372a177a02",
+      "reason": "Already queued native run retained same ShellExecute exit-code harness defect; overall failure preserved. No source defect inferred."
+    }
+  ],
+  "safeguards": {
+    "paper_orders_enabled": false,
+    "live_orders_enabled": false,
+    "strategy_execution_enabled": false,
+    "paper_accounting_enabled": false,
+    "requires_review": true,
+    "owner_installed_data_accessed": false,
+    "protected_refs_changed": false,
+    "merged": false,
+    "signed": false,
+    "released": false,
+    "private_source_or_binaries_uploaded": false
+  },
+  "limitations": [
+    "Unsigned engineering candidate; draft/unmerged. No owner installation or data touched.",
+    "Selected-version uninstall removes selected code; retained-version code and maintenance remain deliberately preserved. Multi-version code cleanup remains a next implementation item.",
+    "No Apps & Features registration, installer GUI or whole-product acceptance claim.",
+    "Native UI verifier proves original chart DOM/editor/preferences mounts, not candle-render or Pine execution acceptance.",
+    "A committed native transition with a refused shortcut refresh is reported explicitly and can be retried only through RefreshShortcut after ownership is resolved; no automatic source/data rollback."
+  ],
+  "next_gate": "Bounded retained-version code cleanup during uninstall with full data/unknown-file preservation."
+}
