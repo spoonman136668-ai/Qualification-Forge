@@ -1,0 +1,188 @@
+name: KTRADE W28F authentic browser and historic paper replay
+on:
+  push:
+    branches: [qualification/ktrade-w28f-original-browser-paper-readers-20261027]
+    paths: [.github/workflows/ktrade-w28f-original-browser-paper-readers-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28f-source-authentic-browser-paper
+  cancel-in-progress: false
+jobs:
+  read-only-compatibility:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    steps:
+      - name: Checkout immutable W28F witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout original W27 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9774043a769e8d9865c7b60dfdab95691f562b05
+          path: checked-old
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout W28F source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b332d3c556290791108b63912da8e207f09718a2
+          path: checked-new
+          fetch-depth: 5
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Pin source parent and test-only two-file change boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'checked-old'
+          $new=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          if((& git -C $old rev-parse HEAD).Trim() -cne '9774043a769e8d9865c7b60dfdab95691f562b05' -or
+             (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'a928e1c45b6c1495b0d3304361f794d73d5f1ed8' -or
+             (& git -C $new rev-parse HEAD).Trim() -cne 'b332d3c556290791108b63912da8e207f09718a2' -or
+             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '6e7ac4532fb28431656d358e71165d00e4ccdf55' -or
+             (& git -C $new rev-parse HEAD~3).Trim() -cne '9a525c0ac1b1481c1ba9532080d52e4c94ac5b39'){throw 'W28F_EXACT_OLD_NEW_SOURCE_TREE_PARENT_MISMATCH'}
+          $expected=@('tests/fixtures/w28f-original-paper-reader/main.go','tests/rb3_w28f_original_browser_state.test.cjs' | Sort-Object -CaseSensitive)
+          $actual=@(& git -C $new diff --name-only 9a525c0ac1b1481c1ba9532080d52e4c94ac5b39 HEAD | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $expected -DifferenceObject $actual){throw 'W28F_TEST_ONLY_TWO_FILE_SCOPE_DRIFT'}
+          Write-Output '::notice::W28F_ORIGINAL_SOURCE_SHA_TREES_PARENT_TWO_FILE_SCOPE=PASS'
+      - name: Require independent prior original Pine version compatibility
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40496628657' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne '436a39b9cf071209a4e1d7ae4c4a46dd8a5c5716'){throw 'W28F_W28E_QUALIFIED_NATIVE_PINE_PREDECESSOR_MISSING'}
+          Write-Output '::notice::W28F_W28E_NATIVE_PINE_PREDECESSOR_AUTHENTICATED=PASS'
+      - name: Install Node 24 for authentic JS class readers
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Run original browser persistence readers against two real source versions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'checked-old'
+          $new=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          & node (Join-Path $new 'tests/rb3_w28f_original_browser_state.test.cjs') $old $new
+          if($LASTEXITCODE -ne 0){throw 'W28F_ORIGINAL_JS_BROWSER_READERS_FAIL'}
+          Write-Output '::notice::W28F_ORIGINAL_BROWSER_LOCAL_STORAGE_READERS_CROSS_SOURCE_PASS=PASS'
+          Write-Output '::notice::W28F_NO_WEBVIEW2_CREDENTIAL_TRANSFER_ORIGIN_ISOLATION=PASS'
+      - name: Install Windows Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-new/go.sum
+            checked-new/tools/wails-pilot/go.sum
+      - name: Build exact original paper ledger replay against old and new Go source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $source=Join-Path $env:GITHUB_WORKSPACE 'checked-new/tests/fixtures/w28f-original-paper-reader/main.go'
+          foreach($pair in @(@{folder='checked-old';label='old'},@{folder='checked-new';label='new'})){
+            $repository=Join-Path $env:GITHUB_WORKSPACE $pair.folder
+            $dir=Join-Path $repository 'cmd/ktrade-w28f-paper-reader-witness'
+            New-Item -ItemType Directory -Path $dir -Force | Out-Null
+            Copy-Item -LiteralPath $source -Destination (Join-Path $dir 'main.go') -ErrorAction Stop
+            if((Get-FileHash -LiteralPath (Join-Path $dir 'main.go') -Algorithm SHA256).Hash -cne
+               (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash){throw 'W28F_READER_SCRIPT_BYTES_DRIFT'}
+            Push-Location $repository
+            try{
+              $binary=Join-Path $env:GITHUB_WORKSPACE ('w28f-paper-reader-'+$pair.label+'.exe')
+              & go build -mod=readonly -o $binary ./cmd/ktrade-w28f-paper-reader-witness
+              if($LASTEXITCODE -ne 0){throw 'W28F_ORIGINAL_GO_MODULE_READER_BUILD_FAILED'}
+            }finally{Pop-Location}
+          }
+          Write-Output '::notice::W28F_INDEPENDENT_WINDOWS_OLD_NEW_ORIGINAL_GO_PAPER_REPLAY_BUILDS=PASS'
+      - name: Verify original hash-chain cold paper reading across different source binaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $env:KTRADE_W28F_ORIGINAL_PAPER_READER_ONLY='1'
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-paper-w28f-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          $old=Join-Path $env:GITHUB_WORKSPACE 'w28f-paper-reader-old.exe'
+          $new=Join-Path $env:GITHUB_WORKSPACE 'w28f-paper-reader-new.exe'
+          $oldReceiptOutput=@(& $old seed $root)
+          if($LASTEXITCODE -ne 0){throw 'W28F_ORIGINAL_OLD_FINANCIAL_SEED_FAILED'}
+          $prior=(($oldReceiptOutput -join [Environment]::NewLine)|ConvertFrom-Json)
+          $before=(Get-FileHash -LiteralPath (Join-Path $root 'paper-ledger.json') -Algorithm SHA256).Hash
+          $newReceiptOutput=@(& $new read $root)
+          if($LASTEXITCODE -ne 0){throw 'W28F_ORIGINAL_NEW_PAPER_REPLAY_FAILED'}
+          $later=(($newReceiptOutput -join [Environment]::NewLine)|ConvertFrom-Json)
+          foreach($field in @('schema','source_sha256','cash','position_qty','realized_pnl','fill_count','ledger_hash')){
+            if([string]$prior.$field -cne [string]$later.$field){throw ('W28F_ORIGINAL_FINANCIAL_REPLAY_VALUE_DRIFT_'+$field)}
+          }
+          if($later.schema -cne 'ktrade.w28f.original-paper-historical-read-only.v1' -or
+             $later.fill_count -ne 1 -or $later.orders_enabled -ne $false -or
+             $later.broker_access -ne $false -or $later.live_armed -ne $false -or
+             $later.requires_review -ne $true){throw 'W28F_HISTORIC_PAPER_DISARM_INTEGRITY_MISSING'}
+          $after=(Get-FileHash -LiteralPath (Join-Path $root 'paper-ledger.json') -Algorithm SHA256).Hash
+          if($before -cne $after){throw 'W28F_NEW_READER_MODIFIED_OLD_PAPER_LEDGER'}
+          $againOut=@(& $old read $root)
+          if($LASTEXITCODE -ne 0){throw 'W28F_ROLLBACK_PREVIOUS_PAPER_READER_FAILED'}
+          $again=(($againOut -join [Environment]::NewLine)|ConvertFrom-Json)
+          if($again.ledger_hash -cne $prior.ledger_hash -or $again.source_sha256 -cne $prior.source_sha256){throw 'W28F_OLD_PAPER_READER_NOT_STABLE_AFTER_NEW_READ'}
+          # Explicitly prove owner paths and chain corruption are refused.
+          $bad=@(& $new read (Join-Path $env:GITHUB_WORKSPACE 'installed-user-profile'))
+          if($LASTEXITCODE -eq 0){throw 'W28F_INSTALLED_PROFILE_ROOT_WAS_ACCEPTED'}
+          $file=Join-Path $root 'paper-ledger.json'
+          $original=[IO.File]::ReadAllBytes($file)
+          $changed=[Text.Encoding]::UTF8.GetString($original).Replace('w28f-synthetic-buy','w28f-tampered-order')
+          if($changed -ceq [Text.Encoding]::UTF8.GetString($original)){throw 'W28F_CORRUPTION_MUTATION_NOT_APPLIED'}
+          [IO.File]::WriteAllText($file,$changed)
+          $broken=@(& $new read $root)
+          if($LASTEXITCODE -eq 0){throw 'W28F_TAMPERED_HASH_CHAIN_WAS_ACCEPTED'}
+          [IO.File]::WriteAllBytes($file,$original)
+          $restored=@(& $old read $root)
+          if($LASTEXITCODE -ne 0){throw 'W28F_RESTORED_SYNTHETIC_ORIGINAL_READ_FAILED'}
+          Write-Output '::notice::W28F_ORIGINAL_FINANCIAL_READER_ACROSS_NATIVE_RELEASES_AND_ROLLBACK=PASS'
+          Write-Output '::notice::W28F_HISTORICAL_PAPER_LEDGER_HASH_CHAIN_TAMPER_OR_INSTALLED_ROOT_VETO=PASS'
+          Write-Output '::notice::W28F_FINANCIAL_STATE_READ_ONLY_NO_BROKER_REARM_NO_PAPER_RESTART=PASS'
+      - name: Original application archived-paper route, release and full regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -tags ktrade_full -count=1 -timeout 8m -run '^TestRB2PortableColdRestartDiscoversOnlySealedOriginalFinancialSource$' ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W28F_ORIGINAL_APP_PAPER_COLD_ARCHIVE_ROUTE_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28F_COMPLETE_ORIGINAL_GO_MODULE_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28F_COMPLETE_ORIGINAL_GO_MODULE_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28F_COMPLETE_WAILS_MODULE_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28F_COMPLETE_WAILS_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W28F_ORIGINAL_APP_COLD_ARCHIVE_ROUTE_AND_FINAL_FULL_GO_WAILS_REGRESSIONS=PASS'
+      - name: Purge checked private original sources and synthetic financial partition
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('checked-old','checked-new')){
+            $dir=Join-Path $env:GITHUB_WORKSPACE $name
+            if(Test-Path -LiteralPath $dir){Remove-Item -LiteralPath $dir -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          foreach($name in @('old','new')){
+            $exe=Join-Path $env:GITHUB_WORKSPACE ('w28f-paper-reader-'+$name+'.exe')
+            if(Test-Path -LiteralPath $exe){Remove-Item -LiteralPath $exe -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:RUNNER_TEMP -Directory -Filter 'ktrade-paper-w28f-*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
