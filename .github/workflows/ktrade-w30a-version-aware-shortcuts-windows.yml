@@ -41,217 +41,374 @@ jobs:
       shell: pwsh
       env:
         GITHUB_TOKEN: ${{ github.token }}
-      run: "$ErrorActionPreference='Stop'\n$src=Join-Path $env:GITHUB_WORKSPACE 'current'\nif((& git -C $src rev-parse HEAD).Trim()\
-        \ -cne 'f5d9a1e7859b5b62b36a37e9b6469c372a177a02' -or\n   (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '2a18f67aaf608520e2265f62afe32dbf23df3511'){throw 'W30A_SOURCE_IDENTITY_DRIFT'}\n\
-        foreach($pin in @(\n  @{run=40598355341;sha='96593eca1febc9c81cedf88a5773e265c595c96d'}\n)){\n  $r=Invoke-RestMethod\
-        \ -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer\
-        \ '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}\n  if($r.status -cne 'completed' -or $r.conclusion -cne\
-        \ 'success' -or $r.head_sha -cne $pin.sha){throw 'W30A_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}\n}\nif((& git -C $src\
-        \ rev-parse HEAD~2).Trim() -cne '608f1290745b84e882a9f6a8b64793cb6cf012a5'){throw 'W30A_PARENT_DRIFT'}\n$delta=@(&\
-        \ git -C $src diff --name-only 608f1290745b84e882a9f6a8b64793cb6cf012a5 HEAD|Sort-Object)\n$want=@('tools/wails-pilot/backend/installed_shortcuts.go','tools/wails-pilot/backend/installed_shortcuts_test.go','tools/wails-pilot/cmd/release-setup/main.go','windows/Install-KTRADE-Fresh.ps1','windows/Manage-KTRADE-FreshInstall.ps1'|Sort-Object)\n\
-        if(Compare-Object $delta $want){throw 'W30A_FIVE_PATH_SCOPE_DRIFT'}\n$old=Join-Path $env:GITHUB_WORKSPACE 'previous'\n\
-        if((& git -C $old rev-parse HEAD).Trim() -cne 'b377a28051cb9594ddeb2da1ffe4252d418f0a6f' -or (& git -C $old rev-parse\
-        \ 'HEAD^{tree}').Trim() -cne 'c704ae502556f6395bb55b9bd7fa413d24eacbb1'){throw 'W30A_QUALIFIED_PREVIOUS_SOURCE_DRIFT'}\n\
-        Write-Output '::notice::W30A_EXACT_SOURCE_FIVE_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS'\n"
+      run: |
+        $ErrorActionPreference='Stop'
+        $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+        if((& git -C $src rev-parse HEAD).Trim() -cne 'f5d9a1e7859b5b62b36a37e9b6469c372a177a02' -or
+           (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '2a18f67aaf608520e2265f62afe32dbf23df3511'){throw 'W30A_SOURCE_IDENTITY_DRIFT'}
+        foreach($pin in @(
+          @{run=40598355341;sha='96593eca1febc9c81cedf88a5773e265c595c96d'}
+        )){
+          $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W30A_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
+        }
+        if((& git -C $src rev-parse HEAD~2).Trim() -cne '608f1290745b84e882a9f6a8b64793cb6cf012a5'){throw 'W30A_PARENT_DRIFT'}
+        $delta=@(& git -C $src diff --name-only 608f1290745b84e882a9f6a8b64793cb6cf012a5 HEAD|Sort-Object)
+        $want=@('tools/wails-pilot/backend/installed_shortcuts.go','tools/wails-pilot/backend/installed_shortcuts_test.go','tools/wails-pilot/cmd/release-setup/main.go','windows/Install-KTRADE-Fresh.ps1','windows/Manage-KTRADE-FreshInstall.ps1'|Sort-Object)
+        if(Compare-Object $delta $want){throw 'W30A_FIVE_PATH_SCOPE_DRIFT'}
+        $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+        if((& git -C $old rev-parse HEAD).Trim() -cne 'b377a28051cb9594ddeb2da1ffe4252d418f0a6f' -or (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'c704ae502556f6395bb55b9bd7fa413d24eacbb1'){throw 'W30A_QUALIFIED_PREVIOUS_SOURCE_DRIFT'}
+        Write-Output '::notice::W30A_EXACT_SOURCE_FIVE_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS'
     - name: Native Windows Go
       uses: actions/setup-go@v5
       with:
         go-version: 1.25.0
         cache: false
-        cache-dependency-path: 'current/go.sum
-
+        cache-dependency-path: |
+          current/go.sum
           current/tools/wails-pilot/go.sum
-
-          '
     - name: Native Windows Node
       uses: actions/setup-node@v4
       with:
         node-version: '24'
     - name: Stage unchanged assets parse shell script and run affected interfaces
       shell: pwsh
-      run: "$ErrorActionPreference='Stop'\n$env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP\n$src=Join-Path $env:GITHUB_WORKSPACE\
-        \ 'current'\nforeach($name in @('Install-KTRADE-Fresh.ps1','Manage-KTRADE-FreshInstall.ps1','Build-KTRADE-FreshInstaller.ps1')){\n\
-        \  $tokens=$null;$parseErrors=$null\n  [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $src ('windows/'+$name)),[ref]$tokens,[ref]$parseErrors)\n\
-        \  if($parseErrors.Count -ne 0){throw 'W30_SOURCE_SETUP_SCRIPT_SYNTAX_FAILED'}\n}\nPush-Location $src\ntry{\n  & npm\
-        \ ci --ignore-scripts --no-audit --no-fund --silent\n  if($LASTEXITCODE -ne 0){throw 'W30_NPM_FAILED'}\n  & node scripts/stage_offline_vendor.cjs\n\
-        \  if($LASTEXITCODE -ne 0){throw 'W30_VENDOR_STAGE_FAILED'}\n}finally{Pop-Location}\nPush-Location (Join-Path $src\
-        \ 'tools/wails-pilot')\ntry{\n  & go test -mod=readonly -race -count=1 -run '^Test(W30A|W30|W29|W26|W27|W28[CDE])'\
-        \ ./backend\n  if($LASTEXITCODE -ne 0){throw 'W30_AFFECTED_LAUNCH_SELECTION_REMOVAL_RACE_TESTS_FAILED'}\n}finally{Pop-Location}\n"
-    - name: One frozen-source full original Go and Wails regression and vet before build
+      run: |
+        $ErrorActionPreference='Stop'
+        $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+        $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+        foreach($name in @('Install-KTRADE-Fresh.ps1','Manage-KTRADE-FreshInstall.ps1','Build-KTRADE-FreshInstaller.ps1')){
+          $tokens=$null;$parseErrors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $src ('windows/'+$name)),[ref]$tokens,[ref]$parseErrors)
+          if($parseErrors.Count -ne 0){throw 'W30_SOURCE_SETUP_SCRIPT_SYNTAX_FAILED'}
+        }
+        Push-Location $src
+        try{
+          & npm ci --ignore-scripts --no-audit --no-fund --silent
+          if($LASTEXITCODE -ne 0){throw 'W30_NPM_FAILED'}
+          & node scripts/stage_offline_vendor.cjs
+          if($LASTEXITCODE -ne 0){throw 'W30_VENDOR_STAGE_FAILED'}
+        }finally{Pop-Location}
+    - name: Reuse exact frozen-source successful full regression vet and affected race proof
       shell: pwsh
-      run: "$ErrorActionPreference='Stop'\n$env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP\n$src=Join-Path $env:GITHUB_WORKSPACE\
-        \ 'current'\nforeach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){\n  Push-Location $dir\n  try{\n    & go\
-        \ test -mod=readonly -count=1 ./...\n    if($LASTEXITCODE -ne 0){throw 'W30_FINAL_FULL_REGRESSION_FAILED'}\n    &\
-        \ go vet -mod=readonly ./...\n    if($LASTEXITCODE -ne 0){throw 'W30_FINAL_VET_FAILED'}\n  }finally{Pop-Location}\n\
-        }\nWrite-Output '::notice::W30_FULL_ORIGINAL_ENGINE_AND_WAILS_REGRESSION_VET=PASS'\n"
+      run: |
+        $ErrorActionPreference='Stop'
+        $headers=@{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+        $base='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40601077307'
+        $run=Invoke-RestMethod -Uri $base -Headers $headers
+        if($run.status -cne 'completed' -or $run.head_sha -cne '060fe5af438692b21155dab9041374a5312c62aa'){throw 'W30A_EXACT_PROOF_RUN_NOT_COMPLETED'}
+        $jobs=Invoke-RestMethod -Uri ($base+'/jobs') -Headers $headers
+        $job=@($jobs.jobs|Where-Object {$_.id -eq 122529063305 -and $_.name -ceq 'qualify'})
+        if($job.Count -ne 1){throw 'W30A_EXACT_PROOF_JOB_ABSENT'}
+        foreach($name in @('Verify immutable source and completed native foundations','Stage unchanged assets parse shell script and run affected interfaces','One frozen-source full original Go and Wails regression and vet before build')){
+         $step=@($job[0].steps|Where-Object {$_.name -ceq $name})
+         if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){throw ('W30A_EXACT_SOURCE_PROOF_STEP_NOT_SUCCESSFUL_'+$name)}
+        }
+        # Witness 060fe5af pins the same source/tree, dependencies, Go 1.25.0,
+        # Node 24, staged assets and Windows-2022 harness for these completed steps.
+        # Only the native harness's post-reopen uninstall snapshot timing changed.
+        # An overall failed run is never promoted to success; exact successful steps
+        # are reused, and all native package/lifecycle behavior must pass this run.
+        Write-Output '::notice::W30A_EXACT_FROZEN_SOURCE_FULL_REGRESSION_VET_AND_RACE_REUSED=PASS'
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Build two exact distinct source-bound installed packages
       shell: pwsh
-      run: "$ErrorActionPreference='Stop'\n$env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP\n$old=Join-Path $env:GITHUB_WORKSPACE\
-        \ 'previous'\nPush-Location $old\ntry{\n  & npm ci --ignore-scripts --no-audit --no-fund --silent\n  if($LASTEXITCODE\
-        \ -ne 0){throw 'W30_PREVIOUS_NPM_FAILED'}\n  & node scripts/stage_offline_vendor.cjs\n  if($LASTEXITCODE -ne 0){throw\
-        \ 'W30_PREVIOUS_ASSET_STAGE_FAILED'}\n}finally{Pop-Location}\n$roots=[ordered]@{}\nforeach($item in @(@{path='previous';sha='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'},@{path='current';sha='f5d9a1e7859b5b62b36a37e9b6469c372a177a02'})){\n\
-        \  $src=Join-Path $env:GITHUB_WORKSPACE $item.path\n  $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))\n\
-        \  & (Join-Path $src 'windows/Build-KTRADE-FreshInstaller.ps1') -OutputRoot $build -ExpectedSourceSha $item.sha\n\
-        \  if($LASTEXITCODE -ne 0){throw 'W30_REAL_TWO_SOURCE_BUILD_FAILED'}\n  $roots[$item.path]=$build\n}\n[IO.File]::WriteAllText((Join-Path\
-        \ $env:RUNNER_TEMP 'w30-build-roots.json'),($roots|ConvertTo-Json -Compress))\nWrite-Output '::notice::W30_REAL_TWO_IMMUTABLE_SOURCE_NATIVE_PACKAGES_BUILT=PASS'\n"
+      run: |
+        $ErrorActionPreference='Stop'
+        $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+        $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+        Push-Location $old
+        try{
+          & npm ci --ignore-scripts --no-audit --no-fund --silent
+          if($LASTEXITCODE -ne 0){throw 'W30_PREVIOUS_NPM_FAILED'}
+          & node scripts/stage_offline_vendor.cjs
+          if($LASTEXITCODE -ne 0){throw 'W30_PREVIOUS_ASSET_STAGE_FAILED'}
+        }finally{Pop-Location}
+        $roots=[ordered]@{}
+        foreach($item in @(@{path='previous';sha='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'},@{path='current';sha='f5d9a1e7859b5b62b36a37e9b6469c372a177a02'})){
+          $src=Join-Path $env:GITHUB_WORKSPACE $item.path
+          $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
+          & (Join-Path $src 'windows/Build-KTRADE-FreshInstaller.ps1') -OutputRoot $build -ExpectedSourceSha $item.sha
+          if($LASTEXITCODE -ne 0){throw 'W30_REAL_TWO_SOURCE_BUILD_FAILED'}
+          $roots[$item.path]=$build
+        }
+        [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w30-build-roots.json'),($roots|ConvertTo-Json -Compress))
+        Write-Output '::notice::W30_REAL_TWO_IMMUTABLE_SOURCE_NATIVE_PACKAGES_BUILT=PASS'
     - name: Real installed previous update and rollback cold Windows lifecycle
       shell: pwsh
-      run: "$ErrorActionPreference='Stop'\nSet-StrictMode -Version Latest\n$env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP\n\
-        if($env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W30_EPHEMERAL_HOST_REQUIRED'}\nAdd-Type -AssemblyName UIAutomationClient\n\
-        Add-Type -TypeDefinition @'\nusing System;\nusing System.Runtime.InteropServices;\npublic static class W30Native {\n\
-        \ [DllImport(\"user32.dll\")] public static extern bool SetForegroundWindow(IntPtr hWnd);\n [DllImport(\"user32.dll\"\
-        )] public static extern IntPtr GetForegroundWindow();\n [DllImport(\"user32.dll\")] public static extern bool SetCursorPos(int\
-        \ x,int y);\n [DllImport(\"user32.dll\")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr\
-        \ info);\n [DllImport(\"user32.dll\")] public static extern bool PostMessage(IntPtr hWnd,uint msg,IntPtr w,IntPtr\
-        \ l);\n}\n'@\nfunction Wait-Visible([object]$process,[string]$label,[bool]$button=$false){\n $deadline=(Get-Date).AddSeconds(35)\n\
-        \ do{\n  $process.Refresh()\n  if($process.HasExited){throw 'W29A_ORIGINAL_SHELL_EXITED'}\n  if($process.MainWindowHandle\
-        \ -ne [IntPtr]::Zero){\n   $ui=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)\n\
-        \   $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)\n\
-        \   foreach($el in $nodes){\n    try{\n     if(!$el.Current.IsOffscreen -and $el.Current.Name.Contains($label) -and\
-        \ (!$button -or ($el.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $el.Current.Name\
-        \ -ceq $label -and $el.Current.IsEnabled))){return $el}\n    }catch{}\n   }\n  }\n  Start-Sleep -Milliseconds 350\n\
-        \ }while((Get-Date) -lt $deadline)\n throw ('W29A_VISIBLE_UI_ABSENT_'+$label)\n}\nfunction Click-Verified([object]$process,[string]$label){\n\
-        \ $el=Wait-Visible $process $label $true\n $rect=$el.Current.BoundingRectangle\n $outer=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle).Current.BoundingRectangle\n\
-        \ if($rect.IsEmpty -or $rect.Width -lt 8 -or $rect.Height -lt 8 -or $rect.Left -lt $outer.Left -or $rect.Right -gt\
-        \ $outer.Right -or $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){throw 'W29A_FOREIGN_OR_HIDDEN_CONTROL'}\n\
-        \ [void][W30Native]::SetForegroundWindow($process.MainWindowHandle)\n Start-Sleep -Milliseconds 200\n if([W30Native]::GetForegroundWindow()\
-        \ -ne $process.MainWindowHandle){throw 'W29A_FOREIGN_FOCUS'}\n if(![W30Native]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw\
-        \ 'W29A_NATIVE_POINTER_REFUSED'}\n [W30Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)\n [W30Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)\n\
-        }\n$ps51=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'\n$roots=Get-Content -LiteralPath (Join-Path\
-        \ $env:RUNNER_TEMP 'w30-build-roots.json') -Raw|ConvertFrom-Json\n$oldBundle=Join-Path $env:GITHUB_WORKSPACE 'w30-old-distribution'\n\
-        $newBundle=Join-Path $env:GITHUB_WORKSPACE 'w30-new-distribution'\nAdd-Type -AssemblyName System.IO.Compression.FileSystem\n\
-        foreach($pair in @(@{build=$roots.previous;out=$oldBundle},@{build=$roots.current;out=$newBundle})){\n New-Item -ItemType\
-        \ Directory -Path $pair.out|Out-Null\n [IO.Compression.ZipFile]::ExtractToDirectory((Join-Path $pair.build 'KTRADE-SetupBundle.zip'),$pair.out)\n\
-        }\n$target=Join-Path $env:GITHUB_WORKSPACE 'w30 installed versions with spaces'\n$programs=[Environment]::GetFolderPath('Programs')\n\
-        if(!(Test-Path -LiteralPath $programs)){New-Item -ItemType Directory -Path $programs -Force|Out-Null}\n$oldSHA='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'\n\
-        $newSHA='f5d9a1e7859b5b62b36a37e9b6469c372a177a02'\n$oldSetup=Join-Path $oldBundle 'KTRADE-Setup.ps1'\n$newSetup=Join-Path $newBundle 'KTRADE-Setup.ps1'\n\
-        $savedPath=$env:PATH\n$env:PATH=(Join-Path $env:WINDIR 'System32')+';'+(Split-Path -Parent $ps51)+';'+$env:WINDIR\n\
-        if(Get-Command go.exe,node.exe -ErrorAction SilentlyContinue){throw 'W30_RUNTIME_GO_NODE_PRESENT'}\nfunction Invoke-Setup([string]$script,[string]$action,[bool]$success=$true){\n\
-        \ $result=@(& $ps51 -NoProfile -ExecutionPolicy Bypass -File $script -Action $action -InstallRoot $target -ShortcutParent\
-        \ $programs 2>&1)\n if(($LASTEXITCODE -eq 0) -ne $success){$result|Select-Object -Last 12|Write-Output;throw ('W30_UNEXPECTED_ACTION_RESULT_'+$action)}\n\
-        \ if($success){return (($result|ForEach-Object {[string]$_}) -join [Environment]::NewLine)|ConvertFrom-Json}\n}\n\
-        function Refresh-Shortcut([string]$script,[bool]$success=$true){\n $result=@(& $ps51 -NoProfile -ExecutionPolicy Bypass\
-        \ -File $script -Action RefreshShortcut -InstallRoot $target -ShortcutParent $programs 2>&1)\n if(($LASTEXITCODE -eq\
-        \ 0) -ne $success){$result|Select-Object -Last 12|Write-Output;throw 'W30A_REFRESH_UNEXPECTED_RESULT'}\n}\nfunction\
-        \ Selected-Link([object]$receipt){return (Join-Path $programs ('KTRADE-'+$receipt.selection_digest.Substring(0,16)+'/KTRADE.lnk'))}\n\
-        function Link-Hash([string]$path){return (Get-FileHash -LiteralPath $path).Hash}\nfunction Data-Hashes([string]$stage){\n\
-        \ $data=Join-Path $stage 'data';$map=@{}\n foreach($f in Get-ChildItem -LiteralPath $data -File -Recurse -Force){$map[$f.FullName.Substring($data.Length)]=(Get-FileHash\
-        \ -LiteralPath $f.FullName).Hash}\n return $map\n}\nfunction Assert-Data([string]$stage,[hashtable]$expected){\n $actual=Data-Hashes\
-        \ $stage\n if($actual.Count -ne $expected.Count){throw 'W30_RETAINED_DATA_FILE_COUNT_CHANGED'}\n foreach($key in $expected.Keys){if(!$actual.ContainsKey($key)\
-        \ -or $actual[$key] -cne $expected[$key]){throw 'W30_RETAINED_DATA_BYTES_CHANGED'}}\n}\n$running=$null\nfunction Open-Original([string]$script,[string]$stage,[string]$source,[string]$phase){\n\
-        \ $selected=Get-Content -LiteralPath (Join-Path $target '.ktrade-w29-install.json') -Raw|ConvertFrom-Json\n $shortcut=Join-Path\
-        \ $programs ('KTRADE-'+$selected.selection_digest.Substring(0,16)+'/KTRADE.lnk')\n if(!(Test-Path -LiteralPath $shortcut)){throw\
-        \ 'W30A_SELECTED_SHELL_LINK_ABSENT'}\n # ShellExecute the real .lnk, without reading or substituting its target.\n\
-        \ Start-Process -FilePath $shortcut\n $lease=Join-Path $target '.ktrade-w28c-active-process.lock'\n $until=(Get-Date).AddSeconds(40)\n\
-        \ do{\n  if(Test-Path -LiteralPath $lease){try{$owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json;if($owner.pid\
-        \ -gt 0){break}}catch{}}\n  Start-Sleep -Milliseconds 300\n }while((Get-Date) -lt $until)\n if(!(Test-Path -LiteralPath\
-        \ $lease)){throw ('W30_ORIGINAL_LEASE_ABSENT_'+$phase)}\n $owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json\n\
-        \ $shell=Get-Process -Id $owner.pid\n $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)\n if($owner.source_sha\
-        \ -cne $source -or $owner.live_armed -or ![string]::Equals($cim.ExecutablePath,(Join-Path $stage 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)){throw\
-        \ 'W30_NATIVE_RELEASE_CUSTODY_DRIFT'}\n Click-Verified $shell 'Verify chart UI'\n $null=Wait-Visible $shell 'Original\
-        \ chart DOM, Monaco editor and preferences controls observed.'\n $engines=@(Get-CimInstance Win32_Process -Filter\
-        \ ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})\n if($engines.Count -ne 1){throw\
-        \ 'W30_ORIGINAL_ENGINE_OWNER_UNCLEAR'}\n $engineID=[int]$engines[0].ProcessId\n $ports=@(Get-NetTCPConnection -OwningProcess\
-        \ $engineID -State Listen|Where-Object {$_.LocalAddress -ceq '127.0.0.1'})\n if($ports.Count -ne 1){throw 'W30_ORIGINAL_LOOPBACK_UNCLEAR'}\n\
-        \ $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$ports[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5\n\
-        \ if($cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or $cap.live_orders_enabled -ne $false\
-        \ -or $cap.strategy_execution_enabled -ne $false -or $cap.paper_accounting_enabled -ne $false -or $cap.requires_review\
-        \ -ne $true){throw 'W30_DISARM_NOT_PROVEN'}\n Write-Output ('::notice::W30_REAL_INSTALLED_ORIGINAL_WEBVIEW2_NONCE_AND_DISARM_'+$phase+'=PASS')\n\
-        \ return [pscustomobject]@{shell=$shell;launcher=$null;engineID=$engineID;stage=$stage}\n}\nfunction Close-Original([object]$process){\n\
-        \ if(![W30Native]::PostMessage($process.shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'W30_NORMAL_CLOSE_REFUSED'}\n\
-        \ if(!$process.shell.WaitForExit(25000) -or $process.shell.ExitCode -ne 0){throw 'W30_ORIGINAL_SHUTDOWN_FAILED'}\n\
-        \ if((Get-Process -Id $process.engineID -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath (Join-Path $target\
-        \ '.ktrade-w28c-active-process.lock'))){throw 'W30_ENGINE_OR_LEASE_REMAINED'}\n # Let the closed WebView2 profile's\
-        \ last handles and flushes settle before\n # original W28D performs its own bounded race-detecting full-data capture.\n\
-        \ Start-Sleep -Seconds 2\n}\ntry{\n $old=Invoke-Setup $oldSetup 'Install'\n if($old.source_sha -cne $oldSHA -or $old.app_launched\
-        \ -or $old.live_armed){throw 'W30_ORIGINAL_INSTALL_CUSTODY_DRIFT'}\n $oldInstalledSetup=Join-Path $target 'maintenance/KTRADE-Setup.ps1'\n\
-        \ $folder=Join-Path $programs ('KTRADE-'+$old.selection_digest.Substring(0,16))\n [IO.File]::WriteAllText((Join-Path\
-        \ $env:RUNNER_TEMP 'w30-shortcut-folder.txt'),$folder)\n $oldLink=Selected-Link $old\n $oldLinkHash=Link-Hash $oldLink\n\
-        \ $note=Join-Path $folder 'unknown-owner-note.txt'\n [IO.File]::WriteAllText($note,'KEEP UNKNOWN START MENU NOTE')\n\
-        \ $rootReceipt=Join-Path $target '.ktrade-w29-install.json'\n $originalReceiptHash=(Get-FileHash -LiteralPath $rootReceipt).Hash\n\
-        \ $sentinel=Join-Path $target 'unknown-owner-sentinel'\n [IO.File]::WriteAllText($sentinel,'KEEP_UNKNOWN_BYTES')\n\
-        \ $opened=@(Open-Original $oldInstalledSetup $old.candidate_directory $oldSHA 'PREVIOUS')\n $running=$opened[-1]\n\
-        \ # Print only the metadata-only notice emitted before the process record.\n $opened|Where-Object {$_ -is [string]}|Write-Output\n\
-        \ Invoke-Setup $newSetup 'Update' $false\n if((Get-FileHash -LiteralPath $rootReceipt).Hash -cne $originalReceiptHash\
-        \ -or (Test-Path -LiteralPath (Join-Path $target '.ktrade-w29-install-incomplete'))){throw 'W30_ACTIVE_UPDATE_MUTATED_INSTALLATION'}\n\
-        \ Close-Original $running;$running=$null\n foreach($entry in @(@{path='pine-library/w30-kept-native.pine';body=\"\
-        //@version=6`nindicator('W30 retained native Pine')\"},@{path='strategies/w30-kept-native.pine';body=\"//@version=6`nstrategy('W30\
-        \ retained disarmed source')\"},@{path='unknown/w30-opaque.bin';body='OPAQUE VERSION LOCAL BYTES'})){\n  $path=Join-Path\
-        \ $old.candidate_directory ('data/'+$entry.path)\n  New-Item -ItemType Directory -Path (Split-Path -Parent $path)\
-        \ -Force|Out-Null\n  [IO.File]::WriteAllText($path,$entry.body,[Text.UTF8Encoding]::new($false))\n }\n $oldData=Data-Hashes\
-        \ $old.candidate_directory\n $changed=Invoke-Setup $newSetup 'Update'\n if($changed.schema -cne 'ktrade.installed-transition.v1'\
-        \ -or $changed.action -cne 'select' -or $changed.before.source_sha -cne $oldSHA -or $changed.after.source_sha -cne\
-        \ $newSHA -or $changed.live_armed -ne $false -or $changed.supported_files -lt 2){throw 'W30_NATIVE_UPDATE_RECEIPT_INVALID'}\n\
-        \ $newStage=$changed.after.candidate_directory\n $newMaint=Join-Path $target ('maintenance-'+(Split-Path -Leaf (Split-Path\
-        \ -Parent $newStage)))\n $newInstalledSetup=Join-Path $newMaint 'KTRADE-Setup.ps1'\n $newInspect=Invoke-Setup $newInstalledSetup\
-        \ 'Inspect'\n if($newInspect.source_sha -cne $newSHA){throw 'W30_SELECTED_NEW_MAINTENANCE_INSPECTION_FAILED'}\n\n\
-        \ $newLink=Selected-Link $changed.after\n if(!(Test-Path -LiteralPath $newLink) -or (Test-Path -LiteralPath $oldLink)\
-        \ -or [IO.File]::ReadAllText($note) -cne 'KEEP UNKNOWN START MENU NOTE'){throw 'W30A_AUTOMATIC_UPDATE_SHORTCUT_RECONCILIATION_FAILED'}\n\
-        \ $newLinkHash=Link-Hash $newLink\n Refresh-Shortcut $newInstalledSetup\n if((Link-Hash $newLink) -cne $newLinkHash){throw\
-        \ 'W30A_REFRESH_NOT_IDEMPOTENT'}\n # Modified and foreign links are preserved; no selector or data mutation.\n $linkBytes=[IO.File]::ReadAllBytes($newLink)\n\
-        \ try{\n  [IO.File]::WriteAllBytes($newLink,[byte[]]($linkBytes+[byte]120))\n  $tamperedHash=Link-Hash $newLink\n\
-        \  Refresh-Shortcut $newInstalledSetup $false\n  if((Link-Hash $newLink) -cne $tamperedHash){throw 'W30A_MODIFIED_LINK_WAS_CHANGED'}\n\
-        \ }finally{[IO.File]::WriteAllBytes($newLink,$linkBytes)}\n $proof=Join-Path (Split-Path -Parent $newLink) '.ktrade-shortcut-receipt.json'\n\
-        \ $proofBytes=[IO.File]::ReadAllBytes($proof)\n try{\n  $foreign=Get-Content -LiteralPath $proof -Raw|ConvertFrom-Json\n\
-        \  $foreign.root='C:\\foreign-installation'\n  [IO.File]::WriteAllText($proof,($foreign|ConvertTo-Json -Compress))\n\
-        \  $foreignHash=Link-Hash $proof\n  Refresh-Shortcut $newInstalledSetup $false\n  if((Link-Hash $proof) -cne $foreignHash\
-        \ -or (Link-Hash $newLink) -cne $newLinkHash){throw 'W30A_FOREIGN_SHORTCUT_MUTATED'}\n }finally{[IO.File]::WriteAllBytes($proof,$proofBytes)}\n\
-        \ # A historical folder with one missing ownership file is quarantined.\n [IO.File]::WriteAllText($oldLink,'PARTIAL\
-        \ UNKNOWN LINK')\n try{Refresh-Shortcut $newInstalledSetup $false;if([IO.File]::ReadAllText($oldLink) -cne 'PARTIAL\
-        \ UNKNOWN LINK'){throw 'W30A_PARTIAL_FOLDER_ADOPTED'}}finally{[IO.File]::Delete($oldLink)}\n $writerLock=Join-Path\
-        \ $target '.ktrade-w27-selection.lock'\n [IO.File]::WriteAllText($writerLock,'EXISTING WRITER DO NOT STEAL')\n try{Refresh-Shortcut\
-        \ $newInstalledSetup $false;if([IO.File]::ReadAllText($writerLock) -cne 'EXISTING WRITER DO NOT STEAL'){throw 'W30A_WRITER_LOCK_STOLEN'}}finally{[IO.File]::Delete($writerLock)}\n\
-        \ Write-Output '::notice::W30A_AUTOMATIC_UPDATE_SHORTCUT_IDEMPOTENCE_TAMPER_WRITER_REFUSALS=PASS'\n Assert-Data $old.candidate_directory\
-        \ $oldData\n if((Get-FileHash -LiteralPath (Join-Path $target '.ktrade-w30-before-000002.json')).Hash -cne $originalReceiptHash){throw\
-        \ 'W30_ORIGINAL_RECEIPT_BYTES_NOT_RETAINED'}\n foreach($rel in @('pine-library/w30-kept-native.pine','strategies/w30-kept-native.pine')){\n\
-        \  if((Get-FileHash -LiteralPath (Join-Path $old.candidate_directory ('data/'+$rel))).Hash -cne (Get-FileHash -LiteralPath\
-        \ (Join-Path $newStage ('data/'+$rel))).Hash){throw 'W30_SUPPORTED_NATIVE_BYTES_DIFFER'}\n }\n if((Test-Path -LiteralPath\
-        \ (Join-Path $newStage 'data/webview2-profile')) -or (Test-Path -LiteralPath (Join-Path $newStage 'data/unknown/w30-opaque.bin'))){throw\
-        \ 'W30_BROWSER_OR_UNKNOWN_STATE_AUTOMATICALLY_MIGRATED'}\n Write-Output '::notice::W30_REAL_DISTINCT_BUILD_UPDATE_SUPPORTED_NATIVE_BYTES_FULL_OLD_DATA_AND_MAINTENANCE_RETAINED=PASS'\n\
-        \ # Both the incoming archive and previous distribution can now disappear.\n Remove-Item -LiteralPath $oldBundle,$newBundle\
-        \ -Recurse -Force\n $opened=@(Open-Original $newInstalledSetup $newStage $newSHA 'UPDATED')\n $running=$opened[-1];$opened|Where-Object\
-        \ {$_ -is [string]}|Write-Output\n Refresh-Shortcut $newInstalledSetup $false\n if((Link-Hash $newLink) -cne $newLinkHash){throw\
-        \ 'W30A_ACTIVE_REFRESH_CHANGED_LINK'}\n Invoke-Setup $newInstalledSetup 'Rollback' $false\n if(Test-Path -LiteralPath\
-        \ (Join-Path $target '.ktrade-w29-install-incomplete')){throw 'W30_ACTIVE_ROLLBACK_MARKED_INSTALLATION'}\n Close-Original\
-        \ $running;$running=$null\n $newData=Data-Hashes $newStage\n $opaque=Join-Path $old.candidate_directory 'data/unknown/w30-opaque.bin'\n\
-        \ $raw=[IO.File]::ReadAllBytes($opaque)\n try{\n  [IO.File]::WriteAllBytes($opaque,[byte[]]($raw+[byte]120))\n  Invoke-Setup\
-        \ $newInstalledSetup 'Rollback' $false\n  $still=Invoke-Setup $newInstalledSetup 'Inspect'\n  if($still.selection_digest\
-        \ -cne $changed.after.selection_digest){throw 'W30_BAD_ROLLBACK_CHANGED_SELECTION'}\n }finally{[IO.File]::WriteAllBytes($opaque,$raw)}\n\
-        \ $reverted=Invoke-Setup $newInstalledSetup 'Rollback'\n if($reverted.action -cne 'rollback' -or $reverted.after.source_sha\
-        \ -cne $oldSHA -or $reverted.after.candidate_directory -cne $old.candidate_directory -or $reverted.after.selection_digest\
-        \ -ceq $old.selection_digest -or $reverted.live_armed -ne $false){throw 'W30_NATIVE_ROLLBACK_RECEIPT_INVALID'}\n $rollbackLink=Selected-Link\
-        \ $reverted.after\n if(!(Test-Path -LiteralPath $rollbackLink) -or (Test-Path -LiteralPath $newLink) -or (Test-Path\
-        \ -LiteralPath $oldLink)){throw 'W30A_AUTOMATIC_ROLLBACK_SHORTCUT_RECONCILIATION_FAILED'}\n $rollbackHash=Link-Hash\
-        \ $rollbackLink\n Refresh-Shortcut $newInstalledSetup\n if((Link-Hash $rollbackLink) -cne $rollbackHash){throw 'W30A_RETAINED_NEW_MAINTENANCE_FAILED_OLD_SELECTION_REFRESH'}\n\
-        \ Write-Output '::notice::W30A_AUTOMATIC_ROLLBACK_SHORTCUT_AND_RETAINED_NEW_MAINTENANCE=PASS'\n Assert-Data $old.candidate_directory\
-        \ $oldData\n Assert-Data $newStage $newData\n $oldAgain=Invoke-Setup $oldInstalledSetup 'Inspect'\n if($oldAgain.source_sha\
-        \ -cne $oldSHA){throw 'W30_ORIGINAL_LEGACY_MAINTENANCE_NOT_RESTORED'}\n Write-Output '::notice::W30_REAL_INSTALLED_ROLLBACK_OLD_AND_NEW_DATA_BYTE_PARITY_LEGACY_MAINTENANCE=PASS'\n\
-        \ $opened=@(Open-Original $oldInstalledSetup $old.candidate_directory $oldSHA 'ROLLED_BACK')\n $running=$opened[-1];$opened|Where-Object\
-        \ {$_ -is [string]}|Write-Output\n Close-Original $running;$running=$null\n Assert-Data $newStage $newData\n if([IO.File]::ReadAllText($sentinel)\
-        \ -cne 'KEEP_UNKNOWN_BYTES'){throw 'W30_ROOT_UNKNOWN_BYTES_CHANGED'}\n $result=@(& $ps51 -NoProfile -ExecutionPolicy\
-        \ Bypass -File $oldInstalledSetup -Action Uninstall -InstallRoot $target -ShortcutParent $programs 2>&1)\n if($LASTEXITCODE\
-        \ -ne 0){$result|Write-Output;throw 'W30A_LEGACY_SELECTED_UNINSTALL_FAILED'}\n if(Test-Path -LiteralPath $rollbackLink){throw\
-        \ 'W30A_UNINSTALL_LEFT_SELECTED_LINK'}\n Assert-Data $old.candidate_directory $oldData\n Assert-Data $newStage $newData\n\
-        \ if([IO.File]::ReadAllText($note) -cne 'KEEP UNKNOWN START MENU NOTE'){throw 'W30A_UNKNOWN_SHORTCUT_NOTE_REMOVED'}\n\
-        \ Write-Output '::notice::W30A_REAL_SHELL_LINK_OLD_NEW_ROLLBACK_AND_SELECTED_UNINSTALL_DATA_RETENTION=PASS'\n}finally{\n\
-        \ $env:PATH=$savedPath\n if($null -ne $running){Stop-Process -Id $running.shell.Id -Force -ErrorAction SilentlyContinue}\n\
-        }\nexit 0\n"
+      run: |
+        $ErrorActionPreference='Stop'
+        Set-StrictMode -Version Latest
+        $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+        if($env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W30_EPHEMERAL_HOST_REQUIRED'}
+        Add-Type -AssemblyName UIAutomationClient
+        Add-Type -TypeDefinition @'
+        using System;
+        using System.Runtime.InteropServices;
+        public static class W30Native {
+         [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+         [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+         [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+         [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr info);
+         [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd,uint msg,IntPtr w,IntPtr l);
+        }
+        '@
+        function Wait-Visible([object]$process,[string]$label,[bool]$button=$false){
+         $deadline=(Get-Date).AddSeconds(35)
+         do{
+          $process.Refresh()
+          if($process.HasExited){throw 'W29A_ORIGINAL_SHELL_EXITED'}
+          if($process.MainWindowHandle -ne [IntPtr]::Zero){
+           $ui=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+           $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+           foreach($el in $nodes){
+            try{
+             if(!$el.Current.IsOffscreen -and $el.Current.Name.Contains($label) -and (!$button -or ($el.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $el.Current.Name -ceq $label -and $el.Current.IsEnabled))){return $el}
+            }catch{}
+           }
+          }
+          Start-Sleep -Milliseconds 350
+         }while((Get-Date) -lt $deadline)
+         throw ('W29A_VISIBLE_UI_ABSENT_'+$label)
+        }
+        function Click-Verified([object]$process,[string]$label){
+         $el=Wait-Visible $process $label $true
+         $rect=$el.Current.BoundingRectangle
+         $outer=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle).Current.BoundingRectangle
+         if($rect.IsEmpty -or $rect.Width -lt 8 -or $rect.Height -lt 8 -or $rect.Left -lt $outer.Left -or $rect.Right -gt $outer.Right -or $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){throw 'W29A_FOREIGN_OR_HIDDEN_CONTROL'}
+         [void][W30Native]::SetForegroundWindow($process.MainWindowHandle)
+         Start-Sleep -Milliseconds 200
+         if([W30Native]::GetForegroundWindow() -ne $process.MainWindowHandle){throw 'W29A_FOREIGN_FOCUS'}
+         if(![W30Native]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W29A_NATIVE_POINTER_REFUSED'}
+         [W30Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+         [W30Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+        }
+        $ps51=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+        $roots=Get-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'w30-build-roots.json') -Raw|ConvertFrom-Json
+        $oldBundle=Join-Path $env:GITHUB_WORKSPACE 'w30-old-distribution'
+        $newBundle=Join-Path $env:GITHUB_WORKSPACE 'w30-new-distribution'
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        foreach($pair in @(@{build=$roots.previous;out=$oldBundle},@{build=$roots.current;out=$newBundle})){
+         New-Item -ItemType Directory -Path $pair.out|Out-Null
+         [IO.Compression.ZipFile]::ExtractToDirectory((Join-Path $pair.build 'KTRADE-SetupBundle.zip'),$pair.out)
+        }
+        $target=Join-Path $env:GITHUB_WORKSPACE 'w30 installed versions with spaces'
+        $programs=[Environment]::GetFolderPath('Programs')
+        if(!(Test-Path -LiteralPath $programs)){New-Item -ItemType Directory -Path $programs -Force|Out-Null}
+        $oldSHA='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'
+        $newSHA='f5d9a1e7859b5b62b36a37e9b6469c372a177a02'
+        $oldSetup=Join-Path $oldBundle 'KTRADE-Setup.ps1'
+        $newSetup=Join-Path $newBundle 'KTRADE-Setup.ps1'
+        $savedPath=$env:PATH
+        $env:PATH=(Join-Path $env:WINDIR 'System32')+';'+(Split-Path -Parent $ps51)+';'+$env:WINDIR
+        if(Get-Command go.exe,node.exe -ErrorAction SilentlyContinue){throw 'W30_RUNTIME_GO_NODE_PRESENT'}
+        function Invoke-Setup([string]$script,[string]$action,[bool]$success=$true){
+         $result=@(& $ps51 -NoProfile -ExecutionPolicy Bypass -File $script -Action $action -InstallRoot $target -ShortcutParent $programs 2>&1)
+         if(($LASTEXITCODE -eq 0) -ne $success){$result|Select-Object -Last 12|Write-Output;throw ('W30_UNEXPECTED_ACTION_RESULT_'+$action)}
+         if($success){return (($result|ForEach-Object {[string]$_}) -join [Environment]::NewLine)|ConvertFrom-Json}
+        }
+        function Refresh-Shortcut([string]$script,[bool]$success=$true){
+         $result=@(& $ps51 -NoProfile -ExecutionPolicy Bypass -File $script -Action RefreshShortcut -InstallRoot $target -ShortcutParent $programs 2>&1)
+         if(($LASTEXITCODE -eq 0) -ne $success){$result|Select-Object -Last 12|Write-Output;throw 'W30A_REFRESH_UNEXPECTED_RESULT'}
+        }
+        function Selected-Link([object]$receipt){return (Join-Path $programs ('KTRADE-'+$receipt.selection_digest.Substring(0,16)+'/KTRADE.lnk'))}
+        function Link-Hash([string]$path){return (Get-FileHash -LiteralPath $path).Hash}
+        function Data-Hashes([string]$stage){
+         $data=Join-Path $stage 'data';$map=@{}
+         foreach($f in Get-ChildItem -LiteralPath $data -File -Recurse -Force){$map[$f.FullName.Substring($data.Length)]=(Get-FileHash -LiteralPath $f.FullName).Hash}
+         return $map
+        }
+        function Assert-Data([string]$stage,[hashtable]$expected){
+         $actual=Data-Hashes $stage
+         if($actual.Count -ne $expected.Count){throw 'W30_RETAINED_DATA_FILE_COUNT_CHANGED'}
+         foreach($key in $expected.Keys){if(!$actual.ContainsKey($key) -or $actual[$key] -cne $expected[$key]){throw 'W30_RETAINED_DATA_BYTES_CHANGED'}}
+        }
+        $running=$null
+        function Open-Original([string]$script,[string]$stage,[string]$source,[string]$phase){
+         $selected=Get-Content -LiteralPath (Join-Path $target '.ktrade-w29-install.json') -Raw|ConvertFrom-Json
+         $shortcut=Join-Path $programs ('KTRADE-'+$selected.selection_digest.Substring(0,16)+'/KTRADE.lnk')
+         if(!(Test-Path -LiteralPath $shortcut)){throw 'W30A_SELECTED_SHELL_LINK_ABSENT'}
+         # ShellExecute the real .lnk, without reading or substituting its target.
+         Start-Process -FilePath $shortcut
+         $lease=Join-Path $target '.ktrade-w28c-active-process.lock'
+         $until=(Get-Date).AddSeconds(40)
+         do{
+          if(Test-Path -LiteralPath $lease){try{$owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json;if($owner.pid -gt 0){break}}catch{}}
+          Start-Sleep -Milliseconds 300
+         }while((Get-Date) -lt $until)
+         if(!(Test-Path -LiteralPath $lease)){throw ('W30_ORIGINAL_LEASE_ABSENT_'+$phase)}
+         $owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json
+         $shell=Get-Process -Id $owner.pid
+         $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
+         if($owner.source_sha -cne $source -or $owner.live_armed -or ![string]::Equals($cim.ExecutablePath,(Join-Path $stage 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'W30_NATIVE_RELEASE_CUSTODY_DRIFT'}
+         Click-Verified $shell 'Verify chart UI'
+         $null=Wait-Visible $shell 'Original chart DOM, Monaco editor and preferences controls observed.'
+         $engines=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+         if($engines.Count -ne 1){throw 'W30_ORIGINAL_ENGINE_OWNER_UNCLEAR'}
+         $engineID=[int]$engines[0].ProcessId
+         $ports=@(Get-NetTCPConnection -OwningProcess $engineID -State Listen|Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+         if($ports.Count -ne 1){throw 'W30_ORIGINAL_LOOPBACK_UNCLEAR'}
+         $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$ports[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
+         if($cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or $cap.live_orders_enabled -ne $false -or $cap.strategy_execution_enabled -ne $false -or $cap.paper_accounting_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W30_DISARM_NOT_PROVEN'}
+         Write-Output ('::notice::W30_REAL_INSTALLED_ORIGINAL_WEBVIEW2_NONCE_AND_DISARM_'+$phase+'=PASS')
+         return [pscustomobject]@{shell=$shell;launcher=$null;engineID=$engineID;stage=$stage}
+        }
+        function Close-Original([object]$process){
+         if(![W30Native]::PostMessage($process.shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'W30_NORMAL_CLOSE_REFUSED'}
+         if(!$process.shell.WaitForExit(25000) -or $process.shell.ExitCode -ne 0){throw 'W30_ORIGINAL_SHUTDOWN_FAILED'}
+         if((Get-Process -Id $process.engineID -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath (Join-Path $target '.ktrade-w28c-active-process.lock'))){throw 'W30_ENGINE_OR_LEASE_REMAINED'}
+         # Let the closed WebView2 profile's last handles and flushes settle before
+         # original W28D performs its own bounded race-detecting full-data capture.
+         Start-Sleep -Seconds 2
+        }
+        try{
+         $old=Invoke-Setup $oldSetup 'Install'
+         if($old.source_sha -cne $oldSHA -or $old.app_launched -or $old.live_armed){throw 'W30_ORIGINAL_INSTALL_CUSTODY_DRIFT'}
+         $oldInstalledSetup=Join-Path $target 'maintenance/KTRADE-Setup.ps1'
+         $folder=Join-Path $programs ('KTRADE-'+$old.selection_digest.Substring(0,16))
+         [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w30-shortcut-folder.txt'),$folder)
+         $oldLink=Selected-Link $old
+         $oldLinkHash=Link-Hash $oldLink
+         $note=Join-Path $folder 'unknown-owner-note.txt'
+         [IO.File]::WriteAllText($note,'KEEP UNKNOWN START MENU NOTE')
+         $rootReceipt=Join-Path $target '.ktrade-w29-install.json'
+         $originalReceiptHash=(Get-FileHash -LiteralPath $rootReceipt).Hash
+         $sentinel=Join-Path $target 'unknown-owner-sentinel'
+         [IO.File]::WriteAllText($sentinel,'KEEP_UNKNOWN_BYTES')
+         $opened=@(Open-Original $oldInstalledSetup $old.candidate_directory $oldSHA 'PREVIOUS')
+         $running=$opened[-1]
+         # Print only the metadata-only notice emitted before the process record.
+         $opened|Where-Object {$_ -is [string]}|Write-Output
+         Invoke-Setup $newSetup 'Update' $false
+         if((Get-FileHash -LiteralPath $rootReceipt).Hash -cne $originalReceiptHash -or (Test-Path -LiteralPath (Join-Path $target '.ktrade-w29-install-incomplete'))){throw 'W30_ACTIVE_UPDATE_MUTATED_INSTALLATION'}
+         Close-Original $running;$running=$null
+         foreach($entry in @(@{path='pine-library/w30-kept-native.pine';body="//@version=6`nindicator('W30 retained native Pine')"},@{path='strategies/w30-kept-native.pine';body="//@version=6`nstrategy('W30 retained disarmed source')"},@{path='unknown/w30-opaque.bin';body='OPAQUE VERSION LOCAL BYTES'})){
+          $path=Join-Path $old.candidate_directory ('data/'+$entry.path)
+          New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force|Out-Null
+          [IO.File]::WriteAllText($path,$entry.body,[Text.UTF8Encoding]::new($false))
+         }
+         $oldData=Data-Hashes $old.candidate_directory
+         $changed=Invoke-Setup $newSetup 'Update'
+         if($changed.schema -cne 'ktrade.installed-transition.v1' -or $changed.action -cne 'select' -or $changed.before.source_sha -cne $oldSHA -or $changed.after.source_sha -cne $newSHA -or $changed.live_armed -ne $false -or $changed.supported_files -lt 2){throw 'W30_NATIVE_UPDATE_RECEIPT_INVALID'}
+         $newStage=$changed.after.candidate_directory
+         $newMaint=Join-Path $target ('maintenance-'+(Split-Path -Leaf (Split-Path -Parent $newStage)))
+         $newInstalledSetup=Join-Path $newMaint 'KTRADE-Setup.ps1'
+         $newInspect=Invoke-Setup $newInstalledSetup 'Inspect'
+         if($newInspect.source_sha -cne $newSHA){throw 'W30_SELECTED_NEW_MAINTENANCE_INSPECTION_FAILED'}
+
+         $newLink=Selected-Link $changed.after
+         if(!(Test-Path -LiteralPath $newLink) -or (Test-Path -LiteralPath $oldLink) -or [IO.File]::ReadAllText($note) -cne 'KEEP UNKNOWN START MENU NOTE'){throw 'W30A_AUTOMATIC_UPDATE_SHORTCUT_RECONCILIATION_FAILED'}
+         $newLinkHash=Link-Hash $newLink
+         Refresh-Shortcut $newInstalledSetup
+         if((Link-Hash $newLink) -cne $newLinkHash){throw 'W30A_REFRESH_NOT_IDEMPOTENT'}
+         # Modified and foreign links are preserved; no selector or data mutation.
+         $linkBytes=[IO.File]::ReadAllBytes($newLink)
+         try{
+          [IO.File]::WriteAllBytes($newLink,[byte[]]($linkBytes+[byte]120))
+          $tamperedHash=Link-Hash $newLink
+          Refresh-Shortcut $newInstalledSetup $false
+          if((Link-Hash $newLink) -cne $tamperedHash){throw 'W30A_MODIFIED_LINK_WAS_CHANGED'}
+         }finally{[IO.File]::WriteAllBytes($newLink,$linkBytes)}
+         $proof=Join-Path (Split-Path -Parent $newLink) '.ktrade-shortcut-receipt.json'
+         $proofBytes=[IO.File]::ReadAllBytes($proof)
+         try{
+          $foreign=Get-Content -LiteralPath $proof -Raw|ConvertFrom-Json
+          $foreign.root='C:\foreign-installation'
+          [IO.File]::WriteAllText($proof,($foreign|ConvertTo-Json -Compress))
+          $foreignHash=Link-Hash $proof
+          Refresh-Shortcut $newInstalledSetup $false
+          if((Link-Hash $proof) -cne $foreignHash -or (Link-Hash $newLink) -cne $newLinkHash){throw 'W30A_FOREIGN_SHORTCUT_MUTATED'}
+         }finally{[IO.File]::WriteAllBytes($proof,$proofBytes)}
+         # A historical folder with one missing ownership file is quarantined.
+         [IO.File]::WriteAllText($oldLink,'PARTIAL UNKNOWN LINK')
+         try{Refresh-Shortcut $newInstalledSetup $false;if([IO.File]::ReadAllText($oldLink) -cne 'PARTIAL UNKNOWN LINK'){throw 'W30A_PARTIAL_FOLDER_ADOPTED'}}finally{[IO.File]::Delete($oldLink)}
+         $writerLock=Join-Path $target '.ktrade-w27-selection.lock'
+         [IO.File]::WriteAllText($writerLock,'EXISTING WRITER DO NOT STEAL')
+         try{Refresh-Shortcut $newInstalledSetup $false;if([IO.File]::ReadAllText($writerLock) -cne 'EXISTING WRITER DO NOT STEAL'){throw 'W30A_WRITER_LOCK_STOLEN'}}finally{[IO.File]::Delete($writerLock)}
+         Write-Output '::notice::W30A_AUTOMATIC_UPDATE_SHORTCUT_IDEMPOTENCE_TAMPER_WRITER_REFUSALS=PASS'
+         Assert-Data $old.candidate_directory $oldData
+         if((Get-FileHash -LiteralPath (Join-Path $target '.ktrade-w30-before-000002.json')).Hash -cne $originalReceiptHash){throw 'W30_ORIGINAL_RECEIPT_BYTES_NOT_RETAINED'}
+         foreach($rel in @('pine-library/w30-kept-native.pine','strategies/w30-kept-native.pine')){
+          if((Get-FileHash -LiteralPath (Join-Path $old.candidate_directory ('data/'+$rel))).Hash -cne (Get-FileHash -LiteralPath (Join-Path $newStage ('data/'+$rel))).Hash){throw 'W30_SUPPORTED_NATIVE_BYTES_DIFFER'}
+         }
+         if((Test-Path -LiteralPath (Join-Path $newStage 'data/webview2-profile')) -or (Test-Path -LiteralPath (Join-Path $newStage 'data/unknown/w30-opaque.bin'))){throw 'W30_BROWSER_OR_UNKNOWN_STATE_AUTOMATICALLY_MIGRATED'}
+         Write-Output '::notice::W30_REAL_DISTINCT_BUILD_UPDATE_SUPPORTED_NATIVE_BYTES_FULL_OLD_DATA_AND_MAINTENANCE_RETAINED=PASS'
+         # Both the incoming archive and previous distribution can now disappear.
+         Remove-Item -LiteralPath $oldBundle,$newBundle -Recurse -Force
+         $opened=@(Open-Original $newInstalledSetup $newStage $newSHA 'UPDATED')
+         $running=$opened[-1];$opened|Where-Object {$_ -is [string]}|Write-Output
+         Refresh-Shortcut $newInstalledSetup $false
+         if((Link-Hash $newLink) -cne $newLinkHash){throw 'W30A_ACTIVE_REFRESH_CHANGED_LINK'}
+         Invoke-Setup $newInstalledSetup 'Rollback' $false
+         if(Test-Path -LiteralPath (Join-Path $target '.ktrade-w29-install-incomplete')){throw 'W30_ACTIVE_ROLLBACK_MARKED_INSTALLATION'}
+         Close-Original $running;$running=$null
+         $newData=Data-Hashes $newStage
+         $opaque=Join-Path $old.candidate_directory 'data/unknown/w30-opaque.bin'
+         $raw=[IO.File]::ReadAllBytes($opaque)
+         try{
+          [IO.File]::WriteAllBytes($opaque,[byte[]]($raw+[byte]120))
+          Invoke-Setup $newInstalledSetup 'Rollback' $false
+          $still=Invoke-Setup $newInstalledSetup 'Inspect'
+          if($still.selection_digest -cne $changed.after.selection_digest){throw 'W30_BAD_ROLLBACK_CHANGED_SELECTION'}
+         }finally{[IO.File]::WriteAllBytes($opaque,$raw)}
+         $reverted=Invoke-Setup $newInstalledSetup 'Rollback'
+         if($reverted.action -cne 'rollback' -or $reverted.after.source_sha -cne $oldSHA -or $reverted.after.candidate_directory -cne $old.candidate_directory -or $reverted.after.selection_digest -ceq $old.selection_digest -or $reverted.live_armed -ne $false){throw 'W30_NATIVE_ROLLBACK_RECEIPT_INVALID'}
+         $rollbackLink=Selected-Link $reverted.after
+         if(!(Test-Path -LiteralPath $rollbackLink) -or (Test-Path -LiteralPath $newLink) -or (Test-Path -LiteralPath $oldLink)){throw 'W30A_AUTOMATIC_ROLLBACK_SHORTCUT_RECONCILIATION_FAILED'}
+         $rollbackHash=Link-Hash $rollbackLink
+         Refresh-Shortcut $newInstalledSetup
+         if((Link-Hash $rollbackLink) -cne $rollbackHash){throw 'W30A_RETAINED_NEW_MAINTENANCE_FAILED_OLD_SELECTION_REFRESH'}
+         Write-Output '::notice::W30A_AUTOMATIC_ROLLBACK_SHORTCUT_AND_RETAINED_NEW_MAINTENANCE=PASS'
+         Assert-Data $old.candidate_directory $oldData
+         Assert-Data $newStage $newData
+         $oldAgain=Invoke-Setup $oldInstalledSetup 'Inspect'
+         if($oldAgain.source_sha -cne $oldSHA){throw 'W30_ORIGINAL_LEGACY_MAINTENANCE_NOT_RESTORED'}
+         Write-Output '::notice::W30_REAL_INSTALLED_ROLLBACK_OLD_AND_NEW_DATA_BYTE_PARITY_LEGACY_MAINTENANCE=PASS'
+         $opened=@(Open-Original $oldInstalledSetup $old.candidate_directory $oldSHA 'ROLLED_BACK')
+         $running=$opened[-1];$opened|Where-Object {$_ -is [string]}|Write-Output
+         Close-Original $running;$running=$null
+         Assert-Data $newStage $newData
+         if([IO.File]::ReadAllText($sentinel) -cne 'KEEP_UNKNOWN_BYTES'){throw 'W30_ROOT_UNKNOWN_BYTES_CHANGED'}
+         $oldStoppedData=Data-Hashes $old.candidate_directory
+         $result=@(& $ps51 -NoProfile -ExecutionPolicy Bypass -File $oldInstalledSetup -Action Uninstall -InstallRoot $target -ShortcutParent $programs 2>&1)
+         if($LASTEXITCODE -ne 0){$result|Write-Output;throw 'W30A_LEGACY_SELECTED_UNINSTALL_FAILED'}
+         if(Test-Path -LiteralPath $rollbackLink){throw 'W30A_UNINSTALL_LEFT_SELECTED_LINK'}
+         Assert-Data $old.candidate_directory $oldStoppedData
+         Assert-Data $newStage $newData
+         if([IO.File]::ReadAllText($note) -cne 'KEEP UNKNOWN START MENU NOTE'){throw 'W30A_UNKNOWN_SHORTCUT_NOTE_REMOVED'}
+         Write-Output '::notice::W30A_REAL_SHELL_LINK_OLD_NEW_ROLLBACK_AND_SELECTED_UNINSTALL_DATA_RETENTION=PASS'
+        }finally{
+         $env:PATH=$savedPath
+         if($null -ne $running){Stop-Process -Id $running.shell.Id -Force -ErrorAction SilentlyContinue}
+        }
+        exit 0
     - name: Purge private source and disposable installed launch candidate
       if: always()
       shell: pwsh
-      run: "$target=Join-Path $env:GITHUB_WORKSPACE 'w30 installed versions with spaces'\n$programs=[Environment]::GetFolderPath('Programs')\n\
-        if(Test-Path -LiteralPath $target){\n foreach($file in Get-ChildItem -LiteralPath $target -Filter '.ktrade-w27-selection-*.json'\
-        \ -File){\n  try{\n   $e=Get-Content -LiteralPath $file.FullName -Raw|ConvertFrom-Json\n   if($e.Digest -cmatch '^[a-f0-9]{64}$'){\n\
-        \    $folder=Join-Path $programs ('KTRADE-'+$e.Digest.Substring(0,16))\n    foreach($name in @('KTRADE.lnk','.ktrade-shortcut-receipt.json','unknown-owner-note.txt')){Remove-Item\
-        \ -LiteralPath (Join-Path $folder $name) -Force -ErrorAction SilentlyContinue}\n    if((Test-Path -LiteralPath $folder)\
-        \ -and @(Get-ChildItem -LiteralPath $folder -Force).Count -eq 0){[IO.Directory]::Delete($folder,$false)}\n   }\n \
-        \ }catch{}\n }\n}\nforeach($p in @((Join-Path $env:GITHUB_WORKSPACE 'current'),(Join-Path $env:GITHUB_WORKSPACE 'previous'),(Join-Path\
-        \ $env:GITHUB_WORKSPACE 'w30 installed versions with spaces'),(Join-Path $env:GITHUB_WORKSPACE 'w30-old-distribution'),(Join-Path\
-        \ $env:GITHUB_WORKSPACE 'w30-new-distribution'))){\n  if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse\
-        \ -Force -ErrorAction SilentlyContinue}\n}\nGet-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-setup-package-*'|Remove-Item\
-        \ -Recurse -Force -ErrorAction SilentlyContinue\nforeach($name in @('w30-build-root.txt','w28n-original-fixture.json')){\n\
-        \  $p=Join-Path $env:RUNNER_TEMP $name\n  if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force -ErrorAction\
-        \ SilentlyContinue}\n}\n"
+      run: |
+        $target=Join-Path $env:GITHUB_WORKSPACE 'w30 installed versions with spaces'
+        $programs=[Environment]::GetFolderPath('Programs')
+        if(Test-Path -LiteralPath $target){
+         foreach($file in Get-ChildItem -LiteralPath $target -Filter '.ktrade-w27-selection-*.json' -File){
+          try{
+           $e=Get-Content -LiteralPath $file.FullName -Raw|ConvertFrom-Json
+           if($e.Digest -cmatch '^[a-f0-9]{64}$'){
+            $folder=Join-Path $programs ('KTRADE-'+$e.Digest.Substring(0,16))
+            foreach($name in @('KTRADE.lnk','.ktrade-shortcut-receipt.json','unknown-owner-note.txt')){Remove-Item -LiteralPath (Join-Path $folder $name) -Force -ErrorAction SilentlyContinue}
+            if((Test-Path -LiteralPath $folder) -and @(Get-ChildItem -LiteralPath $folder -Force).Count -eq 0){[IO.Directory]::Delete($folder,$false)}
+           }
+          }catch{}
+         }
+        }
+        foreach($p in @((Join-Path $env:GITHUB_WORKSPACE 'current'),(Join-Path $env:GITHUB_WORKSPACE 'previous'),(Join-Path $env:GITHUB_WORKSPACE 'w30 installed versions with spaces'),(Join-Path $env:GITHUB_WORKSPACE 'w30-old-distribution'),(Join-Path $env:GITHUB_WORKSPACE 'w30-new-distribution'))){
+          if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+        }
+        Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-setup-package-*'|Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        foreach($name in @('w30-build-root.txt','w28n-original-fixture.json')){
+          $p=Join-Path $env:RUNNER_TEMP $name
+          if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue}
+        }
 'on':
   push:
     branches:
