@@ -850,7 +850,7 @@ jobs:
                       if($node.Current.IsOffscreen){
                         try{$scroll=$node.GetCurrentPattern([System.Windows.Automation.ScrollItemPattern]::Pattern);$scroll.ScrollIntoView();Start-Sleep -Milliseconds 250}catch{}
                       }
-                      if(!$node.Current.IsOffscreen){$e=$node;break}
+                      if(!$node.Current.IsOffscreen -and $node.Current.IsEnabled){$e=$node;break}
                     }
                   }catch{}
                 }
@@ -865,7 +865,7 @@ jobs:
               }
               $r=$e.Current.BoundingRectangle
               $outer=[System.Windows.Automation.AutomationElement]::FromHandle($parent.MainWindowHandle).Current.BoundingRectangle
-              if($e.Current.IsOffscreen -or !$e.Current.IsEnabled -or $r.IsEmpty -or $r.Width -lt 8 -or $r.Height -lt 8 -or $r.Left -lt $outer.Left -or $r.Right -gt $outer.Right -or $r.Top -lt $outer.Top -or $r.Bottom -gt $outer.Bottom){throw 'W28L_NATIVE_CONTROL_BOUNDS_REFUSED'}
+              if($e.Current.IsOffscreen -or !$e.Current.IsEnabled -or $r.IsEmpty -or $r.Width -lt 8 -or $r.Height -lt 8 -or $r.Left -lt $outer.Left -or $r.Right -gt $outer.Right -or $r.Top -lt $outer.Top -or $r.Bottom -gt $outer.Bottom){throw ('W28L_NATIVE_CONTROL_BOUNDS_REFUSED_'+$label+'_enabled='+$e.Current.IsEnabled+'_x='+$r.Left+'_y='+$r.Top+'_w='+$r.Width+'_h='+$r.Height)}
               [void][W17D1ANativeClick]::SetForegroundWindow($parent.MainWindowHandle)
               Start-Sleep -Milliseconds 200
               if([W17D1ANativeClick]::GetForegroundWindow() -ne $parent.MainWindowHandle){throw 'W28L_FOREIGN_FOCUS_REFUSED'}
