@@ -330,6 +330,7 @@ jobs:
               'public static class W17D1ANativeClick {',
               ' [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr hWnd,uint cmd);',
               ' [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);',
+              ' [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr hWnd,uint flags);',
               ' [DllImport("user32.dll")] public static extern bool IsWindowEnabled(IntPtr hWnd);',
               ' [DllImport("user32.dll")] public static extern bool IsWindowVisible(IntPtr hWnd);',
               ' [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd,out uint processId);',
@@ -939,7 +940,20 @@ jobs:
                     if($handle -eq $w28main){$owned=$true;break}
                     $handle=[W17D1ANativeClick]::GetWindow($handle,4)
                   }
-                  if(!$win.Current.IsOffscreen -and $owned -and $win.Current.ClassName -ceq '#32770'){$dialog=$win;break}
+                  if(!$win.Current.IsOffscreen -and $owned -and $win.Current.ClassName -ceq '#32770'){
+                    # Explorer's file-list pane can itself be a #32770.
+                    # Its controls are not the outer Open dialog controls.
+                    $rootHandle=[W17D1ANativeClick]::GetAncestor([IntPtr]$win.Current.NativeWindowHandle,2)
+                    $rootDialog=[System.Windows.Automation.AutomationElement]::FromHandle($rootHandle)
+                    $owner=$rootHandle;$rootOwned=$false
+                    for($z=0;$z -lt 12 -and $owner -ne [IntPtr]::Zero;$z++){
+                      if($owner -eq $w28main){$rootOwned=$true;break}
+                      $owner=[W17D1ANativeClick]::GetWindow($owner,4)
+                    }
+                    if($rootOwned -and $rootHandle -ne $w28main -and $rootDialog.Current.ClassName -ceq '#32770'){
+                      $dialog=$rootDialog;break
+                    }
+                  }
                 }catch{}
               }
               if($dialog){break}
