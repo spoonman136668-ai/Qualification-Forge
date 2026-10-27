@@ -1,0 +1,158 @@
+name: KTRADE W27 side-by-side verified release rollback Windows
+on:
+  push:
+    branches: [qualification/ktrade-w27-release-selection-rollback-20261027]
+    paths: [.github/workflows/ktrade-w27-release-selection-rollback-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w27-release-selector
+  cancel-in-progress: false
+jobs:
+  rollback:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    steps:
+      - name: Checkout qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable W27 candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: e8dfcae4934134a6aa956c51ddde65ce59ef8a27
+          path: checked-private
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact W27 ancestry and three-path engineering delta
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $got=(& git -C $src rev-parse HEAD).Trim()
+          $prior=(& git -C $src rev-parse HEAD^).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          if($got -cne 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27' -or $prior -cne '74d0f6a10f6d12615018a2fc81a2d76c956d4d70' -or $tree -cne '6dfc30ca9ff89af9a8efe33a117af6d03306dd7a'){
+            throw 'W27_IMMUTABLE_SOURCE_OR_ANCESTRY_DRIFT'
+          }
+          $actual=@(& git -C $src diff --name-only 74d0f6a10f6d12615018a2fc81a2d76c956d4d70 HEAD | Sort-Object -CaseSensitive)
+          $expected=@('tools/wails-pilot/backend/release_switch.go','tools/wails-pilot/backend/release_switch_test.go','tools/wails-pilot/cmd/release-switch/main.go' | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $expected -DifferenceObject $actual){throw 'W27_THREE_PATH_BOUNDARY_DRIFT'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W27_DIRTY_SOURCE'}
+          Write-Output '::notice::W27_IMMUTABLE_SOURCE_TREE_AND_THREE_PATH_DELTA=PASS'
+      - name: Require unchanged W26 native ZIP acceptance
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40468966231' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne '7fecc5a50e33b5552ab6a36ff506c85a0a464ca1'){throw 'W27_W26_NATIVE_ZIP_WITNESS_MISSING'}
+          Write-Output '::notice::W27_W26_NATIVE_ZIP_EVIDENCE_REUSED=PASS'
+      - name: Windows Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-private/go.sum
+            checked-private/tools/wails-pilot/go.sum
+      - name: Test W26 and W27 custody; vet and build both CLIs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private/tools/wails-pilot')
+          try {
+            & go test -mod=readonly -count=1 -run '^TestW2[67]' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W27_NATIVE_ROLLBACK_TEST_FAIL'}
+            & go vet -mod=readonly ./backend ./cmd/release-extract ./cmd/release-switch
+            if($LASTEXITCODE -ne 0){throw 'W27_GO_VET_FAIL'}
+            & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE 'release-extract.exe') ./cmd/release-extract
+            if($LASTEXITCODE -ne 0){throw 'W27_NATIVE_EXTRACT_BUILD_FAIL'}
+            & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE 'release-switch.exe') ./cmd/release-switch
+            if($LASTEXITCODE -ne 0){throw 'W27_NATIVE_SWITCH_BUILD_FAIL'}
+          } finally { Pop-Location }
+          Write-Output '::notice::W27_NATIVE_GO_ROLLBACK_TESTS_AND_BOTH_CLI_BUILDS=PASS'
+      - name: Node for genuine offline editor and chart assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Real Wails ZIP then side-by-side selection and rollback with old user bytes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $env:KTRADE_W13_QUALIFICATION_ONLY='0'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $root=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          Push-Location $src
+          try {
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W27_OFFLINE_NPM_FAIL'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W27_OFFLINE_ASSETS_FAIL'}
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W27_BUILD_CHANGED_TRACKED_SOURCE'}
+            $lines=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27' -ReleaseCandidate)
+            if($lines -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W27_REAL_WAILS_ZIP_BUILD_FAIL'}
+          } finally { Pop-Location }
+          $zip=Join-Path $root 'KTRADE-WailsPortable.zip'
+          $dest=Join-Path $env:GITHUB_WORKSPACE 'isolated-release-selection'
+          New-Item -ItemType Directory -Path $dest -ErrorAction Stop | Out-Null
+          $extract=Join-Path $env:GITHUB_WORKSPACE 'release-extract.exe'
+          $firstReceipt=@(& $extract $zip $dest 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27')
+          if($LASTEXITCODE -ne 0){throw 'W27_GENUINE_ZIP_EXTRACTION_REFUSED'}
+          $firstInfo=($firstReceipt -join [Environment]::NewLine)|ConvertFrom-Json
+          $old=[string]$firstInfo.candidate_directory
+          if($firstInfo.live_armed -ne $false -or $firstInfo.launched -ne $false){throw 'W27_EXTRACT_RECEIPT_NOT_DISARMED'}
+          $otherParent=Join-Path $dest ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          Copy-Item -LiteralPath (Split-Path -Parent $old) -Destination $otherParent -Recurse -Force
+          $new=Join-Path $otherParent 'KTRADE-WailsPortable'
+          $switch=Join-Path $env:GITHUB_WORKSPACE 'release-switch.exe'
+          $r1=@(& $switch select $dest $old 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27')
+          if($LASTEXITCODE -ne 0){throw 'W27_FIRST_GENUINE_SELECTOR_FAIL'}
+          $first=($r1 -join [Environment]::NewLine)|ConvertFrom-Json
+          if($first.selection.Sequence -ne 1 -or $first.launched -ne $false -or $first.profile_migrated -ne $false){throw 'W27_FIRST_DISARMED_SELECTION_INVALID'}
+          $oldProfile=Join-Path $old 'data/webview2-profile'
+          New-Item -ItemType Directory -Path $oldProfile -Force | Out-Null
+          $oldMarker=Join-Path $oldProfile 'original-browser-state.marker'
+          [IO.File]::WriteAllText($oldMarker,'OLD_PROFILE_UNCHANGED')
+          $ownerMarker=Join-Path $dest 'original-owner-settings-and-paper.marker'
+          [IO.File]::WriteAllText($ownerMarker,'OWNER_AND_PAPER_UNCHANGED')
+          $r2=@(& $switch select $dest $new 'e8dfcae4934134a6aa956c51ddde65ce59ef8a27')
+          if($LASTEXITCODE -ne 0){throw 'W27_SECOND_GENUINE_SELECTOR_FAIL'}
+          $second=($r2 -join [Environment]::NewLine)|ConvertFrom-Json
+          if($second.selection.Sequence -ne 2 -or $second.selection.PreviousDigest -cne $first.selection.Digest){throw 'W27_SELECTION_CHAIN_BROKEN'}
+          $active=@(& $switch status $dest)
+          if($LASTEXITCODE -ne 0){throw 'W27_GENUINE_STATUS_FAIL'}
+          $activeResult=($active -join [Environment]::NewLine)|ConvertFrom-Json
+          if($activeResult.candidate_directory -cne $new){throw 'W27_NEW_VERIFIED_SELECTION_NOT_ACTIVE'}
+          $rr=@(& $switch rollback $dest)
+          if($LASTEXITCODE -ne 0){throw 'W27_VERIFIED_ROLLBACK_FAIL'}
+          $rollback=($rr -join [Environment]::NewLine)|ConvertFrom-Json
+          if($rollback.selection.Sequence -ne 3 -or $rollback.selection.Action -cne 'rollback' -or
+             $rollback.selection.PreviousDigest -cne $second.selection.Digest){throw 'W27_ROLLBACK_CHAIN_BAD'}
+          $status=@(& $switch status $dest)
+          if($LASTEXITCODE -ne 0){throw 'W27_ROLLBACK_STATUS_FAIL'}
+          $returned=($status -join [Environment]::NewLine)|ConvertFrom-Json
+          if($returned.candidate_directory -cne $old){throw 'W27_OLD_CANDIDATE_NOT_RESELECTED'}
+          if([IO.File]::ReadAllText($oldMarker) -cne 'OLD_PROFILE_UNCHANGED' -or
+             [IO.File]::ReadAllText($ownerMarker) -cne 'OWNER_AND_PAPER_UNCHANGED' -or
+             (Test-Path -LiteralPath (Join-Path $new 'data/webview2-profile'))){throw 'W27_USER_DATA_MODIFIED_OR_COPIED'}
+          foreach($name in @('ktrade.exe','ktrade-engine.exe')){
+            if((Get-FileHash -LiteralPath (Join-Path $old $name) -Algorithm SHA256).Hash -cne
+               (Get-FileHash -LiteralPath (Join-Path $new $name) -Algorithm SHA256).Hash){throw 'W27_RELEASE_BINARY_BYTES_DRIFT'}
+          }
+          Write-Output '::notice::W27_GENUINE_WINDOWS_TWO_VERIFIED_ROOTS_AND_ROLLBACK=PASS'
+          Write-Output '::notice::W27_OLD_BROWSER_OWNER_PAPER_BYTES_UNCHANGED=PASS'
+          Write-Output '::notice::W27_NO_APP_START_NO_PROFILE_MIGRATION_LIVE_DISARMED=PASS'
+      - name: Purge checked private source
+        if: always()
+        shell: pwsh
+        run: |
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if(Test-Path -LiteralPath $src){Remove-Item -LiteralPath $src -Recurse -Force -ErrorAction SilentlyContinue}
