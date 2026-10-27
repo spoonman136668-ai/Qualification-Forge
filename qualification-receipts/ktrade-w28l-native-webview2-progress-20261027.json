@@ -1,38 +1,50 @@
 {
   "schema": "ktrade.w28l.engineering-progress.v1",
-  "source_sha": "56ce927f086910e31a827d705b5b9fec7ac36a35",
-  "source_tree": "8809d5418a5843bc2cf9e3c0f04245ed5a7e4f89",
-  "witness_sha": "fc96b256b79ef1226147f2727c512a59a134a15b",
-  "run_id": 40546641241,
-  "job_id": 122338897719,
-  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40546641241",
-  "status": "FAILED_NOT_QUALIFIED",
-  "observed_passes": [
-    "exact W28K source and original green foundation",
-    "native Windows original Go and Wails compilation",
-    "original browser favorites, timeframe, pane layout cold restarts",
-    "real Wails parent Verify chart UI button and original chart nonce response",
-    "real WebView2 settings export created original schema JSON"
+  "status": "BOUNDED_NATIVE_ENGINEERING_PASS_NOT_PRODUCT_COMPLETION",
+  "source_sha": "7301a2a1117ed2ad556cc69fbe50595195d16848",
+  "source_tree": "e4c96788a425fad15871fbd20263dff802ddb219",
+  "parent_w28k_sha": "56ce927f086910e31a827d705b5b9fec7ac36a35",
+  "witness_sha": "1fbc51fdd706bce0a1b504072f140db8f62a7051",
+  "run_id": 40577002698,
+  "job_id": 122446005830,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40577002698",
+  "run_conclusion": "success",
+  "source_fix": "Install verifier synchronously before boot.js can emit prepared; retain missing-controls DOM-ready fallback.",
+  "deterministic_tests": {
+    "original_w28k": {
+      "pass": 3,
+      "fail": 2
+    },
+    "corrected_candidate": {
+      "pass": 5,
+      "fail": 0
+    }
+  },
+  "passed": [
+    "exact source/tree/parent/three-file delta",
+    "genuine native Go/Wails builds",
+    "real WebView2 Verify UI nonce response",
+    "real WebView2 export creates original schema JSON file",
+    "native owned file-picker open and Escape cancellation",
+    "native picker disappearance and original owner re-enabled",
+    "normal WM_CLOSE and real Wails process exit",
+    "original favorites/timeframe/pane-layout cold restarts",
+    "complete original and Wails Go tests and vet"
   ],
-  "blocker": "W28L_NATIVE_PICKER_CANCEL_DID_NOT_RELEASE_MODAL_OWNER",
-  "interpretation": "Native picker was located with process/window ownership. UIA invocation and native bounded Cancel click did not yield the required parent-enabled state. Cause remains unresolved: witness semantics, remaining modal or application behavior. No product defect inferred without further evidence.",
+  "historical_failures_retained": true,
+  "witness_failure_cause": "Old selector confused Explorer list item AutomationId 2 with Cancel and nested #32770 with outer dialog; corrected native ownership and real keyboard Escape cancellation verified.",
   "not_proven": [
-    "successful settings import",
-    "cancellation and clean shutdown",
-    "final full Go and Wails regression for this witness",
-    "real owner-profile migration",
+    "successful file import and consent",
+    "imported state applied after cold restart",
+    "actual installed owner-profile migration",
+    "chart pixel/candle rendering",
+    "Pine execution",
     "product completion"
   ],
   "paper_orders_enabled": false,
   "live_armed": false,
   "owner_data_accessed": false,
-  "source_modified": false,
   "protected_refs_modified": false,
-  "earlier_runs": [
-    40543213162,
-    40543988620,
-    40544624700,
-    40545336849,
-    40545944408
-  ]
+  "source_pr": 155,
+  "pr_draft": true
 }
