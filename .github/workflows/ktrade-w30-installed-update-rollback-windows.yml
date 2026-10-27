@@ -1,0 +1,359 @@
+name: KTRADE W30 stopped installed update and rollback Windows
+on:
+  push:
+    branches: [qualification/ktrade-w30-installed-update-rollback-20261027]
+    paths: [.github/workflows/ktrade-w30-installed-update-rollback-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w30-installed-update-rollback
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact KTRADE installed-update-rollback candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 944f99ab964d1d1db4023f9937c9dcf1cb230a74
+          path: current
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact qualified previous package source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b377a28051cb9594ddeb2da1ffe4252d418f0a6f
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source and completed native foundations
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '944f99ab964d1d1db4023f9937c9dcf1cb230a74' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '90e630e08c09bb24a0dd2dc47c7636c864412823'){throw 'W30_SOURCE_IDENTITY_DRIFT'}
+          foreach($pin in @(
+            @{run=40595157843;sha='a3caed1b64b02a9c6217ae7c2e6eacf6d59d29c3'}
+          )){
+            $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+            if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W30_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
+          }
+          if((& git -C $src rev-parse HEAD^).Trim() -cne 'b377a28051cb9594ddeb2da1ffe4252d418f0a6f'){throw 'W30_PARENT_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD|Sort-Object)
+          $want=@('tools/wails-pilot/backend/setup_bundle.go','tools/wails-pilot/backend/installed_update.go','tools/wails-pilot/backend/installed_update_test.go','tools/wails-pilot/cmd/release-setup/main.go','windows/Install-KTRADE-Fresh.ps1'|Sort-Object)
+          if(Compare-Object $delta $want){throw 'W30_FIVE_PATH_SCOPE_DRIFT'}
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          if((& git -C $old rev-parse HEAD).Trim() -cne 'b377a28051cb9594ddeb2da1ffe4252d418f0a6f' -or (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'c704ae502556f6395bb55b9bd7fa413d24eacbb1'){throw 'W30_QUALIFIED_PREVIOUS_SOURCE_DRIFT'}
+          Write-Output '::notice::W30_EXACT_SOURCE_FIVE_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS'
+      - name: Native Windows Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+          cache-dependency-path: |
+            current/go.sum
+            current/tools/wails-pilot/go.sum
+      - name: Native Windows Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Stage unchanged assets parse shell script and run affected interfaces
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          foreach($name in @('Install-KTRADE-Fresh.ps1','Build-KTRADE-FreshInstaller.ps1')){
+            $tokens=$null;$parseErrors=$null
+            [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $src ('windows/'+$name)),[ref]$tokens,[ref]$parseErrors)
+            if($parseErrors.Count -ne 0){throw 'W30_SOURCE_SETUP_SCRIPT_SYNTAX_FAILED'}
+          }
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W30_NPM_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W30_VENDOR_STAGE_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -race -count=1 -run '^Test(W30|W29|W26|W27|W28[CDE])' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W30_AFFECTED_LAUNCH_SELECTION_REMOVAL_RACE_TESTS_FAILED'}
+          }finally{Pop-Location}
+      - name: One frozen-source full original Go and Wails regression and vet before build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
+            Push-Location $dir
+            try{
+              & go test -mod=readonly -count=1 ./...
+              if($LASTEXITCODE -ne 0){throw 'W30_FINAL_FULL_REGRESSION_FAILED'}
+              & go vet -mod=readonly ./...
+              if($LASTEXITCODE -ne 0){throw 'W30_FINAL_VET_FAILED'}
+            }finally{Pop-Location}
+          }
+          Write-Output '::notice::W30_FULL_ORIGINAL_ENGINE_AND_WAILS_REGRESSION_VET=PASS'
+      - name: Build two exact distinct source-bound installed packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          Push-Location $old
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W30_PREVIOUS_NPM_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W30_PREVIOUS_ASSET_STAGE_FAILED'}
+          }finally{Pop-Location}
+          $roots=[ordered]@{}
+          foreach($item in @(@{path='previous';sha='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'},@{path='current';sha='944f99ab964d1d1db4023f9937c9dcf1cb230a74'})){
+            $src=Join-Path $env:GITHUB_WORKSPACE $item.path
+            $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
+            & (Join-Path $src 'windows/Build-KTRADE-FreshInstaller.ps1') -OutputRoot $build -ExpectedSourceSha $item.sha
+            if($LASTEXITCODE -ne 0){throw 'W30_REAL_TWO_SOURCE_BUILD_FAILED'}
+            $roots[$item.path]=$build
+          }
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w30-build-roots.json'),($roots|ConvertTo-Json -Compress))
+          Write-Output '::notice::W30_REAL_TWO_IMMUTABLE_SOURCE_NATIVE_PACKAGES_BUILT=PASS'
+      - name: Real installed previous update and rollback cold Windows lifecycle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W30_EPHEMERAL_HOST_REQUIRED'}
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class W30Native {
+           [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+           [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+           [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+           [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr info);
+           [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd,uint msg,IntPtr w,IntPtr l);
+          }
+          '@
+          function Wait-Visible([object]$process,[string]$label,[bool]$button=$false){
+           $deadline=(Get-Date).AddSeconds(35)
+           do{
+            $process.Refresh()
+            if($process.HasExited){throw 'W29A_ORIGINAL_SHELL_EXITED'}
+            if($process.MainWindowHandle -ne [IntPtr]::Zero){
+             $ui=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+             $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+             foreach($el in $nodes){
+              try{
+               if(!$el.Current.IsOffscreen -and $el.Current.Name.Contains($label) -and (!$button -or ($el.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $el.Current.Name -ceq $label -and $el.Current.IsEnabled))){return $el}
+              }catch{}
+             }
+            }
+            Start-Sleep -Milliseconds 350
+           }while((Get-Date) -lt $deadline)
+           throw ('W29A_VISIBLE_UI_ABSENT_'+$label)
+          }
+          function Click-Verified([object]$process,[string]$label){
+           $el=Wait-Visible $process $label $true
+           $rect=$el.Current.BoundingRectangle
+           $outer=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle).Current.BoundingRectangle
+           if($rect.IsEmpty -or $rect.Width -lt 8 -or $rect.Height -lt 8 -or $rect.Left -lt $outer.Left -or $rect.Right -gt $outer.Right -or $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){throw 'W29A_FOREIGN_OR_HIDDEN_CONTROL'}
+           [void][W30Native]::SetForegroundWindow($process.MainWindowHandle)
+           Start-Sleep -Milliseconds 200
+           if([W30Native]::GetForegroundWindow() -ne $process.MainWindowHandle){throw 'W29A_FOREIGN_FOCUS'}
+           if(![W30Native]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W29A_NATIVE_POINTER_REFUSED'}
+           [W30Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+           [W30Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+          }
+          $ps51=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+          $roots=Get-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'w30-build-roots.json') -Raw|ConvertFrom-Json
+          $oldBundle=Join-Path $env:GITHUB_WORKSPACE 'w30-old-distribution'
+          $newBundle=Join-Path $env:GITHUB_WORKSPACE 'w30-new-distribution'
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          foreach($pair in @(@{build=$roots.previous;out=$oldBundle},@{build=$roots.current;out=$newBundle})){
+           New-Item -ItemType Directory -Path $pair.out|Out-Null
+           [IO.Compression.ZipFile]::ExtractToDirectory((Join-Path $pair.build 'KTRADE-SetupBundle.zip'),$pair.out)
+          }
+          $target=Join-Path $env:GITHUB_WORKSPACE 'w30 installed versions with spaces'
+          $programs=[Environment]::GetFolderPath('Programs')
+          if(!(Test-Path -LiteralPath $programs)){New-Item -ItemType Directory -Path $programs -Force|Out-Null}
+          $oldSHA='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'
+          $newSHA='944f99ab964d1d1db4023f9937c9dcf1cb230a74'
+          $oldSetup=Join-Path $oldBundle 'KTRADE-Setup.ps1'
+          $newSetup=Join-Path $newBundle 'KTRADE-Setup.ps1'
+          $savedPath=$env:PATH
+          $env:PATH=(Join-Path $env:WINDIR 'System32')+';'+(Split-Path -Parent $ps51)+';'+$env:WINDIR
+          if(Get-Command go.exe,node.exe -ErrorAction SilentlyContinue){throw 'W30_RUNTIME_GO_NODE_PRESENT'}
+          function Invoke-Setup([string]$script,[string]$action,[bool]$success=$true){
+           $result=@(& $ps51 -NoProfile -ExecutionPolicy Bypass -File $script -Action $action -InstallRoot $target -ShortcutParent $programs 2>&1)
+           if(($LASTEXITCODE -eq 0) -ne $success){$result|Select-Object -Last 12|Write-Output;throw ('W30_UNEXPECTED_ACTION_RESULT_'+$action)}
+           if($success){return (($result|ForEach-Object {[string]$_}) -join [Environment]::NewLine)|ConvertFrom-Json}
+          }
+          function Data-Hashes([string]$stage){
+           $data=Join-Path $stage 'data';$map=@{}
+           foreach($f in Get-ChildItem -LiteralPath $data -File -Recurse -Force){$map[$f.FullName.Substring($data.Length)]=(Get-FileHash -LiteralPath $f.FullName).Hash}
+           return $map
+          }
+          function Assert-Data([string]$stage,[hashtable]$expected){
+           $actual=Data-Hashes $stage
+           if($actual.Count -ne $expected.Count){throw 'W30_RETAINED_DATA_FILE_COUNT_CHANGED'}
+           foreach($key in $expected.Keys){if(!$actual.ContainsKey($key) -or $actual[$key] -cne $expected[$key]){throw 'W30_RETAINED_DATA_BYTES_CHANGED'}}
+          }
+          $running=$null
+          function Open-Original([string]$script,[string]$stage,[string]$source,[string]$phase){
+           $errorLog=Join-Path $env:RUNNER_TEMP ('w30-'+$phase+'.stderr')
+           $stdoutLog=Join-Path $env:RUNNER_TEMP ('w30-'+$phase+'.stdout')
+           $arguments='-NoProfile -ExecutionPolicy Bypass -File "'+$script+'" -Action Launch -InstallRoot "'+$target+'"'
+           $inherited=$env:PSModulePath
+           try{
+            $env:PSModulePath=Join-Path (Split-Path -Parent $ps51) 'Modules'
+            $launcher=Start-Process -FilePath $ps51 -ArgumentList $arguments -PassThru -RedirectStandardError $errorLog -RedirectStandardOutput $stdoutLog
+           }finally{$env:PSModulePath=$inherited}
+           $lease=Join-Path $target '.ktrade-w28c-active-process.lock'
+           $until=(Get-Date).AddSeconds(40)
+           do{
+            $launcher.Refresh()
+            if($launcher.HasExited){Write-Output ([IO.File]::ReadAllText($errorLog));throw ('W30_LAUNCH_EXITED_'+$phase)}
+            if(Test-Path -LiteralPath $lease){try{$owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json;if($owner.pid -gt 0){break}}catch{}}
+            Start-Sleep -Milliseconds 300
+           }while((Get-Date) -lt $until)
+           if(!(Test-Path -LiteralPath $lease)){throw ('W30_ORIGINAL_LEASE_ABSENT_'+$phase)}
+           $owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json
+           $shell=Get-Process -Id $owner.pid
+           $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
+           if($owner.source_sha -cne $source -or $owner.live_armed -or ![string]::Equals($cim.ExecutablePath,(Join-Path $stage 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'W30_NATIVE_RELEASE_CUSTODY_DRIFT'}
+           Click-Verified $shell 'Verify chart UI'
+           $null=Wait-Visible $shell 'Original chart DOM, Monaco editor and preferences controls observed.'
+           $engines=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+           if($engines.Count -ne 1){throw 'W30_ORIGINAL_ENGINE_OWNER_UNCLEAR'}
+           $engineID=[int]$engines[0].ProcessId
+           $ports=@(Get-NetTCPConnection -OwningProcess $engineID -State Listen|Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+           if($ports.Count -ne 1){throw 'W30_ORIGINAL_LOOPBACK_UNCLEAR'}
+           $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$ports[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
+           if($cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or $cap.live_orders_enabled -ne $false -or $cap.strategy_execution_enabled -ne $false -or $cap.paper_accounting_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W30_DISARM_NOT_PROVEN'}
+           Write-Output ('::notice::W30_REAL_INSTALLED_ORIGINAL_WEBVIEW2_NONCE_AND_DISARM_'+$phase+'=PASS')
+           return [pscustomobject]@{shell=$shell;launcher=$launcher;engineID=$engineID;stage=$stage}
+          }
+          function Close-Original([object]$process){
+           if(![W30Native]::PostMessage($process.shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'W30_NORMAL_CLOSE_REFUSED'}
+           if(!$process.shell.WaitForExit(25000) -or !$process.launcher.WaitForExit(25000) -or $process.launcher.ExitCode -ne 0){throw 'W30_ORIGINAL_SHUTDOWN_FAILED'}
+           if((Get-Process -Id $process.engineID -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath (Join-Path $target '.ktrade-w28c-active-process.lock'))){throw 'W30_ENGINE_OR_LEASE_REMAINED'}
+           # Let the closed WebView2 profile's last handles and flushes settle before
+           # original W28D performs its own bounded race-detecting full-data capture.
+           Start-Sleep -Seconds 2
+          }
+          try{
+           $old=Invoke-Setup $oldSetup 'Install'
+           if($old.source_sha -cne $oldSHA -or $old.app_launched -or $old.live_armed){throw 'W30_ORIGINAL_INSTALL_CUSTODY_DRIFT'}
+           $oldInstalledSetup=Join-Path $target 'maintenance/KTRADE-Setup.ps1'
+           $folder=Join-Path $programs ('KTRADE-'+$old.selection_digest.Substring(0,16))
+           [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w30-shortcut-folder.txt'),$folder)
+           $rootReceipt=Join-Path $target '.ktrade-w29-install.json'
+           $originalReceiptHash=(Get-FileHash -LiteralPath $rootReceipt).Hash
+           $sentinel=Join-Path $target 'unknown-owner-sentinel'
+           [IO.File]::WriteAllText($sentinel,'KEEP_UNKNOWN_BYTES')
+           $opened=@(Open-Original $oldInstalledSetup $old.candidate_directory $oldSHA 'PREVIOUS')
+           $running=$opened[-1]
+           # Print only the metadata-only notice emitted before the process record.
+           $opened|Where-Object {$_ -is [string]}|Write-Output
+           Invoke-Setup $newSetup 'Update' $false
+           if((Get-FileHash -LiteralPath $rootReceipt).Hash -cne $originalReceiptHash -or (Test-Path -LiteralPath (Join-Path $target '.ktrade-w29-install-incomplete'))){throw 'W30_ACTIVE_UPDATE_MUTATED_INSTALLATION'}
+           Close-Original $running;$running=$null
+           foreach($entry in @(@{path='pine-library/w30-kept-native.pine';body="//@version=6`nindicator('W30 retained native Pine')"},@{path='strategies/w30-kept-native.pine';body="//@version=6`nstrategy('W30 retained disarmed source')"},@{path='unknown/w30-opaque.bin';body='OPAQUE VERSION LOCAL BYTES'})){
+            $path=Join-Path $old.candidate_directory ('data/'+$entry.path)
+            New-Item -ItemType Directory -Path (Split-Path -Parent $path) -Force|Out-Null
+            [IO.File]::WriteAllText($path,$entry.body,[Text.UTF8Encoding]::new($false))
+           }
+           $oldData=Data-Hashes $old.candidate_directory
+           $changed=Invoke-Setup $newSetup 'Update'
+           if($changed.schema -cne 'ktrade.installed-transition.v1' -or $changed.action -cne 'select' -or $changed.before.source_sha -cne $oldSHA -or $changed.after.source_sha -cne $newSHA -or $changed.live_armed -ne $false -or $changed.supported_files -lt 2){throw 'W30_NATIVE_UPDATE_RECEIPT_INVALID'}
+           $newStage=$changed.after.candidate_directory
+           $newMaint=Join-Path $target ('maintenance-'+(Split-Path -Leaf (Split-Path -Parent $newStage)))
+           $newInstalledSetup=Join-Path $newMaint 'KTRADE-Setup.ps1'
+           $newInspect=Invoke-Setup $newInstalledSetup 'Inspect'
+           if($newInspect.source_sha -cne $newSHA){throw 'W30_SELECTED_NEW_MAINTENANCE_INSPECTION_FAILED'}
+           Assert-Data $old.candidate_directory $oldData
+           if((Get-FileHash -LiteralPath (Join-Path $target '.ktrade-w30-before-000002.json')).Hash -cne $originalReceiptHash){throw 'W30_ORIGINAL_RECEIPT_BYTES_NOT_RETAINED'}
+           foreach($rel in @('pine-library/w30-kept-native.pine','strategies/w30-kept-native.pine')){
+            if((Get-FileHash -LiteralPath (Join-Path $old.candidate_directory ('data/'+$rel))).Hash -cne (Get-FileHash -LiteralPath (Join-Path $newStage ('data/'+$rel))).Hash){throw 'W30_SUPPORTED_NATIVE_BYTES_DIFFER'}
+           }
+           if((Test-Path -LiteralPath (Join-Path $newStage 'data/webview2-profile')) -or (Test-Path -LiteralPath (Join-Path $newStage 'data/unknown/w30-opaque.bin'))){throw 'W30_BROWSER_OR_UNKNOWN_STATE_AUTOMATICALLY_MIGRATED'}
+           Write-Output '::notice::W30_REAL_DISTINCT_BUILD_UPDATE_SUPPORTED_NATIVE_BYTES_FULL_OLD_DATA_AND_MAINTENANCE_RETAINED=PASS'
+           # Both the incoming archive and previous distribution can now disappear.
+           Remove-Item -LiteralPath $oldBundle,$newBundle -Recurse -Force
+           $opened=@(Open-Original $newInstalledSetup $newStage $newSHA 'UPDATED')
+           $running=$opened[-1];$opened|Where-Object {$_ -is [string]}|Write-Output
+           Invoke-Setup $newInstalledSetup 'Rollback' $false
+           if(Test-Path -LiteralPath (Join-Path $target '.ktrade-w29-install-incomplete')){throw 'W30_ACTIVE_ROLLBACK_MARKED_INSTALLATION'}
+           Close-Original $running;$running=$null
+           $newData=Data-Hashes $newStage
+           $opaque=Join-Path $old.candidate_directory 'data/unknown/w30-opaque.bin'
+           $raw=[IO.File]::ReadAllBytes($opaque)
+           try{
+            [IO.File]::WriteAllBytes($opaque,[byte[]]($raw+[byte]120))
+            Invoke-Setup $newInstalledSetup 'Rollback' $false
+            $still=Invoke-Setup $newInstalledSetup 'Inspect'
+            if($still.selection_digest -cne $changed.after.selection_digest){throw 'W30_BAD_ROLLBACK_CHANGED_SELECTION'}
+           }finally{[IO.File]::WriteAllBytes($opaque,$raw)}
+           $reverted=Invoke-Setup $newInstalledSetup 'Rollback'
+           if($reverted.action -cne 'rollback' -or $reverted.after.source_sha -cne $oldSHA -or $reverted.after.candidate_directory -cne $old.candidate_directory -or $reverted.after.selection_digest -ceq $old.selection_digest -or $reverted.live_armed -ne $false){throw 'W30_NATIVE_ROLLBACK_RECEIPT_INVALID'}
+           Assert-Data $old.candidate_directory $oldData
+           Assert-Data $newStage $newData
+           $oldAgain=Invoke-Setup $oldInstalledSetup 'Inspect'
+           if($oldAgain.source_sha -cne $oldSHA){throw 'W30_ORIGINAL_LEGACY_MAINTENANCE_NOT_RESTORED'}
+           Write-Output '::notice::W30_REAL_INSTALLED_ROLLBACK_OLD_AND_NEW_DATA_BYTE_PARITY_LEGACY_MAINTENANCE=PASS'
+           $opened=@(Open-Original $oldInstalledSetup $old.candidate_directory $oldSHA 'ROLLED_BACK')
+           $running=$opened[-1];$opened|Where-Object {$_ -is [string]}|Write-Output
+           Close-Original $running;$running=$null
+           Assert-Data $newStage $newData
+           if([IO.File]::ReadAllText($sentinel) -cne 'KEEP_UNKNOWN_BYTES'){throw 'W30_ROOT_UNKNOWN_BYTES_CHANGED'}
+           Write-Output '::notice::W30_PREVIOUS_UPDATED_ROLLED_BACK_REAL_WINDOWS_COLD_LAUNCH_NO_AUTO_REARM=PASS'
+          }finally{
+           $env:PATH=$savedPath
+           if($null -ne $running){Stop-Process -Id $running.shell.Id,$running.launcher.Id -Force -ErrorAction SilentlyContinue}
+          }
+          exit 0
+      - name: Purge private source and disposable installed launch candidate
+        if: always()
+        shell: pwsh
+        run: |
+          $shortcutRecord=Join-Path $env:RUNNER_TEMP 'w30-shortcut-folder.txt'
+          if(Test-Path -LiteralPath $shortcutRecord){
+            $folder=[IO.File]::ReadAllText($shortcutRecord)
+            if([IO.Path]::GetFileName($folder) -cmatch '^KTRADE-[a-f0-9]{16}$'){
+              foreach($name in @('KTRADE.lnk','.ktrade-shortcut-receipt.json','unknown-owner-note.txt')){
+                Remove-Item -LiteralPath (Join-Path $folder $name) -Force -ErrorAction SilentlyContinue
+              }
+              if((Test-Path -LiteralPath $folder) -and @(Get-ChildItem -LiteralPath $folder -Force).Count -eq 0){[IO.Directory]::Delete($folder,$false)}
+            }
+          }
+          foreach($p in @((Join-Path $env:GITHUB_WORKSPACE 'current'),(Join-Path $env:GITHUB_WORKSPACE 'previous'),(Join-Path $env:GITHUB_WORKSPACE 'w30 installed versions with spaces'),(Join-Path $env:GITHUB_WORKSPACE 'w30-old-distribution'),(Join-Path $env:GITHUB_WORKSPACE 'w30-new-distribution'))){
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-setup-package-*'|Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          foreach($name in @('w30-build-root.txt','w28n-original-fixture.json')){
+            $p=Join-Path $env:RUNNER_TEMP $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue}
+          }
+
