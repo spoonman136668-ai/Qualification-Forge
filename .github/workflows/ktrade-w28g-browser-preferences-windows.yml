@@ -32,12 +32,12 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 0bc9ff7feb240970257510106f87186bfe8a5cae
+          ref: 76df3e29cbe89403eeef6075ba4484a488312484
           path: checked-new
           fetch-depth: 4
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Prove three-file change immutable source trees and verified W28F
+      - name: Prove four-file change immutable source trees and verified W28F
         shell: pwsh
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -47,19 +47,19 @@ jobs:
           $new=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
           if((& git -C $old rev-parse HEAD).Trim() -cne 'b332d3c556290791108b63912da8e207f09718a2' -or
              (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne '6e7ac4532fb28431656d358e71165d00e4ccdf55' -or
-             (& git -C $new rev-parse HEAD).Trim() -cne '0bc9ff7feb240970257510106f87186bfe8a5cae' -or
-             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '6f91aad13eab9923fbb389d97a62acca604bbd25' -or
-             (& git -C $new rev-parse HEAD~3).Trim() -cne 'b332d3c556290791108b63912da8e207f09718a2'){throw 'W28G_EXACT_SOURCES_NOT_PINNED'}
+             (& git -C $new rev-parse HEAD).Trim() -cne '76df3e29cbe89403eeef6075ba4484a488312484' -or
+             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '386e5dcfa2a1e8839f753b900ff87c9023b6e692' -or
+             (& git -C $new rev-parse HEAD~6).Trim() -cne 'b332d3c556290791108b63912da8e207f09718a2'){throw 'W28G_EXACT_SOURCES_NOT_PINNED'}
           $got=@(& git -C $new diff --name-only b332d3c556290791108b63912da8e207f09718a2 HEAD | Sort-Object -CaseSensitive)
-          $want=@('static/ktrade_preferences_transfer.js','static/trading.html','tests/rb3_w28g_browser_preferences_transfer.test.cjs' | Sort-Object -CaseSensitive)
-          if(Compare-Object -ReferenceObject $want -DifferenceObject $got){throw 'W28G_DELTA_OUTSIDE_CHART_SETTINGS_SCOPE'}
+          $want=@('static/ktrade_preferences_transfer.js','static/trading.html','tests/rb3_w28g_browser_preferences_transfer.test.cjs','tools/wails-pilot/frontend/index.html' | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $want -DifferenceObject $got){throw 'W28G_FOUR_FILE_SCOPE_DRIFT'}
           foreach($p in @($old,$new)){
             if(@(& git -C $p status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28G_DIRTY_SOURCE'}
           }
           $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40502175906' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
           if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or
              $r.head_sha -cne 'edbd7ace206f0f515583aec6181f7bd91569320d'){throw 'W28G_W28F_PREDECESSOR_NOT_VERIFIED'}
-          Write-Output '::notice::W28G_EXACT_SOURCE_TREE_THREE_FILES_AND_W28F_PREDECESSOR=PASS'
+          Write-Output '::notice::W28G_EXACT_SOURCE_TREE_FOUR_FILES_AND_W28F_PREDECESSOR=PASS'
       - name: Install native Node.js for authentic UI and original readers
         uses: actions/setup-node@v4
         with:
@@ -99,7 +99,7 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W28G_OFFLINE_VENDOR_STAGING_FAIL'}
             if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28G_NATIVE_BUILD_MUTATED_TRACKED_SOURCE'}
-            $build=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha '0bc9ff7feb240970257510106f87186bfe8a5cae' -ReleaseCandidate)
+            $build=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha '76df3e29cbe89403eeef6075ba4484a488312484' -ReleaseCandidate)
             if($LASTEXITCODE -ne 0 -or
                $build -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){
               throw 'W28G_ORIGINAL_SOURCE_BOUND_WAILS_PACKAGE_BUILD_FAIL'
