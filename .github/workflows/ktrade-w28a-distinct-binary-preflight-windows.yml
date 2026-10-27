@@ -1,0 +1,109 @@
+name: KTRADE W28A genuine distinct build preflight Windows
+on:
+  push:
+    branches: [qualification/ktrade-w28a-distinct-binary-preflight-20261027]
+    paths: [.github/workflows/ktrade-w28a-distinct-binary-preflight-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28a-distinct-build-readonly
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private W28A engineering candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: ec5c16d64dab19b6ccb389bca999917915f44c28
+          path: checked-private
+          fetch-depth: 5
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Pin exact SHA tree parent and three additive paths
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          $got=(& git -C $src rev-parse HEAD).Trim()
+          $root=(& git -C $src rev-parse HEAD~3).Trim()
+          $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
+          if($got -cne 'ec5c16d64dab19b6ccb389bca999917915f44c28' -or $root -cne '9774043a769e8d9865c7b60dfdab95691f562b05' -or $tree -cne '3c4ac68f262d7650c57164f2afc67985f448134c'){throw 'W28A_EXACT_SOURCE_OR_PARENT_OR_TREE_DRIFT'}
+          $actual=@(& git -C $src diff --name-only 9774043a769e8d9865c7b60dfdab95691f562b05 HEAD | Sort-Object -CaseSensitive)
+          $expected=@('tools/wails-pilot/backend/release_compare.go','tools/wails-pilot/backend/release_compare_test.go','tools/wails-pilot/cmd/release-compare/main.go' | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $expected -DifferenceObject $actual){throw 'W28A_THREE_NEW_FILE_BOUNDARY_DRIFT'}
+          if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28A_DIRTY_SOURCE'}
+          Write-Output '::notice::W28A_EXACT_SHA_TREE_AND_BOUNDED_3_PATH_DELTA=PASS'
+      - name: Reuse independently green W27 Windows prerequisite
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $h=@{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40471428725' -Headers $h
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne '7b78913868bdd1a40ffde8860d4e29e04774d1af'){throw 'W28A_W27_QUALIFICATION_WITNESS_NOT_GREEN'}
+          Write-Output '::notice::W28A_EXACT_W27_WITNESS_REUSED=PASS'
+      - name: Windows Go 1.25 toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-private/go.sum
+            checked-private/tools/wails-pilot/go.sum
+      - name: Focused W28A plus affected W26 W27 interface qualification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private/tools/wails-pilot')
+          try {
+            & go test -mod=readonly -count=1 -run '^TestW28' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28A_FOCUSED_TESTS_FAILED'}
+            & go test -mod=readonly -count=1 -run '^TestW2[67]' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28A_AFFECTED_INTERFACE_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28A_WAILS_MODULE_VET_FAILED'}
+            & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE 'release-compare.exe') ./cmd/release-compare
+            if($LASTEXITCODE -ne 0){throw 'W28A_COMPARISON_CLI_BUILD_FAILED'}
+            & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE 'release-switch.exe') ./cmd/release-switch
+            if($LASTEXITCODE -ne 0){throw 'W28A_SELECTION_CLI_REGRESSION_BUILD_FAILED'}
+            & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE 'release-extract.exe') ./cmd/release-extract
+            if($LASTEXITCODE -ne 0){throw 'W28A_EXTRACTION_CLI_REGRESSION_BUILD_FAILED'}
+          } finally { Pop-Location }
+          Write-Output '::notice::W28A_FOCUSED_AFFECTED_VET_AND_THREE_NATIVE_CLI_BUILDS=PASS'
+      - name: One final complete Go integration regression of both modules
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          Push-Location $src
+          try {
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28A_ORIGINAL_ENGINE_FULL_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28A_ORIGINAL_ENGINE_VET_FAILED'}
+          } finally { Pop-Location }
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try {
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28A_WAILS_FULL_REGRESSION_FAILED'}
+          } finally { Pop-Location }
+          Write-Output '::notice::W28A_FINAL_ENGINE_AND_WAILS_FULL_REGRESSION=PASS'
+          Write-Output '::notice::W28A_NO_INSTALLED_DATA_NO_APP_START_NO_TRADING_OR_RELEASE_PROMOTION=PASS'
+      - name: Purge private source and transient executables
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($p in @('checked-private','release-compare.exe','release-switch.exe','release-extract.exe')){
+            $target=Join-Path $env:GITHUB_WORKSPACE $p
+            if(Test-Path -LiteralPath $target){Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction SilentlyContinue}
+          }
