@@ -1,0 +1,209 @@
+name: KTRADE W28K original Go served chart and Windows browser state
+on:
+  push:
+    branches: [qualification/ktrade-w28k-real-served-chart-windows-20261027]
+    paths: [.github/workflows/ktrade-w28k-real-served-chart-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28k-original-real-chart
+  cancel-in-progress: false
+jobs:
+  real-served-chart:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    steps:
+      - name: Checkout exact witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout W28J frozen original KTRADE source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0e6d2c4073e20bc05096299e3ac96c6671fa333b
+          path: previous
+          persist-credentials: false
+          fetch-depth: 2
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact W28K original private source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 17914d7a69a41b0fe832cb0824ae5cbd487a1087
+          path: current
+          persist-credentials: false
+          fetch-depth: 7
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify pinned original Go source trees scope and W28J Windows predecessor
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          $new=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $old rev-parse HEAD).Trim() -cne '0e6d2c4073e20bc05096299e3ac96c6671fa333b' -or
+             (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'cbfcf267173ec509963279ba721221858a2bd016' -or
+             (& git -C $new rev-parse HEAD).Trim() -cne '17914d7a69a41b0fe832cb0824ae5cbd487a1087' -or
+             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '61ef3bfbb84418f7b1a2563ad98ee4f91f93667e' -or
+             (& git -C $new rev-parse HEAD~5).Trim() -cne '0e6d2c4073e20bc05096299e3ac96c6671fa333b'){throw 'W28K_NOT_EXACT_ORIGINAL_CHART_SOURCE'}
+          $want=@('static/w28i_chart_probe.js','static/w28k_real_chart_transfer.js',
+             'templates/chart.tmpl','tests/rb3_w28k_real_served_chart_transfer.test.cjs' | Sort-Object -CaseSensitive)
+          $got=@(& git -C $new diff --name-only 0e6d2c4073e20bc05096299e3ac96c6671fa333b HEAD | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $want -DifferenceObject $got){throw 'W28K_FOUR_FILE_CHART_ONLY_SCOPE_DRIFT'}
+          $prior=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40520642221' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($prior.status -cne 'completed' -or $prior.conclusion -cne 'success' -or
+             $prior.head_sha -cne 'ea5bb092ee0b5b53a041ffcbca9589fb8a5ae3a2'){throw 'W28K_ORIGINAL_W28J_FINANCIAL_PREDECESSOR_NOT_QUALIFIED'}
+          Write-Output '::notice::W28K_ACTUAL_GO_CHART_SOURCE_FOUR_FILE_SCOPE_AND_W28J_PREDECESSOR=PASS'
+      - name: Native Windows Node 24 for genuine chart and source readers
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original W17 browser readers and real template/desktop child probe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          foreach($file in @('static/w28k_real_chart_transfer.js','static/w28i_chart_probe.js')){
+            & node --check (Join-Path $src $file)
+            if($LASTEXITCODE -ne 0){throw 'W28K_JAVASCRIPT_PARSE_INVALID'}
+          }
+          & node (Join-Path $src 'tests/rb3_w28k_real_served_chart_transfer.test.cjs') $src
+          if($LASTEXITCODE -ne 0){throw 'W28K_REAL_ORIGINAL_SOURCE_READERS_COLD_IMPORT_FAILED'}
+          & node (Join-Path $src 'tests/rb3_w28i_desktop_chart_handshake.test.cjs') $src
+          if($LASTEXITCODE -ne 0){throw 'W28K_DESKTOP_WAILS_PROBE_REGRESSION_FAILED'}
+          & node (Join-Path $src 'tests/rb3_w28g_browser_preferences_transfer.test.cjs') $src
+          if($LASTEXITCODE -ne 0){throw 'W28K_LEGACY_STATIC_ROUTE_REGRESSION_FAILED'}
+          Write-Output '::notice::W28K_GENUINE_W17_BROWSER_STATE_AND_CHART_SCRIPT_ORIGIN_NEGATIVES=PASS'
+      - name: Install Windows Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            current/go.sum
+            current/tools/wails-pilot/go.sum
+      - name: Native source build real Wails and Go engine then GET actual live Go /chart
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $root=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+          Push-Location $src
+          try {
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W28K_OFFLINE_NPM_INSTALL_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W28K_NATIVE_OFFLINE_VENDOR_STAGING_FAILED'}
+            if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28K_BUILD_MUTATED_TRACKED_ORIGINAL_SOURCE'}
+            $build=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha '17914d7a69a41b0fe832cb0824ae5cbd487a1087' -ReleaseCandidate)
+            if($LASTEXITCODE -ne 0 -or $build -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){
+              throw 'W28K_ORIGINAL_SOURCE_BOUND_NATIVE_RELEASE_BUILD_FAILED'
+            }
+          }finally{Pop-Location}
+          $stage=Join-Path $root 'KTRADE-WailsPortable'
+          $zipPath=Join-Path $root 'KTRADE-WailsPortable.zip'
+          if(!(Test-Path -LiteralPath $zipPath)){throw 'W28K_REAL_NATIVE_RELEASE_ZIP_ABSENT'}
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $zip=[IO.Compression.ZipFile]::OpenRead($zipPath)
+          try{
+            foreach($row in @(
+              @{rel='templates/chart.tmpl';src='templates/chart.tmpl'},
+              @{rel='static/w28k_real_chart_transfer.js';src='static/w28k_real_chart_transfer.js'},
+              @{rel='static/w28i_chart_probe.js';src='static/w28i_chart_probe.js'}
+            )){
+              $matches=@($zip.Entries|Where-Object {$_.FullName.EndsWith('/'+$row.rel,[StringComparison]::Ordinal)})
+              if($matches.Count -ne 1){throw 'W28K_GO_SERVER_ASSETS_NOT_SHIPPED_IN_REAL_WAILS_RELEASE'}
+              $stream=$matches[0].Open()
+              try{
+                $mem=[IO.MemoryStream]::new()
+                $stream.CopyTo($mem)
+                if(![Linq.Enumerable]::SequenceEqual([byte[]]$mem.ToArray(),[byte[]][IO.File]::ReadAllBytes((Join-Path $src $row.src)))){
+                  throw 'W28K_RELEASE_ORIGINAL_CHART_BYTES_DIFFER_FROM_SOURCE'
+                }
+              }finally{$stream.Dispose()}
+            }
+          }finally{$zip.Dispose()}
+          Write-Output '::notice::W28K_REAL_SOURCE_BUILT_WAILS_GO_AND_SHIPPED_ACTUAL_CHART_BYTE_PARITY=PASS'
+
+          # Launch ONLY the original disarmed Go loopback server from the
+          # isolated fresh-data candidate; no Wails UI or installed profile.
+          $env:KTRADE_RECOVERY_ISOLATED='1'
+          $env:KTRADE_PORTABLE_DISARMED='0'
+          $env:KTRADE_USE_LEGACY_CDP_CONFIG='0'
+          $env:KTRADE_WAILS_OWNED='0'
+          $env:KTRADE_PAPER_SESSION_ROOT=''
+          $env:KTRADE_PAPER_CUSTODY_REVIEW_ROOT=''
+          $env:KTRADE_W17D0_SYNTHETIC_ORIGIN_PORT=''
+          $errLog=Join-Path $env:RUNNER_TEMP 'w28k-isolated-go-stderr.txt'
+          $outLog=Join-Path $env:RUNNER_TEMP 'w28k-isolated-go-stdout.txt'
+          $child=Start-Process -FilePath (Join-Path $stage 'ktrade-engine.exe') -WorkingDirectory $stage -RedirectStandardError $errLog -RedirectStandardOutput $outLog -PassThru
+          try{
+            $listen=$null
+            for($i=0;$i -lt 60;$i++){
+              Start-Sleep -Milliseconds 350
+              if(Test-Path -LiteralPath $errLog){
+                $txt=[IO.File]::ReadAllText($errLog)
+                if($txt -match 'KTRADE_ISOLATED_LISTEN=(127\.0\.0\.1:[0-9]{1,5})'){$listen=$Matches[1];break}
+              }
+              if($child.HasExited){throw 'W28K_REAL_ORIGINAL_DISARMED_GO_SERVER_EXITED'}
+            }
+            if(!$listen){throw 'W28K_ACTUAL_GO_CHART_SERVER_LISTENER_ABSENT'}
+            $chart=Invoke-WebRequest -Uri ('http://'+$listen+'/chart') -TimeoutSec 10 -UseBasicParsing
+            if($chart.StatusCode -ne 200 -or
+               !$chart.Content.Contains('id="w28k-export"') -or
+               !$chart.Content.Contains('id="w28k-import"') -or
+               !$chart.Content.Contains('id="pine-editor-main"') -or
+               !$chart.Content.Contains('src="/static/w28k_real_chart_transfer.js"') -or
+               !$chart.Content.Contains('src="/static/w28i_chart_probe.js"')){
+              throw 'W28K_REAL_GO_SERVED_CHART_DOES_NOT_EXPOSE_CORRECTED_UI'
+            }
+            $js=Invoke-WebRequest -Uri ('http://'+$listen+'/static/w28k_real_chart_transfer.js') -TimeoutSec 10 -UseBasicParsing
+            if($js.StatusCode -ne 200 -or !$js.Content.Contains('ktrade.w28k.real-chart-preferences.v1')){
+              throw 'W28K_NATIVE_GO_DID_NOT_SERVE_REAL_BROWSER_READER_ADAPTER'
+            }
+            $cap=Invoke-WebRequest -Uri ('http://'+$listen+'/api/operator/capabilities') -TimeoutSec 10 -UseBasicParsing
+            $caps=$cap.Content|ConvertFrom-Json
+            if($cap.StatusCode -ne 200 -or $caps.paper_orders_enabled -cne $false -or
+               $caps.live_orders_enabled -cne $false -or $caps.strategy_execution_enabled -cne $false){
+              throw 'W28K_ORIGINAL_REAL_GO_ENGINE_NOT_DISARMED'
+            }
+            Write-Output '::notice::W28K_ACTUAL_NATIVE_RUNNING_GO_GET_CHART_UI_AND_SOURCE_JS=PASS'
+            Write-Output '::notice::W28K_ORIGINAL_ISOLATED_GO_PAPER_LIVE_STRATEGY_ALL_DISARMED=PASS'
+          }finally{
+            if($child -and !$child.HasExited){Stop-Process -Id $child.Id -Force -ErrorAction SilentlyContinue}
+          }
+      - name: Complete original engine and nested Wails Go test and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try {
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28K_ORIGINAL_ENGINE_FULL_GO_TEST_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28K_ORIGINAL_ENGINE_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try {
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28K_REAL_WAILS_GO_TEST_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28K_REAL_WAILS_GO_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W28K_FULL_ORIGINAL_NATIVE_GO_AND_WAILS_TEST_VET=PASS'
+      - name: Clean original private sources and isolated release
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($dir in @('previous','current')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
