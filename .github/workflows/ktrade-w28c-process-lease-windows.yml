@@ -1,0 +1,113 @@
+name: KTRADE W28C genuine process lease and switch exclusion Windows
+on:
+  push:
+    branches: [qualification/ktrade-w28c-process-lease-windows-20261027]
+    paths: [.github/workflows/ktrade-w28c-process-lease-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28c-process-lease-windows
+  cancel-in-progress: false
+jobs:
+  process-lease:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - name: Checkout pinned qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private W28C candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 40bde6f352a4ca9ecdd41d1064cb0044295137b8
+          path: checked-private
+          fetch-depth: 5
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Pin exact source tree parent four-file scope and private custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          if((& git -C $p rev-parse HEAD).Trim() -cne '40bde6f352a4ca9ecdd41d1064cb0044295137b8' -or
+             (& git -C $p rev-parse 'HEAD^{tree}').Trim() -cne '14281b42395dcf4d5aa83ec7464a4b488f33b9b9' -or
+             (& git -C $p rev-parse HEAD~4).Trim() -cne 'cbe4aa2acae70534a87905fd9ac915cbee9eafac'){throw 'W28C_IMMUTABLE_SOURCE_PARENT_TREE_MISMATCH'}
+          $actual=@(& git -C $p diff --name-only cbe4aa2acae70534a87905fd9ac915cbee9eafac HEAD | Sort-Object -CaseSensitive)
+          $expected=@('tools/wails-pilot/backend/release_process_lease.go','tools/wails-pilot/backend/release_process_lease_test.go','tools/wails-pilot/backend/release_switch.go','tools/wails-pilot/main_windows.go' | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $expected -DifferenceObject $actual){throw 'W28C_FOUR_PATH_SCOPE_DRIFT'}
+          if(@(& git -C $p status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28C_CHECKOUT_NOT_CLEAN'}
+          Write-Output '::notice::W28C_EXACT_PARENT_SOURCE_TREE_FOUR_PATH_DELTA=PASS'
+      - name: Require immutable W28B two-build native predecessor
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40482604476' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne '3e6653987bbb19005f724de30e7de2c881b649d6'){throw 'W28C_TWO_BUILD_PREDECESSOR_NOT_VERIFIED'}
+          Write-Output '::notice::W28C_W28B_REAL_TWO_BUILD_WITNESS_REUSED=PASS'
+      - name: Windows Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-private/go.sum
+            checked-private/tools/wails-pilot/go.sum
+      - name: Actual independent process holds lease while switch and rollback refused
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-private/tools/wails-pilot')
+          try {
+            & go test -mod=readonly -count=1 -timeout 2m -run '^TestW28C' -v ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28C_REAL_SUBPROCESS_OR_STALE_LEASE_TEST_FAILED'}
+            & go test -mod=readonly -count=1 -run '^TestW2[678]' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28C_W26_W27_W28_INTERFACES_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28C_GO_VET_FAILED'}
+            foreach($cmd in @('release-extract','release-switch','release-compare')){
+              & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE ($cmd+'.exe')) ('./cmd/'+$cmd)
+              if($LASTEXITCODE -ne 0){throw ('W28C_RELEASE_CLI_BUILD_FAILED_'+$cmd)}
+            }
+            & go build -mod=readonly -tags desktop,production -ldflags '-H windowsgui' -o (Join-Path $env:GITHUB_WORKSPACE 'ktrade-wails-disarmed.exe') .
+            if($LASTEXITCODE -ne 0){throw 'W28C_GENUINE_WINDOWS_WAILS_SHELL_BUILD_FAILED'}
+          } finally {Pop-Location}
+          Write-Output '::notice::W28C_INDEPENDENT_CHILD_PROCESS_SWITCH_ROLLBACK_SECOND_OWNER_EXCLUSION=PASS'
+          Write-Output '::notice::W28C_GENUINE_WAILS_SHELL_AND_RELEASE_UTILITIES_BUILD=PASS'
+      - name: One final full Go original plus Wails native regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28C_FINAL_ORIGINAL_FULL_TEST_FAIL'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28C_FINAL_ORIGINAL_VET_FAIL'}
+            & go build -mod=readonly -tags ktrade_full -o (Join-Path $env:GITHUB_WORKSPACE 'ktrade-engine-disarmed.exe') ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W28C_ORIGINAL_ENGINE_BUILD_FAIL'}
+          } finally {Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28C_FINAL_WAILS_FULL_TEST_FAIL'}
+          } finally {Pop-Location}
+          Write-Output '::notice::W28C_FINAL_ORIGINAL_WAILS_FULL_REGRESSION_VET_BUILD=PASS'
+          Write-Output '::notice::W28C_NO_OWNER_PROFILE_NO_APP_LAUNCH_NO_LIVE_TRADE_NO_PROMOTION=PASS'
+      - name: Purge private source and transient binaries
+        if: always()
+        shell: pwsh
+        run: |
+          $root=$env:GITHUB_WORKSPACE
+          foreach($name in @('checked-private','ktrade-wails-disarmed.exe','ktrade-engine-disarmed.exe','release-extract.exe','release-switch.exe','release-compare.exe')){
+            $p=Join-Path $root $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
