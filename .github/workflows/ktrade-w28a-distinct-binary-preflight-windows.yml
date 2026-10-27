@@ -84,6 +84,12 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          # Windows runner default TEMP may contain a RUNNER~1 short-name alias.
+          # Both the historical W18 fixture and production validator require
+          # the same physical path spelling; adjust only test process temp.
+          if(-not (Test-Path -LiteralPath $env:RUNNER_TEMP -PathType Container)){throw 'W28A_RUNNER_TEMP_NOT_ORDINARY'}
+          $env:TMP=$env:RUNNER_TEMP
+          $env:TEMP=$env:RUNNER_TEMP
           $src=Join-Path $env:GITHUB_WORKSPACE 'checked-private'
           Push-Location $src
           try {
