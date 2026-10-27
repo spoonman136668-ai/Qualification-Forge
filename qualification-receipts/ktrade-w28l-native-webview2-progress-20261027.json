@@ -1,0 +1,38 @@
+{
+  "schema": "ktrade.w28l.engineering-progress.v1",
+  "source_sha": "56ce927f086910e31a827d705b5b9fec7ac36a35",
+  "source_tree": "8809d5418a5843bc2cf9e3c0f04245ed5a7e4f89",
+  "witness_sha": "fc96b256b79ef1226147f2727c512a59a134a15b",
+  "run_id": 40546641241,
+  "job_id": 122338897719,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40546641241",
+  "status": "FAILED_NOT_QUALIFIED",
+  "observed_passes": [
+    "exact W28K source and original green foundation",
+    "native Windows original Go and Wails compilation",
+    "original browser favorites, timeframe, pane layout cold restarts",
+    "real Wails parent Verify chart UI button and original chart nonce response",
+    "real WebView2 settings export created original schema JSON"
+  ],
+  "blocker": "W28L_NATIVE_PICKER_CANCEL_DID_NOT_RELEASE_MODAL_OWNER",
+  "interpretation": "Native picker was located with process/window ownership. UIA invocation and native bounded Cancel click did not yield the required parent-enabled state. Cause remains unresolved: witness semantics, remaining modal or application behavior. No product defect inferred without further evidence.",
+  "not_proven": [
+    "successful settings import",
+    "cancellation and clean shutdown",
+    "final full Go and Wails regression for this witness",
+    "real owner-profile migration",
+    "product completion"
+  ],
+  "paper_orders_enabled": false,
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "source_modified": false,
+  "protected_refs_modified": false,
+  "earlier_runs": [
+    40543213162,
+    40543988620,
+    40544624700,
+    40545336849,
+    40545944408
+  ]
+}
