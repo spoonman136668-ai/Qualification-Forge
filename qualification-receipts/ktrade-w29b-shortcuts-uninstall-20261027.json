@@ -1,0 +1,62 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W29B owned Windows shortcuts and data-preserving fresh uninstall",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "2ef4b548b1776ade4a05f99a3943568c88c1f725",
+  "source_tree": "fb8eb97f4511f28fad0e11c163e507d626e48c8c",
+  "parent_sha": "f744558d2380dca1f7e1d67aa44990f8552d2907",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/158",
+  "changed_paths": [
+    "windows/Manage-KTRADE-FreshInstall.ps1",
+    "tools/wails-pilot/backend/fresh_launch.go",
+    "tools/wails-pilot/backend/fresh_uninstall.go",
+    "tools/wails-pilot/backend/release_switch.go",
+    "tools/wails-pilot/backend/fresh_uninstall_test.go",
+    "tools/wails-pilot/cmd/release-maintain/main.go"
+  ],
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "witness_sha": "94c2463b4406e7d956e92566bbf41b951fb03c31",
+  "run_id": 40591669507,
+  "job_id": 122497204380,
+  "foundation": {
+    "gate": "W29A installed launch",
+    "run_id": 40589825348,
+    "witness_sha": "bf644b7364b451b1299d256c81cffeaa9efd4116",
+    "source_sha": "f744558d2380dca1f7e1d67aa44990f8552d2907"
+  },
+  "paper_orders_enabled": false,
+  "live_armed": false,
+  "owner_data_touched": false,
+  "protected_refs_changed": false,
+  "merged": false,
+  "no_claims": [
+    "polished self-contained installer UI or installed maintenance-tool packaging",
+    "Windows Apps and Features registry registration",
+    "automatic retry or repair of interrupted uninstall",
+    "installed-root updater or rollback",
+    "actual owner installation or historical-data cutover",
+    "whole-product or protected release acceptance",
+    "production deployment or broker orders"
+  ],
+  "status": "completed",
+  "conclusion": "success",
+  "focused_backend_race_seconds": 3.056,
+  "final_backend_suite_seconds": 1.782,
+  "passed": [
+    "Immutable source/tree, six-path scope and exact qualified W29A foundation checked",
+    "Source PowerShell AST parsed and affected original extraction/selection/process-lease plus fresh install/launch/uninstall race tests passed",
+    "One complete frozen-source original Go and Wails regression and vet passed before build",
+    "Original source-built paired portable release, native install/launch/switch and exact-source-bound maintenance tools built",
+    "Real Start Menu .lnk created using Windows WScript.Shell in exclusively claimed owned folder",
+    "Duplicate shortcut creation, modified-link uninstall, incorrect-source maintenance tool all refused preserving original bytes",
+    "Actual Windows .lnk shell activation launched original installed Wails/WebView2 twice; UIA-bound physical Verify chart UI received original chart nonce response",
+    "Native exact shell source/path, original engine child, original loopback capabilities PAPER_STOPPED and PAPER/LIVE disarm verified",
+    "Native and composed script uninstall plus shortcut removal refused while original process lease active without mutation",
+    "Normal original HWND-bound close ended original shell and engine and released process lease both rounds",
+    "Shortcut-only removal preserved unknown note bytes; existing unknown-content shortcut folder not adopted",
+    "Composed native uninstall removed verified binaries and static/templates/strategies assets and owned shortcut, retaining original install receipt",
+    "Every data/profile file's count, relative name and SHA256 unchanged after uninstall; opaque financial-shaped bytes and unknown root/stage files unchanged",
+    "Uninstalled launch and repeat uninstall refused; no automatic rearm or retry",
+    "Private source, package, tools, disposable installation and ephemeral Start Menu shortcut cleanup succeeded"
+  ]
+}
