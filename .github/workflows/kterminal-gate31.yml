@@ -1,0 +1,41 @@
+name: K-Terminal gate31 Windows acceptance
+on:
+  push:
+    branches:
+      - qualification/kt-pr76-admission-20261027
+    paths:
+      - '.github/workflows/kterminal-gate31.yml'
+permissions:
+  contents: read
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    env:
+      TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+    steps:
+      - name: Private pinned checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: 00f716fde42e65b1515a05b08e7ae70350e86136
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          persist-credentials: false
+      - name: Private Windows focused tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $head = (& git rev-parse HEAD).Trim()
+          if ($head -cne '00f716fde42e65b1515a05b08e7ae70350e86136') { throw 'HEAD_MISMATCH' }
+          $log = Join-Path $env:RUNNER_TEMP 'kterminal-gate31.log'
+          try {
+            & python -B tools/source_intake/validate_intake.py --root . --sha $head *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'PRIVATE_INTAKE_PREFLIGHT_FAILED' }
+            & python -B -m unittest discover -s tools/source_intake -p 'test_*.py' -v *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'PRIVATE_INTAKE_TEST_FAILED' }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_DIRTY' }
+            Write-Host 'KTERMINAL_GATE31_FOCUSED_TESTS=PASS'
+            Write-Host 'KTERMINAL_GATE31_GIT_IDENTITY=PASS'
+          } finally {
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
