@@ -1,0 +1,327 @@
+name: KTRADE W29B owned Windows shortcuts and data-preserving uninstall Windows
+on:
+  push:
+    branches: [qualification/ktrade-w29b-shortcuts-uninstall-20261027]
+    paths: [.github/workflows/ktrade-w29b-shortcuts-uninstall-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w29b-shortcuts-uninstall
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact KTRADE shortcuts-uninstall candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2ef4b548b1776ade4a05f99a3943568c88c1f725
+          path: current
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source and completed native foundations
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '2ef4b548b1776ade4a05f99a3943568c88c1f725' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'fb8eb97f4511f28fad0e11c163e507d626e48c8c'){throw 'W29B_SOURCE_IDENTITY_DRIFT'}
+          foreach($pin in @(
+            @{run=40589825348;sha='bf644b7364b451b1299d256c81cffeaa9efd4116'}
+          )){
+            $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+            if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W29B_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
+          }
+          if((& git -C $src rev-parse HEAD^).Trim() -cne 'f744558d2380dca1f7e1d67aa44990f8552d2907'){throw 'W29B_PARENT_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD|Sort-Object)
+          $want=@('tools/wails-pilot/backend/fresh_launch.go','tools/wails-pilot/backend/fresh_uninstall.go','tools/wails-pilot/backend/fresh_uninstall_test.go','tools/wails-pilot/backend/release_switch.go','tools/wails-pilot/cmd/release-maintain/main.go','windows/Manage-KTRADE-FreshInstall.ps1'|Sort-Object)
+          if(Compare-Object $delta $want){throw 'W29B_SIX_PATH_SCOPE_DRIFT'}
+          Write-Output '::notice::W29B_EXACT_SOURCE_SIX_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS'
+      - name: Native Windows Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            current/go.sum
+            current/tools/wails-pilot/go.sum
+      - name: Native Windows Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Stage unchanged assets parse shell script and run affected interfaces
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $tokens=$null;$parseErrors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $src 'windows/Manage-KTRADE-FreshInstall.ps1'),[ref]$tokens,[ref]$parseErrors)
+          if($parseErrors.Count -ne 0){throw 'W29B_SOURCE_SHELL_SCRIPT_SYNTAX_FAILED'}
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W29B_NPM_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W29B_VENDOR_STAGE_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -race -count=1 -run '^Test(W29|W26|W27|W28C)' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W29B_AFFECTED_LAUNCH_SELECTION_REMOVAL_RACE_TESTS_FAILED'}
+          }finally{Pop-Location}
+      - name: One frozen-source full original Go and Wails regression and vet before build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
+            Push-Location $dir
+            try{
+              & go test -mod=readonly -count=1 ./...
+              if($LASTEXITCODE -ne 0){throw 'W29B_FINAL_FULL_REGRESSION_FAILED'}
+              & go vet -mod=readonly ./...
+              if($LASTEXITCODE -ne 0){throw 'W29B_FINAL_VET_FAILED'}
+            }finally{Pop-Location}
+          }
+          Write-Output '::notice::W29B_FULL_ORIGINAL_ENGINE_AND_WAILS_REGRESSION_VET=PASS'
+      - name: Build actual paired release and installed launch tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N'))
+          $tools=Join-Path $env:RUNNER_TEMP 'w29b-launch-tools'
+          New-Item -ItemType Directory -Path $tools|Out-Null
+          Push-Location $src
+          try{
+            & './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $build -ExpectedSourceSha '2ef4b548b1776ade4a05f99a3943568c88c1f725' -ReleaseCandidate
+            if($LASTEXITCODE -ne 0){throw 'W29B_NATIVE_RELEASE_BUILD_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            foreach($cmd in @('release-install','release-launch','release-switch')){
+              & go build -mod=readonly -o (Join-Path $tools ($cmd+'.exe')) ('./cmd/'+$cmd)
+              if($LASTEXITCODE -ne 0){throw ('W29B_NATIVE_TOOL_BUILD_FAILED_'+$cmd)}
+            }
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go build -mod=readonly -ldflags ('-X main.buildSourceSHA='+ '2ef4b548b1776ade4a05f99a3943568c88c1f725') -o (Join-Path $tools 'release-maintain.exe') ./cmd/release-maintain
+            if($LASTEXITCODE -ne 0){throw 'W29B_BOUND_MAINTENANCE_BUILD_FAILED'}
+            & go build -mod=readonly -ldflags ('-X main.buildSourceSHA='+ ('0'*40)) -o (Join-Path $tools 'wrong-source-maintain.exe') ./cmd/release-maintain
+            if($LASTEXITCODE -ne 0){throw 'W29B_NEGATIVE_MAINTENANCE_BUILD_FAILED'}
+          }finally{Pop-Location}
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w29b-build-root.txt'),$build)
+          Write-Output '::notice::W29B_GENUINE_RELEASE_PAIR_AND_ORIGINAL_NATIVE_REVIEW_TOOLS=PASS'
+      - name: Real Start Menu shortcut WebView2 launch and preserved-data uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W29B_EPHEMERAL_HOST_REQUIRED'}
+          $build=[IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'w29b-build-root.txt'))
+          $tools=Join-Path $env:RUNNER_TEMP 'w29b-launch-tools'
+          $installer=Join-Path $tools 'release-install.exe'
+          $launcher=Join-Path $tools 'release-launch.exe'
+          $switcher=Join-Path $tools 'release-switch.exe'
+          $target=Join-Path $env:GITHUB_WORKSPACE 'w29b fresh installation with spaces'
+          $sha='2ef4b548b1776ade4a05f99a3943568c88c1f725'
+          $out=@(& $installer install (Join-Path $build 'KTRADE-WailsPortable.zip') $target $sha)
+          if($LASTEXITCODE -ne 0){throw 'W29B_FRESH_INSTALL_FAILED'}
+          $r=($out -join [Environment]::NewLine)|ConvertFrom-Json
+          $stage=$r.candidate_directory
+          $lease=Join-Path $r.root '.ktrade-w28c-active-process.lock'
+          $receipt=Join-Path $r.root '.ktrade-w29-install.json'
+          $receiptHash=(Get-FileHash -LiteralPath $receipt).Hash
+          $profile=Join-Path $stage 'data/webview2-profile'
+          $sentinel=Join-Path $target 'unknown-owner-sentinel'
+          [IO.File]::WriteAllText($sentinel,'KEEP_UNKNOWN_BYTES')
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class W29BNative {
+           [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+           [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+           [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+           [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr info);
+           [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd,uint msg,IntPtr w,IntPtr l);
+          }
+          '@
+          function Wait-Visible([object]$process,[string]$label,[bool]$button=$false){
+           $deadline=(Get-Date).AddSeconds(35)
+           do{
+            $process.Refresh()
+            if($process.HasExited){throw 'W29B_ORIGINAL_SHELL_EXITED'}
+            if($process.MainWindowHandle -ne [IntPtr]::Zero){
+             $ui=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+             $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+             foreach($el in $nodes){
+              try{
+               if(!$el.Current.IsOffscreen -and $el.Current.Name.Contains($label) -and (!$button -or ($el.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $el.Current.Name -ceq $label -and $el.Current.IsEnabled))){return $el}
+              }catch{}
+             }
+            }
+            Start-Sleep -Milliseconds 350
+           }while((Get-Date) -lt $deadline)
+           throw ('W29B_VISIBLE_UI_ABSENT_'+$label)
+          }
+          function Click-Verified([object]$process,[string]$label){
+           $el=Wait-Visible $process $label $true
+           $rect=$el.Current.BoundingRectangle
+           $outer=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle).Current.BoundingRectangle
+           if($rect.IsEmpty -or $rect.Width -lt 8 -or $rect.Height -lt 8 -or $rect.Left -lt $outer.Left -or $rect.Right -gt $outer.Right -or $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){throw 'W29B_FOREIGN_OR_HIDDEN_CONTROL'}
+           [void][W29BNative]::SetForegroundWindow($process.MainWindowHandle)
+           Start-Sleep -Milliseconds 200
+           if([W29BNative]::GetForegroundWindow() -ne $process.MainWindowHandle){throw 'W29B_FOREIGN_FOCUS'}
+           if(![W29BNative]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W29B_NATIVE_POINTER_REFUSED'}
+           [W29BNative]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+           [W29BNative]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+          }
+          function Assert-Unchanged{
+           if((Get-FileHash -LiteralPath $receipt).Hash -cne $receiptHash -or [IO.File]::ReadAllText($sentinel) -cne 'KEEP_UNKNOWN_BYTES'){throw 'W29B_RECEIPT_OR_UNKNOWN_BYTES_CHANGED'}
+          }
+          $maintain=Join-Path $tools 'release-maintain.exe'
+          $manager=Join-Path $env:GITHUB_WORKSPACE 'current/windows/Manage-KTRADE-FreshInstall.ps1'
+          $shortcutParent=[Environment]::GetFolderPath('Programs')
+          if(!(Test-Path -LiteralPath $shortcutParent)){New-Item -ItemType Directory -Path $shortcutParent -Force|Out-Null}
+          $folder=Join-Path $shortcutParent ('KTRADE-'+$r.selection_digest.Substring(0,16))
+          $link=Join-Path $folder 'KTRADE.lnk'
+          $ownedProof=Join-Path $folder '.ktrade-shortcut-receipt.json'
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w29b-shortcut-folder.txt'),$folder)
+          function Manage([string]$action,[bool]$success=$true){
+           & pwsh -NoProfile -File $manager -Action $action -InstallRoot $target -MaintenanceExe $maintain -ShortcutParent $shortcutParent 2>&1|Out-Null
+           if(($LASTEXITCODE -eq 0) -ne $success){throw ('W29B_SHORTCUT_ACTION_UNEXPECTED_'+$action)}
+          }
+          Manage 'AddShortcut'
+          if(!(Test-Path -LiteralPath $link) -or !(Test-Path -LiteralPath $ownedProof)){throw 'W29B_GENUINE_SHORTCUT_MISSING'}
+          $linkHash=(Get-FileHash -LiteralPath $link).Hash
+          Manage 'AddShortcut' $false
+          if((Get-FileHash -LiteralPath $link).Hash -cne $linkHash){throw 'W29B_DUPLICATE_ADD_CHANGED_EXISTING_LINK'}
+          $savedLink=[IO.File]::ReadAllBytes($link)
+          try{
+           [IO.File]::WriteAllBytes($link,[byte[]]($savedLink+[byte]120))
+           $changed=(Get-FileHash -LiteralPath $link).Hash
+           Manage 'Uninstall' $false
+           if((Get-FileHash -LiteralPath $link).Hash -cne $changed -or !(Test-Path -LiteralPath (Join-Path $stage 'ktrade.exe'))){throw 'W29B_MODIFIED_LINK_OR_CODE_CHANGED_ON_REFUSAL'}
+          }finally{[IO.File]::WriteAllBytes($link,$savedLink)}
+          # A separate incorrectly bound native tool must not maintain this source.
+          & (Join-Path $tools 'wrong-source-maintain.exe') inspect-stopped $target 2>&1|Out-Null
+          if($LASTEXITCODE -eq 0){throw 'W29B_FOREIGN_MAINTENANCE_TOOL_ACCEPTED'}
+          Write-Output '::notice::W29B_REAL_START_MENU_SHORTCUT_OWNERSHIP_DUPLICATE_MODIFIED_LINK_SOURCE_BINDING=PASS'
+          $shell=$null
+          try{
+           for($round=1;$round -le 2;$round++){
+            # Actual Windows shell activation of the real .lnk, not direct exe launch.
+            Start-Process -FilePath $link
+            $deadline=(Get-Date).AddSeconds(40)
+            do{
+             if(Test-Path -LiteralPath $lease){
+              try{$owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json;if($owner.pid -gt 0){break}}catch{}
+             }
+             Start-Sleep -Milliseconds 300
+            }while((Get-Date) -lt $deadline)
+            if(!(Test-Path -LiteralPath $lease)){throw 'W29B_SHORTCUT_DID_NOT_LAUNCH_ORIGINAL_SHELL'}
+            $owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json
+            $shell=Get-Process -Id $owner.pid
+            $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
+            if($owner.source_sha -cne $sha -or $owner.live_armed -or ![string]::Equals($cim.ExecutablePath,(Join-Path $stage 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'W29B_SHORTCUT_TARGET_CUSTODY_DRIFT'}
+            Click-Verified $shell 'Verify chart UI'
+            $null=Wait-Visible $shell 'Original chart DOM, Monaco editor and preferences controls observed.'
+            $engines=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+            if($engines.Count -ne 1){throw 'W29B_ORIGINAL_ENGINE_OWNER_UNCLEAR'}
+            $engineID=[int]$engines[0].ProcessId
+            $ports=@(Get-NetTCPConnection -OwningProcess $engineID -State Listen|Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+            if($ports.Count -ne 1){throw 'W29B_ORIGINAL_LOOPBACK_UNCLEAR'}
+            $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$ports[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
+            if($cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or $cap.live_orders_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W29B_DISARM_NOT_PROVEN'}
+            Manage 'Uninstall' $false
+            Manage 'RemoveShortcut' $false
+            & $maintain uninstall $target 2>&1|Out-Null
+            if($LASTEXITCODE -eq 0 -or (Test-Path -LiteralPath (Join-Path $target '.ktrade-w29b-uninstall-started.json')) -or (Get-FileHash -LiteralPath $link).Hash -cne $linkHash){throw 'W29B_ACTIVE_UNINSTALL_MUTATED_INSTALLATION'}
+            if(![W29BNative]::PostMessage($shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'W29B_ORIGINAL_CLOSE_REFUSED'}
+            if(!$shell.WaitForExit(25000)){throw 'W29B_ORIGINAL_SHELL_DID_NOT_CLOSE'}
+            if((Get-Process -Id $engineID -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $lease)){throw 'W29B_ENGINE_OR_LEASE_NOT_RELEASED'}
+            Assert-Unchanged
+            Write-Output ('::notice::W29B_REAL_START_MENU_LINK_WEBVIEW2_CLICK_ACTIVE_UNINSTALL_REFUSAL_CLEAN_CLOSE_ROUND_'+$round+'=PASS')
+            $shell=$null
+           }
+          }finally{if($null -ne $shell){Stop-Process -Id $shell.Id -Force -ErrorAction SilentlyContinue}}
+          # Exercise non-destructive shortcut removal independently, including unknown
+          # content in the owned shortcut folder, then recreate for composed uninstall.
+          $foreign=Join-Path $folder 'unknown-owner-note.txt'
+          [IO.File]::WriteAllText($foreign,'KEEP_SHORTCUT_FOLDER_UNKNOWN')
+          Manage 'RemoveShortcut'
+          if((Test-Path -LiteralPath $link) -or (Test-Path -LiteralPath $ownedProof) -or [IO.File]::ReadAllText($foreign) -cne 'KEEP_SHORTCUT_FOLDER_UNKNOWN'){throw 'W29B_SHORTCUT_REMOVAL_LOST_UNKNOWN_BYTES'}
+          Manage 'AddShortcut' $false
+          # Only the test removes its exact synthetic note and now-empty fixture folder.
+          [IO.File]::Delete($foreign);[IO.Directory]::Delete($folder,$false)
+          Manage 'AddShortcut'
+          # Seed opaque financial/user bytes without granting runtime authority.
+          $opaque=Join-Path $stage 'data/opaque-retained-state.bin'
+          $unknown=Join-Path $stage 'unknown-owner-content.bin'
+          [IO.File]::WriteAllBytes($opaque,[byte[]](0,1,4,127,255))
+          [IO.File]::WriteAllBytes($unknown,[byte[]](255,8,0,9))
+          $dataRoot=Join-Path $stage 'data'
+          $dataBefore=@{}
+          foreach($file in Get-ChildItem -LiteralPath $dataRoot -File -Recurse -Force){$dataBefore[$file.FullName.Substring($dataRoot.Length)]=(Get-FileHash -LiteralPath $file.FullName).Hash}
+          $unknownHash=(Get-FileHash -LiteralPath $unknown).Hash
+          Manage 'Uninstall'
+          foreach($name in @('ktrade.exe','ktrade-engine.exe','static','templates','strategies')){if(Test-Path -LiteralPath (Join-Path $stage $name)){throw ('W29B_VERIFIED_CODE_NOT_REMOVED_'+$name)}}
+          $done=Get-Content -LiteralPath (Join-Path $target '.ktrade-w29b-uninstalled.json') -Raw|ConvertFrom-Json
+          if(!$done.completed -or !$done.user_data_preserved -or $done.live_armed -or $done.code_files_removed -lt 100){throw 'W29B_NATIVE_UNINSTALL_RECEIPT_INVALID'}
+          $after=@(Get-ChildItem -LiteralPath $dataRoot -File -Recurse -Force)
+          if($after.Count -ne $dataBefore.Count){throw 'W29B_USER_DATA_FILE_COUNT_CHANGED'}
+          foreach($file in $after){$relative=$file.FullName.Substring($dataRoot.Length);if(!$dataBefore.ContainsKey($relative) -or (Get-FileHash -LiteralPath $file.FullName).Hash -cne $dataBefore[$relative]){throw 'W29B_USER_DATA_BYTES_CHANGED'}}
+          if((Test-Path -LiteralPath $link) -or (Test-Path -LiteralPath $folder) -or (Get-FileHash -LiteralPath $unknown).Hash -cne $unknownHash){throw 'W29B_SHORTCUT_OR_UNKNOWN_BYTE_CUSTODY_DRIFT'}
+          Assert-Unchanged
+          & $launcher $target 2>&1|Out-Null
+          if($LASTEXITCODE -eq 0){throw 'W29B_UNINSTALLED_LAUNCH_ACCEPTED'}
+          & $maintain uninstall $target 2>&1|Out-Null
+          if($LASTEXITCODE -eq 0){throw 'W29B_UNINSTALL_AUTOMATICALLY_RETRIED'}
+          Write-Output '::notice::W29B_NATIVE_UNINSTALL_KNOWN_CODE_REMOVED_ALL_PROFILE_DATA_AND_UNKNOWN_BYTES_IDENTICAL=PASS'
+          Write-Output '::notice::W29B_SHORTCUT_REMOVAL_UNINSTALLED_LAUNCH_AND_RETRY_REFUSAL=PASS'
+          exit 0
+      - name: Purge private source and disposable installed launch candidate
+        if: always()
+        shell: pwsh
+        run: |
+          $shortcutRecord=Join-Path $env:RUNNER_TEMP 'w29b-shortcut-folder.txt'
+          if(Test-Path -LiteralPath $shortcutRecord){
+            $folder=[IO.File]::ReadAllText($shortcutRecord)
+            if([IO.Path]::GetFileName($folder) -cmatch '^KTRADE-[a-f0-9]{16}$'){
+              foreach($name in @('KTRADE.lnk','.ktrade-shortcut-receipt.json','unknown-owner-note.txt')){
+                Remove-Item -LiteralPath (Join-Path $folder $name) -Force -ErrorAction SilentlyContinue
+              }
+              if((Test-Path -LiteralPath $folder) -and @(Get-ChildItem -LiteralPath $folder -Force).Count -eq 0){[IO.Directory]::Delete($folder,$false)}
+            }
+          }
+          foreach($p in @((Join-Path $env:GITHUB_WORKSPACE 'current'),(Join-Path $env:GITHUB_WORKSPACE 'w29b fresh installation with spaces'),(Join-Path $env:GITHUB_WORKSPACE 'w29b-never-used'),(Join-Path $env:RUNNER_TEMP 'w29b-launch-tools'))){
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*'|Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          foreach($name in @('w29b-build-root.txt','w28n-original-fixture.json')){
+            $p=Join-Path $env:RUNNER_TEMP $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue}
+          }
+
