@@ -1,0 +1,214 @@
+name: KTRADE W28B two genuine versions and reversible selection Windows
+on:
+  push:
+    branches: [qualification/ktrade-w28b-real-version-pair-20261027]
+    paths: [.github/workflows/ktrade-w28b-real-version-pair-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w28b-real-version-pair
+  cancel-in-progress: false
+jobs:
+  genuine-pair:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact old KTRADE W27 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9774043a769e8d9865c7b60dfdab95691f562b05
+          path: checked-old
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact successor W28B source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: cbe4aa2acae70534a87905fd9ac915cbee9eafac
+          path: checked-new
+          fetch-depth: 7
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact two distinct source trees and W28B three-file boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'checked-old'
+          $new=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          if((& git -C $old rev-parse HEAD).Trim() -cne '9774043a769e8d9865c7b60dfdab95691f562b05' -or
+             (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'a928e1c45b6c1495b0d3304361f794d73d5f1ed8' -or
+             (& git -C $new rev-parse HEAD).Trim() -cne 'cbe4aa2acae70534a87905fd9ac915cbee9eafac' -or
+             (& git -C $new rev-parse 'HEAD^{tree}').Trim() -cne '3123d86a40c4d913b551a8cabc5e59f9858762ef' -or
+             (& git -C $new rev-parse HEAD~3).Trim() -cne 'ec5c16d64dab19b6ccb389bca999917915f44c28' -or
+             (& git -C $new rev-parse HEAD~6).Trim() -cne '9774043a769e8d9865c7b60dfdab95691f562b05'){throw 'W28B_EXACT_VERSION_PAIR_OR_ANCESTRY_DRIFT'}
+          $actual=@(& git -C $new diff --name-only ec5c16d64dab19b6ccb389bca999917915f44c28 HEAD | Sort-Object -CaseSensitive)
+          $expected=@('tools/wails-pilot/backend/release_identity.go','tools/wails-pilot/backend/release_identity_test.go','tools/wails-pilot/main_windows.go' | Sort-Object -CaseSensitive)
+          if(Compare-Object -ReferenceObject $expected -DifferenceObject $actual){throw 'W28B_THREE_PATH_SCOPE_DRIFT'}
+          foreach($src in @($old,$new)){
+            if(@(& git -C $src status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28B_DIRTY_SOURCE'}
+          }
+          Write-Output '::notice::W28B_PINNED_REAL_PREDECESSOR_SUCCESSOR_AND_THREE_PATH_DELTA=PASS'
+      - name: Reuse exact W28A final Windows engineering evidence
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $r=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40480553129' -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+          if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne 'c00d1340804fef76dad9ec94220fd9391b13bc21'){throw 'W28B_W28A_WITNESS_NOT_VALID'}
+          Write-Output '::notice::W28B_QUALIFIED_W28A_FOUNDATION_REUSED=PASS'
+      - name: Install Windows Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            checked-new/go.sum
+            checked-new/tools/wails-pilot/go.sum
+      - name: Focused W28B and affected interfaces plus all release utilities
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'checked-new/tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 -run '^TestW28B' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28B_FOCUSED_RELEASE_IDENTITY_TEST_FAIL'}
+            & go test -mod=readonly -count=1 -run '^TestW2[678]' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W28B_AFFECTED_INTERFACE_TEST_FAIL'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28B_VET_FAIL'}
+            foreach($cmd in @('release-extract','release-switch','release-compare')){
+              & go build -mod=readonly -o (Join-Path $env:GITHUB_WORKSPACE ($cmd+'.exe')) ('./cmd/'+$cmd)
+              if($LASTEXITCODE -ne 0){throw ('W28B_BUILD_FAILED_'+$cmd)}
+            }
+          }finally{Pop-Location}
+          Write-Output '::notice::W28B_FOCUSED_AFFECTED_VET_AND_REAL_CLI_BUILD=PASS'
+      - name: Set up Node for genuine Wails assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Independently build both native Wails release ZIPs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $env:KTRADE_W13_QUALIFICATION_ONLY='0'
+          $pairs=@(
+            @{source='checked-old';sha='9774043a769e8d9865c7b60dfdab95691f562b05';label='old'},
+            @{source='checked-new';sha='cbe4aa2acae70534a87905fd9ac915cbee9eafac';label='new'}
+          )
+          foreach($pair in $pairs){
+            $source=Join-Path $env:GITHUB_WORKSPACE $pair.source
+            $root=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N').ToLowerInvariant())
+            Push-Location $source
+            try{
+              & npm ci --ignore-scripts --no-audit --no-fund --silent
+              if($LASTEXITCODE -ne 0){throw 'W28B_OFFLINE_VENDOR_NPM_FAIL'}
+              & node scripts/stage_offline_vendor.cjs
+              if($LASTEXITCODE -ne 0){throw 'W28B_OFFLINE_VENDOR_STAGE_FAIL'}
+              if(@(& git status --porcelain=v1 --untracked-files=no).Count -ne 0){throw 'W28B_NATIVE_BUILD_MUTATED_SOURCE'}
+              $out=@(& './windows/Build-KTRADE-WailsPortable.ps1' -OutputRoot $root -ExpectedSourceSha $pair.sha -ReleaseCandidate)
+              if($out -notcontains 'W03_FRESH_PAIRED_PORTABLE_PACKAGE=PASS;NO_APP_START=TRUE;LIVE_DISARMED=TRUE'){throw 'W28B_NATIVE_WAILS_BUILD_OR_PROOF_FAIL'}
+            }finally{Pop-Location}
+            $zip=Join-Path $root 'KTRADE-WailsPortable.zip'
+            if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W28B_ZIP_MISSING'}
+            [IO.File]::WriteAllText((Join-Path $env:GITHUB_WORKSPACE ($pair.label+'-archive-path.txt')),$zip)
+          }
+          Write-Output '::notice::W28B_TWO_REAL_NATIVE_WAILS_BUILDS_AND_SOURCE_PROOFS=PASS'
+      - name: Verify distinct executable bytes then select new and rollback old
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $dest=Join-Path $env:GITHUB_WORKSPACE 'isolated-real-version-trial'
+          New-Item -ItemType Directory -Path $dest -ErrorAction Stop | Out-Null
+          $extract=Join-Path $env:GITHUB_WORKSPACE 'release-extract.exe'
+          $compare=Join-Path $env:GITHUB_WORKSPACE 'release-compare.exe'
+          $switch=Join-Path $env:GITHUB_WORKSPACE 'release-switch.exe'
+          $oldZip=[IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE 'old-archive-path.txt'))
+          $newZip=[IO.File]::ReadAllText((Join-Path $env:GITHUB_WORKSPACE 'new-archive-path.txt'))
+          $oldOut=@(& $extract $oldZip $dest '9774043a769e8d9865c7b60dfdab95691f562b05')
+          if($LASTEXITCODE -ne 0){throw 'W28B_VERIFIED_OLD_ZIP_EXTRACTION_FAIL'}
+          $oldStage=[string](($oldOut -join [Environment]::NewLine)|ConvertFrom-Json).candidate_directory
+          $newOut=@(& $extract $newZip $dest 'cbe4aa2acae70534a87905fd9ac915cbee9eafac')
+          if($LASTEXITCODE -ne 0){throw 'W28B_VERIFIED_NEW_ZIP_EXTRACTION_FAIL'}
+          $newStage=[string](($newOut -join [Environment]::NewLine)|ConvertFrom-Json).candidate_directory
+          if($oldStage -ceq $newStage){throw 'W28B_CANDIDATE_ROOT_COLLISION'}
+          $newWails=(Get-FileHash -LiteralPath (Join-Path $newStage 'ktrade.exe') -Algorithm SHA256).Hash
+          $oldWails=(Get-FileHash -LiteralPath (Join-Path $oldStage 'ktrade.exe') -Algorithm SHA256).Hash
+          if($newWails -ceq $oldWails){throw 'W28B_WAILS_EXECUTABLES_ARE_SAME_BYTES'}
+          $cmpOut=@(& $compare $dest $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05' $newStage 'cbe4aa2acae70534a87905fd9ac915cbee9eafac')
+          if($LASTEXITCODE -ne 0){throw 'W28B_REAL_VERSION_COMPARATOR_REFUSED'}
+          $cmp=($cmpOut -join [Environment]::NewLine)|ConvertFrom-Json
+          if($cmp.DistinctBinaries -ne $true -or $cmp.LiveArmed -ne $false -or $cmp.Launched -ne $false -or $cmp.StateMigrated -ne $false){throw 'W28B_COMPARISON_MISREPRESENTED_BOUNDARY'}
+          $marker=Join-Path $dest 'existing-owner-settings-paper-history.marker'
+          [IO.File]::WriteAllText($marker,'OWNER_PREFERENCES_PINE_STRATEGIES_PAPER_LEDGER_PRESERVED')
+          $profile=Join-Path $oldStage 'data/webview2-profile'
+          New-Item -ItemType Directory -Path $profile -ErrorAction Stop | Out-Null
+          $browser=Join-Path $profile 'existing-browser.marker'
+          [IO.File]::WriteAllText($browser,'OLDER_WEBVIEW2_DATA_UNCHANGED')
+          $originalHashes=@{}
+          foreach($item in @('ktrade.exe','ktrade-engine.exe')){
+            $originalHashes[$item]=(Get-FileHash -LiteralPath (Join-Path $oldStage $item) -Algorithm SHA256).Hash
+          }
+          $r1=@(& $switch select $dest $oldStage '9774043a769e8d9865c7b60dfdab95691f562b05')
+          if($LASTEXITCODE -ne 0){throw 'W28B_SELECT_PREDECESSOR_FAIL'}
+          $r2=@(& $switch select $dest $newStage 'cbe4aa2acae70534a87905fd9ac915cbee9eafac')
+          if($LASTEXITCODE -ne 0){throw 'W28B_SELECT_SUCCESSOR_FAIL'}
+          $st=@(& $switch status $dest)
+          if($LASTEXITCODE -ne 0 -or ([string](($st -join [Environment]::NewLine)|ConvertFrom-Json).candidate_directory) -cne $newStage){throw 'W28B_SUCCESSOR_NOT_VERIFIED'}
+          $r3=@(& $switch rollback $dest)
+          if($LASTEXITCODE -ne 0){throw 'W28B_ROLLBACK_PREDECESSOR_FAIL'}
+          $return=@(& $switch status $dest)
+          if($LASTEXITCODE -ne 0 -or ([string](($return -join [Environment]::NewLine)|ConvertFrom-Json).candidate_directory) -cne $oldStage){throw 'W28B_ORIGINAL_VERIFIED_SELECTION_NOT_RESTORED'}
+          if([IO.File]::ReadAllText($marker) -cne 'OWNER_PREFERENCES_PINE_STRATEGIES_PAPER_LEDGER_PRESERVED' -or
+             [IO.File]::ReadAllText($browser) -cne 'OLDER_WEBVIEW2_DATA_UNCHANGED' -or
+             (Test-Path -LiteralPath (Join-Path $newStage 'data/webview2-profile'))){throw 'W28B_OWNER_OR_BROWSER_SENTINEL_CHANGED'}
+          foreach($item in @('ktrade.exe','ktrade-engine.exe')){
+            if((Get-FileHash -LiteralPath (Join-Path $oldStage $item) -Algorithm SHA256).Hash -cne $originalHashes[$item]){throw 'W28B_OLD_BINARY_OVERWRITTEN'}
+          }
+          $receiptFiles=@(Get-ChildItem -LiteralPath $dest -Filter '.ktrade-w27-selection-*.json' -File)
+          if($receiptFiles.Count -ne 3){throw 'W28B_SELECTION_RECEIPT_CHAIN_COUNT_INVALID'}
+          Write-Output '::notice::W28B_ACTUAL_DIFFERENT_WAILS_EXECUTABLE_SHA_AND_SOURCE_PAIR=PASS'
+          Write-Output '::notice::W28B_GENUINE_ZIP_SELECT_NEW_ROLLBACK_OLD_APPEND_CHAIN=PASS'
+          Write-Output '::notice::W28B_SYNTHETIC_OWNER_BROWSER_PAPER_SENTINELS_AND_OLD_BINARIES_UNCHANGED=PASS'
+          Write-Output '::notice::W28B_NO_REAL_OWNER_MIGRATION_NO_APP_START_LIVE_DISARMED=PASS'
+      - name: Required final full Go engine and Wails integration regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TMP=$env:RUNNER_TEMP;$env:TEMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'checked-new'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28B_ORIGINAL_ENGINE_FULL_REGRESSION_FAIL'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W28B_ORIGINAL_ENGINE_VET_FAIL'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W28B_WAILS_FULL_REGRESSION_FAIL'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W28B_FINAL_ENGINE_AND_WAILS_FULL_REGRESSION=PASS'
+      - name: Purge checked private source and package artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($p in @('checked-old','checked-new','isolated-real-version-trial')){
+            $target=Join-Path $env:GITHUB_WORKSPACE $p
+            if(Test-Path -LiteralPath $target){Remove-Item -LiteralPath $target -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-rc-package-*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
