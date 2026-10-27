@@ -1,0 +1,300 @@
+name: KTRADE W29C self-contained unsigned setup package Windows
+on:
+  push:
+    branches: [qualification/ktrade-w29c-self-contained-setup-20261027]
+    paths: [.github/workflows/ktrade-w29c-self-contained-setup-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w29c-self-contained-setup
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact KTRADE self-contained-setup candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b377a28051cb9594ddeb2da1ffe4252d418f0a6f
+          path: current
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source and completed native foundations
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'b377a28051cb9594ddeb2da1ffe4252d418f0a6f' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'c704ae502556f6395bb55b9bd7fa413d24eacbb1'){throw 'W29C_SOURCE_IDENTITY_DRIFT'}
+          foreach($pin in @(
+            @{run=40591669507;sha='94c2463b4406e7d956e92566bbf41b951fb03c31'}
+          )){
+            $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+            if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W29C_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
+          }
+          if((& git -C $src rev-parse HEAD^).Trim() -cne '2ef4b548b1776ade4a05f99a3943568c88c1f725'){throw 'W29C_PARENT_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD|Sort-Object)
+          $want=@('tools/wails-pilot/backend/fresh_install.go','tools/wails-pilot/backend/setup_bundle.go','tools/wails-pilot/backend/setup_bundle_test.go','tools/wails-pilot/cmd/release-setup/main.go','windows/Build-KTRADE-FreshInstaller.ps1','windows/Install-KTRADE-Fresh.ps1'|Sort-Object)
+          if(Compare-Object $delta $want){throw 'W29C_SIX_PATH_SCOPE_DRIFT'}
+          Write-Output '::notice::W29C_EXACT_SOURCE_SIX_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS'
+      - name: Native Windows Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: true
+          cache-dependency-path: |
+            current/go.sum
+            current/tools/wails-pilot/go.sum
+      - name: Native Windows Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Stage unchanged assets parse shell script and run affected interfaces
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          foreach($name in @('Install-KTRADE-Fresh.ps1','Build-KTRADE-FreshInstaller.ps1')){
+            $tokens=$null;$parseErrors=$null
+            [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $src ('windows/'+$name)),[ref]$tokens,[ref]$parseErrors)
+            if($parseErrors.Count -ne 0){throw 'W29C_SOURCE_SETUP_SCRIPT_SYNTAX_FAILED'}
+          }
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W29C_NPM_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W29C_VENDOR_STAGE_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -race -count=1 -run '^Test(W29|W26|W27|W28C)' ./backend
+            if($LASTEXITCODE -ne 0){throw 'W29C_AFFECTED_LAUNCH_SELECTION_REMOVAL_RACE_TESTS_FAILED'}
+          }finally{Pop-Location}
+      - name: One frozen-source full original Go and Wails regression and vet before build
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
+            Push-Location $dir
+            try{
+              & go test -mod=readonly -count=1 ./...
+              if($LASTEXITCODE -ne 0){throw 'W29C_FINAL_FULL_REGRESSION_FAILED'}
+              & go vet -mod=readonly ./...
+              if($LASTEXITCODE -ne 0){throw 'W29C_FINAL_VET_FAILED'}
+            }finally{Pop-Location}
+          }
+          Write-Output '::notice::W29C_FULL_ORIGINAL_ENGINE_AND_WAILS_REGRESSION_VET=PASS'
+      - name: Build original payload and self-contained unsigned setup bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
+          & (Join-Path $src 'windows/Build-KTRADE-FreshInstaller.ps1') -OutputRoot $build -ExpectedSourceSha 'b377a28051cb9594ddeb2da1ffe4252d418f0a6f'
+          if($LASTEXITCODE -ne 0){throw 'W29C_SELF_CONTAINED_PACKAGE_BUILD_FAILED'}
+          if(Test-Path -LiteralPath (Join-Path $build '.setup-build-incomplete')){throw 'W29C_PACKAGE_BUILD_INCOMPLETE'}
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w29c-build-root.txt'),$build)
+          Write-Output '::notice::W29C_ORIGINAL_PAYLOAD_AND_SOURCE_BOUND_UNSIGNED_SETUP_BUNDLE_BUILD=PASS'
+      - name: Package-only Windows PowerShell 5.1 install WebView2 and retained-maintenance uninstall
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W29C_EPHEMERAL_HOST_REQUIRED'}
+          $sha='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class W29CNative {
+           [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+           [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+           [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+           [DllImport("user32.dll")] public static extern void mouse_event(uint flags,uint dx,uint dy,uint data,UIntPtr info);
+           [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hWnd,uint msg,IntPtr w,IntPtr l);
+          }
+          '@
+          function Wait-Visible([object]$process,[string]$label,[bool]$button=$false){
+           $deadline=(Get-Date).AddSeconds(35)
+           do{
+            $process.Refresh()
+            if($process.HasExited){throw 'W29A_ORIGINAL_SHELL_EXITED'}
+            if($process.MainWindowHandle -ne [IntPtr]::Zero){
+             $ui=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
+             $nodes=$ui.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+             foreach($el in $nodes){
+              try{
+               if(!$el.Current.IsOffscreen -and $el.Current.Name.Contains($label) -and (!$button -or ($el.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $el.Current.Name -ceq $label -and $el.Current.IsEnabled))){return $el}
+              }catch{}
+             }
+            }
+            Start-Sleep -Milliseconds 350
+           }while((Get-Date) -lt $deadline)
+           throw ('W29A_VISIBLE_UI_ABSENT_'+$label)
+          }
+          function Click-Verified([object]$process,[string]$label){
+           $el=Wait-Visible $process $label $true
+           $rect=$el.Current.BoundingRectangle
+           $outer=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle).Current.BoundingRectangle
+           if($rect.IsEmpty -or $rect.Width -lt 8 -or $rect.Height -lt 8 -or $rect.Left -lt $outer.Left -or $rect.Right -gt $outer.Right -or $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){throw 'W29A_FOREIGN_OR_HIDDEN_CONTROL'}
+           [void][W29CNative]::SetForegroundWindow($process.MainWindowHandle)
+           Start-Sleep -Milliseconds 200
+           if([W29CNative]::GetForegroundWindow() -ne $process.MainWindowHandle){throw 'W29A_FOREIGN_FOCUS'}
+           if(![W29CNative]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W29A_NATIVE_POINTER_REFUSED'}
+           [W29CNative]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+           [W29CNative]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+          }
+          $ps51=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+          $build=[IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'w29c-build-root.txt'))
+          $receiptBuild=Get-Content -LiteralPath (Join-Path $build 'setup-build-receipt.json') -Raw|ConvertFrom-Json
+          $archive=Join-Path $build 'KTRADE-SetupBundle.zip'
+          if((Get-FileHash -LiteralPath $archive).Hash.ToLowerInvariant() -cne $receiptBuild.archive_sha256 -or $receiptBuild.source_sha -cne $sha -or $receiptBuild.signature_status -cne 'unsigned'){throw 'W29C_PACKAGE_RECEIPT_DRIFT'}
+          $distribution=Join-Path $env:GITHUB_WORKSPACE 'w29c extracted distribution'
+          New-Item -ItemType Directory -Path $distribution|Out-Null
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::ExtractToDirectory($archive,$distribution)
+          $setup=Join-Path $distribution 'KTRADE-Setup.ps1'
+          $shortcutParent=[Environment]::GetFolderPath('Programs')
+          if(!(Test-Path -LiteralPath $shortcutParent)){New-Item -ItemType Directory -Path $shortcutParent -Force|Out-Null}
+          $target=Join-Path $env:GITHUB_WORKSPACE 'w29c installed with spaces'
+          $savedPath=$env:PATH
+          $env:PATH=(Join-Path $env:WINDIR 'System32')+';'+(Split-Path -Parent $ps51)+';'+$env:WINDIR
+          if((Get-Command go.exe,node.exe -ErrorAction SilentlyContinue)){throw 'W29C_RUNTIME_DEVELOPER_TOOLS_STILL_ON_PATH'}
+          $shell=$null;$launch=$null
+          try{
+           $payload=Join-Path $distribution 'KTRADE-Payload.zip'
+           $payloadBytes=[IO.File]::ReadAllBytes($payload)
+           try{
+            [IO.File]::WriteAllBytes($payload,[byte[]]($payloadBytes+[byte]120))
+            & $ps51 -NoProfile -ExecutionPolicy Bypass -File $setup -Action Install -InstallRoot $target -ShortcutParent $shortcutParent 2>&1|Out-Null
+            if($LASTEXITCODE -eq 0 -or (Test-Path -LiteralPath $target)){throw 'W29C_TAMPERED_PACKAGE_CLAIMED_INSTALLATION'}
+           }finally{[IO.File]::WriteAllBytes($payload,$payloadBytes)}
+           $out=@(& $ps51 -NoProfile -ExecutionPolicy Bypass -File $setup -Action Install -InstallRoot $target -ShortcutParent $shortcutParent)
+           if($LASTEXITCODE -ne 0){throw 'W29C_PACKAGE_ONLY_POWERSHELL51_INSTALL_FAILED'}
+           $r=($out -join [Environment]::NewLine)|ConvertFrom-Json
+           if($r.source_sha -cne $sha -or $r.app_launched -or $r.orders_enabled -or $r.live_armed){throw 'W29C_INSTALL_AUTHORITY_DRIFT'}
+           $stage=$r.candidate_directory
+           $lease=Join-Path $r.root '.ktrade-w28c-active-process.lock'
+           $profile=Join-Path $stage 'data/webview2-profile'
+           if(Test-Path -LiteralPath $profile){throw 'W29C_INSTALL_AUTOMATICALLY_LAUNCHED'}
+           $installedSetup=Join-Path $r.root 'maintenance/KTRADE-Setup.ps1'
+           $folder=Join-Path $shortcutParent ('KTRADE-'+$r.selection_digest.Substring(0,16))
+           $link=Join-Path $folder 'KTRADE.lnk'
+           [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w29c-shortcut-folder.txt'),$folder)
+           $receipt=Join-Path $r.root '.ktrade-w29-install.json'
+           $receiptHash=(Get-FileHash -LiteralPath $receipt).Hash
+           $sentinel=Join-Path $r.root 'unknown-owner-sentinel'
+           [IO.File]::WriteAllText($sentinel,'KEEP_UNKNOWN_BYTES')
+           & $ps51 -NoProfile -ExecutionPolicy Bypass -File $setup -Action Install -InstallRoot $target -ShortcutParent $shortcutParent 2>&1|Out-Null
+           if($LASTEXITCODE -eq 0 -or [IO.File]::ReadAllText($sentinel) -cne 'KEEP_UNKNOWN_BYTES'){throw 'W29C_EXISTING_INSTALLATION_OVERWRITTEN'}
+           # This exact disposable extracted distribution is no longer a dependency.
+           Remove-Item -LiteralPath $distribution -Recurse -Force
+           & $ps51 -NoProfile -ExecutionPolicy Bypass -File $installedSetup -Action Inspect -InstallRoot $target|Out-Null
+           if($LASTEXITCODE -ne 0){throw 'W29C_INSTALLED_MAINTENANCE_DEPENDS_ON_DISTRIBUTION'}
+           $maintain=Join-Path $r.root 'maintenance/release-maintain.exe'
+           $original=[IO.File]::ReadAllBytes($maintain)
+           try{
+            [IO.File]::WriteAllBytes($maintain,[byte[]]($original+[byte]120))
+            & $ps51 -NoProfile -ExecutionPolicy Bypass -File $installedSetup -Action Inspect -InstallRoot $target 2>&1|Out-Null
+            if($LASTEXITCODE -eq 0){throw 'W29C_TAMPERED_MAINTENANCE_ACCEPTED'}
+           }finally{[IO.File]::WriteAllBytes($maintain,$original)}
+           Write-Output '::notice::W29C_REAL_ZIP_POWERSHELL51_NO_GO_NODE_INSTALL_TAMPER_EXISTING_ROOT_AND_RETAINED_MAINTENANCE=PASS'
+           for($round=1;$round -le 2;$round++){
+            if($round -eq 1){Start-Process -FilePath $link}
+            else{
+             $args='-NoProfile -ExecutionPolicy Bypass -File "'+$installedSetup+'" -Action Launch -InstallRoot "'+$target+'"'
+             $launch=Start-Process -FilePath $ps51 -ArgumentList $args -PassThru
+            }
+            $deadline=(Get-Date).AddSeconds(40)
+            do{
+             if(Test-Path -LiteralPath $lease){try{$owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json;if($owner.pid -gt 0){break}}catch{}}
+             Start-Sleep -Milliseconds 300
+            }while((Get-Date) -lt $deadline)
+            if(!(Test-Path -LiteralPath $lease)){throw 'W29C_ORIGINAL_SHELL_NOT_LAUNCHED'}
+            $owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json
+            $shell=Get-Process -Id $owner.pid
+            $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
+            if($owner.source_sha -cne $sha -or $owner.live_armed -or ![string]::Equals($cim.ExecutablePath,(Join-Path $stage 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'W29C_ORIGINAL_SHELL_CUSTODY_DRIFT'}
+            Click-Verified $shell 'Verify chart UI'
+            $null=Wait-Visible $shell 'Original chart DOM, Monaco editor and preferences controls observed.'
+            $engines=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+            if($engines.Count -ne 1){throw 'W29C_ORIGINAL_ENGINE_CUSTODY_UNCLEAR'}
+            $engineID=[int]$engines[0].ProcessId
+            $ports=@(Get-NetTCPConnection -OwningProcess $engineID -State Listen|Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+            if($ports.Count -ne 1){throw 'W29C_ORIGINAL_ENGINE_LOOPBACK_UNCLEAR'}
+            $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$ports[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
+            if($cap.mode -cne 'PAPER_STOPPED' -or $cap.paper_orders_enabled -ne $false -or $cap.live_orders_enabled -ne $false -or $cap.strategy_execution_enabled -ne $false -or $cap.paper_accounting_enabled -ne $false -or $cap.requires_review -ne $true){throw 'W29C_DISARM_NOT_PROVEN'}
+            & $ps51 -NoProfile -ExecutionPolicy Bypass -File $installedSetup -Action Uninstall -InstallRoot $target -ShortcutParent $shortcutParent 2>&1|Out-Null
+            if($LASTEXITCODE -eq 0 -or (Test-Path -LiteralPath (Join-Path $target '.ktrade-w29b-uninstall-started.json'))){throw 'W29C_ACTIVE_PACKAGE_UNINSTALL_MUTATED_CUSTODY'}
+            if(![W29CNative]::PostMessage($shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)){throw 'W29C_NORMAL_CLOSE_REFUSED'}
+            if(!$shell.WaitForExit(25000)){throw 'W29C_ORIGINAL_SHELL_DID_NOT_CLOSE'}
+            if($null -ne $launch){if(!$launch.WaitForExit(25000) -or $launch.ExitCode -ne 0){throw 'W29C_INSTALLED_LAUNCHER_FAILED_TO_WAIT_FOR_NORMAL_EXIT'}}
+            if((Get-Process -Id $engineID -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $lease)){throw 'W29C_ENGINE_OR_LEASE_REMAINED'}
+            Write-Output ('::notice::W29C_PACKAGE_ONLY_ORIGINAL_WEBVIEW2_CLICK_DISARM_ACTIVE_UNINSTALL_REFUSAL_CLEAN_CLOSE_ROUND_'+$round+'=PASS')
+            $shell=$null;$launch=$null
+           }
+           $dataRoot=Join-Path $stage 'data'
+           [IO.File]::WriteAllBytes((Join-Path $dataRoot 'opaque-retained.bin'),[byte[]](0,1,128,255))
+           $before=@{}
+           foreach($file in Get-ChildItem -LiteralPath $dataRoot -File -Recurse -Force){$before[$file.FullName.Substring($dataRoot.Length)]=(Get-FileHash -LiteralPath $file.FullName).Hash}
+           & $ps51 -NoProfile -ExecutionPolicy Bypass -File $installedSetup -Action Uninstall -InstallRoot $target -ShortcutParent $shortcutParent|Out-Null
+           if($LASTEXITCODE -ne 0){throw 'W29C_INSTALLED_PACKAGE_UNINSTALL_FAILED'}
+           foreach($name in @('ktrade.exe','ktrade-engine.exe','static','templates','strategies')){if(Test-Path -LiteralPath (Join-Path $stage $name)){throw 'W29C_APPLICATION_CODE_NOT_REMOVED'}}
+           $after=@(Get-ChildItem -LiteralPath $dataRoot -File -Recurse -Force)
+           if($after.Count -ne $before.Count){throw 'W29C_DATA_FILE_COUNT_CHANGED'}
+           foreach($file in $after){$key=$file.FullName.Substring($dataRoot.Length);if(!$before.ContainsKey($key) -or (Get-FileHash -LiteralPath $file.FullName).Hash -cne $before[$key]){throw 'W29C_DATA_BYTES_CHANGED'}}
+           if((Test-Path -LiteralPath $folder) -or (Get-FileHash -LiteralPath $receipt).Hash -cne $receiptHash -or [IO.File]::ReadAllText($sentinel) -cne 'KEEP_UNKNOWN_BYTES'){throw 'W29C_SHORTCUT_RECEIPT_OR_UNKNOWN_BYTES_CHANGED'}
+           & $ps51 -NoProfile -ExecutionPolicy Bypass -File $installedSetup -Action Launch -InstallRoot $target 2>&1|Out-Null
+           if($LASTEXITCODE -eq 0){throw 'W29C_UNINSTALLED_PACKAGE_RELAUNCHED'}
+           Write-Output '::notice::W29C_PACKAGE_ONLY_INSTALLED_UNINSTALL_KNOWN_CODE_REMOVED_ALL_DATA_BYTES_IDENTICAL=PASS'
+          }finally{
+           $env:PATH=$savedPath
+           if($null -ne $shell){Stop-Process -Id $shell.Id -Force -ErrorAction SilentlyContinue}
+           if($null -ne $launch){Stop-Process -Id $launch.Id -Force -ErrorAction SilentlyContinue}
+          }
+          exit 0
+      - name: Purge private source and disposable installed launch candidate
+        if: always()
+        shell: pwsh
+        run: |
+          $shortcutRecord=Join-Path $env:RUNNER_TEMP 'w29c-shortcut-folder.txt'
+          if(Test-Path -LiteralPath $shortcutRecord){
+            $folder=[IO.File]::ReadAllText($shortcutRecord)
+            if([IO.Path]::GetFileName($folder) -cmatch '^KTRADE-[a-f0-9]{16}$'){
+              foreach($name in @('KTRADE.lnk','.ktrade-shortcut-receipt.json','unknown-owner-note.txt')){
+                Remove-Item -LiteralPath (Join-Path $folder $name) -Force -ErrorAction SilentlyContinue
+              }
+              if((Test-Path -LiteralPath $folder) -and @(Get-ChildItem -LiteralPath $folder -Force).Count -eq 0){[IO.Directory]::Delete($folder,$false)}
+            }
+          }
+          foreach($p in @((Join-Path $env:GITHUB_WORKSPACE 'current'),(Join-Path $env:GITHUB_WORKSPACE 'w29c installed with spaces'),(Join-Path $env:GITHUB_WORKSPACE 'w29c extracted distribution'),(Join-Path $env:RUNNER_TEMP 'w29c-launch-tools'))){
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:GITHUB_WORKSPACE -Directory -Filter 'ktrade-setup-package-*'|Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+          foreach($name in @('w29c-build-root.txt','w28n-original-fixture.json')){
+            $p=Join-Path $env:RUNNER_TEMP $name
+            if(Test-Path -LiteralPath $p){Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue}
+          }
+
