@@ -34,7 +34,7 @@ jobs:
           repository: spoonman136668-ai/ktrade
           ref: 76df3e29cbe89403eeef6075ba4484a488312484
           path: checked-new
-          fetch-depth: 4
+          fetch-depth: 8
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Prove four-file change immutable source trees and verified W28F
