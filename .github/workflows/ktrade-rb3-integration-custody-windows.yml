@@ -1,0 +1,48 @@
+name: KTRADE RB3 read-only main-to-P10 integration custody
+permissions:
+  contents: read
+on:
+  push:
+    branches: [qualification/ktrade-rb3-integration-boundary-20261028]
+    paths: [.github/workflows/ktrade-rb3-integration-custody-windows.yml]
+concurrency:
+  group: ktrade-rb3-main-candidate-readonly-20261028
+  cancel-in-progress: false
+jobs:
+  witness:
+    name: Audit exact main, tip, all 70 contiguous draft PRs and release HOLD
+    runs-on: windows-2022
+    timeout-minutes: 25
+    steps:
+      - name: Checkout immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact KTRADE P10 source with complete Git ancestry
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 8881e7603facbcd761c66addf286b6a1f138e1d6
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Inspect actual Git graph 431 commits, 70 PRs and current main protection
+        shell: pwsh
+        env:
+          KTRADE_READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'RB3_GITHUB_HOSTED_WINDOWS_REQUIRED'}
+          $tokens=$null;$issues=$null
+          $script=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-rb3-integration-ancestry-readonly.ps1'
+          $null=[System.Management.Automation.Language.Parser]::ParseFile($script,[ref]$tokens,[ref]$issues)
+          if($issues.Count -ne 0){throw ('RB3_READONLY_AUDIT_SYNTAX_INVALID '+(($issues|ForEach-Object {$_.ToString()}) -join '; '))}
+          & $script
+          if(!$?){throw 'RB3_INTEGRATION_GRAPH_AUDIT_FAILED'}
+      - name: Explicitly attest no merge, no LIVE and no installed data
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Output '::notice::RB3_AUDIT_READONLY_NO_MERGE_NO_LIVE_NO_OWNER_DATA_NO_DEPLOY=PASS'
