@@ -3,7 +3,7 @@ permissions:
   contents: read
 concurrency:
   group: ktrade-w31-native-setup-interface
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   qualify:
     runs-on: windows-2022
