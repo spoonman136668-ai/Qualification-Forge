@@ -1,0 +1,196 @@
+name: KTRADE W32E compile-only sealed Wails Pine fixture Windows
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w32e-compile-only-fixture
+  cancel-in-progress: true
+on:
+  push:
+    branches: [qualification/ktrade-w32e-compile-fixture-20261028]
+    paths: [.github/workflows/ktrade-w32e-compile-fixture-windows.yml]
+  workflow_dispatch: {}
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 1c399965d8ab88a42e25f9997e0db15dec15e6b0
+          path: current
+          fetch-depth: 6
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Fail closed on source identity scope and clean custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W32E_WRONG_RUNNER'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '1c399965d8ab88a42e25f9997e0db15dec15e6b0' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '92b8b9c1c40bfeed6fc7931eb66e37065a023b06'){throw 'W32E_EXACT_SOURCE_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
+          if((& git -C $src merge-base 1c399965d8ab88a42e25f9997e0db15dec15e6b0 9e5ff8fa1086c18bb862bb66ae834886c824cab9).Trim() -cne '9e5ff8fa1086c18bb862bb66ae834886c824cab9'){throw 'W32E_W32D_BASE_DRIFT'}
+          $diff=@(& git -C $src diff --name-only 9e5ff8fa1086c18bb862bb66ae834886c824cab9 HEAD|Sort-Object)
+          $expect=@('cmd/ktrade/w32e_webview_fixture_full_windows.go','cmd/ktrade/w32e_webview_fixture_full_windows_test.go','windows/Build-KTRADE-WailsPortable.ps1'|Sort-Object)
+          if(Compare-Object $diff $expect){throw 'W32E_THREE_PATH_SCOPE_DRIFT'}
+          Write-Output '::notice::W32E_IMMUTABLE_SOURCE_3_PATH_AND_W32D_PARENT=PASS'
+      - name: Native Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Native Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Stage unchanged original frontend vendor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_LOCK_FAILURE'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_STAGE_FAILURE'}
+            & node --test tests/rb3_w32a_original_chart_candles.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w32d_pine_pane.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W32E_AFFECTED_CHART_NODE_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W32E_UNMODIFIED_CHART_FRONTEND_TESTS=PASS'
+      - name: Test sealed fixture Windows-only build and original Go regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -tags ktrade_full,ktrade_w32e_fixture -run '^TestW32E' ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W32E_TAGGED_COMPILE_OR_FOCUSED_TEST_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W32E_ROOT_FULL_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W32E_ROOT_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W32E_WAILS_FULL_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W32E_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W32E_TAGGED_FIXTURE_AND_ROOT_WAILS_FULL_REGRESSION=PASS'
+      - name: Prove production release rejects tagged fixture and build separate disposable pair
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          $release=Join-Path $env:GITHUB_WORKSPACE ('ktrade-rc-package-'+[guid]::NewGuid().ToString('N'))
+          $env:KTRADE_W32E_QUALIFICATION_ONLY='1'
+          try{
+            $blocked=$false
+            try{
+              & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $release -ExpectedSourceSha '1c399965d8ab88a42e25f9997e0db15dec15e6b0' -ReleaseCandidate -W32EQualificationFixture
+            }catch{if($_.Exception.Message -like '*W32E_SYNTHETIC_FEED_FORBIDDEN_IN_RELEASE_CANDIDATE*'){$blocked=$true}else{throw}}
+            if(!$blocked -or (Test-Path $release)){throw 'W32E_RELEASE_FIXTURE_REJECTION_MISSING'}
+            Write-Output '::notice::W32E_RELEASE_FIXTURE_PROMOTION_REFUSED=PASS'
+            & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha '1c399965d8ab88a42e25f9997e0db15dec15e6b0' -W32EQualificationFixture
+            if($LASTEXITCODE -ne 0){throw 'W32E_DISPOSABLE_PAIR_BUILD_FAILED'}
+          }finally{Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue}
+          $manifest=Get-Content -LiteralPath (Join-Path $build 'source-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.source_sha -cne '1c399965d8ab88a42e25f9997e0db15dec15e6b0' -or $manifest.fixture_mode -cne 'w32e-compile-time-only' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W32E_PAIR_SOURCE_OR_NONRELEASE_IDENTITY_DRIFT'}
+          $stage=Join-Path $build 'KTRADE-WailsPortable'
+          foreach($name in @('ktrade.exe','ktrade-engine.exe','wails-paper-package-proof.json','paper-package-proof.json')){if(!(Test-Path -LiteralPath (Join-Path $stage $name))){throw 'W32E_PAIR_OR_PROOF_MISSING'}}
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w32e-package.txt'),$build)
+          Write-Output '::notice::W32E_PROOF_BOUND_TEST_ONLY_WAILS_AND_GO_PAIR=PASS'
+      - name: Real Wails WebView2 and original Go sealed 30-bar Pine server
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class W32EClose { [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd,uint msg,IntPtr a,IntPtr b); }
+          '@
+          $build=[IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'w32e-package.txt'))
+          $stage=Join-Path $build 'KTRADE-WailsPortable'
+          $shell=$null
+          try{
+            $shell=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+            $until=(Get-Date).AddSeconds(55)
+            $engine=$null;$port=$null
+            do{
+              $shell.Refresh()
+              if($shell.HasExited){throw 'W32E_ORIGINAL_WAILS_SHELL_EXITED'}
+              $children=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+              if($children.Count -eq 1){
+                $engine=$children[0]
+                $p=@(Get-NetTCPConnection -OwningProcess $engine.ProcessId -State Listen -ErrorAction SilentlyContinue|Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+                if($p.Count -eq 1){$port=[int]$p[0].LocalPort;break}
+              }
+              Start-Sleep -Milliseconds 500
+            }while((Get-Date) -lt $until)
+            if(!$port){throw 'W32E_ORIGINAL_ENGINE_NOT_LISTENING'}
+            $uri='http://127.0.0.1:'+$port
+            $c=Invoke-RestMethod -Uri ($uri+'/api/operator/capabilities') -TimeoutSec 10
+            if($c.mode -cne 'PAPER_STOPPED' -or $c.paper_orders_enabled -ne $false -or $c.live_orders_enabled -ne $false -or $c.strategy_execution_enabled -ne $false -or $c.paper_accounting_enabled -ne $false){throw 'W32E_PAPER_FINANCIAL_AUTHORITY_NOT_DISARMED'}
+            $bars=Invoke-RestMethod -Uri ($uri+'/api/candles?product=BTC-USDC&tf=1m') -TimeoutSec 15
+            if($bars.success -ne $true -or @($bars.candles).Count -ne 30){throw 'W32E_ORIGINAL_CHART_SEALED_30_BARS_FAILED'}
+            $src="//@version=6`nindicator(`"W32E native sealed SMA`", overlay=false)`nplot(ta.sma(close, 3), `"Average`", color=color.fuchsia, linewidth=3)"
+            $request=@{code=$src;symbol='BTC-USDC';timeframe='1m';limit=300}|ConvertTo-Json -Compress
+            $overlay=Invoke-RestMethod -Uri ($uri+'/api/pine/overlay') -Method Post -ContentType 'application/json' -Body $request -TimeoutSec 15
+            if(!$overlay.success -or @($overlay.candles).Count -ne 30 -or @($overlay.pane_model).Count -ne 1 -or $overlay.pane_model[0].overlay -ne $false){throw 'W32E_ORIGINAL_GO_NONOVERLAY_PANE_FAILED'}
+            $values=@($overlay.pane_model[0].plots[0].values)
+            if($values.Count -ne 30 -or $null -ne $values[0] -or $null -ne $values[1]){throw 'W32E_GO_PINE_NA_ALIGNMENT_FAILED'}
+            for($i=2;$i -lt 30;$i++){if([double]$values[$i] -ne (99+$i)){throw 'W32E_GO_PINE_28_VALUES_DIFFER'}}
+            $deadline=(Get-Date).AddSeconds(30);$visible=$false
+            do{
+              $shell.Refresh()
+              if($shell.HasExited){throw 'W32E_WEBVIEW2_SHELL_CLOSED'}
+              if($shell.MainWindowHandle -ne [IntPtr]::Zero){
+                $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+                $els=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                foreach($el in $els){try{if(!$el.Current.IsOffscreen -and $el.Current.Name -ceq 'Toggle Pine indicator pane'){$visible=$true;break}}catch{}}
+              }
+              if($visible){break};Start-Sleep -Milliseconds 450
+            }while((Get-Date) -lt $deadline)
+            if(!$visible){throw 'W32E_REAL_WEBVIEW2_UI_NOT_VISIBLE'}
+            $after=Invoke-RestMethod -Uri ($uri+'/api/operator/capabilities') -TimeoutSec 10
+            if($after.mode -cne 'PAPER_STOPPED' -or $after.paper_orders_enabled -ne $false -or $after.live_orders_enabled -ne $false){throw 'W32E_POST_VIEW_FINANCIAL_AUTHORITY_CHANGED'}
+            Write-Output '::notice::W32E_REAL_DISPOSABLE_WAILS_WEBVIEW2_AND_SEALED_NATIVE_PINE_30_28=PASS'
+            Write-Output 'W32E_NATIVE_WEBVIEW2_PIXEL_PROOF=NOT_YET_MEASURED'
+          }finally{
+            if($null -ne $shell){
+              $shell.Refresh()
+              if(!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero){[void][W32EClose]::PostMessage($shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)}
+              if(!$shell.WaitForExit(15000)){Stop-Process -Id $shell.Id -Force -ErrorAction SilentlyContinue}
+            }
+          }
+      - name: Cleanup isolated W32E synthetic package
+        if: always()
+        shell: pwsh
+        run: |
+          $marker=Join-Path $env:RUNNER_TEMP 'w32e-package.txt'
+          if(Test-Path -LiteralPath $marker){
+            $root=[IO.File]::ReadAllText($marker)
+            if($root.StartsWith($env:RUNNER_TEMP) -and [IO.Path]::GetFileName($root) -match '^ktrade-w03-package-[a-f0-9]{32}$'){
+              Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue
+            }
+          }
+          Remove-Item (Join-Path $env:GITHUB_WORKSPACE 'current') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output '::notice::W32E_SYNTHETIC_EXECUTABLE_DISPOSED_NOT_RELEASED=PASS'
