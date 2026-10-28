@@ -1,0 +1,29 @@
+name: RSA public key transport validation only
+on:
+  push:
+    branches: [qualification/kt-rsa-transport-probe-20261028]
+    paths: ['.github/workflows/kt-rsa-transport-probe.yml']
+permissions:
+  contents: read
+jobs:
+  public-key-probe:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/kt-rsa-transport-probe-20261028'
+    runs-on: windows-2022
+    timeout-minutes: 5
+    steps:
+      - name: Prove RSA public-key import against known public message
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=[Security.Cryptography.RSAParameters]::new()
+          $p.Modulus=[Convert]::FromBase64String('tm08UPgq7BXG1L+BSDaYIlxmzUpLYyqf/asSnGZ2Btz0Ns9J+tDPs4fpIy77pP5pckAODewefz+bQcv1CgrtL9L9JdCQk2fs2hK/2wMyepmhRFBHVTngv2jpvMiHXY1Ij3SuDBYY8h6okFffpDmijTtPPEGn6ExWr9SzNU1vF1iX07YMlnNguLn94hC0W2OvF80epTGiB/+MDVVs+j8H7vmFTWahsL7t46eTSMbxQPmALaXbgwdMsFAc1NUA4HASXOxDKBemxWiXX+cUp5jgeKBOxxTU7to+3m5u7tZskkkQaxlz8vmqfpmykzp88EbYRCa0qTazQCzNzymG8qSc/Q==')
+          $p.Exponent=[Convert]::FromBase64String('AQAB')
+          $rsa=[Security.Cryptography.RSA]::Create()
+          $rsa.ImportParameters($p)
+          $export=$rsa.ExportParameters($false)
+          $digest=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($export.Modulus))
+          Write-Host ('KT_RSA_ACTUAL_MODULUS_SHA256='+$digest)
+          Write-Host ('KT_RSA_ACTUAL_EXPONENT='+[Convert]::ToBase64String($export.Exponent))
+          $cipher=$rsa.Encrypt([Text.Encoding]::UTF8.GetBytes('safe-public-test'),[Security.Cryptography.RSAEncryptionPadding]::OaepSHA256)
+          Write-Host ('KT_RSA_TEST_CIPHER='+[Convert]::ToBase64String($cipher))
+          $rsa.Dispose()
