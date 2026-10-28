@@ -1,0 +1,75 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W33C-P8",
+  "outcome": "PASS_ORIGINAL_NATIVE_ENGINE_CRASH_WARNING_UNCLOSED_POSITION_COLD_CUSTODY",
+  "date": "2026-10-28",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 181,
+    "sha": "b9094e9579d3079255a89c5af55677dcbe2dcbd5",
+    "tree": "a812b4b052697e20055807afeeef119cfade5ec1",
+    "parent": "75384a9cf11de5039369cc42b322747e251a6e2a",
+    "application_source_unchanged": true,
+    "changed_paths": [
+      "tools/wails-pilot/backend/backend.go",
+      "tools/wails-pilot/main_windows.go",
+      "tools/wails-pilot/engine_watch.go",
+      "tools/wails-pilot/engine_watch_test.go"
+    ]
+  },
+  "witness": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "run": 40777079407,
+    "job": 123129042280,
+    "sha": "6803bd92e0b324416cbdc57845f056524fd0719d",
+    "conclusion": "success",
+    "all_steps_success": true,
+    "runner": "windows-2022",
+    "prior_failed_runs": [
+      40773501240,
+      40775491825
+    ],
+    "prior_full_regression_step_reused_from_run": 40773501240,
+    "prior_full_step_reuse_source_tree_windows_image_toolchain_command_checked": true,
+    "production_pair_rebuilt_current_run": true
+  },
+  "original_real_native": {
+    "app": "original Wails + Go engine + WebView2",
+    "disposable_paper_only": true,
+    "live_orders_enabled": false,
+    "fills_before_kill": 1,
+    "cash": "579.4999189",
+    "position_qty": "0.00025",
+    "fifo_basis": "20.5000811",
+    "fees": "0.2029711",
+    "realized_pnl": "0",
+    "ledger_hash": "39f929e438a6f88579a414c1ff1f5f0bdb89d35118f0e027c311366fc6c4d73d",
+    "original_risk_bound_snapshot_seal": "82be8fab15fed0bf8977a75d82d23ecb22c3178ad9bdede22fef9f6a17c7aaa3",
+    "original_source_sha256": "d34c4875890f3c08045cdb9411f3a3d448fc83dcb3c3e2ef21bd7dc89386b466",
+    "crash_type": "OS force-kill original owned Go engine with worker/writer funded and active",
+    "engine_respawned": false,
+    "real_native_warning_observed": true,
+    "native_button_confirmed_from_owned_win32_hwnd": true,
+    "acknowledged_shell_exit_code": 0,
+    "owned_webview_processes_exited": 7,
+    "stop_injected": false,
+    "future_sell_not_settled": true,
+    "cold_account_stopped": false,
+    "cold_position_qty": "0.00025",
+    "cold_cash": "579.4999189",
+    "cold_source_lease_state": "OWNER_LEASE_UNRESOLVED",
+    "cold_start_http": 409,
+    "cold_current_valuation_http": 409,
+    "cold_worker_running": false,
+    "cold_writer_enabled": false,
+    "cold_paper_orders_enabled": false,
+    "history_byte_identical": true,
+    "source_id": "ktrade-reconcile-c063375cc11dcc573d17b84e47df9d6d"
+  },
+  "diagnosis": "Prior failed runs were false-negative witness checks: the real Win32 '#32770' dialog was a descendant of the Wails main UIA root, and its actual native Button-class OK was advertised as UIA Pane. This independent witness binds the modal HWND and button to the exact Wails process, retains native window class and bounding geometry and uses no DOM selector surrogate.",
+  "limits": [
+    "This proves unexpected Go-engine kill with one open PAPER position, native warning and cold non-rearm; it is not proof of real power loss or a committed mid-ledger crash.",
+    "No trading session recovery, abandoned lease deletion, or historical paper execution reinstatement was authorized.",
+    "No merge, signing, release, broker credentials, installed user data or LIVE authority."
+  ]
+}
