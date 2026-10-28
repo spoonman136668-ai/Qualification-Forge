@@ -127,7 +127,7 @@ jobs:
           '@
           # Interact solely via owned Windows screen/UIA/OS keyboard.
           # No JavaScript, inspector, DOM hooks or renderer mutation.
-          # Pixel coordinates derive independently from OS geometry and pinned LWC formulas.
+          # Pixel coordinates derive independently from exact UIA regions and pinned LWC formulas.
           function Report-W32EUI([object]$proc,[string]$phase){
             $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
             $elements=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)

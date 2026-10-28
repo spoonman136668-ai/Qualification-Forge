@@ -4,9 +4,12 @@
 # _logicalToCoordinate; default scaleMargins top .2/bottom .1; time-axis
 # optimalHeight 28 CSS px; chart size rounded down to even CSS dimensions.
 function Find-W32ERegion([object]$proc,[string]$name){
-  $el=Wait-W32EUI $proc $name
-  if($el.Current.Name -cne $name){throw ('W32E_P1C_REGION_AMBIGUOUS_'+$name)}
-  return $el.Current.BoundingRectangle
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
+  $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+  $matches=@()
+  foreach($el in $all){try{if($el.Current.Name -ceq $name -and !$el.Current.IsOffscreen -and !$el.Current.BoundingRectangle.IsEmpty){$matches+=,$el}}catch{}}
+  if($matches.Count -ne 1){throw ('W32E_P1C_REGION_AMBIGUOUS_'+$name)}
+  return $matches[0].Current.BoundingRectangle
 }
 function Capture-W32EOS([object]$proc,[string]$phase){
   $pine=Find-W32ERegion $proc 'Pine indicator pane'
