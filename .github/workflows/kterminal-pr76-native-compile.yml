@@ -52,6 +52,12 @@ jobs:
           persist-credentials: false
           fetch-depth: 1
 
+      - name: Pin source-era Go 1.22 toolchain as in K-Terminal's existing Graphify qualification
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.22'
+          cache: false
+
       - name: Qualify compiler, vet and build separately with private logs
         shell: pwsh
         run: |
@@ -59,6 +65,24 @@ jobs:
           $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
           $log=Join-Path $env:RUNNER_TEMP 'kt-native-compile-only.log'
           $results=@{}
+          function Report-SafeDiagnostics([string]$phase, [string]$file) {
+            $txt = if(Test-Path -LiteralPath $file){Get-Content -LiteralPath $file -Raw -ErrorAction Stop}else{''}
+            $categories = [ordered]@{
+              MOD_GRAPH_OUT_OF_SYNC = 'updates to go.mod needed|module updates disabled|go:.*go mod tidy|missing go.sum entry'
+              DEPENDENCY_FETCH = 'no required module provides package|module .* not found|failed to download|proxy.golang.org|TLS handshake|i/o timeout|dial tcp|connection refused'
+              SOURCE_COMPILE_ERROR = 'undefined:|redeclared in this block|cannot use |cannot refer to |not enough arguments|too many arguments|does not implement|invalid operation|syntax error'
+              VERSION_COMPATIBILITY = 'requires go >=|go.mod requires|unsupported version|invalid go version|not supported in Go'
+              PLATFORM_COMPATIBILITY = 'build constraints exclude all Go files|cannot find.*(gcc|cc1)|exec:.*not found'
+              RESOURCE_EXHAUSTION = 'out of memory|resource temporarily unavailable|fatal error:.*threads|no space left'
+              TEST_ASSERTION = '--- FAIL:|panic:|test timed out after|FAIL\s+[^\s]+\s+'
+            }
+            $found=@()
+            foreach($entry in $categories.GetEnumerator()){
+              if([regex]::IsMatch($txt,$entry.Value,[System.Text.RegularExpressions.RegexOptions]::IgnoreCase)){$found+= $entry.Key}
+            }
+            if($found.Count -eq 0){$found=@('UNCLASSIFIED')}
+            Write-Host ('KTERMINAL_'+$phase+'_DIAG_CLASS='+($found -join ','))
+          }
           Push-Location -LiteralPath $root
           try {
             if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'WRONG_SOURCE_HEAD' }
@@ -66,12 +90,15 @@ jobs:
             Write-Host ('KTERMINAL_GO_TOOLCHAIN='+(& go version))
             & go test -run '^$' -count=1 -timeout 5m ./... *> $log
             $results.compile=($LASTEXITCODE -eq 0)
+            if(-not $results.compile){Report-SafeDiagnostics 'COMPILE' $log}
             Write-Host ('KTERMINAL_ALL_PACKAGE_TEST_COMPILE='+$(if($results.compile){'PASS'}else{'FAIL'}))
             & go vet ./... *> $log
             $results.vet=($LASTEXITCODE -eq 0)
+            if(-not $results.vet){Report-SafeDiagnostics 'VET' $log}
             Write-Host ('KTERMINAL_GO_VET='+$(if($results.vet){'PASS'}else{'FAIL'}))
             & go build ./... *> $log
             $results.build=($LASTEXITCODE -eq 0)
+            if(-not $results.build){Report-SafeDiagnostics 'BUILD' $log}
             Write-Host ('KTERMINAL_GO_BUILD='+$(if($results.build){'PASS'}else{'FAIL'}))
             if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_MUTATED' }
             if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_HEAD_DRIFT' }
