@@ -1,0 +1,71 @@
+name: KTRADE W33C P10 fourth SELL pending checkpoint original guard
+permissions:
+  contents: read
+on:
+  push:
+    branches: [qualification/ktrade-w33c-p10-fourth-sell-pending-20261028]
+    paths: [.github/workflows/ktrade-w33c-p10-fourth-sell-pending-windows.yml]
+concurrency:
+  group: ktrade-w33c-p10-fourth-pending
+  cancel-in-progress: true
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout pinned witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 8881e7603facbcd761c66addf286b6a1f138e1d6
+          path: current
+          fetch-depth: 4
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Refuse source or one-test scope drift
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W33C_P10_WRONG_RUNNER'}
+          $root=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $root rev-parse HEAD).Trim() -cne '8881e7603facbcd761c66addf286b6a1f138e1d6' -or
+             (& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne 'ab851e1d0ac54ab9f15068bed7b59ea08897bbc1'){throw 'W33C_P10_SOURCE_DRIFT'}
+          if((& git -C $root rev-parse HEAD^).Trim() -cne '81c20f6f4636a870a0126208cf1c9cf0c1dcab64'){throw 'W33C_P10_PARENT_DRIFT'}
+          $actual=@(& git -C $root diff --name-only HEAD^ HEAD)
+          if($actual.Count -ne 1 -or $actual[0] -cne 'internal/paperengine/w33c_p10_fourth_sell_pending_test.go'){throw 'W33C_P10_SCOPE_NOT_SINGLE_TEST'}
+          if(@(& git -C $root status --porcelain).Count -ne 0){throw 'W33C_P10_DIRTY_SOURCE'}
+          Write-Output '::notice::W33C_P10_EXACT_P9_PARENT_ONE_TEST_ONLY=PASS'
+      - name: Native Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Original full fourth SELL pending after actual settled fill
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -v -timeout 10m -tags ktrade_full -run '^TestW33CP10' ./internal/paperengine
+            if($LASTEXITCODE -ne 0){throw 'W33C_P10_FOURTH_FILL_POST_SETTLEMENT_FAULT_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./internal/paperengine
+            if($LASTEXITCODE -ne 0){throw 'W33C_P10_ORIGINAL_ENGINE_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W33C_P10_FOURTH_SELL_COMMITTED_PENDING_WRITER_RETAINED=PASS'
+      - name: Dispose scoped source and assert no application execution
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'current') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output '::notice::W33C_P10_NO_RELEASE_NO_BROKER_NO_LIVE_NO_ORIGINAL_PROFILE=PASS'
