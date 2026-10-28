@@ -99,12 +99,24 @@ function W33-Field([object]$process,[string]$name,[string]$value){
  $r=$el.Current.BoundingRectangle;$outer=$root.Current.BoundingRectangle
  if($r.IsEmpty -or $r.Left -lt $outer.Left -or $r.Right -gt $outer.Right -or $r.Top -lt $outer.Top -or $r.Bottom -gt $outer.Bottom){throw 'W33_NATIVE_FIELD_NOT_OWNED'}
  [void][W32ENativeInput]::SetForegroundWindow($process.MainWindowHandle)
+ Start-Sleep -Milliseconds 200
  [void][W32ENativeInput]::SetCursorPos([int]($r.Left+$r.Width/2),[int]($r.Top+$r.Height/2))
  if([W32ENativeInput]::GetForegroundWindow() -ne $process.MainWindowHandle){throw 'W33_NATIVE_FIELD_FOREIGN_FOCUS'}
- [W32ENativeInput]::mouse_event(2,0,0,0,[UIntPtr]::Zero);[W32ENativeInput]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
- $el.SetFocus()
- Shortcut-W32E 0x41
- Shortcut-W32E 0x56
+ [W32ENativeInput]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 85
+ [W32ENativeInput]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 300
+ $focused=[System.Windows.Automation.AutomationElement]::FocusedElement
+ Write-Output ('W33_NATIVE_FIELD_FOCUS='+(@{name=$name;target_type=$el.Current.ControlType.ProgrammaticName;focused_name=$focused.Current.Name;focused_type=$focused.Current.ControlType.ProgrammaticName;rect=$r.ToString()}|ConvertTo-Json -Compress))
+ if($focused.Current.Name -cne $name -or [W32ENativeInput]::GetForegroundWindow() -ne $process.MainWindowHandle){throw 'W33_NATIVE_FIELD_INPUT_FOCUS_UNCONFIRMED'}
+ [Windows.Forms.SendKeys]::SendWait('^a')
+ [Windows.Forms.SendKeys]::SendWait($value)
+ Start-Sleep -Milliseconds 200
+ $actual=$null
+ try{$actual=$el.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value}catch{}
+ if($null -eq $actual){try{$actual=$el.GetCurrentPattern([System.Windows.Automation.RangeValuePattern]::Pattern).Current.Value}catch{}}
+ Write-Output ('W33_NATIVE_FIELD_READBACK='+(@{name=$name;expected=$value;actual=$actual}|ConvertTo-Json -Compress))
+ if($null -eq $actual -or [decimal]$actual -ne [decimal]$value){throw 'W33_NATIVE_FIELD_VALUE_NOT_CONFIRMED'}
 }
 function W33-Get([string]$path){return Invoke-RestMethod -Uri ($uri+$path) -TimeoutSec 12}
 function W33-CheckAccount([object]$account){
