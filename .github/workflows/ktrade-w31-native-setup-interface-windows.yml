@@ -385,11 +385,24 @@ jobs:
           }catch{}
          }
          if($matches.Count -ne 1){throw ('W31_OWNED_SETUP_MODE_COMBOBOX_AMBIGUOUS_'+$matches.Count)}
+         $rect=$matches[0].Current.BoundingRectangle
+         $outer=[System.Windows.Automation.AutomationElement]::FromHandle($setup.window.MainWindowHandle).Current.BoundingRectangle
+         if($rect.IsEmpty -or $rect.Width -lt 20 -or $rect.Height -lt 15 -or
+            $rect.Left -lt $outer.Left -or $rect.Right -gt $outer.Right -or
+            $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){
+          throw 'W31_SETUP_MODE_FOREIGN_OR_HIDDEN_CONTROL'
+         }
          [void][W30Native]::SetForegroundWindow($setup.window.MainWindowHandle)
-         $matches[0].SetFocus()
-         [Windows.Forms.SendKeys]::SendWait('{END}')
-         # Verify a real child WinForms button changes to Update, never
-         # infer the mode from keystrokes or an unrelated list option.
+         Start-Sleep -Milliseconds 150
+         if([W30Native]::GetForegroundWindow() -ne $setup.window.MainWindowHandle){throw 'W31_SETUP_MODE_FOREIGN_FOCUS'}
+         # Wails' actual installer uses a WinForms ComboBox HWND. This hosted
+         # UIA provider returns ControlType.Pane and SetFocus throws; clicking
+         # this verified owned HWND is the genuine operator interaction.
+         if(![W30Native]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))){throw 'W31_SETUP_MODE_NATIVE_POINTER_REFUSED'}
+         [W30Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+         [W30Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+         [Windows.Forms.SendKeys]::SendWait('{END}{ENTER}')
+         # Require visible resulting Update BUTTON in this same process.
          $null=Wait-Visible $setup.window 'Update' $true
         }
         function Click-SetupDialog([object]$setup,[string]$label){
