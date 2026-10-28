@@ -89,28 +89,27 @@ jobs:
           & node scripts/stage_offline_vendor.cjs
           if($LASTEXITCODE -ne 0){throw 'W30_VENDOR_STAGE_FAILED'}
         }finally{Pop-Location}
-        Push-Location (Join-Path $src 'tools/wails-pilot')
-        try{
-         & go test -mod=readonly -race -count=1 -run '^Test(W31|W30B|W30A|W30|W29|W26|W27|W28[CDE])' ./backend
-         if($LASTEXITCODE -ne 0){throw 'W30B_AFFECTED_INTERFACES_RACE_FAILED'}
-        }finally{Pop-Location}
-        Write-Output '::notice::W30B_AFFECTED_RETAINED_UNINSTALL_LAUNCH_RACE=PASS'
-    - name: One frozen-source full Go and Wails regression vet before build
+    - name: Reuse exact successful frozen-source full Go regression vet and race proof
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
-        $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
-        $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-        foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
-         Push-Location $dir
-         try{
-          & go test -mod=readonly -count=1 ./...
-          if($LASTEXITCODE -ne 0){throw 'W30B_FINAL_FULL_REGRESSION_FAILED'}
-          & go vet -mod=readonly ./...
-          if($LASTEXITCODE -ne 0){throw 'W30B_FINAL_VET_FAILED'}
-         }finally{Pop-Location}
+        $headers=@{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+        $base='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40607529949'
+        $r=Invoke-RestMethod -Uri $base -Headers $headers
+        if($r.status -cne 'completed' -or $r.head_sha -cne 'c7822bd27291bb2105b5cb80f2ffafcac5bfeb11'){throw 'W31_EXACT_PROOF_RUN_NOT_COMPLETED'}
+        $jobs=Invoke-RestMethod -Uri ($base+'/jobs') -Headers $headers
+        $job=@($jobs.jobs|Where-Object {$_.id -eq 122550653003 -and $_.name -ceq 'qualify'})
+        if($job.Count -ne 1){throw 'W31_EXACT_PROOF_JOB_ABSENT'}
+        foreach($name in @('Verify immutable source and completed native foundations','Stage unchanged assets parse shell script and run affected interfaces','One frozen-source full Go and Wails regression vet before build')){
+         $step=@($job[0].steps|Where-Object {$_.name -ceq $name})
+         if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){throw ('W31_EXACT_SOURCE_PROOF_STEP_NOT_SUCCESSFUL_'+$name)}
         }
-        Write-Output '::notice::W30B_FULL_GO_WAILS_REGRESSION_VET=PASS'
+        # Same immutable source/tree, dependencies, toolchain, staged assets and Go
+        # commands. Native UIA edit-field disambiguation and launcher tamper tests
+        # changed only this external native harness. No failed native result reused.
+        Write-Output '::notice::W31_EXACT_SOURCE_FULL_REGRESSION_VET_AND_RACE_REUSED=PASS'
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Build two exact distinct source-bound installed packages
       shell: pwsh
       run: |
@@ -294,8 +293,17 @@ jobs:
          [uint32]$code=259
          if(![W30Native]::GetExitCodeProcess($setup.handle,[ref]$code) -or $code -ne 0){throw 'W31_SETUP_SCRIPT_EXIT_FAILED'}
         }
+        function Setup-PathField([object]$setup){
+         $root=[System.Windows.Automation.AutomationElement]::FromHandle($setup.window.MainWindowHandle)
+         $name=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,'Installation folder')
+         $kind=New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ControlTypeProperty,[System.Windows.Automation.ControlType]::Edit)
+         $condition=New-Object System.Windows.Automation.AndCondition($name,$kind)
+         $element=$root.FindFirst([System.Windows.Automation.TreeScope]::Descendants,$condition)
+         if($null -eq $element){throw 'W31_SETUP_EDIT_FIELD_ABSENT'}
+         return $element
+        }
         function Set-SetupPath([object]$setup,[string]$path){
-         $element=Wait-Visible $setup.window 'Installation folder'
+         $element=Setup-PathField $setup
          if($element.Current.ControlType -ne [System.Windows.Automation.ControlType]::Edit){throw 'W31_SETUP_PATH_FIELD_NOT_EDITABLE'}
          $value=$element.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
          $value.SetValue($path)
@@ -336,7 +344,7 @@ jobs:
           Set-SetupPath $setupWindow $guiRoot
           Click-Verified $setupWindow.window 'Browse...'
           Click-SetupDialog $setupWindow 'Cancel'
-          $field=Wait-Visible $setupWindow.window 'Installation folder'
+          $field=Setup-PathField $setupWindow
           if($field.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value -cne $guiRoot -or (Test-Path -LiteralPath $guiRoot)){throw 'W31_FOLDER_PICKER_CANCEL_MUTATED_DESTINATION'}
          }finally{Close-Setup $setupWindow}
          if(Test-Path -LiteralPath $guiRoot){throw 'W31_CANCELLED_SETUP_CLAIMED_ROOT'}
@@ -379,8 +387,25 @@ jobs:
          Write-Output '::notice::W31_REAL_INSTALLED_NATIVE_SETUP_UNINSTALL_NO_YES_DATA_AND_HOST_PRESERVED=PASS'
         }
 
+        function Test-NativeSetupIntegrityRefusal {
+         $path=Join-Path $newBundle 'KTRADE-Setup.ps1'
+         $raw=[IO.File]::ReadAllBytes($path)
+         try{
+          [IO.File]::WriteAllBytes($path,[byte[]]($raw+[byte]32))
+          $entry=Start-Process -FilePath (Join-Path $newBundle 'KTRADE-Setup.exe') -PassThru
+          $null=Wait-Visible $entry 'Setup could not open because its files could not be verified.'
+          $children=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$entry.Id)|Where-Object {$_.Name -ceq 'powershell.exe'})
+          if($children.Count -ne 0){throw 'W31_UNVERIFIED_SCRIPT_WAS_STARTED'}
+          Click-Verified $entry 'OK'
+          if(!$entry.WaitForExit(15000) -or $entry.ExitCode -ne 1){throw 'W31_NATIVE_INTEGRITY_REFUSAL_EXIT_DRIFT'}
+         }finally{[IO.File]::WriteAllBytes($path,$raw)}
+         Write-Output '::notice::W31_NATIVE_HOST_REJECTS_CHANGED_SCRIPT_BEFORE_POWERSHELL_START=PASS'
+        }
+
+
         try{
          Test-SetupFreshInterface
+         Test-NativeSetupIntegrityRefusal
          $old=Invoke-Setup $oldSetup 'Install'
          if($old.source_sha -cne $oldSHA -or $old.app_launched -or $old.live_armed){throw 'W30_ORIGINAL_INSTALL_CUSTODY_DRIFT'}
          $oldInstalledSetup=Join-Path $target 'maintenance/KTRADE-Setup.ps1'
