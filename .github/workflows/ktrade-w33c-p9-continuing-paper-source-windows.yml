@@ -1,0 +1,154 @@
+name: KTRADE W33C P9 continuing original owner source regression and production build
+# Native completion uses stable owner state; evidence readers share existing Windows writer handles.
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w33c-p9-continuing-paper-source
+  cancel-in-progress: true
+on:
+  push:
+    branches: [qualification/ktrade-w33c-p9-continuing-paper-source-20261028]
+    paths: [.github/workflows/ktrade-w33c-p9-continuing-paper-source-windows.yml]
+  workflow_dispatch: {}
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 81c20f6f4636a870a0126208cf1c9cf0c1dcab64
+          path: current
+          fetch-depth: 8
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Fail closed on source identity scope and clean custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W32E_WRONG_RUNNER'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '81c20f6f4636a870a0126208cf1c9cf0c1dcab64' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'ebf8872d142e8e0fb6748467a134ac7e0054cabd'){throw 'W32E_EXACT_SOURCE_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
+          if((& git -C $src merge-base 81c20f6f4636a870a0126208cf1c9cf0c1dcab64 b9094e9579d3079255a89c5af55677dcbe2dcbd5).Trim() -cne 'b9094e9579d3079255a89c5af55677dcbe2dcbd5'){throw 'W33B_PARENT_DRIFT'}
+          $diff=@(& git -C $src diff --name-only b9094e9579d3079255a89c5af55677dcbe2dcbd5 HEAD|Sort-Object)
+          $expect=@('internal/paperengine/owner.go','internal/paperengine/final_close_review.go','internal/paperengine/final_close_submit.go','internal/paperengine/next_entry.go','internal/paperengine/next_entry_test.go','internal/paperexit/review.go','cmd/ktrade/paper_session_runner_full.go','cmd/ktrade/next_entry_full_test.go'|Sort-Object)
+          if(Compare-Object $diff $expect){throw 'P9_EIGHT_PATH_SCOPE_DRIFT'}
+          Write-Output '::notice::W33C_P9_EXACT_SOURCE_EIGHT_CONTINUING_OWNER_PATHS=PASS'
+      - name: Native Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Native Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Stage unchanged original frontend vendor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_LOCK_FAILURE'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_STAGE_FAILURE'}
+            & node --test tests/rb3_w32a_original_chart_candles.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w32d_pine_pane.test.cjs tests/rb3_w33a_operator_paper_state.test.cjs tests/w19_paper_failure_feedback.test.cjs tests/w33c_p7_paper_valuation.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W32E_AFFECTED_CHART_NODE_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W32E_UNMODIFIED_CHART_FRONTEND_TESTS=PASS'
+      - name: Full exact-source original two-round-trip owner regression Go Wails vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -v -run '^TestW33CP9' ./internal/paperengine
+            if($LASTEXITCODE -ne 0){throw 'P9_ORIGINAL_NEXT_ENTRY_OWNER_FAILED'}
+            & go test -mod=readonly -count=1 -v -tags ktrade_full -run '^TestW33CP9' ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P9_NATIVE_SAVED_PINE_REENTRY_FAILED'}
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_APP_REGRESSION_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_APP_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_ROOT_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_ROOT_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_WAILS_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W33C_P9_FRESH_FULL_GO_WAILS_ORIGINAL_GUARDED_TWO_ROUND_TRIPS=PASS'
+      - name: Build original production pair with every synthetic tag excluded
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          Remove-Item Env:KTRADE_W13_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          Push-Location $src
+          try{
+            $files=(& go list -mod=readonly -tags ktrade_full -f '{{join .GoFiles " "}}' ./cmd/ktrade) -join ' '
+            if($LASTEXITCODE -ne 0 -or $files -notmatch 'main_full.go' -or $files -match 'w32e_webview_fixture|w13_fixture'){throw 'W32E_P2_SYNTHETIC_SOURCE_INCLUDED'}
+          }finally{Pop-Location}
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha '81c20f6f4636a870a0126208cf1c9cf0c1dcab64'
+          if($LASTEXITCODE -ne 0){throw 'W32E_P2_PRODUCTION_PAIR_BUILD_FAILED'}
+          $manifest=Get-Content -LiteralPath (Join-Path $build 'source-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.source_sha -cne '81c20f6f4636a870a0126208cf1c9cf0c1dcab64' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W32E_P2_PRODUCTION_IDENTITY_DRIFT'}
+          $stage=Join-Path $build 'KTRADE-WailsPortable'
+          $engineInfo=(& go version -m (Join-Path $stage 'ktrade-engine.exe')) -join "`n"
+          if($LASTEXITCODE -ne 0 -or $engineInfo -notmatch '-tags=ktrade_full' -or $engineInfo -match 'ktrade_w32e_fixture|ktrade_w13_fixture'){throw 'W32E_P2_PRODUCTION_TAGS_DRIFT'}
+          Write-Output $engineInfo
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w32e-package.txt'),$build)
+          Write-Output '::notice::W32E_P2_ORIGINAL_PRODUCTION_PAIR_NO_SYNTHETIC_TAGS_OR_TRANSPORT=PASS'
+      - name: Cleanup isolated production PAPER qualification package
+        if: always()
+        shell: pwsh
+        run: |
+          $marker=Join-Path $env:RUNNER_TEMP 'w32e-package.txt'
+          if(Test-Path -LiteralPath $marker){
+            $root=[IO.File]::ReadAllText($marker)
+            if($root.StartsWith($env:RUNNER_TEMP) -and [IO.Path]::GetFileName($root) -match '^ktrade-w03-package-[a-f0-9]{32}$'){
+              Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction Stop
+              if(Test-Path -LiteralPath $root){throw 'W33_PACKAGE_CLEANUP_INCOMPLETE'}
+            }
+          }
+          $paperMarker=Join-Path $env:RUNNER_TEMP 'w33-paper-source.txt'
+          if(Test-Path -LiteralPath $paperMarker){
+            $id=[IO.File]::ReadAllText($paperMarker)
+            if($id -cnotmatch '^ktrade-reconcile-[a-z0-9]{12,48}$'){throw 'W33_CLEANUP_SOURCE_ID_INVALID'}
+            $suffix=$id.Substring('ktrade-reconcile-'.Length)
+            foreach($name in @($id,('ktrade-paper-partition-'+$suffix+'-btc-usdc'))){
+              $path=Join-Path $env:RUNNER_TEMP $name
+              if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction Stop}
+            }
+          }
+          Remove-Item (Join-Path $env:GITHUB_WORKSPACE 'current') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output '::notice::W33C_P9_SOURCE_PROOF_PRODUCTION_PAIR_DISPOSED_NATIVE_REENTRY_STILL_REQUIRED=PASS'
+
+
+
