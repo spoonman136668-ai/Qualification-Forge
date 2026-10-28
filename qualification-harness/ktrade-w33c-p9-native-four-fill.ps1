@@ -347,7 +347,16 @@ function Run-P9NativeRoundTrips {
  if($sell2Preview.schema -cne 'ktrade.paper.strategy-preview.review.v1' -or
     $sell2Preview.product_id -cne 'BTC-USDC' -or
     $sell2Preview.source_sha256 -cne $script:p5SourceHash -or
-    $sell2Preview.final_bar_sha256 -cnotmatch '^[a-f0-9]{64}
+    ([string]$sell2Preview.final_bar_sha256).Length -ne 64 -or
+    ([string]$sell2Preview.final_bar_sha256) -match '[^0-9a-f]' -or
+    ([DateTimeOffset]$sell2Preview.final_bar_at).ToUnixTimeSeconds() -ne $exit2Close -or
+    $sell2Preview.live_armed -ne $false -or
+    $sell2Preview.orders_enabled -ne $false -or
+    $sell2Preview.fee_schedule_verified -ne $false -or
+    $null -ne $sell2Preview.review_proposal -or
+    $sell2Preview.status -notin @('NO_SIGNAL','UNSUPPORTED_ORDER')){
+   throw 'P9_SECOND_SELL_HTTP_PREVIEW_SOURCE_OR_DISARMED_STATE_INVALID'
+ }
  $sell2Price=[decimal]$sell2Bars.candles[-1].close
  $sell2PriceText=$sell2Price.ToString('0.########',[Globalization.CultureInfo]::InvariantCulture)
  $sell2IDInput='W33C-SELL-v1|'+$script:p5SourceHash+'|BTC-USDC|'+$exit2Close+'|'+$sell2Preview.final_bar_sha256+'|'+$buy2ID+'|L|0.00025|'+$sell2PriceText+'|100|'+$bought2.last_ledger_hash
