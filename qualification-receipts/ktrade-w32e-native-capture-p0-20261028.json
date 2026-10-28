@@ -1,0 +1,56 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W32E-P0",
+  "status": "PASS_NATIVE_INSTALLED_WEBVIEW2_OS_FRAME_CAPTURE_AND_VISIBLE_RESIZE_ONLY",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "sha": "9e5ff8fa1086c18bb862bb66ae834886c824cab9",
+    "tree": "f83ea40d8d709fcda9aec14d5237c3150282af71",
+    "parent": "f6274921f064f8590a3d02c2118b6ff9e50d916a",
+    "changed_application_paths": 0,
+    "original_w32d_qualified_run": 40668054808
+  },
+  "execution": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "run_id": 40674281690,
+    "job_id": 122768605679,
+    "head_sha": "65a28cb437ab2829fc5aedda5174476829c67e3d",
+    "conclusion": "success",
+    "all_steps_success": true,
+    "runner": "GitHub-hosted windows-2022",
+    "focused_node": {
+      "pass": 68,
+      "fail": 0
+    },
+    "full_root_go_and_nested_wails_regression_vet": true,
+    "source_bound_build": true,
+    "original_go_headful_edge_renderer": true,
+    "installed_webview2_pine_editor_save_open_cold_restart": true,
+    "installed_lifecycle_uninstall_data_preserved": true,
+    "financial_actions": 0,
+    "live_armed": false
+  },
+  "native_frame": {
+    "method": "Windows UIAutomation owned section plus Windows Graphics.CopyFromScreen; in-memory PNG hash and sampled color diversity only; no screenshots retained or uploaded",
+    "phase_standard": {
+      "width": 932,
+      "height": 150,
+      "sample_colors": 12,
+      "sha256": "1b859eea48cc5d05080ce17bb3a1493aa46b86cf9b78dac707065d1334d018c1"
+    },
+    "phase_expanded": {
+      "width": 932,
+      "height": 199,
+      "sample_colors": 11,
+      "sha256": "c4a321391312ba75af5ab3afe6a7d9d9ce9cf10d0e399e09d9650e0ec85a0c04"
+    },
+    "height_delta": 49,
+    "pass": true
+  },
+  "limits": [
+    "No deterministic plotted Pine points were produced within shipping WebView2; screenshot hashes and color diversity are capture/geometry proof only.",
+    "Previous 28 of 28 plotted pixel hits remain Edge original-Go-sealed-fixture proof, not WebView2.",
+    "W32E full visual plotted-series and broader W32 paper accounting/TradeGuard/restart remain unqualified.",
+    "No owner data, live orders, financial action, production promotion, app source modification, merge, signing or accepted-ref mutation."
+  ]
+}
