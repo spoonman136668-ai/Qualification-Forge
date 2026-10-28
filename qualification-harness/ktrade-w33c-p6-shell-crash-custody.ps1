@@ -355,9 +355,16 @@ function Run-P6NativeShellCrash {
  $coldArchive=W33-Get '/api/paper/session/archive'
  if($coldArchive.snapshot_seal -cne $archive.snapshot_seal -or $coldArchive.source_id -cne $archive.source_id -or $coldArchive.original_risk_proof_verified -ne $true -or $coldArchive.account.stopped -ne $false -or $coldArchive.original_source_comparison.state -cne 'OWNER_LEASE_UNRESOLVED' -or $coldArchive.original_source_comparison.trading_resume_eligible -ne $false -or $coldArchive.execution_restore_eligible -ne $false -or (W33B-History) -cne $beforeHistory){throw 'P6_COLD_ARCHIVE_OR_ABANDONED_LEASE_CHANGED'}
  $null=P5-Account $coldArchive.account 2 $flatExpected
+ # Current finalized exit intents correctly fail Start admission before a lease probe.
+ # Wait for the next finalized NO_SIGNAL bar using the SAME saved source.
+ P5-WaitUntil ($exitClose+63) 'post-exit-cold-admission'
+ $admissionBars=W33-Get '/api/candles?product=BTC-USDC&tf=1m'
+ Assert-W32EProductionBars $admissionBars;Assert-W32EIndependentProvider $admissionBars
+ if([long]$admissionBars.candles[-1].time -le $exitOpen){throw 'P6_ADMISSION_STILL_ON_EXIT_BAR'}
  # Refuse before funding, without creating a phantom history source.
  $start=@{script_id=$saved[0].id;product_id='BTC-USDC';timeframe='1m';initial_cash='600';simulated_fee_bps=100;fee_model_acknowledged=$true}|ConvertTo-Json -Compress
  $refused=Invoke-WebRequest -Uri ($uri+'/api/paper/session/start') -Method Post -Headers @{Origin=$uri} -ContentType 'application/json' -Body $start -TimeoutSec 15 -SkipHttpErrorCheck
+ Write-Output ('P6_COLD_ADMISSION_RESPONSE='+(@{status=$refused.StatusCode;body=$refused.Content}|ConvertTo-Json -Compress))
  if($refused.StatusCode -ne 409 -or !$refused.Content.Contains('durable paper writer blocked or previously interrupted')){throw ('P6_COLD_START_NOT_REFUSED_BY_CRASH_CUSTODY_'+$refused.StatusCode)}
  $after=W33-Get '/api/paper/session';$sources=W33-Get '/api/paper/session/archive-sources';$selected=W33-Get '/api/paper/session/archive'
  if($after.mode -cne 'PAPER_NOT_FUNDED' -or $after.fill_count -ne 0 -or $after.paper_orders_enabled -ne $false -or $after.unattended_enabled -ne $false -or $after.durable_custody_enabled -ne $false -or @($sources.sources).Count -ne 1 -or $sources.sources[0] -cne $archive.source_id -or $selected.snapshot_seal -cne $archive.snapshot_seal -or (W33B-History) -cne $beforeHistory){throw 'P6_REFUSED_START_CREATED_HISTORY_OR_CHANGED_FUNDS'}
