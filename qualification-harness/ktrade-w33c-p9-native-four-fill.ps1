@@ -338,8 +338,82 @@ function Run-P9NativeRoundTrips {
  Assert-W32EProductionBars $sell2Bars;Assert-W32EIndependentProvider $sell2Bars
  if([long]$sell2Bars.candles[-1].time -ne $exit2Open){throw 'P9_SECOND_SELL_FINALITY_NOT_CURRENT'}
  $sell2Preview=Invoke-RestMethod -Uri ($uri+'/api/paper/strategy/preview') -Method Post -Headers @{Origin=$uri} -ContentType 'application/json' -Body $request -TimeoutSec 15
- $signals=@($sell2Preview.latest_signals|Where-Object {$_.type -ceq 'exit_submitted' -and $_.intent_kind -ceq 'market_close' -and $_.id -ceq 'L' -and $_.qty -eq 0})
- if($sell2Preview.source_sha256 -cne $script:p5SourceHash -or ([DateTimeOffset]$sell2Preview.final_bar_at).ToUnixTimeSeconds() -ne $exit2Close -or $sell2Preview.status -cne 'UNSUPPORTED_ORDER' -or $signals.Count -ne 1 -or $sell2Preview.live_armed -ne $false){throw 'P9_SECOND_SELL_INTENT_NOT_NATIVE_MARKET_CLOSE'}
+ # The HTTP endpoint uses the non-finalized, non-executable Pine preview,
+ # not the final-intent compiler used by the original active Go owner.
+ # Never treat its absent/present simulated exit row as SELL authorization.
+ # The subsequent native Evaluate and original settled FIFO/risk checkpoint
+ # must independently prove the fourth fill and source-bound market close.
+ Write-Output ('P9_SECOND_SELL_HTTP_PREVIEW_DIAGNOSTIC='+(@{status=$sell2Preview.status;reason=$sell2Preview.reason;signals=@($sell2Preview.latest_signals|ForEach-Object {@{type=$_.type;intent_kind=$_.intent_kind;id=$_.id;bar_index=$_.bar_index}});proposal_present=($null -ne $sell2Preview.review_proposal);source_sha256=$sell2Preview.source_sha256;final_bar_sha256=$sell2Preview.final_bar_sha256}|ConvertTo-Json -Compress -Depth 5))
+ if($sell2Preview.schema -cne 'ktrade.paper.strategy-preview.review.v1' -or
+    $sell2Preview.product_id -cne 'BTC-USDC' -or
+    $sell2Preview.source_sha256 -cne $script:p5SourceHash -or
+    $sell2Preview.final_bar_sha256 -cnotmatch '^[a-f0-9]{64}
+ $sell2Price=[decimal]$sell2Bars.candles[-1].close
+ $sell2PriceText=$sell2Price.ToString('0.########',[Globalization.CultureInfo]::InvariantCulture)
+ $sell2IDInput='W33C-SELL-v1|'+$script:p5SourceHash+'|BTC-USDC|'+$exit2Close+'|'+$sell2Preview.final_bar_sha256+'|'+$buy2ID+'|L|0.00025|'+$sell2PriceText+'|100|'+$bought2.last_ledger_hash
+ $sell2ID='pine-exit-'+[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($sell2IDInput))).ToLowerInvariant().Substring(0,48)
+ $sell2Gross=[Math]::Round($sell2Price*[decimal]'0.00025',8,[MidpointRounding]::AwayFromZero)
+ $sell2Fee=[Math]::Round($sell2Gross/100,8,[MidpointRounding]::AwayFromZero)
+ $realized2=$flatExpected.realized_pnl+$sell2Gross-$sell2Fee-$buy2Gross-$buy2Fee
+ $flat2Expected=@{cash=$flatExpected.cash+$sell2Gross-$sell2Fee-$buy2Gross-$buy2Fee;position_qty=0;cost_basis=0;fees_paid=$flatExpected.fees_paid+$buy2Fee+$sell2Fee;realized_pnl=$realized2;entries=@($flatExpected.entries[0],$flatExpected.entries[1],$buy2Expected.entries[2],@{id=$sell2ID;side='SELL';price=$sell2Price})}
+ $beforeSell2=W33-Get '/api/paper/session'
+ if($beforeSell2.fill_count -ne 3){throw 'P9_SECOND_SELL_FILLED_BEFORE_NATIVE_EVALUATE'}
+ Click-W32EUI $shell 'Evaluate final bar'
+ $null=Wait-W32EUI $shell 'fills 4' 15
+ $sold2=W33-Get '/api/paper/session'
+ if($sold2.fill_count -ne 4 -or ([DateTimeOffset]$sold2.last_final_bar_at).ToUnixTimeSeconds() -ne $exit2Close -or $sold2.last_ledger_hash -ceq $bought2.last_ledger_hash){throw 'P9_SECOND_SELL_NOT_EXACTLY_ONE_SETTLED'}
+ $flat2=P5-Account (W33-Get '/api/paper/accounting') 4 $flat2Expected
+ $archive2=W33-Get '/api/paper/session/archive'
+ $null=P5-Account $archive2.account 4 $flat2Expected
+ if($archive2.snapshot_seal -ceq $buy2Archive.snapshot_seal){throw 'P9_FINAL_RISK_BOUND_CHECKPOINT_ABSENT'}
+ $risk2=P5-Checkpoint $archive2 $false $flat2Expected.cash $realized2
+ Click-W32EUI $shell 'Evaluate final bar'
+ Start-Sleep -Milliseconds 500
+ $sameSell2=W33-Get '/api/paper/session/archive'
+ if((W33-Get '/api/paper/session').fill_count -ne 4 -or $sameSell2.snapshot_seal -cne $archive2.snapshot_seal){throw 'P9_SECOND_SELL_REPLAY_DUPLICATED'}
+ Write-Output ('P9_NATIVE_FOUR_SETTLED_FILLS='+(@{source_sha256=$script:p5SourceHash;buy1=$buyPrice;sell1=$sellPrice;buy2=$buy2Price;sell2=$sell2Price;cash=$flat2.cash;fees=$flat2.fees_paid;realized_pnl=$flat2.realized_pnl;inventory=$flat2.position_qty;fill_count=4;last_ledger_hash=$sold2.last_ledger_hash;checkpoint_seal=$archive2.snapshot_seal;first_checkpoint=$archive.snapshot_seal;second_buy_checkpoint=$buy2Archive.snapshot_seal;risk=$risk2}|ConvertTo-Json -Compress -Depth 4))
+ Write-Output '::notice::W33C_P9_REAL_WAILS_TWO_CONSECUTIVE_PUBLIC_MARKET_ROUNDTRIPS=PASS'
+ $flatExpected=$flat2Expected;$sold=$sold2;$archive=$archive2;$risk=$risk2;$realized=$realized2
+ $buyPrice=$buy2Price;$sellPrice=$sell2Price;$buyFee=$buy2Fee;$sellFee=$sell2Fee;$sellID=$sell2ID
+ $repeat=$sameSell2
+ Click-W32EUI $shell 'Paper account'
+ $null=Wait-W32EUI $shell ('Cash '+$flat2.cash+' USDC') 10
+ $null=Wait-W32EUI $shell ('Realized '+$flat2.realized_pnl) 10
+ $null=Wait-W32EUI $shell ('Fees '+$flat2.fees_paid) 10
+ Click-W32EUI $shell 'Stop paper'
+ $null=Wait-W32EUI $shell 'PAPER_STOPPED' 12
+ $stopped=W33-Get '/api/paper/session';$caps=W33-Get '/api/operator/capabilities'
+ if($stopped.stopped -ne $true -or $stopped.paper_orders_enabled -ne $false -or $stopped.unattended_enabled -ne $false -or $stopped.durable_custody_enabled -ne $false -or $caps.paper_orders_enabled -ne $false -or $caps.live_orders_enabled -ne $false){throw 'P5_NATIVE_STOP_NOT_VERIFIED'}
+ $terminal=W33-Get '/api/paper/session/archive'
+ $null=P5-Account $terminal.account 4 $flatExpected
+ $terminalRisk=P5-Checkpoint $terminal $true $flatExpected.cash $realized
+ Write-Output ('P9_NATIVE_TWO_ROUND_TRIPS='+(@{script_id=$saved[0].id;source_sha256=$script:p5SourceHash;source_id=$terminal.source_id;entry_open=$entryOpen;exit_open=$exitOpen;buy_price=$buyPrice;sell_price=$sellPrice;buy_order_id=$buyExpected.entries[0].id;sell_order_id=$sellID;buy_fee=$buyFee;sell_fee=$sellFee;cash=$flat2.cash;fees=$flat2.fees_paid;realized_pnl=$flat2.realized_pnl;position_qty=$flat2.position_qty;basis=$flat2.cost_basis;fill_count=4;duplicate_fill_count=4;ledger_hash=$sold.last_ledger_hash;sell_checkpoint=$risk;stopped_checkpoint=$terminalRisk;live_orders_enabled=$caps.live_orders_enabled}|ConvertTo-Json -Compress -Depth 6))
+ Write-Output '::notice::W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS'
+ P5-Close $shell
+ $script:shell=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+ $null=$shell.Handle;W33B-OwnEngine
+ $cold=W33-Get '/api/paper/session';$caps=W33-Get '/api/operator/capabilities'
+ if($cold.mode -cne 'PAPER_NOT_FUNDED' -or $cold.fill_count -ne 0 -or $cold.paper_orders_enabled -ne $false -or $cold.unattended_enabled -ne $false -or $caps.live_orders_enabled -ne $false){throw 'P5_COLD_NATIVE_AUTO_REARMED'}
+ Click-W32EUI $shell 'Verify chart UI'
+ $null=Wait-W32EUI $shell 'Original chart DOM, Monaco editor and preferences controls observed.'
+ Click-W32EUI $shell 'Pine Editor';Click-W32EUI $shell 'Cold archive'
+ $null=Wait-W32EUI $shell 'COLD ACCOUNT · READ ONLY' 15
+ $null=Wait-W32EUI $shell ($flat2.cash+' USDC cash') 10
+ $null=Wait-W32EUI $shell ('realized '+$flat2.realized_pnl) 10
+ $coldArchive=W33-Get '/api/paper/session/archive'
+ if($coldArchive.snapshot_seal -cne $terminal.snapshot_seal -or $coldArchive.source_id -cne $terminal.source_id -or $coldArchive.account.stopped -ne $true -or $coldArchive.execution_restore_eligible -ne $false -or $coldArchive.original_risk_proof_verified -ne $true){throw 'P5_COLD_ORIGINAL_ACCOUNT_CHANGED'}
+ $null=P5-Account $coldArchive.account 4 $flatExpected
+ Write-Output ('P5_NATIVE_COLD_ACCOUNT='+(@{source_id=$coldArchive.source_id;snapshot_seal=$coldArchive.snapshot_seal;cash=$flat2.cash;realized_pnl=$flat2.realized_pnl;fees=$flat2.fees_paid;old_account_stopped=$coldArchive.account.stopped;new_fill_count=$cold.fill_count;new_paper_enabled=$cold.paper_orders_enabled;execution_restore_eligible=$coldArchive.execution_restore_eligible;native_cold_cash_and_realized_observed=$true}|ConvertTo-Json -Compress))
+ Write-Output '::notice::W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS'
+}
+ -or
+    ([DateTimeOffset]$sell2Preview.final_bar_at).ToUnixTimeSeconds() -ne $exit2Close -or
+    $sell2Preview.live_armed -ne $false -or $sell2Preview.orders_enabled -ne $false -or
+    $sell2Preview.fee_schedule_verified -ne $false -or
+    $null -ne $sell2Preview.review_proposal -or
+    $sell2Preview.status -notin @('NO_SIGNAL','UNSUPPORTED_ORDER')){
+  throw 'P9_SECOND_SELL_HTTP_PREVIEW_SOURCE_OR_DISARMED_STATE_INVALID'
+ }
  $sell2Price=[decimal]$sell2Bars.candles[-1].close
  $sell2PriceText=$sell2Price.ToString('0.########',[Globalization.CultureInfo]::InvariantCulture)
  $sell2IDInput='W33C-SELL-v1|'+$script:p5SourceHash+'|BTC-USDC|'+$exit2Close+'|'+$sell2Preview.final_bar_sha256+'|'+$buy2ID+'|L|0.00025|'+$sell2PriceText+'|100|'+$bought2.last_ledger_hash
