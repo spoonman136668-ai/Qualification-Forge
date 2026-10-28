@@ -1,0 +1,78 @@
+name: KTRADE Graphify and Obsidian exact-source qualification
+on:
+  push:
+    branches: [qualification/ktrade-graphify-obsidian-qf-20261027]
+    paths: [.github/workflows/ktrade-graphify-obsidian-source-qf.yml]
+permissions:
+  contents: read
+jobs:
+  qualify:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      KTRADE_SOURCE: a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58
+      GRAPHIFY_QUERY_LOG_DISABLE: '1'
+      GRAPHIFY_QUERY_LOG_RESPONSES: '0'
+    steps:
+      - name: Read exact private source without persisting access
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58
+          path: private-source
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install frozen uv in ephemeral hosted Windows
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Generate private code-only Graphify and Obsidian, verify bounded output
+        shell: pwsh
+        env:
+          UV_CACHE_DIR: ${{ runner.temp }}\\qf-uv-cache
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'QF_WRONG_RUNNER'}
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private-source'
+          if((git -C $root rev-parse HEAD).Trim() -cne $env:KTRADE_SOURCE){throw 'QF_SOURCE_SHA_DRIFT'}
+          if(@(git -C $root status --porcelain --untracked-files=all).Count -ne 0){throw 'QF_SOURCE_DIRTY'}
+          python -m pip install --quiet --disable-pip-version-check 'uv==0.9.7'
+          if($LASTEXITCODE -ne 0){throw 'QF_UV_INSTALL_FAILED'}
+          $uvx=Get-Command uvx -ErrorAction SilentlyContinue
+          if(-not $uvx){throw 'QF_UVX_MISSING'}
+          $v=(& uvx --from graphifyy==0.9.53 graphify --version 2>$null) -join ' '
+          if($LASTEXITCODE -ne 0 -or $v -notmatch '0\\.9\\.53'){throw 'QF_GRAPHIFY_VERSION_FAIL'}
+          $vault=Join-Path $env:RUNNER_TEMP 'private-generated-obsidian'
+          $log=Join-Path $env:RUNNER_TEMP 'private-extraction.log'
+          Push-Location $root
+          try {
+            & uvx --from graphifyy==0.9.53 graphify extract . --code-only --force *> $log
+            if($LASTEXITCODE -ne 0){throw 'QF_GRAPH_EXTRACTION_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+            $graph=Join-Path $root 'graphify-out/graph.json'
+            if(-not (Test-Path $graph -PathType Leaf)){throw 'QF_GRAPH_MISSING'}
+            & uvx --from graphifyy==0.9.53 graphify export obsidian --graph $graph --dir $vault *> $log
+            if($LASTEXITCODE -ne 0){throw 'QF_OBSIDIAN_EXPORT_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+          }finally{Pop-Location}
+          $notes=@(Get-ChildItem -LiteralPath $vault -Recurse -File -Filter '*.md')
+          $notesBytes=($notes|Measure-Object -Property Length -Sum).Sum
+          $graphBytes=(Get-Item -LiteralPath $graph).Length
+          if($notes.Count -lt 1 -or $notes.Count -gt 50000 -or $notesBytes -gt 125000000 -or $graphBytes -gt 100000000){throw 'QF_RESOURCE_BOUNDS_FAILED'}
+          $hash=(Get-FileHash $graph -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host 'QF_KTRADE_GRAPHIFY_OBSIDIAN=QUALIFIED_SOURCE_ONLY'
+          Write-Host ('QF_KTRADE_SOURCE='+$env:KTRADE_SOURCE)
+          Write-Host ('QF_NOTES='+$notes.Count)
+          Write-Host ('QF_NOTES_BYTES='+$notesBytes)
+          Write-Host ('QF_GRAPH_BYTES='+$graphBytes)
+          Write-Host ('QF_GRAPH_SHA256='+$hash)
+          Write-Host 'QF_PRIVATE_GRAPH_OUTPUT_NOT_PUBLISHED=PASS'
+          Write-Host 'QF_KNOWLEDGE_BRANCH_NOT_UPDATED=TRUE'
+      - name: Remove private source and generated output
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'private-source') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'private-generated-obsidian') -Recurse -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP 'private-extraction.log') -Force -ErrorAction SilentlyContinue
+          Write-Host 'QF_PRIVATE_SOURCE_CLEANUP=COMPLETE'
