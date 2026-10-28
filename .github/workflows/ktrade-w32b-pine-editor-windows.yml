@@ -365,7 +365,8 @@ jobs:
         }
         function Pine-Dialog([object]$process,[string]$message,[string]$answer,[string]$value=''){
          $until=(Get-Date).AddSeconds(15)
-         do{
+         $clicks=0
+         :DialogSearch do{
           foreach($root in (Owned-Roots $process)){
            $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
            foreach($node in $nodes){
@@ -384,7 +385,21 @@ jobs:
               if($rect.IsEmpty -or $rect.Left -lt $outer.Left -or $rect.Right -gt $outer.Right -or $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){throw 'W32B_FOREIGN_SCRIPT_DIALOG_CONTROL'}
               if([W30Native]::GetForegroundWindow() -ne $handle){throw 'W32B_FOREIGN_SCRIPT_DIALOG_FOCUS'}
               [void][W30Native]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))
-              [W30Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero);[W30Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero);return
+              Write-Output ('W32B_OWNED_DIALOG_CLICK='+(@{message=$message;answer=$answer;nativeClass=(W31-NativeClass $buttons[0]);rootHandle=$handle.ToInt64();rectangle=$rect.ToString()}|ConvertTo-Json -Compress))
+              [W30Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero);Start-Sleep -Milliseconds 100;[W30Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+              $clicks++
+              $settle=(Get-Date).AddSeconds(2)
+              do{
+               $present=$false
+               foreach($currentRoot in (Owned-Roots $process)){
+                $currentNodes=$currentRoot.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                foreach($currentNode in $currentNodes){if(!$currentNode.Current.IsOffscreen -and $currentNode.Current.Name.Contains($message)){$present=$true;break}}
+               }
+               if(!$present){Write-Output ('W32B_OWNED_DIALOG_DISMISSED='+$message);return}
+               Start-Sleep -Milliseconds 150
+              }while((Get-Date) -lt $settle)
+              if($clicks -ge 3){throw ('W32B_OWNED_DIALOG_NOT_DISMISSED_'+$message)}
+              continue DialogSearch
              }
              $scope=[System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($scope)
             }
@@ -483,7 +498,7 @@ jobs:
          Write-Output ('W32B_PRIMARY_FAILURE='+$_.Exception.Message)
          if($null -ne $running){
           foreach($root in (Owned-Roots $running.shell)){
-           $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)|Where-Object {$_.Current.Name -match 'Pine|pine|Compile|compiled|script|Save|Not compiled|Editor changed' -or $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit}|Select-Object -First 100|ForEach-Object {try{Write-Output ('W32B_UI='+($_.Current|Select-Object Name,ControlType,IsOffscreen,IsEnabled,HasKeyboardFocus,BoundingRectangle|ConvertTo-Json -Compress -Depth 2))}catch{}}
+           $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)|Where-Object {$_.Current.Name -match 'Pine|pine|Compile|compiled|script|Save|Not compiled|Editor changed|Line|^OK$|^Cancel$|^Yes$|^No$' -or $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit}|Select-Object -First 100|ForEach-Object {try{Write-Output ('W32B_UI='+($_.Current|Select-Object Name,ControlType,IsOffscreen,IsEnabled,HasKeyboardFocus,BoundingRectangle|ConvertTo-Json -Compress -Depth 2))}catch{}}
           }
          }
          throw
