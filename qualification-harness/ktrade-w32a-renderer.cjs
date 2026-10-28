@@ -11,7 +11,7 @@ const stage=path.resolve(process.argv[2]);
 const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
 const template=path.join(stage,'templates/chart.tmpl');const before=hash(template);
 const rows=Array.from({length:30},(_,i)=>({time:1770000000+i*60,open:100+i,high:105+i,low:97+i,close:102+i,volume:10+i}));
-let mode='valid';const requests=[];const sockets=new Set();let rejectedFrames=0;
+let mode='valid';const requests=[];const sockets=new Set();let rejectedFrames=0;let closing=false;const socketErrors=[];
 const caps={schema:'ktrade.operator.capabilities.v1',mode:'PAPER_STOPPED',paper_orders_enabled:false,live_orders_enabled:false,strategy_execution_enabled:false,paper_accounting_enabled:false,requires_review:true};
 const server=http.createServer((req,res)=>{
  const url=new URL(req.url,'http://127.0.0.1');requests.push(req.method+' '+url.pathname);
@@ -43,12 +43,13 @@ server.on('upgrade',(req,socket)=>{
  const accept=crypto.createHash('sha1').update(req.headers['sec-websocket-key']+'258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
  socket.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: '+accept+'\r\n\r\n');
  sockets.add(socket);socket.on('close',()=>sockets.delete(socket));
+ socket.on('error',error=>{if(!closing||error.code!=='ECONNRESET')socketErrors.push(error.message);});
  socket.on('data',data=>{if((data[0]&15)===8){socket.end(Buffer.from([0x88,0]));}else{rejectedFrames++;socket.destroy();}});
 });
 (async()=>{
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
  const origin='http://127.0.0.1:'+server.address().port;
- let browser;
+ let browser;let report=null;
  try{
   browser=await chromium.launch({channel:'msedge',headless:false});
   const context=await browser.newContext({viewport:{width:1280,height:900}});
@@ -82,7 +83,7 @@ server.on('upgrade',(req,socket)=>{
   }
   await page.waitForFunction(()=>document.getElementById('tradeBtn').disabled&&document.getElementById('orderSubmit').disabled);
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  let actual=await verify();assert.equal(actual.prices.length,rows.length);assert.equal(actual.volumes.length,rows.length);assert.equal(actual.prices.at(-1).close,rows.at(-1).close);assert.ok(actual.coloured>100,'no genuine green candle pixels');assert.ok(actual.candlePixels>=20,'candle bodies absent at original time/price coordinates');assert.ok(actual.trade&&actual.submit);
+  let actual=await verify();assert.equal(actual.prices.length,rows.length);assert.equal(actual.volumes.length,rows.length);assert.equal(actual.prices.at(-1).close,rows.at(-1).close);assert.ok(actual.coloured>100,'no genuine green candle pixels');assert.ok(actual.candlePixels>=20,'candle bodies absent at original time/price coordinates');assert.ok(actual.trade&&actual.submit);const bodyPixels=actual.candlePixels;
   // User timeframe click invokes the original loadCandles handler.
   await page.locator('.tf-btn[data-tf="5m"]').click();
   await page.waitForFunction(()=>window.KTRADE_APP.s.candleContext?.tf==='5m');
@@ -90,7 +91,7 @@ server.on('upgrade',(req,socket)=>{
   mode='invalid';await page.locator('.tf-btn[data-tf="15m"]').click();
   await page.waitForFunction(()=>document.getElementById('statusText').textContent==='Market data unavailable'&&window.KTRADE_APP.s.candleContext===null);
   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
-  actual=await verify();assert.deepEqual(actual.prices,[]);assert.deepEqual(actual.volumes,[]);assert.ok(actual.coloured<10,'old candles remain painted');assert.ok(actual.trade&&actual.submit);
+  actual=await verify();assert.deepEqual(actual.prices,[]);assert.deepEqual(actual.volumes,[]);assert.ok(actual.coloured<10,'old candles remain painted');assert.ok(actual.trade&&actual.submit);const clearedPixels=actual.coloured;
   mode='unavailable';await page.locator('.tf-btn[data-tf="1h"]').click();
   await page.waitForFunction(()=>window.KTRADE_APP.s.tf==='1h'&&document.getElementById('loading').style.display==='none');
   actual=await verify();assert.deepEqual(actual.prices,[]);assert.deepEqual(actual.volumes,[]);
@@ -98,7 +99,10 @@ server.on('upgrade',(req,socket)=>{
   await page.waitForFunction(()=>window.KTRADE_APP.s.candleContext?.tf==='1m'&&window.KTRADE_APP.s.candles.length===30);
   assert.equal(hash(template),before,'installed chart template changed');assert.equal(external.length,0,'unexpected external browser request');assert.equal(requests.filter(x=>!x.startsWith('GET ')).length,0,'unexpected action request');assert.equal(rejectedFrames,0,'unexpected WebSocket application frame');
   assert.equal(failures.length,0,'uncaught chart failure: '+failures.join(';'));
-  console.log('::notice::W32A_EXACT_INSTALLED_CHART_REAL_WINDOWS_EDGE_CANDLES_PIXELS_REJECTION_RECOVERY_STOPPED=PASS');
-  console.log(JSON.stringify({schema:'ktrade.w32a.renderer-witness.v1',browser:browser.version(),template_sha256:before,valid_rows:rows.length,renderer:'Microsoft Edge loopback fixture; not installed Go feed or WebView2 candle acceptance',external_requests:external.length,action_requests:0,live_armed:false}));
- }finally{if(browser)await browser.close();for(const socket of sockets)socket.destroy();await new Promise(resolve=>server.close(resolve));}
+  report={schema:'ktrade.w32a.renderer-witness.v1',browser:browser.version(),template_sha256:before,valid_rows:rows.length,candle_body_pixels:bodyPixels,cleared_green_pixels:clearedPixels,renderer:'Microsoft Edge loopback fixture; not installed Go feed or WebView2 candle acceptance',external_requests:external.length,action_requests:0,live_armed:false};
+ }finally{closing=true;if(browser)await browser.close();for(const socket of sockets)socket.destroy();await new Promise(resolve=>server.close(resolve));}
+ assert.deepEqual(socketErrors,[],'unexpected fixture socket error');
+ assert.ok(report,'renderer did not complete');
+ console.log('::notice::W32A_EXACT_INSTALLED_CHART_REAL_WINDOWS_EDGE_CANDLES_PIXELS_REJECTION_RECOVERY_STOPPED=PASS');
+ console.log(JSON.stringify(report));
 })().catch(e=>{console.error(e);process.exitCode=1;});
