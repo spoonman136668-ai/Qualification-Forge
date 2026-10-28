@@ -347,8 +347,23 @@ jobs:
          if((W31-ReadPath $setup) -cne $path){throw 'W31_NATIVE_SETUP_PATH_NOT_SET'}
         }
         function Set-UpdateMode([object]$setup){
-         $element=Wait-Visible $setup.window 'Setup operation'
-         $element.SetFocus();[Windows.Forms.SendKeys]::SendWait('{END}')
+         # Windows Forms ComboBox can report ControlType.Pane in Windows
+         # Server UIA. Require exactly one OWNED native COMBOBOX instead.
+         $root=[System.Windows.Automation.AutomationElement]::FromHandle($setup.window.MainWindowHandle)
+         $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+         $matches=@()
+         foreach($el in $nodes){
+          try{
+           if(!$el.Current.IsOffscreen -and $el.Current.IsEnabled -and
+              (W31-OwnedControl $setup.window $el 'COMBOBOX')){$matches+=,$el}
+          }catch{}
+         }
+         if($matches.Count -ne 1){throw ('W31_OWNED_SETUP_MODE_COMBOBOX_AMBIGUOUS_'+$matches.Count)}
+         [void][W30Native]::SetForegroundWindow($setup.window.MainWindowHandle)
+         $matches[0].SetFocus()
+         [Windows.Forms.SendKeys]::SendWait('{END}')
+         # Verify a real child WinForms button changes to Update, never
+         # infer the mode from keystrokes or an unrelated list option.
          $null=Wait-Visible $setup.window 'Update' $true
         }
         function Click-SetupDialog([object]$setup,[string]$label){
