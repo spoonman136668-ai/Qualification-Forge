@@ -299,6 +299,22 @@ jobs:
          & $ps51 -NoProfile -STA -EncodedCommand ([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($code)))
          if($LASTEXITCODE -ne 0){throw 'W32B_NATIVE_CLIPBOARD_FIXTURE_FAILED'}
         }
+        function Assert-PineSource([object]$process,[string]$expected){
+         $editor=Wait-Visible $process 'Pine source editor'
+         $sentinel='W32B-copy-'+[guid]::NewGuid().ToString('N')
+         Put-Clipboard $sentinel
+         [void][W30Native]::SetForegroundWindow($process.MainWindowHandle)
+         $editor.SetFocus();Start-Sleep -Milliseconds 200
+         if([W30Native]::GetForegroundWindow() -ne $process.MainWindowHandle -or ![System.Windows.Automation.AutomationElement]::FocusedElement.Equals($editor)){throw 'W32B_MONACO_COPY_FOCUS_UNCONFIRMED'}
+         Native-Shortcut 0x41
+         Native-Shortcut 0x43
+         $code='Add-Type -AssemblyName System.Windows.Forms;[Console]::Out.Write([Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes([Windows.Forms.Clipboard]::GetText())))'
+         $encoded=@(& $ps51 -NoProfile -STA -EncodedCommand ([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($code)))) -join ''
+         if($LASTEXITCODE -ne 0){throw 'W32B_NATIVE_CLIPBOARD_SOURCE_READ_FAILED'}
+         $actual=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($encoded))
+         if($actual -ceq $sentinel -or $actual.Replace("`r`n","`n") -cne $expected){throw ('W32B_NATIVE_MONACO_SOURCE_MISMATCH_LENGTH_'+$actual.Length)}
+         Write-Output ('W32B_NATIVE_MONACO_SOURCE_CONFIRMED_LENGTH='+$expected.Length)
+        }
         function Enter-Pine([object]$process,[string]$source){
          Put-Clipboard $source
          $editor=Wait-Visible $process 'Pine source editor'
@@ -313,6 +329,7 @@ jobs:
          Native-Shortcut 0x41
          Native-Shortcut 0x56
          $null=Wait-Visible $process 'Editor changed. Compile again.'
+         Assert-PineSource $process $source
         }
         function Owned-Roots([object]$process){
          $main=[System.Windows.Automation.AutomationElement]::FromHandle($process.MainWindowHandle)
@@ -412,6 +429,7 @@ jobs:
          Open-StoredPine $running.shell $name
          Pine-Dialog $running.shell 'Discard unsaved editor changes' 'OK'
          $null=Wait-Visible $running.shell 'Opened stored Pine script; not applied to chart'
+         Assert-PineSource $running.shell $v5
          Click-Verified $running.shell 'Compile'
          $null=Wait-Visible $running.shell 'Compiled. Not applied or started.'
          Enter-Pine $running.shell $v6
@@ -435,6 +453,7 @@ jobs:
          Click-Verified $running.shell 'Pine Editor'
          Open-StoredPine $running.shell $name
          $null=Wait-Visible $running.shell 'Opened stored Pine script; not applied to chart'
+         Assert-PineSource $running.shell $v6
          Click-Verified $running.shell 'Compile'
          $null=Wait-Visible $running.shell 'Compiled. Not applied or started.'
          $cold=Pine-API $running ('/api/pine-library/'+$id)
