@@ -1,0 +1,44 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W33C-P10-focused",
+  "observed_date": "2026-10-28",
+  "result": "PASS_BOUNDED_FOURTH_SELL_POST_FILL_PENDING_QUARANTINE",
+  "application": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 183,
+    "sha": "8881e7603facbcd761c66addf286b6a1f138e1d6",
+    "tree": "ab851e1d0ac54ab9f15068bed7b59ea08897bbc1",
+    "parent": "81c20f6f4636a870a0126208cf1c9cf0c1dcab64",
+    "changed_paths": [
+      "internal/paperengine/w33c_p10_fourth_sell_pending_test.go"
+    ],
+    "production_code_modified": false
+  },
+  "windows": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "run": 40780659564,
+    "job": 123141226400,
+    "workflow_sha": "e554b5590572f696be512ddb4dc9c99fb10e54a8",
+    "status": "completed",
+    "conclusion": "success",
+    "runner": "github-hosted windows-2022",
+    "all_steps_success": true
+  },
+  "evidenced": [
+    "pinned original source SHA/tree, exact PR182 parent and one Go test-only path",
+    "first original BUY→SELL and risk-bound checkpoint",
+    "same original owner and writer admits next BUY on later finalized bar",
+    "fourth original SELL is durably settled; inserted original pending- evidence before checkpoint publication",
+    "risk-bound publisher fails closed; owner STOPPED; OrdersEnabled false and CustodyPublicationBlocked true",
+    "original coordinator retains exactly four fills: cash 608.1 USDC, realized PnL 8.1, simulated fees 1.9, no position or basis, ledger hash distinct",
+    "writer lease retained; pending file retained; cold archive reader refuses pending state",
+    "duplicate SELL and subsequent BUY both denied, no replay or automatic rearm",
+    "focused original Go test and vet pass on Windows with no runtime broker or live trading"
+  ],
+  "limits": [
+    "This is a controlled Go fault-injection test using simulated paper account numbers, not a real native Wails/WebView2 four-fill acceptance.",
+    "The independent P9 native retry from parser-verified witness remains separately pending and prior failed runs stay failed.",
+    "Full root and Wails regression for this new one-test commit has not been separately executed; release integration remains blocked.",
+    "No PR merge, broker access, LIVE trading, installed profile, release or custody override."
+  ]
+}
