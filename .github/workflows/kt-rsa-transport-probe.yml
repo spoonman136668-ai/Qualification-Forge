@@ -26,4 +26,12 @@ jobs:
           Write-Host ('KT_RSA_ACTUAL_EXPONENT='+[Convert]::ToBase64String($export.Exponent))
           $cipher=$rsa.Encrypt([Text.Encoding]::UTF8.GetBytes('safe-public-test'),[Security.Cryptography.RSAEncryptionPadding]::OaepSHA256)
           Write-Host ('KT_RSA_TEST_CIPHER='+[Convert]::ToBase64String($cipher))
+          function Seal-Private([string]$variant,[string]$payload) {
+            $fp=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($rsa.ExportParameters($false).Modulus))
+            Write-Host ('KT_RSA_NESTED_PUBLIC_FP='+$fp)
+            $encoded=[Text.Encoding]::UTF8.GetBytes($payload)
+            $sealed=$rsa.Encrypt($encoded,[Security.Cryptography.RSAEncryptionPadding]::OaepSHA256)
+            Write-Host ('KT_RSA_NESTED_TEST_CIPHER='+[Convert]::ToBase64String($sealed))
+          }
+          Seal-Private 'baseline' 'safe-public-test'
           $rsa.Dispose()
