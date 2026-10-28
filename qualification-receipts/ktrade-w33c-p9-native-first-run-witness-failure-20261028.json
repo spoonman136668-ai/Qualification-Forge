@@ -1,0 +1,47 @@
+{
+  "schema": "ktrade.w33c.p9.native-first-run-failure.v1",
+  "date": "2026-10-28",
+  "outcome": "FAIL_WITNESS_AT_NONEXECUTING_HTTP_PREVIEW_NOT_APP_SELL_FAILURE",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 182,
+    "sha": "81c20f6f4636a870a0126208cf1c9cf0c1dcab64",
+    "tree": "ebf8872d142e8e0fb6748467a134ac7e0054cabd",
+    "unchanged": true
+  },
+  "first_run": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "run": 40777980497,
+    "job": 123132103335,
+    "workflow_sha": "2c23b8e60973c4955afd3e1ebe8e2ffbf11d1d4e",
+    "status": "completed",
+    "conclusion": "failure",
+    "source_scope_and_full_windows_go_wails_regression_vet_pass": true,
+    "production_no_fixture_build_pass": true,
+    "focused_go_two_roundtrips_pass": true,
+    "native_buy_one_settled": true,
+    "native_sell_one_settled": true,
+    "native_buy_two_settled": true,
+    "native_sell_two_evaluate_attempted": false,
+    "missing_native_assertion": "P9_SECOND_SELL_INTENT_NOT_NATIVE_MARKET_CLOSE",
+    "error_at": "qualification-harness/ktrade-w33c-p9-native-four-fill.ps1:342",
+    "cleanup_original_stop_success": true,
+    "financial_history_corruption_reported": false
+  },
+  "root_cause": "The harness applied an executable finalized Pine-signal contract to /api/paper/strategy/preview, which intentionally uses previewSavedStrategy and CompilePineToIndicatorV2, whereas the authenticated original session owner recomputes through previewSavedFinalizedStrategy and CompilePineToFinalizedIntentV2. HTTP preview is nonexecuting and not guaranteed to emit market_close at the same bar. The assertion failed before the actual second final-bar Evaluate; this result does not establish an application second-SELL failure.",
+  "repair": {
+    "witness_sha": "d50297e528fbb4b330b93d93824f74c0696dd783",
+    "original_candidate_source_unchanged": true,
+    "changes": [
+      "preserve HTTP canonical source/product/time/hash/authority/fee read-only checks",
+      "log HTTP preview signals for diagnosis only, never use as SELL authorization",
+      "require actual owner native final-bar Evaluate, independently settled fourth fill, original ledger and risk checkpoint, deduplicated retry, native Stop/cold replay"
+    ],
+    "rerun": 40779832660
+  },
+  "limits": [
+    "Run 40777980497 remains failed and must not be counted as native PASS",
+    "Four-fill native acceptance not established until separate full rerun succeeds",
+    "no release, broker, installed profile, owner manipulation, LIVE activation or merge"
+  ]
+}
