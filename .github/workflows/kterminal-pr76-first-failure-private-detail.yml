@@ -1,0 +1,131 @@
+name: K-Terminal PR76 private encrypted first test failure evidence
+on:
+  push:
+    branches: [qualification/kt-pr76-first-failure-private-detail-20261028]
+    paths: ['.github/workflows/kterminal-pr76-first-failure-private-detail.yml']
+permissions:
+  contents: read
+jobs:
+  private-diagnostic:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/kt-pr76-first-failure-private-detail-20261028'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      EXPECTED_BASE: 'eb5d225ae73b698a59c68d840daf1ec678e1a0ec'
+      EXPECTED_HEAD: 'cc79b46408a43b1bc9ecd378092c883316b4325c'
+      EXPECTED_PKG_TREE: cbff43d7571253fc85f3e14267f59170cff7c471
+      KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+      KTERMINAL_LIVE_AUTHORITY: '0'
+      KTERMINAL_BROKER_ACCESS: '0'
+      KTERMINAL_PROMOTION: '0'
+      CI: 'true'
+      GOFLAGS: '-mod=readonly'
+      GOTOOLCHAIN: local
+    steps:
+      - name: Verify hosted Windows and read secret
+        shell: pwsh
+        run: |
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows') {throw 'UNSUPPORTED_RUNNER'}
+          if([string]::IsNullOrWhiteSpace($env:KTERMINAL_READ_TOKEN)) {throw 'PRIVATE_READ_TOKEN_MISSING'}
+          Write-Host 'KT_HOSTED_WINDOWS=PASS'
+      - name: Checkout immutable main source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: 'eb5d225ae73b698a59c68d840daf1ec678e1a0ec'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: main-src
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout immutable PR source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: 'cc79b46408a43b1bc9ecd378092c883316b4325c'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: pr-src
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Pin native Go 1.22
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Send encrypted first test failure details only
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $PSNativeCommandUseErrorActionPreference=$false
+          $p=[Security.Cryptography.RSAParameters]::new()
+          $p.Modulus=[Convert]::FromBase64String('4vcnVqaknMCGHvBgVJzgxOo5MoYfWMzfMLdBin4+V9l/yLUXd9gRL25RWDk3NMK5OXQFmLS0F8upby8hHJU91gQkFHvYAyeksVIhzC3DtDC7rXsFKWvo+iVrABrqBOMDCyva9V5sK92ZkiTjkMxkHI+IVvuysemdyH+oFq8pE1k/InwwOBx2lIPMePhbTdo2fB2kEZ5kwJIUuP6NQVCWvPk08Iu+SVdJUAWn2vCg9DgNt/WA7pQsCKQ2d2/eBuG8WPg2UpCU28grcx8iPZfpQ29UtS2OuQvexs2DrL8frnOy5zeHqxoW6qFMJndy419uAdpNykP2khCuk96HqL6Lqw==')
+          $p.Exponent=[Convert]::FromBase64String('AQAB')
+          $rsa=[Security.Cryptography.RSA]::Create()
+          function Seal-Private([string]$variant,[string]$payload) {
+            $raw=[Text.Encoding]::UTF8.GetBytes($payload)
+            if ($raw.Length -gt 1600) { throw 'PRIVATE_DIAGNOSTIC_TOO_LONG' }
+            $total=[int][Math]::Ceiling($raw.Length/160.0)
+            Write-Host ('KT_ENCRYPTED_'+$variant+'_PARTS='+$total)
+            for($i=0;$i -lt $total;$i++){
+              $offset=$i*160
+              $n=[Math]::Min(160,$raw.Length-$offset)
+              $part=[byte[]]::new($n)
+              [Array]::Copy($raw,$offset,$part,0,$n)
+              $encrypted=$rsa.Encrypt($part,[Security.Cryptography.RSAEncryptionPadding]::OaepSHA256)
+              Write-Host ('KT_ENCRYPTED_'+$variant+'_'+$i.ToString('D2')+'='+[Convert]::ToBase64String($encrypted))
+            }
+          }
+          try {
+            foreach($variant in @('baseline','candidate')){
+              $directory=if($variant -eq 'baseline'){'main-src'}else{'pr-src'}
+              $expected=if($variant -eq 'baseline'){$env:EXPECTED_BASE}else{$env:EXPECTED_HEAD}
+              $root=Join-Path $env:GITHUB_WORKSPACE $directory
+              $log=Join-Path $env:RUNNER_TEMP ('kt-private-failure-'+$variant+'.jsonl')
+              Push-Location -LiteralPath $root
+              try {
+                if ((& git rev-parse HEAD).Trim() -cne $expected) {throw 'WRONG_SOURCE_SHA'}
+                if ((& git rev-parse HEAD:pkg).Trim() -cne $env:EXPECTED_PKG_TREE) {throw 'PKG_SOURCE_TREE_DIFFERS'}
+                if (@(& git status --porcelain --untracked-files=all).Count -ne 0) {throw 'WORKTREE_NOT_CLEAN'}
+                & go test -json -failfast -count=1 -timeout 15m ./pkg/... *> $log
+                $code=$LASTEXITCODE
+                $first=$null
+                $events=New-Object System.Collections.Generic.List[object]
+                Get-Content -LiteralPath $log -ErrorAction Stop | ForEach-Object {
+                  try {
+                    $event=$_ | ConvertFrom-Json -ErrorAction Stop
+                    if($event.Action -eq 'fail' -and -not [string]::IsNullOrEmpty($event.Test) -and $null -eq $first) {$first=[string]$event.Test}
+                    $events.Add($event)
+                  } catch {}
+                }
+                if($code -ne 0 -and [string]::IsNullOrEmpty($first)){throw 'NO_NAMED_FAILING_TEST'}
+                $messages=@($events | Where-Object {$_.Action -eq 'output' -and $_.Test -ceq $first} | ForEach-Object {[string]$_.Output})
+                $tail=[string]::Join('',$messages)
+                if($tail.Length -gt 900) {$tail=$tail.Substring($tail.Length-900)}
+                $obj=[ordered]@{revision=$variant;failure=$first;snippet=$tail;exit=$code}
+                $serialized=ConvertTo-Json -InputObject $obj -Compress -Depth 4
+                Seal-Private $variant $serialized
+                Write-Host ('KT_PRIVATE_'+$variant+'_FIRST_FAILURE_CAPTURE=PASS EXIT='+$code)
+                if (@(& git status --porcelain --untracked-files=all).Count -ne 0) {throw 'SOURCE_MUTATED'}
+              } finally {
+                Pop-Location
+                Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+              }
+            }
+            Write-Host 'KT_PRIVATE_FAILURE_DETAILS=ENCRYPTED_ONLY'
+            Write-Host 'KT_NATIVE_RELEASE_ACCEPTANCE=NOT_GRANTED'
+            Write-Host 'KT_LIVE_TRADING=NONE'
+          } finally {
+            $rsa.Dispose()
+          }
+      - name: Remove private source and diagnostic logs
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($directory in @('main-src','pr-src')) {
+            $root=Join-Path $env:GITHUB_WORKSPACE $directory
+            if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:RUNNER_TEMP -Filter 'kt-private-failure-*.jsonl' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+          Write-Host 'KT_PRIVATE_SOURCE_LOGS=DELETED'
