@@ -63,6 +63,9 @@ jobs:
           $p.Modulus=[Convert]::FromBase64String('tm08UPgq7BXG1L+BSDaYIlxmzUpLYyqf/asSnGZ2Btz0Ns9J+tDPs4fpIy77pP5pckAODewefz+bQcv1CgrtL9L9JdCQk2fs2hK/2wMyepmhRFBHVTngv2jpvMiHXY1Ij3SuDBYY8h6okFffpDmijTtPPEGn6ExWr9SzNU1vF1iX07YMlnNguLn94hC0W2OvF80epTGiB/+MDVVs+j8H7vmFTWahsL7t46eTSMbxQPmALaXbgwdMsFAc1NUA4HASXOxDKBemxWiXX+cUp5jgeKBOxxTU7to+3m5u7tZskkkQaxlz8vmqfpmykzp88EbYRCa0qTazQCzNzymG8qSc/Q==')
           $p.Exponent=[Convert]::FromBase64String('AQAB')
           $rsa=[Security.Cryptography.RSA]::Create()
+          $rsa.ImportParameters($p)
+          $fingerprint=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($rsa.ExportParameters($false).Modulus))
+          Write-Host ('KT_IMPORTED_RSA_PUB_FINGERPRINT='+$fingerprint)
           function Seal-Private([string]$variant,[string]$payload) {
             $raw=[Text.Encoding]::UTF8.GetBytes($payload)
             if ($raw.Length -gt 1600) { throw 'PRIVATE_DIAGNOSTIC_TOO_LONG' }
