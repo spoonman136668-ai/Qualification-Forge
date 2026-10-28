@@ -1,0 +1,62 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W33C-P2",
+  "outcome": "PASS_INERT_READONLY_FULL_POSITION_SELL_REVIEW",
+  "date": "2026-10-28",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "draft_pr": 176,
+    "sha": "9914fe83db8fb76f9e0bd2beddb0a6a6d4daa46c",
+    "tree": "5ef34e4a94f1c6b11eeaf97bc992a350917befcc",
+    "qualified_parent_p1": "77f749bd0b9d5b1649c3f71271a1bd2327f3a70d",
+    "changed_paths": [
+      "internal/paperexit/review.go",
+      "internal/paperexit/review_test.go"
+    ],
+    "execution_authority_added": false,
+    "production_owner_unchanged": true
+  },
+  "witness": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "run": 40735370869,
+    "job": 122982356791,
+    "sha": "421b8fd75146ac31ac5de83fa141890f4c7be3ec",
+    "status": "completed",
+    "conclusion": "success",
+    "every_step_success": true,
+    "runner": "GitHub-hosted Windows-2022"
+  },
+  "checks": [
+    "clean pinned source SHA/tree, exact two-file diff and P1 ancestry",
+    "focused source/ledger/entry identity bound inert full SELL review and all negative cases on actual original settled BUY coordinator state",
+    "original Pine market-close/conditional/close-all provenance tests from P1 and original owner forged SELL refusal tests",
+    "tagged original cmd/ktrade Go tests and vet",
+    "full root Go tests and vet",
+    "nested Wails Go tests and vet",
+    "no financial session route, account adoption, operator-data access, broker calls or binary upload"
+  ],
+  "bound_review": {
+    "single_original_settled_entry": true,
+    "original_order_id_reconstructed": true,
+    "saved_source_hash_required": true,
+    "original_ledger_hash_required": true,
+    "verified_original_owned_spot_quantity_required": true,
+    "acknowledged_fee_match_required": true,
+    "fresh_later_closed_bar_required": true,
+    "only_full_market_close": true,
+    "partial_close_supported": false,
+    "short_reversal_conditional_supported": false,
+    "order_side": "SELL",
+    "orders_enabled": false,
+    "live_armed": false,
+    "status": "REVIEW_ONLY",
+    "actual_sell_fills": 0
+  },
+  "limits": [
+    "Trusted source/bar/candle/signal inputs remain caller-provided; this module does not independently establish their authenticity, producer identity or live execution lease.",
+    "The current native historical preview has not independently emitted an admissible final-bar market-close signal and remains disconnected from this module.",
+    "The running original owner remains BUY-only and any SELL submit remains blocked.",
+    "No original TradeGuard SELL authorization, settled SELL journal, post-fill risk/custody checkpoint or restart/crash witness has been qualified.",
+    "No merge, release, broker interaction, owner data or live/paper SELL order."
+  ]
+}
