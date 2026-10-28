@@ -1,0 +1,99 @@
+name: KTRADE W33C P2 original-ledger-bound inert SELL review Windows
+permissions:
+  contents: read
+on:
+  push:
+    branches: [qualification/ktrade-w33c-p2-fullclose-review-20261028]
+    paths: [.github/workflows/ktrade-w33c-p2-inert-sell-review-windows.yml]
+concurrency:
+  group: ktrade-w33c-p2-readonly-review
+  cancel-in-progress: true
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: witness
+          persist-credentials: false
+      - name: Checkout pinned private KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9914fe83db8fb76f9e0bd2beddb0a6a6d4daa46c
+          path: current
+          fetch-depth: 6
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact qualified P1 ancestry, two read-only review paths
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'WRONG_RUNNER'}
+          $root=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $root rev-parse HEAD).Trim() -cne '9914fe83db8fb76f9e0bd2beddb0a6a6d4daa46c'){throw 'SOURCE_SHA_DRIFT'}
+          if((& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '5ef34e4a94f1c6b11eeaf97bc992a350917befcc'){throw 'SOURCE_TREE_DRIFT'}
+          if((& git -C $root merge-base HEAD 77f749bd0b9d5b1649c3f71271a1bd2327f3a70d).Trim() -cne '77f749bd0b9d5b1649c3f71271a1bd2327f3a70d'){throw 'P0_ANCESTRY_DRIFT'}
+          $actual=@(& git -C $root diff --name-only 77f749bd0b9d5b1649c3f71271a1bd2327f3a70d HEAD|Sort-Object)
+          $expected=@('internal/paperexit/review.go','internal/paperexit/review_test.go'|Sort-Object)
+          if(Compare-Object $expected $actual){throw 'P2_TWO_PATH_DRIFT'}
+          if(@(& git -C $root status --porcelain).Count -ne 0){throw 'DIRTY_CHECKOUT'}
+          Write-Output '::notice::W33C_P2_EXACT_SOURCE_TWO_READONLY_REVIEW_PATHS=PASS'
+      - name: Go Windows
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Real original settled BUY-backed inert SELL review and strict negative cases
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -v -run '^TestW33C' ./internal/paperexit
+            if($LASTEXITCODE -ne 0){throw 'P2_SOURCE_BOUND_INERT_SELL_REVIEW_TEST_FAILED'}
+            & go test -mod=readonly -count=1 -v -run '^TestW33C' ./pkg
+            if($LASTEXITCODE -ne 0){throw 'PINE_PROVENANCE_FAILED'}
+            & go test -mod=readonly -count=1 -v -tags ktrade_full -run '^TestW33C' ./internal/paperreconcile ./internal/paperengine
+            if($LASTEXITCODE -ne 0){throw 'OLD_SELL_AUTHORITY_REFUSAL_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W33C_P2_SETTLED_SINGLE_ENTRY_REDUCE_ONLY_REVIEW_NO_SELL_AUTHORITY=PASS'
+      - name: Full root tagged-app and nested Wails regression and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'TAGGED_APP_TEST_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'TAGGED_APP_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'ROOT_TEST_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'ROOT_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'WAILS_TEST_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W33C_P2_FULL_GO_AND_WAILS_REGRESSION=PASS'
+      - name: Cleanup
+        if: always()
+        shell: pwsh
+        run: |
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'current') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output '::notice::W33C_P2_NO_BROKER_NO_PAPER_SELL_START_NO_OWNER_PROFILE_NO_BINARY_UPLOAD=PASS'
