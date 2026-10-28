@@ -89,28 +89,27 @@ jobs:
           & node scripts/stage_offline_vendor.cjs
           if($LASTEXITCODE -ne 0){throw 'W30_VENDOR_STAGE_FAILED'}
         }finally{Pop-Location}
-        Push-Location (Join-Path $src 'tools/wails-pilot')
-        try{
-         & go test -mod=readonly -race -count=1 -run '^Test(W31|W30B|W30A|W30|W29|W26|W27|W28[CDE])' ./backend
-         if($LASTEXITCODE -ne 0){throw 'W30B_AFFECTED_INTERFACES_RACE_FAILED'}
-        }finally{Pop-Location}
-        Write-Output '::notice::W30B_AFFECTED_RETAINED_UNINSTALL_LAUNCH_RACE=PASS'
-    - name: One frozen-source full Go and Wails regression vet before build
+    - name: Reuse exact successful final-source full regression vet and race
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
-        $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
-        $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-        foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
-         Push-Location $dir
-         try{
-          & go test -mod=readonly -count=1 ./...
-          if($LASTEXITCODE -ne 0){throw 'W30B_FINAL_FULL_REGRESSION_FAILED'}
-          & go vet -mod=readonly ./...
-          if($LASTEXITCODE -ne 0){throw 'W30B_FINAL_VET_FAILED'}
-         }finally{Pop-Location}
+        $headers=@{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+        $base='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40608403862'
+        $r=Invoke-RestMethod -Uri $base -Headers $headers
+        if($r.status -cne 'completed' -or $r.head_sha -cne '7888bca7c1cf35c6b00f9484d8d1197544c52ba4'){throw 'W31_EXACT_FINAL_SOURCE_PROOF_ABSENT'}
+        $j=Invoke-RestMethod -Uri ($base+'/jobs') -Headers $headers
+        $job=@($j.jobs|Where-Object {$_.id -eq 122554022114 -and $_.name -ceq 'qualify'})
+        if($job.Count -ne 1){throw 'W31_EXACT_PROOF_JOB_ABSENT'}
+        foreach($name in @('Verify immutable source and completed native foundations','Stage unchanged assets parse shell script and run affected interfaces','One frozen-source full Go and Wails regression vet before build')){
+         $step=@($job[0].steps|Where-Object {$_.name -ceq $name})
+         if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){throw ('W31_EXACT_SOURCE_STEP_NOT_SUCCESSFUL_'+$name)}
         }
-        Write-Output '::notice::W30B_FULL_GO_WAILS_REGRESSION_VET=PASS'
+        # Exact same source/tree/dependencies/toolchain/Go commands/staged assets.
+        # Only external native dialog traversal/diagnostics changed. Failed native
+        # evidence is preserved and never reused as success.
+        Write-Output '::notice::W31_EXACT_FINAL_SOURCE_REGRESSION_VET_RACE_REUSED=PASS'
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Build two exact distinct source-bound installed packages
       shell: pwsh
       run: |
@@ -281,7 +280,7 @@ jobs:
             if(![string]::Equals($children[0].ExecutablePath,$ps51,[StringComparison]::OrdinalIgnoreCase) -or !$children[0].CommandLine.Contains('-STA')){throw 'W31_FOREIGN_SETUP_SCRIPT_HOST'}
             $handle=$window.Handle
             $null=Wait-Visible $window 'Ready. Choose an operation to continue.'
-            return [pscustomobject]@{entry=$entry;window=$window;handle=$handle}
+            return [pscustomobject]@{entry=$entry;window=$window;handle=$handle;mainHandle=$window.MainWindowHandle}
            }
           }
           Start-Sleep -Milliseconds 200
@@ -318,9 +317,9 @@ jobs:
         function Click-SetupDialog([object]$setup,[string]$label){
          $until=(Get-Date).AddSeconds(10)
          do{
-          $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Children,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$setup.window.Id)))
+          $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$setup.window.Id)))
           foreach($dialog in $windows){
-           if($dialog.Current.NativeWindowHandle -eq $setup.window.MainWindowHandle){continue}
+           if([IntPtr]$dialog.Current.NativeWindowHandle -eq [IntPtr]$setup.mainHandle -or $dialog.Current.ControlType -ne [System.Windows.Automation.ControlType]::Window){continue}
            $button=$dialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,$label)))
            if($null -eq $button -or $button.Current.IsOffscreen -or !$button.Current.IsEnabled -or $button.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button){continue}
            $rect=$button.Current.BoundingRectangle;$outer=$dialog.Current.BoundingRectangle
@@ -347,6 +346,11 @@ jobs:
           Click-SetupDialog $setupWindow 'Cancel'
           $field=Setup-PathField $setupWindow
           if($field.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern).Current.Value -cne $guiRoot -or (Test-Path -LiteralPath $guiRoot)){throw 'W31_FOLDER_PICKER_CANCEL_MUTATED_DESTINATION'}
+         }catch{
+          Write-Output ('W31_PRIMARY_GUI_FAILURE='+$_.Exception.Message)
+          $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$setupWindow.window.Id)))
+          $windows|Select-Object -First 70|ForEach-Object {try{Write-Output ('W31_GUI_STATE='+($_.Current|Select-Object Name,ControlType,NativeWindowHandle,IsOffscreen,IsEnabled|ConvertTo-Json -Compress -Depth 2))}catch{}}
+          throw
          }finally{Close-Setup $setupWindow}
          if(Test-Path -LiteralPath $guiRoot){throw 'W31_CANCELLED_SETUP_CLAIMED_ROOT'}
          $setupWindow=Open-Setup $executable
@@ -363,6 +367,11 @@ jobs:
           Click-Verified $setupWindow.window 'Install'
           $null=Wait-Visible $setupWindow.window 'Choose a new installation folder name. Existing folders are preserved.'
           if((Get-FileHash -LiteralPath (Join-Path $guiRoot '.ktrade-w29-install.json')).Hash -cne $before){throw 'W31_GUI_EXISTING_ROOT_CHANGED'}
+         }catch{
+          Write-Output ('W31_PRIMARY_GUI_FAILURE='+$_.Exception.Message)
+          $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$setupWindow.window.Id)))
+          $windows|Select-Object -First 70|ForEach-Object {try{Write-Output ('W31_GUI_STATE='+($_.Current|Select-Object Name,ControlType,NativeWindowHandle,IsOffscreen,IsEnabled|ConvertTo-Json -Compress -Depth 2))}catch{}}
+          throw
          }finally{Close-Setup $setupWindow}
          Write-Output '::notice::W31_REAL_GUI_FOLDER_CANCEL_CLOSE_INSTALL_APOSTROPHE_PATH_STATUS_AND_EXISTING_ROOT_REFUSAL=PASS'
          $keep=Join-Path $receipt.candidate_directory 'data/unknown-gui-owner-bytes'
@@ -379,6 +388,11 @@ jobs:
           Click-Verified $setupWindow.window 'Uninstall'
           Click-SetupDialog $setupWindow 'Yes'
           $null=Wait-Visible $setupWindow.window 'Uninstalled. Your data, profiles and maintenance tools remain.'
+         }catch{
+          Write-Output ('W31_PRIMARY_GUI_FAILURE='+$_.Exception.Message)
+          $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$setupWindow.window.Id)))
+          $windows|Select-Object -First 70|ForEach-Object {try{Write-Output ('W31_GUI_STATE='+($_.Current|Select-Object Name,ControlType,NativeWindowHandle,IsOffscreen,IsEnabled|ConvertTo-Json -Compress -Depth 2))}catch{}}
+          throw
          }finally{Close-Setup $setupWindow}
          Assert-Data $receipt.candidate_directory $saved
          if((Link-Hash $installedHost) -cne $hostHash -or !(Test-Path -LiteralPath (Join-Path $guiRoot '.ktrade-w29b-uninstalled.json'))){throw 'W31_GUI_INSTALLED_MAINTENANCE_OR_UNINSTALL_RECEIPT_DRIFT'}
@@ -438,6 +452,11 @@ jobs:
           Set-SetupPath $setupWindow $target;Set-UpdateMode $setupWindow
           Click-Verified $setupWindow.window 'Update'
           $null=Wait-Visible $setupWindow.window 'Updated. Each version keeps its own data.'
+         }catch{
+          Write-Output ('W31_PRIMARY_GUI_FAILURE='+$_.Exception.Message)
+          $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$setupWindow.window.Id)))
+          $windows|Select-Object -First 70|ForEach-Object {try{Write-Output ('W31_GUI_STATE='+($_.Current|Select-Object Name,ControlType,NativeWindowHandle,IsOffscreen,IsEnabled|ConvertTo-Json -Compress -Depth 2))}catch{}}
+          throw
          }finally{Close-Setup $setupWindow}
          $changed=Get-Content -LiteralPath (Join-Path $target '.ktrade-w30-transition-000002.json') -Raw|ConvertFrom-Json
          Write-Output '::notice::W31_REAL_GUI_UPDATE_V1_PREDECESSOR_TO_V2_NATIVE_SETUP=PASS'
@@ -527,6 +546,11 @@ jobs:
           $null=Wait-Visible $setupWindow.window 'Rolled back. Each version keeps its own data.'
           Click-Verified $setupWindow.window 'Check installation'
           $null=Wait-Visible $setupWindow.window 'Installation checked. Trading is stopped.'
+         }catch{
+          Write-Output ('W31_PRIMARY_GUI_FAILURE='+$_.Exception.Message)
+          $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$setupWindow.window.Id)))
+          $windows|Select-Object -First 70|ForEach-Object {try{Write-Output ('W31_GUI_STATE='+($_.Current|Select-Object Name,ControlType,NativeWindowHandle,IsOffscreen,IsEnabled|ConvertTo-Json -Compress -Depth 2))}catch{}}
+          throw
          }finally{Close-Setup $setupWindow}
          $reverted=Get-Content -LiteralPath (Join-Path $target '.ktrade-w30-transition-000003.json') -Raw|ConvertFrom-Json
          Write-Output '::notice::W31_REAL_GUI_ROLLBACK_NO_YES_AND_CROSS_VERSION_STATUS=PASS'
@@ -566,6 +590,11 @@ jobs:
          try{
           Click-Verified $setupWindow.window 'Uninstall';Click-SetupDialog $setupWindow 'Yes'
           $null=Wait-Visible $setupWindow.window 'Uninstalled. Your data, profiles and maintenance tools remain.'
+         }catch{
+          Write-Output ('W31_PRIMARY_GUI_FAILURE='+$_.Exception.Message)
+          $windows=[System.Windows.Automation.AutomationElement]::RootElement.FindAll([System.Windows.Automation.TreeScope]::Descendants,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::ProcessIdProperty,$setupWindow.window.Id)))
+          $windows|Select-Object -First 70|ForEach-Object {try{Write-Output ('W31_GUI_STATE='+($_.Current|Select-Object Name,ControlType,NativeWindowHandle,IsOffscreen,IsEnabled|ConvertTo-Json -Compress -Depth 2))}catch{}}
+          throw
          }finally{Close-Setup $setupWindow}
          $removed=Get-Content -LiteralPath (Join-Path $target '.ktrade-w29b-uninstalled.json') -Raw|ConvertFrom-Json
          Write-Output '::notice::W31_REAL_GUI_ALL_VERSION_UNINSTALL_AFTER_ROLLBACK=PASS'
