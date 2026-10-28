@@ -3,8 +3,8 @@
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
-$expected='8881e7603facbcd761c66addf286b6a1f138e1d6'
-$tree='ab851e1d0ac54ab9f15068bed7b59ea08897bbc1'
+$expected='0059d4b794552818b3f32798da7df27c75e21c5c'
+$tree='9f1e559560ac14f4e6fc823dac9150e3a95f2c4d'
 function Must([bool]$okay,[string]$reason){if(!$okay){throw $reason}}
 function RunNative([string]$cwd,[string]$name,[string[]]$args){
  Push-Location -LiteralPath $cwd
@@ -33,14 +33,38 @@ foreach($p in $paths){Must (Test-Path -LiteralPath (Join-Path $src $p) -PathType
 Write-Output '::notice::RB3_EXACT_431_COMMIT_CANDIDATE_SHA_TREE_UNCHANGED=PASS'
 
 # Run every actual Node test file, with no old red cases excluded.
-$tests=@(Get-ChildItem -LiteralPath (Join-Path $src 'tests') -File -Filter '*.test.cjs' | Sort-Object Name)
-Must ($tests.Count -ge 27) 'RB3_EXPECTED_NODE_TEST_MATRIX_MISSING'
+$allTests=@(Get-ChildItem -LiteralPath (Join-Path $src 'tests') -File -Filter '*.test.cjs' | Sort-Object Name)
+Must ($allTests.Count -ge 27) 'RB3_EXPECTED_NODE_TEST_MATRIX_MISSING'
+# W28F is a legacy standalone command accepting two absolute source roots,
+# not a node:test module. Run it with its exact frozen previous commit, not
+# just omit it from the suite or pass the same tree twice.
+$special='rb3_w28f_original_browser_state.test.cjs'
+Must (@($allTests|Where-Object {$_.Name -ceq $special}).Count -eq 1) 'RB3_W28F_STANDALONE_TEST_MISSING'
+$tests=@($allTests|Where-Object {$_.Name -cne $special})
 Push-Location $src
 try{
  & node --test @($tests.FullName)
  Must ($LASTEXITCODE -eq 0) 'RB3_ALL_NODE_CHART_PINE_OPERATOR_TESTS_FAILED'
 }finally{Pop-Location}
-Write-Output ('::notice::RB3_NODE_ALL_CHART_PINE_OPERATOR_TEST_FILES_PASS='+$tests.Count)
+$prior='9a525c0ac1b1481c1ba9532080d52e4c94ac5b39'
+$oldRoot=Join-Path $env:RUNNER_TEMP ('ktrade-w28f-prior-'+[guid]::NewGuid().ToString('N'))
+$oldTar=Join-Path $env:RUNNER_TEMP ('ktrade-w28f-'+[guid]::NewGuid().ToString('N')+'.tar')
+Must (!(Test-Path -LiteralPath $oldRoot) -and !(Test-Path -LiteralPath $oldTar)) 'RB3_W28F_NOT_FRESH'
+Must ((& git -C $src cat-file -t $prior).Trim() -ceq 'commit') 'RB3_W28F_FROZEN_PREDECESSOR_MISSING'
+New-Item -ItemType Directory -Path $oldRoot -ErrorAction Stop|Out-Null
+$paths=@('static/watchlist_manager.js','static/layout_manager.js','static/indicator_library.js','static/indicator_browser.js')
+& git -C $src archive --format=tar --output $oldTar $prior @paths
+Must ($LASTEXITCODE -eq 0) 'RB3_W28F_PREVIOUS_SOURCE_ARCHIVE_FAILED'
+& tar -xf $oldTar -C $oldRoot
+Must ($LASTEXITCODE -eq 0) 'RB3_W28F_PREVIOUS_SOURCE_EXTRACT_FAILED'
+foreach($file in $paths){Must (Test-Path -LiteralPath (Join-Path $oldRoot $file) -PathType Leaf) 'RB3_W28F_REQUIRED_PARENT_JS_MISSING'}
+Push-Location $src
+try{
+ & node (Join-Path $src ('tests/'+$special)) $oldRoot $src
+ Must ($LASTEXITCODE -eq 0) 'RB3_W28F_ORIGINAL_TWO_SOURCE_COMPAT_FAILED'
+}finally{Pop-Location}
+Write-Output ('::notice::RB3_ALL_NODE_CHART_PINE_OPERATOR_TEST_FILES_PASS='+$allTests.Count)
+Write-Output ('::notice::RB3_W28F_FROZEN_PREDECESSOR_READONLY_COMPAT='+$prior)
 
 $env:GOWORK='off'
 $env:GOFLAGS='-p=2'
@@ -138,7 +162,7 @@ Must (!(Test-Path -LiteralPath (Join-Path $i.candidate_directory 'ktrade.exe')))
 Write-Output '::notice::RB3_REAL_UNSIGNED_NATIVE_INSTALL_UNINSTALL_UNKNOWN_PRIVATE_BYTES_PRESERVED=PASS'
 Write-Output ('RB3_BOUNDED_PACKAGE_ACCEPTANCE='+(@{
  schema='ktrade.rb3.package-acceptance.v1';source=$expected;tree=$tree;
- node_test_files=$tests.Count;full_go_wails_vet=$true;
+ node_test_files=$allTests.Count;full_go_wails_vet=$true;
  unsigned_bundle_sha256=$build.archive_sha256;installed_disposable_root=$true;
  installed_native_source_bound=$true;unknown_bytes_preserved_sha256=$before;
  uninstalled_code_files=$removed.code_files_removed;release_authority='none';
