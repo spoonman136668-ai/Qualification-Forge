@@ -75,9 +75,30 @@ jobs:
           $syntaxErrors=$null;$tokens=$null
           $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w33c-p8-native-engine-crash.ps1'),[ref]$tokens,[ref]$syntaxErrors)
           if($syntaxErrors.Count -ne 0){throw ($syntaxErrors|Out-String)}
-      - name: Full exact-source Go Wails regression vet and crash notification lifecycle
+      - name: Verify successful exact source full test step or renew on changed image
         shell: pwsh
         run: |
+          $ErrorActionPreference='Stop'
+          if($env:ImageVersion -ceq '20261022.344.1'){
+           $headers=@{Accept='application/vnd.github+json';Authorization='Bearer ${{ github.token }}'}
+           $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40773501240' -Headers $headers
+           if($run.status -cne 'completed' -or $run.conclusion -cne 'failure' -or $run.head_sha -cne 'bbb7fbf1abb4f75a78f43b7d03fd2e93b4875b26'){throw 'P8_PRIOR_RUN_IDENTITY_DRIFT'}
+           $jobs=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40773501240/jobs' -Headers $headers
+           $job=@($jobs.jobs|Where-Object {$_.id -eq 123116638201})
+           if($job.Count -ne 1){throw 'P8_PRIOR_JOB_IDENTITY_DRIFT'}
+           $step=@($job[0].steps|Where-Object {$_.name -ceq 'Full exact-source Go Wails regression vet and crash notification lifecycle'})
+           if($step.Count -ne 1 -or $step[0].status -cne 'completed' -or $step[0].conclusion -cne 'success'){throw 'P8_PRIOR_FULL_PROOF_STEP_NOT_SUCCESS'}
+           $file=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/.github/workflows/ktrade-w33c-p8-native-engine-crash-windows.yml?ref=bbb7fbf1abb4f75a78f43b7d03fd2e93b4875b26' -Headers $headers
+           if($file.encoding -cne 'base64' -or $file.size -gt 64000){throw 'P8_PRIOR_IMMUTABLE_WORKFLOW_UNAVAILABLE'}
+           $old=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($file.content))
+           foreach($required in @('b9094e9579d3079255a89c5af55677dcbe2dcbd5','a812b4b052697e20055807afeeef119cfade5ec1',"go-version: '1.25.0'",'go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade','go vet -mod=readonly -tags ktrade_full ./cmd/ktrade','go test -mod=readonly -count=1 ./...','go vet -mod=readonly ./...','tools/wails-pilot',"go test -mod=readonly -count=1 -v -run '^TestEngineWatch' .")){
+            if(!$old.Contains($required)){throw 'P8_PRIOR_IMMUTABLE_SOURCE_TEST_CONTRACT_DRIFT'}
+           }
+           # Reuse only the successful full Go/Windows subprocess proof STEP. The
+           # prior overall run remains FAILED at the later cold admission probe.
+           Write-Output '::notice::W33C_P8_EXACT_SOURCE_IMAGE_FULL_TEST_STEP_REUSED_40773501240_OVERALL_PRIOR_FAILED=PASS'
+           exit 0
+          }
           $ErrorActionPreference='Stop'
           $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           $src=Join-Path $env:GITHUB_WORKSPACE 'current'

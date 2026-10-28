@@ -1,3 +1,34 @@
+function P8-UnfundedWarningProbe {
+ $state=W33-Get '/api/paper/session'
+ if($state.mode -cne 'PAPER_NOT_FUNDED' -or $state.paper_orders_enabled -ne $false){throw 'P8_WARNING_PREFLIGHT_NOT_UNFUNDED'}
+ $handle=Get-Process -Id $engine.ProcessId;$null=$handle.Handle
+ Stop-Process -Id $handle.Id -Force
+ if(!$handle.WaitForExit(10000)){throw 'P8_WARNING_PREFLIGHT_ENGINE_NOT_DEAD'}
+ Start-Sleep -Milliseconds 800
+ P8-DumpOwnedNativeWindows
+ $dialog=P8-FindEngineWarning
+ P8-AcknowledgeWarning $dialog
+ if(!$shell.WaitForExit(15000) -or $shell.ExitCode -ne 0){throw 'P8_WARNING_PREFLIGHT_ACK_EXIT_FAILED'}
+ Write-Output '::notice::W33C_P8_UNFUNDED_NATIVE_ENGINE_WARNING_PREFLIGHT=PASS'
+ $script:shell=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+ $null=$shell.Handle;W33B-OwnEngine
+}
+function P8-DumpOwnedNativeWindows {
+ foreach($root in (Owned-Roots $shell)){
+  try{
+   Write-Output ('P8_NATIVE_DIAG_ROOT='+(@{name=$root.Current.Name;pid=$root.Current.ProcessId;handle=$root.Current.NativeWindowHandle;class=$root.Current.ClassName;offscreen=$root.Current.IsOffscreen}|ConvertTo-Json -Compress))
+   $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+   $items=@();$count=0
+   foreach($node in $nodes){
+    if(!$node.Current.IsOffscreen -and $node.Current.Name){
+     $items+=@{name=([string]$node.Current.Name).Substring(0,[Math]::Min(400,([string]$node.Current.Name).Length));type=$node.Current.ControlType.ProgrammaticName;pid=$node.Current.ProcessId;class=$node.Current.ClassName;handle=$node.Current.NativeWindowHandle}
+     $count++;if($count -ge 100){break}
+    }
+   }
+   Write-Output ('P8_NATIVE_DIAG_OWNED_NODES='+($items|ConvertTo-Json -Compress -Depth 4))
+  }catch{Write-Output ('P8_NATIVE_DIAG_READ_ERROR='+$_.Exception.Message)}
+ }
+}
 function P8-FindEngineWarning {
  $deadline=(Get-Date).AddSeconds(15)
  do{
@@ -13,6 +44,7 @@ function P8-FindEngineWarning {
   }
   Start-Sleep -Milliseconds 200
  }while((Get-Date) -lt $deadline)
+ P8-DumpOwnedNativeWindows
  throw 'P8_NATIVE_ENGINE_STOPPED_WARNING_NOT_OBSERVED'
 }
 function P8-AcknowledgeWarning([object]$dialog){
@@ -275,6 +307,7 @@ function P5-Close([object]$process){
  if($null -ne $left -and !$left.WaitForExit(10000)){throw 'P5_ORIGINAL_ENGINE_ORPHANED'}
 }
 function Run-P8NativeEngineCrash {
+ P8-UnfundedWarningProbe
  $initial=W33-Get '/api/paper/session'
  if($initial.mode -cne 'PAPER_NOT_FUNDED' -or $initial.paper_orders_enabled -ne $false -or $initial.live_armed -ne $false){throw 'P5_FRESH_OWNER_NOT_UNFUNDED'}
  Click-W32EUI $shell 'Verify chart UI'
