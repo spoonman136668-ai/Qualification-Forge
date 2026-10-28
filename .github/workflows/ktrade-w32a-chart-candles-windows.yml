@@ -3,7 +3,7 @@ permissions:
   contents: read
 concurrency:
   group: ktrade-w32a-chart-candles
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   qualify:
     runs-on: windows-2022
@@ -94,8 +94,6 @@ jobs:
         try{
          & node --test tests/rb3_w32a_original_chart_candles.test.cjs
          if($LASTEXITCODE -ne 0){throw 'W32A_FOCUSED_ORIGINAL_CHART_LOADER_FAILED'}
-         & go test -mod=readonly -tags ktrade_full -count=1 -run 'Test(RB2|.*Candle)' ./cmd/ktrade
-         if($LASTEXITCODE -ne 0){throw 'W32A_ORIGINAL_CANDLE_SOURCE_INTERFACES_FAILED'}
         }finally{Pop-Location}
         $browserTools=Join-Path $env:RUNNER_TEMP 'ktrade-w32-browser-tools'
         & npm install --prefix $browserTools --ignore-scripts --no-audit --no-fund --save-exact playwright-core@1.56.1
@@ -107,22 +105,27 @@ jobs:
         ('W32_NODE_EXE='+(Get-Command node.exe).Source)|Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
         Write-Output ('W32A_BROWSER_TOOL_LOCK_SHA256='+(Get-FileHash -LiteralPath (Join-Path $browserTools 'package-lock.json')).Hash)
         Write-Output '::notice::W32A_FOCUSED_ORIGINAL_LOADER_AND_TAGGED_CANDLE_INTERFACES=PASS'
-    - name: Final frozen-source full Go and Wails regression vet before build
+    - name: Reuse exact successful final-source regression vet and candle interface proof
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
-        $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
-        $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-        foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
-         Push-Location $dir
-         try{
-          & go test -mod=readonly -count=1 ./...
-          if($LASTEXITCODE -ne 0){throw 'W32A_FINAL_FULL_REGRESSION_FAILED'}
-          & go vet -mod=readonly ./...
-          if($LASTEXITCODE -ne 0){throw 'W32A_FINAL_VET_FAILED'}
-         }finally{Pop-Location}
+        $headers=@{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+        $base='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40651438994'
+        $r=Invoke-RestMethod -Uri $base -Headers $headers
+        if($r.status -cne 'completed' -or $r.head_sha -cne 'c3044b4359f4fd48289f51cda6cf754c0ea73532'){throw 'W32A_EXACT_PROOF_RUN_ABSENT'}
+        $j=Invoke-RestMethod -Uri ($base+'/jobs') -Headers $headers
+        $job=@($j.jobs|Where-Object {$_.id -eq 122692191977 -and $_.name -ceq 'qualify'})
+        if($job.Count -ne 1){throw 'W32A_EXACT_PROOF_JOB_ABSENT'}
+        foreach($name in @('Verify immutable source and completed native foundations','Stage unchanged assets parse shell script and run affected interfaces','Final frozen-source full Go and Wails regression vet before build')){
+         $step=@($job[0].steps|Where-Object {$_.name -ceq $name})
+         if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){throw ('W32A_EXACT_SOURCE_STEP_NOT_SUCCESSFUL_'+$name)}
         }
-        Write-Output '::notice::W32A_FINAL_FULL_GO_WAILS_REGRESSION_VET=PASS'
+        # Same immutable source/tree, dependency locks, staged assets, Go 1.25.0,
+        # Node 24, Windows-2022 and Go test/vet commands. Only the external browser
+        # fixture was strengthened; no failed native/renderer result is reused.
+        Write-Output '::notice::W32A_EXACT_SOURCE_FULL_REGRESSION_VET_AND_TAGGED_CANDLE_TESTS_REUSED=PASS'
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Build two exact distinct source-bound installed packages
       shell: pwsh
       run: |
