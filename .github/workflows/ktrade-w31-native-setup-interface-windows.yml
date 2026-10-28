@@ -24,9 +24,9 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         repository: spoonman136668-ai/ktrade
-        ref: 205f15219baafad7ed6d8b1978d7f202ea2cddfa
+        ref: e51e03c22f906704295a24138ac1ceba5d9ea0d4
         path: current
-        fetch-depth: 2
+        fetch-depth: 3
         persist-credentials: false
         token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
     - name: Checkout exact qualified previous package source
@@ -44,15 +44,15 @@ jobs:
       run: |
         $ErrorActionPreference='Stop'
         $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-        if((& git -C $src rev-parse HEAD).Trim() -cne '205f15219baafad7ed6d8b1978d7f202ea2cddfa' -or
-           (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'c6e0a4ec32bc33088b3a9d973c6f53e0ebc893c7'){throw 'W30A_SOURCE_IDENTITY_DRIFT'}
+        if((& git -C $src rev-parse HEAD).Trim() -cne 'e51e03c22f906704295a24138ac1ceba5d9ea0d4' -or
+           (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '5526682f7efafe4cd328fbac77ebb97e58dc7b9e'){throw 'W30A_SOURCE_IDENTITY_DRIFT'}
         foreach($pin in @(
           @{run=40605592251;sha='339587c05ded490bbde0368576c7f75eb0526d88'}
         )){
           $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
           if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W30A_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
         }
-        if((& git -C $src rev-parse HEAD~1).Trim() -cne '69a1161ab44e62fcc0ee58b8454f7190b8b7bed5'){throw 'W30A_PARENT_DRIFT'}
+        if((& git -C $src rev-parse HEAD~2).Trim() -cne '69a1161ab44e62fcc0ee58b8454f7190b8b7bed5'){throw 'W30A_PARENT_DRIFT'}
         $delta=@(& git -C $src diff --name-only 69a1161ab44e62fcc0ee58b8454f7190b8b7bed5 HEAD|Sort-Object)
         $want=@('tools/wails-pilot/backend/setup_bundle.go','tools/wails-pilot/backend/setup_window_test.go','tools/wails-pilot/cmd/setup-window/main_windows.go','windows/Build-KTRADE-FreshInstaller.ps1','windows/Install-KTRADE-Fresh.ps1'|Sort-Object)
         if(Compare-Object $delta $want){throw 'W30A_FIVE_PATH_SCOPE_DRIFT'}
@@ -89,27 +89,28 @@ jobs:
           & node scripts/stage_offline_vendor.cjs
           if($LASTEXITCODE -ne 0){throw 'W30_VENDOR_STAGE_FAILED'}
         }finally{Pop-Location}
-    - name: Reuse exact successful frozen-source full Go regression vet and race proof
+        Push-Location (Join-Path $src 'tools/wails-pilot')
+        try{
+         & go test -mod=readonly -race -count=1 -run '^Test(W31|W30B|W30A|W30|W29|W26|W27|W28[CDE])' ./backend
+         if($LASTEXITCODE -ne 0){throw 'W30B_AFFECTED_INTERFACES_RACE_FAILED'}
+        }finally{Pop-Location}
+        Write-Output '::notice::W30B_AFFECTED_RETAINED_UNINSTALL_LAUNCH_RACE=PASS'
+    - name: One frozen-source full Go and Wails regression vet before build
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
-        $headers=@{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
-        $base='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40607529949'
-        $r=Invoke-RestMethod -Uri $base -Headers $headers
-        if($r.status -cne 'completed' -or $r.head_sha -cne 'c7822bd27291bb2105b5cb80f2ffafcac5bfeb11'){throw 'W31_EXACT_PROOF_RUN_NOT_COMPLETED'}
-        $jobs=Invoke-RestMethod -Uri ($base+'/jobs') -Headers $headers
-        $job=@($jobs.jobs|Where-Object {$_.id -eq 122550653003 -and $_.name -ceq 'qualify'})
-        if($job.Count -ne 1){throw 'W31_EXACT_PROOF_JOB_ABSENT'}
-        foreach($name in @('Verify immutable source and completed native foundations','Stage unchanged assets parse shell script and run affected interfaces','One frozen-source full Go and Wails regression vet before build')){
-         $step=@($job[0].steps|Where-Object {$_.name -ceq $name})
-         if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){throw ('W31_EXACT_SOURCE_PROOF_STEP_NOT_SUCCESSFUL_'+$name)}
+        $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+        $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+        foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
+         Push-Location $dir
+         try{
+          & go test -mod=readonly -count=1 ./...
+          if($LASTEXITCODE -ne 0){throw 'W30B_FINAL_FULL_REGRESSION_FAILED'}
+          & go vet -mod=readonly ./...
+          if($LASTEXITCODE -ne 0){throw 'W30B_FINAL_VET_FAILED'}
+         }finally{Pop-Location}
         }
-        # Same immutable source/tree, dependencies, toolchain, staged assets and Go
-        # commands. Native UIA edit-field disambiguation and launcher tamper tests
-        # changed only this external native harness. No failed native result reused.
-        Write-Output '::notice::W31_EXACT_SOURCE_FULL_REGRESSION_VET_AND_RACE_REUSED=PASS'
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
+        Write-Output '::notice::W30B_FULL_GO_WAILS_REGRESSION_VET=PASS'
     - name: Build two exact distinct source-bound installed packages
       shell: pwsh
       run: |
@@ -124,7 +125,7 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'W30_PREVIOUS_ASSET_STAGE_FAILED'}
         }finally{Pop-Location}
         $roots=[ordered]@{}
-        foreach($item in @(@{path='previous';sha='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'},@{path='current';sha='205f15219baafad7ed6d8b1978d7f202ea2cddfa'})){
+        foreach($item in @(@{path='previous';sha='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'},@{path='current';sha='e51e03c22f906704295a24138ac1ceba5d9ea0d4'})){
           $src=Join-Path $env:GITHUB_WORKSPACE $item.path
           $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
           & (Join-Path $src 'windows/Build-KTRADE-FreshInstaller.ps1') -OutputRoot $build -ExpectedSourceSha $item.sha
@@ -196,7 +197,7 @@ jobs:
         $programs=[Environment]::GetFolderPath('Programs')
         if(!(Test-Path -LiteralPath $programs)){New-Item -ItemType Directory -Path $programs -Force|Out-Null}
         $oldSHA='b377a28051cb9594ddeb2da1ffe4252d418f0a6f'
-        $newSHA='205f15219baafad7ed6d8b1978d7f202ea2cddfa'
+        $newSHA='e51e03c22f906704295a24138ac1ceba5d9ea0d4'
         $oldSetup=Join-Path $oldBundle 'KTRADE-Setup.ps1'
         $newSetup=Join-Path $newBundle 'KTRADE-Setup.ps1'
         $savedPath=$env:PATH
