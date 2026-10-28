@@ -1,0 +1,50 @@
+{
+  "schema": "ktrade.w33c.p0.original-sell-accounting-qualification.v1",
+  "observed_date": "2026-10-28",
+  "status": "PASS_BOUNDED_ONLY",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 174,
+    "sha": "54920c9800c86ca3d0dfa9498b619a142ed18859",
+    "tree": "52247618f68e455011df62c33cd79268ab8fc6e8",
+    "base": "ee9052b373bcf14084d70b8606ea8b262753a713",
+    "changed_paths": [
+      "internal/paperreconcile/w33c_sell_exit_accounting_test.go",
+      "internal/paperengine/w33c_sell_admission_refusal_test.go"
+    ]
+  },
+  "witness": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "run": 40732681573,
+    "job": 122972878861,
+    "sha": "81cf233d1acce97733bcaacab90eb0455c462ba6",
+    "status": "completed",
+    "conclusion": "success",
+    "all_steps_success": true,
+    "runner": "github-hosted windows-2022"
+  },
+  "checks": [
+    "immutable source SHA/tree, exact two test path scope and W33B ancestry",
+    "positive original paper coordinator BUY then SELL FIFO cash, cost basis, realized P&L, 8-decimal modeled fees and cold replay",
+    "exact SELL retry no duplicate, changed price and same ID rejected",
+    "oversell retains PREPARED original reconciliation uncertainty and blocks later execution",
+    "original native owner rejects forged SELL, exit_submitted and unknown close even after real BUY, with funds and ledger hash unchanged",
+    "fresh focused native Go, full root and nested Wails Go test/vet on Windows",
+    "no test/fixture tag production Go engine and Wails shell compile",
+    "temporary binaries removed and no release uploaded"
+  ],
+  "limits": [
+    "P0 only proves original offline ledger arithmetic and current native SELL refusal; the application does not execute a SELL",
+    "No current-market SELL, original native UI SELL, live broker, owner data, release or execution promotion",
+    "Do not substitute simulated accounting proof for the separate Pine exit provenance and risk-owned reduce-only execution gates."
+  ],
+  "safety": {
+    "app_behavior_changed": false,
+    "live_trading": false,
+    "paper_sell_admission": false,
+    "pr_draft": true,
+    "merged": false,
+    "owner_profile_touched": false,
+    "broker_credentials_used": false
+  }
+}
