@@ -17,7 +17,7 @@ Must ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and $env:RUNNER_OS -ceq 'Win
 Must (Test-Path -LiteralPath $src -PathType Container) 'RB3_CANDIDATE_SOURCE_MISSING'
 Must ((& git -C $src rev-parse HEAD).Trim() -ceq $expected -and
       (& git -C $src rev-parse 'HEAD^{tree}').Trim() -ceq $tree) 'RB3_EXACT_SOURCE_TREE_CHANGED'
-Must ((& git -C $src status --porcelain).Count -eq 0) 'RB3_SOURCE_DIRTY_AT_START'
+Must (@(& git -C $src status --porcelain).Count -eq 0) 'RB3_SOURCE_DIRTY_AT_START'
 Must ((& git -C $src rev-parse origin/main).Trim() -ceq 'a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58') 'RB3_MAIN_DRIFT'
 $null=& git -C $src merge-base --is-ancestor origin/main HEAD
 Must ($LASTEXITCODE -eq 0) 'RB3_UNEXPECTED_MAIN_ANCESTRY'
