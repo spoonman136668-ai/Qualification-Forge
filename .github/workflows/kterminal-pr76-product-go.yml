@@ -1,4 +1,4 @@
-name: K-Terminal PR76 exact-source native product package compile vet build
+name: K-Terminal PR76 native product package scoped compile vet build
 on:
   push:
     branches:
@@ -58,7 +58,7 @@ jobs:
           go-version: '1.22'
           cache: false
 
-      - name: Qualify all native product Go packages excluding separately invoked one-file Graphify utilities
+      - name: Qualify native product packages without treating independent Graphify tools as a single package
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -87,48 +87,16 @@ jobs:
           try {
             if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'WRONG_SOURCE_HEAD' }
             if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'UNCLEAN_CHECKOUT' }
-            # Explicit package inventory guard: no native Go directory silently omitted.
+            # Exact Go inventory gate: all ordinary product Go files are in explicitly tested directories.
             $allGo = @(& git ls-files '*.go')
             $unexpected = @($allGo | Where-Object { $_ -notmatch '^(pkg/|internal/|cmd/|tools/graphify/|[^/]+\.go$)' })
             if($unexpected.Count -ne 0){throw 'UNREVIEWED_GO_PACKAGE_SCOPE'}
             $standalone = @(& git ls-files 'tools/graphify/*.go')
             $expectedStandalone = @('tools/graphify/g27_type_calls.go','tools/graphify/g30_type_calls.go','tools/graphify/g31_interpackage_calls.go','tools/graphify/g44_ast_call_witness.go')
             if($standalone.Count -ne 4 -or @($standalone | Where-Object {$_ -notin $expectedStandalone}).Count -ne 0){throw 'GRAPHIFY_STANDALONE_INVENTORY_CHANGED'}
-            Write-Host 'KTERMINAL_GO_SCOPE=ROOT_PKG_INTERNAL_CMD;GRAPHIFY_FOUR_EXPLICIT_GO_RUN_UTILITIES_EXCLUDED'
+            Write-Host 'KTERMINAL_GO_SCOPE=ROOT_PKG_INTERNAL_CMD__FOUR_STANDALONE_GRAPHIFY_TOOLS_SEPARATE'
             Write-Host ('KTERMINAL_GO_TOOLCHAIN='+(& go version))
-            & go test -run '^
-            $results.compile=($LASTEXITCODE -eq 0)
-            if(-not $results.compile){Report-SafeDiagnostics 'COMPILE' $log}
-            Write-Host ('KTERMINAL_PRODUCT_PACKAGE_TEST_COMPILE='+$(if($results.compile){'PASS'}else{'FAIL'}))
-            & go vet . ./pkg ./internal/... ./cmd/... *> $log
-            $results.vet=($LASTEXITCODE -eq 0)
-            if(-not $results.vet){Report-SafeDiagnostics 'VET' $log}
-            Write-Host ('KTERMINAL_GO_VET='+$(if($results.vet){'PASS'}else{'FAIL'}))
-            & go build . ./pkg ./internal/... ./cmd/... *> $log
-            $results.build=($LASTEXITCODE -eq 0)
-            if(-not $results.build){Report-SafeDiagnostics 'BUILD' $log}
-            Write-Host ('KTERMINAL_GO_BUILD='+$(if($results.build){'PASS'}else{'FAIL'}))
-            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_MUTATED' }
-            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_HEAD_DRIFT' }
-            Write-Host ('KTERMINAL_SOURCE_UNCHANGED=PASS EXACT_SHA='+$env:EXPECTED_SHA)
-            Write-Host 'KTERMINAL_FULL_RUNTIME_TESTS=NOT_RUN_IN_THIS_JOB'
-            Write-Host 'KTERMINAL_WPF_GUI=NOT_TESTED'
-            Write-Host 'KTERMINAL_TRADING_EXECUTION=NONE'
-            Write-Host 'KTERMINAL_PRIVATE_ARTIFACT_PUBLICATION=NONE'
-            if(-not ($results.compile -and $results.vet -and $results.build)) { throw 'KTERMINAL_NATIVE_COMPILE_OR_VET_FAILED' }
-          } finally {
-            Pop-Location
-            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
-          }
-
-      - name: Remove private checkout from ephemeral Windows workspace
-        if: always()
-        shell: pwsh
-        run: |
-          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
-          if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue}
-          Write-Host 'KTERMINAL_PRIVATE_SOURCE_ARTIFACTS=NONE'
- -count=1 -timeout 5m . ./pkg ./internal/... ./cmd/... *> $log
+            & go test -run '^$' -count=1 -timeout 5m . ./pkg ./internal/... ./cmd/... *> $log
             $results.compile=($LASTEXITCODE -eq 0)
             if(-not $results.compile){Report-SafeDiagnostics 'COMPILE' $log}
             Write-Host ('KTERMINAL_PRODUCT_PACKAGE_TEST_COMPILE='+$(if($results.compile){'PASS'}else{'FAIL'}))
