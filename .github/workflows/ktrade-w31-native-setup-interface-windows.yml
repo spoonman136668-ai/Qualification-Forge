@@ -373,7 +373,17 @@ jobs:
           foreach($dialog in $windows){
            if([IntPtr]$dialog.Current.NativeWindowHandle -eq [IntPtr]$setup.mainHandle -or $dialog.Current.ControlType -ne [System.Windows.Automation.ControlType]::Window){continue}
            $button=$dialog.FindFirst([System.Windows.Automation.TreeScope]::Descendants,(New-Object System.Windows.Automation.PropertyCondition([System.Windows.Automation.AutomationElement]::NameProperty,$label)))
-           if($null -eq $button -or $button.Current.IsOffscreen -or !$button.Current.IsEnabled -or $button.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button){continue}
+           if($null -eq $button -or $button.Current.IsOffscreen -or !$button.Current.IsEnabled -or
+              $button.Current.Name -cne $label){continue}
+           $dialogHandle=[IntPtr]$dialog.Current.NativeWindowHandle
+           $buttonHandle=[IntPtr]$button.Current.NativeWindowHandle
+           if($dialogHandle -eq [IntPtr]::Zero -or $buttonHandle -eq [IntPtr]::Zero -or
+              ![W30Native]::IsChild($dialogHandle,$buttonHandle)){continue}
+           # Win32 folder dialogs expose genuine native Button HWNDs as UIA
+           # panes on this hosted Windows runner. Require BOTH exact caption
+           # and the owned native BUTTON class, not just UIA panel text.
+           $class=W31-NativeClass $button
+           if($class -notmatch '^(?:WindowsForms10\.)?BUTTON(?:\.|$)'){continue}
            $rect=$button.Current.BoundingRectangle;$outer=$dialog.Current.BoundingRectangle
            if($rect.IsEmpty -or $rect.Left -lt $outer.Left -or $rect.Right -gt $outer.Right -or $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){throw 'W31_FOREIGN_DIALOG_CONTROL'}
            $handle=[IntPtr]$dialog.Current.NativeWindowHandle
