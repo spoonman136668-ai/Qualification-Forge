@@ -71,6 +71,11 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'W32E_AFFECTED_CHART_NODE_FAILED'}
           }finally{Pop-Location}
           Write-Output '::notice::W32E_UNMODIFIED_CHART_FRONTEND_TESTS=PASS'
+          & node --check (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w32e-p1c-observe.cjs')
+          if($LASTEXITCODE -ne 0){throw 'W32E_P1C_OBSERVER_SYNTAX'}
+          $syntaxErrors=$null;$tokens=$null
+          $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w32e-p1c-raster.ps1'),[ref]$tokens,[ref]$syntaxErrors)
+          if($syntaxErrors.Count -ne 0){throw ($syntaxErrors|Out-String)}
       # Exact same immutable candidate's full root and nested Wails Go regression
       # and vet passed in runs #40687106769 and #40692748396. This witness
       # changes UI observation only; no application code or toolchain changes.

@@ -1,7 +1,8 @@
 function Read-W32ECoordinates([string]$phase){
   $out=Join-Path $env:RUNNER_TEMP ('w32e-p1c-'+$phase+'.json')
-  & node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w32e-p1c-observe.cjs') $debugPort $phase $out
+  $observationLog=& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w32e-p1c-observe.cjs') $debugPort $phase $out
   if($LASTEXITCODE -ne 0){throw ('W32E_P1C_READ_ONLY_COORDINATES_FAILED_'+$phase)}
+  Write-Host ($observationLog -join "`n")
   return Get-Content -LiteralPath $out -Raw|ConvertFrom-Json
 }
 function Capture-W32EMapped([object]$proc,[object]$d){
