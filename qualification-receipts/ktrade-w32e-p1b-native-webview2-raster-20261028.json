@@ -1,0 +1,86 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W32E-P1B",
+  "outcome": "PASS_BOUND_REAL_WEBVIEW2_OS_RASTER_NATIVE_PINE_SMA_CONTINUITY",
+  "date": "2026-10-28",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pull_request": 170,
+    "sha": "1c399965d8ab88a42e25f9997e0db15dec15e6b0",
+    "tree": "92b8b9c1c40bfeed6fc7931eb66e37065a023b06",
+    "qualified_base_w32d": "9e5ff8fa1086c18bb862bb66ae834886c824cab9",
+    "paths": [
+      "cmd/ktrade/w32e_webview_fixture_full_windows.go",
+      "cmd/ktrade/w32e_webview_fixture_full_windows_test.go",
+      "windows/Build-KTRADE-WailsPortable.ps1"
+    ],
+    "application_source_unchanged_during_this_gate": true,
+    "fixture_mode": "windows && ktrade_full && ktrade_w32e_fixture; release candidate explicitly refuses fixture"
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "run_id": 40695294980,
+    "job_id": 122840346867,
+    "workflow_commit": "2f6ee1cdd5def117b8cb3cf953ec5e274cd06ff5",
+    "status": "completed",
+    "conclusion": "success",
+    "all_steps_success": true,
+    "go_full_regression_reference": {
+      "run_id": 40692748396,
+      "job_id": 122831479536,
+      "step": "Test sealed fixture Windows-only build and original Go regressions",
+      "conclusion": "success",
+      "source_sha": "1c399965d8ab88a42e25f9997e0db15dec15e6b0"
+    },
+    "go_fixture_runtime_reference": {
+      "run_id": 40687106769,
+      "job_id": 122812187062,
+      "conclusion": "success"
+    }
+  },
+  "measured": {
+    "original_go_candle_rows": 30,
+    "pine_na_prefix": 2,
+    "original_go_sma_values": 28,
+    "series_overlay": false,
+    "real_wails_shell": true,
+    "original_microsoft_webview2_controls": true,
+    "native_symbol_UIA_before": "BTCUSD • Coinbase",
+    "native_symbol_UIA_after": "BTCUSDC • Coinbase",
+    "selected_element_hittest": "BTC-USDC",
+    "native_pointer_target": {
+      "x": 304,
+      "y": 249
+    },
+    "native_pointer_physical": {
+      "x": 304,
+      "y": 249
+    },
+    "pine_source_input": "native UIAutomation owned editor plus OS clipboard; no DOM injection",
+    "screen_capture": "Windows UIA identified Pine indicator pane; Graphics.CopyFromScreen capture only inside OS-native in-memory bitmap; no screenshot upload",
+    "baseline_colored_pixels": 0,
+    "applied_colored_pixels": 906,
+    "sampled_horizontal_bins_detected": 28,
+    "sampled_horizontal_bins_total": 28,
+    "upward_steps": 26,
+    "reverse_steps": 1,
+    "pine_pane_width_px": 382,
+    "pine_pane_height_px": 150,
+    "applied_frame_png_sha256": "49fe0fd0707504ae7431c52f549ac38a219508bda0e3a2698a822cc49124b671",
+    "release_candidate_fixture_refused": true,
+    "disposable_pair_built": true,
+    "disposable_pair_cleaned": true,
+    "owner_data_read": false,
+    "paper_orders_enabled": false,
+    "live_orders_enabled": false,
+    "broker_requests": 0
+  },
+  "limits": [
+    "This is 28-bin OS-raster continuity of a known fuchsia upsloping Go-produced Pine line; it is not independent exact bar-by-bar coordinate-to-value parity for all 28 samples.",
+    "The test-only compile tag is deliberately excluded from normal production/release binaries. It validates genuine WebView2 controls and rendering on otherwise unchanged source but does not by itself demonstrate market data availability in the untagged shipping engine.",
+    "Independent volume-chart raster identity and isolation before and after Pine apply is not yet measured.",
+    "The W32E gate remains open until per-value pixel mapping and volume isolation are independently verified.",
+    "No merge, accepted-ref mutation, signing, deployment, live/paper trading or owner data access."
+  ],
+  "next": "W32E-P1C: independent volume chart unchanged-data and screen-raster check; map native WebView2 pixels to exact chart time/price coordinates using source-bound time-scale and scale geometry without runtime JS injection or shipping test switches."
+}
