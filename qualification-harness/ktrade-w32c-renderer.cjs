@@ -50,9 +50,15 @@ const hash=()=>crypto.createHash('sha256').update(fs.readFileSync(template)).dig
       if(found)hits++;
      }
     }
-    return {data:s.data(),owner:s._chart===chart,count:k.s._indicatorSeries.length,hits,trade:document.getElementById('tradeBtn').disabled,submit:document.getElementById('orderSubmit').disabled};
+    return {data:s.data(),logical:Array.from({length:30},(_,i)=>s.dataByIndex(i)),version:LightweightCharts.version(),owner:s._chart===chart,count:k.s._indicatorSeries.length,hits,trade:document.getElementById('tradeBtn').disabled,submit:document.getElementById('orderSubmit').disabled};
    },secondary);
-   assert.equal(actual.count,1);assert.ok(actual.owner);assert.equal(actual.data.length,30);assert.equal('value' in actual.data[0],false);assert.equal('value' in actual.data[1],false);assert.equal(actual.data[29].value,128);assert.ok(actual.hits>=15,'original native average is absent at expected canvas coordinates');assert.ok(actual.trade&&actual.submit);
+   assert.equal(actual.count,1);assert.ok(actual.owner);
+   // LightweightCharts data() enumerates fulfilled rows. Exact logical-index
+   // readback must still show both NA bars and every candle-aligned value.
+   assert.equal(actual.data.length,28);assert.equal(actual.logical[0],null);assert.equal(actual.logical[1],null);
+   for(let i=2;i<30;i++){assert.equal(actual.logical[i].time,payload.candles[i].time);assert.equal(actual.logical[i].value,99+i);}
+   assert.equal(actual.data[27].value,128);assert.ok(actual.hits>=15,'original native average is absent at expected canvas coordinates');assert.ok(actual.trade&&actual.submit);
+   console.log('W32C_CHART_RUNTIME='+actual.version);
    return actual.hits;
   }
   const priceHits=await apply(metadata.v5,false),secondaryHits=await apply(metadata.v6,true);
