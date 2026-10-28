@@ -1,0 +1,148 @@
+name: K-Terminal baseline native Go compilation/vet/build read-only comparison
+on:
+  push:
+    branches:
+      - qualification/kt-pr76-native-baseline-20261028
+    paths:
+      - '.github/workflows/kterminal-pr76-native-baseline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compile-vet:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/kt-pr76-native-baseline-20261028'
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      EXPECTED_SHA: 'eb5d225ae73b698a59c68d840daf1ec678e1a0ec'
+      KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+      KTERMINAL_LIVE_AUTHORITY: '0'
+      KTERMINAL_BROKER_ACCESS: '0'
+      KTERMINAL_PROMOTION: '0'
+      CI: 'true'
+      GOFLAGS: '-mod=readonly'
+      GOTOOLCHAIN: 'local'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Verify authentic Windows host and immutable private Git source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows') { throw 'WRONG_QUALIFICATION_HOST' }
+          if (-not $env:KTERMINAL_READ_TOKEN) { throw 'READ_SECRET_NOT_AVAILABLE' }
+          $headers=@{Accept='application/vnd.github+json';Authorization=('Bearer '+$env:KTERMINAL_READ_TOKEN)}
+          try {
+            $commit=Invoke-RestMethod -Method Get -Uri ('https://api.github.com/repos/Kboomllc/K-Terminal/commits/'+$env:EXPECTED_SHA) -Headers $headers -TimeoutSec 25
+            if ($commit.sha -cne $env:EXPECTED_SHA) { throw 'SHA_DRIFT' }
+          } catch { throw 'PRIVATE_PINNED_SOURCE_NOT_VERIFIED' }
+          finally { Remove-Variable headers,commit -ErrorAction SilentlyContinue }
+          Write-Host 'KTERMINAL_PINNED_PRIVATE_READ=PASS'
+
+      - name: Checkout immutable private candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: 'eb5d225ae73b698a59c68d840daf1ec678e1a0ec'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: private-checkout
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Pin source-era Go 1.22 toolchain as in K-Terminal's existing Graphify qualification
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.22'
+          cache: false
+
+      - name: Qualify compiler, vet and build separately with private logs
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          $log=Join-Path $env:RUNNER_TEMP 'kt-native-compile-only.log'
+          $results=@{}
+          function Report-SafeDiagnostics([string]$phase, [string]$file) {
+            $txt = if(Test-Path -LiteralPath $file){Get-Content -LiteralPath $file -Raw -ErrorAction Stop}else{''}
+            $categories = [ordered]@{
+              MOD_GRAPH_OUT_OF_SYNC = 'updates to go.mod needed|module updates disabled|go:.*go mod tidy|missing go.sum entry'
+              DEPENDENCY_FETCH = 'no required module provides package|module .* not found|failed to download|proxy.golang.org|TLS handshake|i/o timeout|dial tcp|connection refused'
+              SOURCE_COMPILE_ERROR = 'undefined:|redeclared in this block|cannot use |cannot refer to |not enough arguments|too many arguments|does not implement|invalid operation|syntax error'
+              VERSION_COMPATIBILITY = 'requires go >=|go.mod requires|unsupported version|invalid go version|not supported in Go'
+              PLATFORM_COMPATIBILITY = 'build constraints exclude all Go files|cannot find.*(gcc|cc1)|exec:.*not found'
+              RESOURCE_EXHAUSTION = 'out of memory|resource temporarily unavailable|fatal error:.*threads|no space left'
+              TEST_ASSERTION = '--- FAIL:|panic:|test timed out after|FAIL\s+[^\s]+\s+'
+            }
+            $found=@()
+            foreach($entry in $categories.GetEnumerator()){
+              if([regex]::IsMatch($txt,$entry.Value,[System.Text.RegularExpressions.RegexOptions]::IgnoreCase)){$found+= $entry.Key}
+            }
+            if($found.Count -eq 0){$found=@('UNCLASSIFIED')}
+            Write-Host ('KTERMINAL_'+$phase+'_DIAG_CLASS='+($found -join ','))
+          }
+          Push-Location -LiteralPath $root
+          try {
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'WRONG_SOURCE_HEAD' }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'UNCLEAN_CHECKOUT' }
+            Write-Host ('KTERMINAL_GO_TOOLCHAIN='+(& go version))
+            # Only report coarse, predeclared categories; never echo private compiler output.
+            function Get-Category([string]$file) {
+              $s=Get-Content -LiteralPath $file -Raw -ErrorAction SilentlyContinue
+              if (-not $s) { return 'EMPTY_LOG_OR_PROCESS' }
+              if ($s -match 'updates to go.mod needed|go.mod updates needed|go: updates to go.mod') { return 'GO_MOD_READONLY_UPDATE_REQUIRED' }
+              if ($s -match 'missing go.sum entry|missing go.sum') { return 'GO_SUM_CHECKSUM_REQUIRED' }
+              if ($s -match 'no required module provides package|cannot find module providing package|module not found') { return 'MISSING_MODULE_OR_PACKAGE' }
+              if ($s -match 'module .*requires go >=|go.mod requires go >|toolchain not available|GOTOOLCHAIN') { return 'TOOLCHAIN_VERSION_OR_POLICY' }
+              if ($s -match 'undefined:|undeclared name:') { return 'UNDEFINED_GO_IDENTIFIER' }
+              if ($s -match 'syntax error:|expected .*found|invalid character') { return 'GO_SYNTAX_ERROR' }
+              if ($s -match 'build constraints exclude all Go files|no Go files in') { return 'GO_BUILD_TAG_OR_PLATFORM_CONSTRAINT' }
+              if ($s -match 'gcc:|cgo:|C compiler|exec: "gcc"') { return 'CGO_COMPILER_OR_LINKER' }
+              if ($s -match 'proxy.golang.org|dial tcp|no such host|TLS handshake|i/o timeout|connection refused') { return 'NETWORK_MODULE_FETCH' }
+              if ($s -match 'Access is denied|permission denied|device is full|no space left') { return 'RUNNER_IO_OR_PERMISSIONS' }
+              if ($s -match 'cannot find package|package .* is not in std') { return 'GO_PACKAGE_RESOLUTION' }
+              if ($s -match 'FAIL\s+.*\b|--- FAIL:') { return 'GO_TEST_REPORTED_FAILURE' }
+              if ($s -match '^#\s+.*$|^.*\.go:\d+:\d+:') { return 'GO_COMPILER_DIAGNOSTIC_OTHER' }
+              return 'UNCLASSIFIED_PRIVATE_FAILURE'
+            }
+            & go test -run '^$' -count=1 -timeout 5m ./... *> $log
+            $results.compile=($LASTEXITCODE -eq 0)
+            Write-Host ('KTERMINAL_ALL_PACKAGE_TEST_COMPILE='+$(if($results.compile){'PASS'}else{'FAIL'}))
+            if (-not $results.compile) { Write-Host ('KTERMINAL_TEST_COMPILE_FAILURE_CLASS='+(Get-Category $log)) }
+            & go vet ./... *> $log
+            $results.vet=($LASTEXITCODE -eq 0)
+            Write-Host ('KTERMINAL_GO_VET='+$(if($results.vet){'PASS'}else{'FAIL'}))
+            if (-not $results.vet) { Write-Host ('KTERMINAL_VET_FAILURE_CLASS='+(Get-Category $log)) }
+            & go build ./... *> $log
+            $results.build=($LASTEXITCODE -eq 0)
+            Write-Host ('KTERMINAL_GO_BUILD='+$(if($results.build){'PASS'}else{'FAIL'}))
+            if (-not $results.build) { Write-Host ('KTERMINAL_BUILD_FAILURE_CLASS='+(Get-Category $log)) }
+            # Go's read-only module graph is a common cross-version failure;
+            # inspect module health without changing the checked-out source.
+            & go mod tidy -diff *> $log
+            $results.tidy=($LASTEXITCODE -eq 0)
+            Write-Host ('KTERMINAL_GO_MOD_TIDY_DIFF_CLEAR='+$(if($results.tidy){'PASS'}else{'FAIL'}))
+            if (-not $results.tidy) { Write-Host ('KTERMINAL_TIDY_FAILURE_CLASS='+(Get-Category $log)) }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_MUTATED' }
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_HEAD_DRIFT' }
+            Write-Host ('KTERMINAL_SOURCE_UNCHANGED=PASS EXACT_SHA='+$env:EXPECTED_SHA)
+            Write-Host 'KTERMINAL_BASELINE_AUDIT_ONLY=TRUE'
+            Write-Host 'KTERMINAL_FULL_RUNTIME_TESTS=NOT_RUN_IN_THIS_JOB'
+            Write-Host 'KTERMINAL_WPF_GUI=NOT_TESTED'
+            Write-Host 'KTERMINAL_TRADING_EXECUTION=NONE'
+            Write-Host 'KTERMINAL_PRIVATE_ARTIFACT_PUBLICATION=NONE'
+            if(-not ($results.compile -and $results.vet -and $results.build)) { throw 'KTERMINAL_NATIVE_COMPILE_OR_VET_FAILED' }
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Remove private checkout from ephemeral Windows workspace
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue}
+          Write-Host 'KTERMINAL_PRIVATE_SOURCE_ARTIFACTS=NONE'
