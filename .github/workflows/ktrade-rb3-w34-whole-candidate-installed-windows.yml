@@ -1,4 +1,4 @@
-name: KTRADE RB3 W34 reconciled all Node suites and disposable installed package
+name: KTRADE RB3 W34 exact Go argv and full native disposable package
 permissions:
   contents: read
 on:
