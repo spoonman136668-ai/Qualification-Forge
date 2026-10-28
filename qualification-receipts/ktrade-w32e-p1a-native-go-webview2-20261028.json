@@ -1,0 +1,58 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W32E-P1A",
+  "outcome": "PASS_BOUND_SEALED_NATIVE_GO_PINE_AND_WEBVIEW2_STARTUP_NOT_PIXEL_PROOF",
+  "date": "2026-10-28",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 170,
+    "sha": "1c399965d8ab88a42e25f9997e0db15dec15e6b0",
+    "tree": "92b8b9c1c40bfeed6fc7931eb66e37065a023b06",
+    "base_w32d_sha": "9e5ff8fa1086c18bb862bb66ae834886c824cab9",
+    "paths": [
+      "cmd/ktrade/w32e_webview_fixture_full_windows.go",
+      "cmd/ktrade/w32e_webview_fixture_full_windows_test.go",
+      "windows/Build-KTRADE-WailsPortable.ps1"
+    ],
+    "shipping_mode_changed": false
+  },
+  "qualification": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "run": 40687106769,
+    "job": 122812187062,
+    "source_witness_sha": "421a88d483aeff36cd628ea767c80a44c7aa39cc",
+    "status": "completed",
+    "conclusion": "success",
+    "all_steps_success": true,
+    "failed_prior_run": 40677080188,
+    "fix_scope": "only witness Windows TEMP and TMP pointed at RUNNER_TEMP; strict W28H source unchanged"
+  },
+  "observations": {
+    "focused_original_chart_node": {
+      "pass": 33,
+      "fail": 0
+    },
+    "focused_tagged_go_fixture": "PASS",
+    "root_go_regression_and_vet": "PASS",
+    "nested_wails_go_regression_and_vet": "PASS",
+    "w28h_physical_history_custody_checks": "PASS",
+    "tagged_fixture_release_candidate_rejected": "PASS",
+    "exact_source_bound_disposable_wails_go_pair": "PASS",
+    "installed_webview2_ui_visible": "PASS",
+    "original_go_candles": 30,
+    "original_go_sma_series_values": 28,
+    "na_prefix": 2,
+    "original_go_overlay": false,
+    "financial_authority": "PAPER_STOPPED",
+    "paper_orders_enabled": false,
+    "live_orders_enabled": false,
+    "test_only_package_cleaned": "PASS"
+  },
+  "limits": [
+    "No Pine plot pixels inside the actually installed WebView2 canvas were measured: reported as W32E_NATIVE_WEBVIEW2_PIXEL_PROOF=NOT_YET_MEASURED.",
+    "Real WebView2 visual controls were observed, and the original Go API produced deterministic synthetic rows/28 values; these do not establish visual render parity.",
+    "W32E-P1A adds explicit windows && ktrade_full && ktrade_w32e_fixture compile tag; normal production binaries do not contain fixture.",
+    "No accepted-ref change, merge, release signing, production promotion, live or paper trading, owner data mutation or broker contact."
+  ],
+  "next": "W32E-P1B: safely apply rendered Pine through UI in the exact disposable fixture-only Wails application and measure the plotted 28 expected screen pixels using independent Windows-native capture; compare against original Go samples, preserve isolated volume chart and stop guards."
+}
