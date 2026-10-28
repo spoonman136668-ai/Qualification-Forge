@@ -88,18 +88,43 @@ jobs:
             if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'WRONG_SOURCE_HEAD' }
             if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'UNCLEAN_CHECKOUT' }
             Write-Host ('KTERMINAL_GO_TOOLCHAIN='+(& go version))
+            # Only report coarse, predeclared categories; never echo private compiler output.
+            function Get-Category([string]$file) {
+              $s=Get-Content -LiteralPath $file -Raw -ErrorAction SilentlyContinue
+              if (-not $s) { return 'EMPTY_LOG_OR_PROCESS' }
+              if ($s -match 'updates to go.mod needed|go.mod updates needed|go: updates to go.mod') { return 'GO_MOD_READONLY_UPDATE_REQUIRED' }
+              if ($s -match 'missing go.sum entry|missing go.sum') { return 'GO_SUM_CHECKSUM_REQUIRED' }
+              if ($s -match 'no required module provides package|cannot find module providing package|module not found') { return 'MISSING_MODULE_OR_PACKAGE' }
+              if ($s -match 'module .*requires go >=|go.mod requires go >|toolchain not available|GOTOOLCHAIN') { return 'TOOLCHAIN_VERSION_OR_POLICY' }
+              if ($s -match 'undefined:|undeclared name:') { return 'UNDEFINED_GO_IDENTIFIER' }
+              if ($s -match 'syntax error:|expected .*found|invalid character') { return 'GO_SYNTAX_ERROR' }
+              if ($s -match 'build constraints exclude all Go files|no Go files in') { return 'GO_BUILD_TAG_OR_PLATFORM_CONSTRAINT' }
+              if ($s -match 'gcc:|cgo:|C compiler|exec: "gcc"') { return 'CGO_COMPILER_OR_LINKER' }
+              if ($s -match 'proxy.golang.org|dial tcp|no such host|TLS handshake|i/o timeout|connection refused') { return 'NETWORK_MODULE_FETCH' }
+              if ($s -match 'Access is denied|permission denied|device is full|no space left') { return 'RUNNER_IO_OR_PERMISSIONS' }
+              if ($s -match 'cannot find package|package .* is not in std') { return 'GO_PACKAGE_RESOLUTION' }
+              if ($s -match 'FAIL\s+.*\b|--- FAIL:') { return 'GO_TEST_REPORTED_FAILURE' }
+              if ($s -match '^#\s+.*$|^.*\.go:\d+:\d+:') { return 'GO_COMPILER_DIAGNOSTIC_OTHER' }
+              return 'UNCLASSIFIED_PRIVATE_FAILURE'
+            }
             & go test -run '^$' -count=1 -timeout 5m ./... *> $log
             $results.compile=($LASTEXITCODE -eq 0)
-            if(-not $results.compile){Report-SafeDiagnostics 'COMPILE' $log}
             Write-Host ('KTERMINAL_ALL_PACKAGE_TEST_COMPILE='+$(if($results.compile){'PASS'}else{'FAIL'}))
+            if (-not $results.compile) { Write-Host ('KTERMINAL_TEST_COMPILE_FAILURE_CLASS='+(Get-Category $log)) }
             & go vet ./... *> $log
             $results.vet=($LASTEXITCODE -eq 0)
-            if(-not $results.vet){Report-SafeDiagnostics 'VET' $log}
             Write-Host ('KTERMINAL_GO_VET='+$(if($results.vet){'PASS'}else{'FAIL'}))
+            if (-not $results.vet) { Write-Host ('KTERMINAL_VET_FAILURE_CLASS='+(Get-Category $log)) }
             & go build ./... *> $log
             $results.build=($LASTEXITCODE -eq 0)
-            if(-not $results.build){Report-SafeDiagnostics 'BUILD' $log}
             Write-Host ('KTERMINAL_GO_BUILD='+$(if($results.build){'PASS'}else{'FAIL'}))
+            if (-not $results.build) { Write-Host ('KTERMINAL_BUILD_FAILURE_CLASS='+(Get-Category $log)) }
+            # Go's read-only module graph is a common cross-version failure;
+            # inspect module health without changing the checked-out source.
+            & go mod tidy -diff *> $log
+            $results.tidy=($LASTEXITCODE -eq 0)
+            Write-Host ('KTERMINAL_GO_MOD_TIDY_DIFF_CLEAR='+$(if($results.tidy){'PASS'}else{'FAIL'}))
+            if (-not $results.tidy) { Write-Host ('KTERMINAL_TIDY_FAILURE_CLASS='+(Get-Category $log)) }
             if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_MUTATED' }
             if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_HEAD_DRIFT' }
             Write-Host ('KTERMINAL_SOURCE_UNCHANGED=PASS EXACT_SHA='+$env:EXPECTED_SHA)
