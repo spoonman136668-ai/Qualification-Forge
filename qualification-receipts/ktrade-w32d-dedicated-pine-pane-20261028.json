@@ -1,0 +1,89 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W32D",
+  "status": "PASS_BOUNDED_ORIGINAL_GO_DEDICATED_EDGE_PIXELS_AND_INSTALLED_WEBVIEW2_PANE_LIFECYCLE",
+  "date": "2026-10-28",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "sha": "9e5ff8fa1086c18bb862bb66ae834886c824cab9",
+    "tree": "f83ea40d8d709fcda9aec14d5237c3150282af71",
+    "qualified_foundation": "f6274921f064f8590a3d02c2118b6ff9e50d916a",
+    "draft_pr": 168,
+    "changed_paths": [
+      "static/pine_pane_layout.js",
+      "static/pine_plot_renderer.js",
+      "templates/chart.tmpl",
+      "tests/rb3_w32c_pine_renderer.test.cjs",
+      "tests/rb3_w32d_pine_pane.test.cjs"
+    ]
+  },
+  "evidence": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "run_id": 40668054808,
+    "job_id": 122747507212,
+    "workflow_source_sha": "8855f280f499ebb7d83e31454dcff1accf6d965d",
+    "workflow_path": ".github/workflows/ktrade-w32d-dedicated-pine-pane-windows.yml",
+    "workflow_blob_sha": "1f802b4a5fbdece15b5075904f4f0c8e9361b90c",
+    "browser_harness_path": "qualification-harness/ktrade-w32d-renderer.cjs",
+    "browser_harness_blob_sha": "448d38872378d1df9f4f0fde184ceb8e3485d1a9",
+    "conclusion": "success",
+    "all_jobs_steps_success": true,
+    "focused_node": {
+      "pass": 68,
+      "fail": 0
+    },
+    "full_root_go_tests_vet_pass": true,
+    "nested_wails_go_tests_vet_pass": true,
+    "exact_package_build_pass": true,
+    "browser": {
+      "schema": "ktrade.w32d.dedicated-pine-pane.v1",
+      "browser": "156.0.4314.42",
+      "template_sha256": "50bff536f9b5d172d2bf8e59a26265e434f184a0505ab73cfd36765a5523939e",
+      "rows": 30,
+      "na_prefix": 2,
+      "price_plot_pixel_hits": 28,
+      "dedicated_pine_pixel_hits": 28,
+      "volume_rows_unchanged": 30,
+      "restored_layout": {
+        "schema": "ktrade.pine-pane-layout.v1",
+        "visible": true,
+        "percent": 40
+      },
+      "restored_applied_scripts": 0,
+      "original_go_http": true,
+      "external_requests": 0,
+      "financial_actions": 0,
+      "live_armed": false,
+      "scope": "Genuine Windows Edge original Go HTTP fixture with sealed synthetic market transport; not installed WebView2 pixel proof"
+    },
+    "installed_webview2": {
+      "source_bound_installed_assets": true,
+      "nonce_and_paper_stopped": true,
+      "pane_show_expand_controls_pass": true,
+      "layout_cold_reopen_without_source_apply": true,
+      "original_monaco_pine_v5_v6_compile_save_open_recovery_pass": true,
+      "uninstall_data_preserved": true,
+      "live_armed": false
+    }
+  },
+  "qualification_identity": {
+    "go": "1.25.0",
+    "node": "24.22.1",
+    "windows_image": "windows-2022/20261022.344.1",
+    "playwright_core": "1.56.1",
+    "edge": "156.0.4314.42"
+  },
+  "limits": [
+    "Canvas pixels verified in headful Edge against original Go test HTTP server, not proven inside shipping Wails WebView2 canvas.",
+    "Installed WebView2 verified native pane controls, editor, saved layout and lifecycle but not a deterministic indicator pixel witness.",
+    "Full Pine compatibility and integrated isolated paper ledger/fill/TradeGuard stop/crash/restart remain open.",
+    "This receipt is read-only engineering evidence; it does not authorize merge, production activation, broker access, trading, signing, or runtime promotion."
+  ],
+  "signoff": {
+    "source_mutated": false,
+    "accepted_ref_mutated": false,
+    "trading_armed": false,
+    "owner_data_accessed": false,
+    "runner_dispatch_performed_by_this_chat": false
+  }
+}
