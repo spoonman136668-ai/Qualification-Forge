@@ -245,7 +245,9 @@ function Run-W33BNativePaper {
  $first=W33-Get '/api/paper/session'
  $product=W33B-Account (W33-Get '/api/paper/accounting') $expected
  Click-W32EUI $shell 'Evaluate final bar'
- $null=Wait-W32EUI $shell 'Final bar already evaluated. No additional fill placed.' 10
+ # The normal status refresh replaces the transient action message. Confirm
+ # completion through the serialized owner's cycle/hash below, as in W33A.
+ Start-Sleep -Milliseconds 500
  $second=W33-Get '/api/paper/session'
  if($second.fill_count -ne 1 -or $second.last_ledger_hash -cne $first.last_ledger_hash -or $second.evaluation_cycles -le $first.evaluation_cycles -or $second.last_final_bar_at -cne $preview.final_bar_at){throw 'W33B_CURRENT_BAR_DUPLICATED_OR_ROLLED'}
  $archive=W33-Get '/api/paper/session/archive'

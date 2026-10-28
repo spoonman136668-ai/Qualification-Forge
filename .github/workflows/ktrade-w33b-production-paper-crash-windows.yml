@@ -1,4 +1,5 @@
 name: KTRADE W33B production PAPER active crash cold custody
+# Native completion uses stable owner state after normal UI refresh.
 permissions:
   contents: read
 concurrency:
