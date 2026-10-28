@@ -1,0 +1,121 @@
+name: K-Terminal PR76 pinned source-only Graphify regeneration
+
+# Isolated source-mapping proof; no desktop, product runtime, broker or release.
+on:
+  push:
+    branches:
+      - qualification/kt-pr76-graphify-20261028
+    paths:
+      - '.github/workflows/kterminal-pr76-graphify.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  graphify-source:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/kt-pr76-graphify-20261028'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      EXPECTED_SHA: 'fd5bddd262f773a09242f25bb949feea9421336c'
+      KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+      PYTHONDONTWRITEBYTECODE: '1'
+      PIP_DISABLE_PIP_VERSION_CHECK: '1'
+      PIP_NO_INPUT: '1'
+      KTERMINAL_LIVE_AUTHORITY: '0'
+      KTERMINAL_BROKER_ACCESS: '0'
+      KTERMINAL_PROMOTION: '0'
+    steps:
+      - name: Verify private immutable source access
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows') { throw 'UNTRUSTED_QUALIFICATION_RUNNER' }
+          if (-not $env:KTERMINAL_READ_TOKEN) { throw 'MISSING_PRIVATE_READ_PERMISSION' }
+          $headers = @{Accept='application/vnd.github+json'; Authorization=('Bearer ' + $env:KTERMINAL_READ_TOKEN)}
+          try {
+            $c=Invoke-RestMethod -Method Get -Uri ('https://api.github.com/repos/Kboomllc/K-Terminal/commits/' + $env:EXPECTED_SHA) -Headers $headers -TimeoutSec 25
+            if ($c.sha -cne $env:EXPECTED_SHA) { throw 'PIN_MISMATCH' }
+          } catch { throw 'PRIVATE_SOURCE_READ_UNAVAILABLE' }
+          finally { Remove-Variable headers,c -ErrorAction SilentlyContinue }
+          Write-Host 'KTERMINAL_GRAPHIFY_PINNED_PRIVATE_READ=PASS'
+
+      - name: Checkout pinned source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: 'fd5bddd262f773a09242f25bb949feea9421336c'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: private-checkout
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Prepare Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+
+      - name: Rebuild code-only graph and qualify source-bound mapping privately
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          $log=Join-Path $env:RUNNER_TEMP 'kt-graphify-private.log'
+          $wheels=Join-Path $env:RUNNER_TEMP 'kt-graphify-wheels'
+          New-Item -ItemType Directory -Path $wheels -Force | Out-Null
+          Push-Location -LiteralPath $root
+          try {
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_IDENTITY_DRIFT' }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'DIRTY_SOURCE' }
+            if ((& git ls-files graphify-out).Count -gt 0) { throw 'GRAPHIFY_OUTPUT_TRACKED' }
+            & python -m pip download --no-deps --only-binary=:all: --dest $wheels 'graphifyy==0.9.92' *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_PINNED_WHEEL_UNAVAILABLE' }
+            $wheel=Join-Path $wheels 'graphifyy-0.9.92-py3-none-any.whl'
+            if (-not (Test-Path -LiteralPath $wheel)) { throw 'GRAPHIFY_WHEEL_MISSING' }
+            $digest=(Get-FileHash -LiteralPath $wheel -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($digest -cne '9722846e627a369150107dd792145c3e3a53e3d3da46f7a7bff9f96b75da857c') { throw 'GRAPHIFY_WHEEL_SHA256_DRIFT' }
+            & python -m pip install --no-deps $wheel *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_INSTALL_FAILED' }
+            Write-Host 'KTERMINAL_GRAPHIFY_EXACT_WHEEL=PASS'
+            & graphify extract . --code-only --max-workers 4 *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_CODE_EXTRACT_FAILED' }
+            & graphify cluster-only . *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_CLUSTER_FAILED' }
+            foreach ($name in @('graph.json','graph.html','GRAPH_REPORT.md')) {
+              if (-not (Test-Path -LiteralPath (Join-Path graphify-out $name))) { throw 'GRAPHIFY_MISSING_OUTPUT' }
+            }
+            & python -B tools/graphify/generate_readable_guide.py graphify-out *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_GUIDE_FAILED' }
+            & python -B tools/graphify/build_file_catalog.py graphify-out *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_CATALOG_FAILED' }
+            & python -B tools/graphify/build_symbol_map.py --self-test *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_SYMBOL_SELFTEST_FAILED' }
+            & python -B tools/graphify/build_symbol_map.py graphify-out *> $log
+            if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_SYMBOL_MAPPING_FAILED' }
+            foreach ($name in @('SYMBOL_MAP.json','SYMBOL_MAP.ice','KTERMINAL_SYMBOLS.html','KTERMINAL_FILES.html','KTERMINAL_ARCHITECTURE.html')) {
+              if (-not (Test-Path -LiteralPath (Join-Path graphify-out $name))) { throw 'GRAPHIFY_MISSING_SECONDARY_OUTPUT' }
+            }
+            $graph=Get-Content -LiteralPath 'graphify-out/graph.json' -Raw | ConvertFrom-Json
+            if ($graph.built_at_commit -cne $env:EXPECTED_SHA) { throw 'GRAPHIFY_SOURCE_PIN_FAILED' }
+            $symbols=Get-Content -LiteralPath 'graphify-out/SYMBOL_MAP.json' -Raw | ConvertFrom-Json
+            if ($symbols.summary.source_sha -cne $env:EXPECTED_SHA) { throw 'SYMBOL_MAPPING_SOURCE_PIN_FAILED' }
+            if ($symbols.summary.verified_state_transitions -ne 0 -or $symbols.summary.observed_runtime_calls -ne 0) { throw 'UNSUPPORTED_RUNTIME_EVIDENCE_CLAIM' }
+            Write-Host ('KTERMINAL_GRAPHIFY_REAL_SOURCE_REGENERATION=PASS EXACT_SHA=' + $env:EXPECTED_SHA)
+            Write-Host 'KTERMINAL_GRAPHIFY_SYMBOL_CATALOG=PASS'
+            Write-Host 'KTERMINAL_OBSIDIAN_REAL_GUI=NOT_TESTED'
+            Write-Host 'KTERMINAL_SOURCE_PROMOTION=NOT_AUTHORIZED'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Remove private checkout and generated graph
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
+          Write-Host 'KTERMINAL_PRIVATE_GRAPHIFY_ARTIFACTS=NONE'
