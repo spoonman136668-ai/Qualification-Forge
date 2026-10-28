@@ -1,0 +1,96 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W33C-P6",
+  "result": "PASS",
+  "source_sha": "699fe5886d7d1d20dc19a88883fea6a506f8cd08",
+  "source_tree": "49be90a796e23e62efec81f04b5c18c6468f4b21",
+  "witness_sha": "60aba3188baabb7a1e0a921fea03d020a88c2967",
+  "run_id": 40772493524,
+  "job_id": 123113100269,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40772493524",
+  "full_test_proof": {
+    "run_id": 40770931150,
+    "job_id": 123107600797,
+    "witness_sha": "e345b1fd16ddb3a7ebd67a120d917f5a8f956938",
+    "step": "Full exact-source Go Wails regression vet and real Windows parent crash",
+    "step_result": "success",
+    "overall_prior_result": "failure",
+    "reuse": "exact SHA/tree/toolchain/image and immutable command contract verified server-side; only this successful STEP reused; changed image reruns full suite"
+  },
+  "native_active_shell_crash": {
+    "fill_count": 2,
+    "history_byte_identical": true,
+    "owned_webview_processes": 7,
+    "historical_account_stopped": false,
+    "basis": "0",
+    "snapshot_seal": "009a022320404c880fe04abd7b62271c304242fcfb518f4f13aa6b9e5a628976",
+    "source_sha256": "c177f91a6c1e4bc006faeed4985f37c7fcb89acb6b65f2bac431805937d5223c",
+    "engine_pid": 6116,
+    "position_qty": "0",
+    "realized_pnl": "-0.40566643",
+    "stop_injected": false,
+    "engine_auto_respawned": false,
+    "source_id": "ktrade-reconcile-127b9c102927fcdc5b9ab4c65b01946b",
+    "cash": "599.59433357",
+    "prekill_worker": true,
+    "ledger_hash": "51caf40c5af64fe5a509079c0fe77dd5ad8de39564a744a8e9515888946eaaa6",
+    "sell_checkpoint": {
+      "daily_pnl": -0.40566643,
+      "equity": 599.59433357,
+      "open_orders": 0,
+      "killed": false,
+      "exposure": 0,
+      "seal": "009a022320404c880fe04abd7b62271c304242fcfb518f4f13aa6b9e5a628976",
+      "file_sha256": "16ce46ebf7c5c9ef3e44d42ab938c1252f1ad12536ceacab4761f67697e693aa"
+    },
+    "fees": "0.40566893",
+    "shell_pid": 6000,
+    "prekill_writer": true
+  },
+  "cold_admission_response": {
+    "status": 409,
+    "body": "durable paper writer blocked or previously interrupted\n"
+  },
+  "native_cold_custody": {
+    "realized_pnl": "-0.40566643",
+    "durable_custody_enabled": false,
+    "snapshot_seal": "009a022320404c880fe04abd7b62271c304242fcfb518f4f13aa6b9e5a628976",
+    "paper_orders_enabled": false,
+    "cash": "599.59433357",
+    "fees": "0.40566893",
+    "source_count": 1,
+    "source_id": "ktrade-reconcile-127b9c102927fcdc5b9ab4c65b01946b",
+    "historical_account_stopped": false,
+    "live_orders_enabled": false,
+    "native_cash_and_realized_observed": true,
+    "unattended_enabled": false,
+    "new_fill_count": 0,
+    "execution_restore_eligible": false,
+    "history_byte_identical": true,
+    "cold_start_http": 409,
+    "lease_state": "OWNER_LEASE_UNRESOLVED"
+  },
+  "prior_attempt": {
+    "run_id": 40770931150,
+    "result": "failure",
+    "reason": "cold funding negative probe landed on saved strategy's finalized market_close bar; source Start correctly rejects unsupported exit intent before lease acquisition (HTTP422)",
+    "retained_evidence": "full regression and repeated real Windows helper parent-crash test passed; native force-shell-kill also passed, but prior gate was NOT certified",
+    "correction": "qualification helper waits for next finalized bar using same saved source before requiring exact original abandoned-lease HTTP409; no source/admission/financial assertion change"
+  },
+  "checks": [
+    "private non-inheritable Windows kill-on-close job assigned before readiness",
+    "real forced parent subprocess death tested repeatedly, owned child handle/listener exit",
+    "native current saved strategy BUY full SELL, fees FIFO PnL and duplicate check",
+    "real funded shell force kill; original engine and listener exit; seven observed exact-profile WebView2 processes exit",
+    "worker and writer active before kill; no Stop injected; history byte-identical; no auto respawn",
+    "cold same account and original risk checkpoint read-only, unresolved application lease, new owner unfunded/no worker/writer",
+    "same canonical source Start denied with exact original lease message, no phantom history or funds",
+    "normal cold shell close and owned package/synthetic scratch cleanup"
+  ],
+  "limitations": [
+    "fresh engine begins disarmed; job attachment occurs immediately after process start, before any readiness/UI funding admission",
+    "job covers original engine descendants; WebView2 cleanup was separately observed in this native scenario",
+    "no partial/conditional/reentry parity; not product completion",
+    "LIVE disabled; no broker credentials/orders, owner data, merges/signing/promotion/deployment"
+  ]
+}
