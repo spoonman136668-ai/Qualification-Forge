@@ -97,7 +97,7 @@ jobs:
                   New-Item -Path $dir -ItemType Directory -ErrorAction Stop | Out-Null
                   $resolved=(Resolve-Path -LiteralPath $dir).Path
                   if(-not [IO.Path]::IsPathRooted($resolved) -or
-                     -not $resolved.StartsWith(($resolvedWorkspace.TrimEnd('\\')+'\\'),[StringComparison]::OrdinalIgnoreCase)){
+                     -not $resolved.StartsWith(($resolvedWorkspace.TrimEnd('\')+'\'),[StringComparison]::OrdinalIgnoreCase)){
                     throw 'RETENTION_ROOT_NOT_OWNED'
                   }
                   [Environment]::SetEnvironmentVariable($variable,$resolved,'Process')
