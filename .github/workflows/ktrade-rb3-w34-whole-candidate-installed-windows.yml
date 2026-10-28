@@ -1,0 +1,68 @@
+name: KTRADE RB3 W34 reconciled all Node suites and disposable installed package
+permissions:
+  contents: read
+on:
+  push:
+    branches: [qualification/ktrade-rb3-w34-whole-candidate-windows-20261028]
+    paths: [.github/workflows/ktrade-rb3-w34-whole-candidate-installed-windows.yml]
+concurrency:
+  group: ktrade-rb3-w34-source-20261028
+  cancel-in-progress: false
+jobs:
+  candidate:
+    name: All Go Node Pine/chart plus real source-bound disposable installer
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout immutable qualification harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private RB3 P10 candidate with complete ancestry
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0059d4b794552818b3f32798da7df27c75e21c5c
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Go Windows runner
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Node build-time original vendor only
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Windows PowerShell AST syntax check before all source tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $path=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-rb3-candidate-packaged-full-windows.ps1'
+          $tokens=$null;$issues=$null
+          $null=[Management.Automation.Language.Parser]::ParseFile($path,[ref]$tokens,[ref]$issues)
+          if($issues.Count -ne 0){throw ('RB3_WINDOWS_WITNESS_SYNTAX_INVALID '+(($issues|ForEach-Object {$_.ToString()}) -join '; '))}
+          Write-Output '::notice::RB3_CANDIDATE_WINDOWS_WITNESS_AST=PASS'
+      - name: Entire original candidate Go Node Pine chart and unsigned installed package acceptance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $script=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-rb3-candidate-packaged-full-windows.ps1'
+          & $script
+          if(!$?){throw 'RB3_WHOLE_CANDIDATE_WINDOWS_PACKAGE_NOT_QUALIFIED'}
+      - name: Audit source unchanged and prohibit real owner release
+        if: always()
+        shell: pwsh
+        run: |
+          $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $sha=(& git -C $src rev-parse HEAD).Trim()
+          if($sha -cne '0059d4b794552818b3f32798da7df27c75e21c5c'){throw 'RB3_WITNESS_SOURCE_REVISION_DRIFT'}
+          Write-Output '::notice::RB3_NO_MERGE_NO_BROKER_NO_OWNER_DATA_NO_RELEASE=PASS'
