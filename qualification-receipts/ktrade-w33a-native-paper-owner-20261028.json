@@ -1,0 +1,215 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W33A",
+  "outcome": "PASS_BOUND_SOLE_PAPER_OWNER_CUSTODY_FIX_NATIVE_SAVE_START_GUARDED_FILL_DEDUP_STOP_COLD_READ_ONLY",
+  "date": "2026-10-28",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pull_request": 171,
+    "branch": "feature/rb3-w33a-native-paper-owner-20261028",
+    "sha": "de03335dc0052401d6afff2be54b4223cf941c4a",
+    "tree": "c4c993cecfa4e0b18efb103f11b3c746264ece75",
+    "parent_qualified_source": "1c399965d8ab88a42e25f9997e0db15dec15e6b0",
+    "parent_pull_request": 170,
+    "commits": 3,
+    "changed_paths": [
+      "cmd/ktrade/operator_capabilities_full.go",
+      "cmd/ktrade/main_full.go",
+      "templates/chart.tmpl",
+      "static/paper_session_controls.js",
+      "tests/rb3_w33a_operator_paper_state.test.cjs",
+      "cmd/ktrade/rb3_w33a_operator_paper_state_full_test.go",
+      "cmd/ktrade/paper_session_full.go",
+      "tests/w19_paper_failure_feedback.test.cjs"
+    ]
+  },
+  "changes": {
+    "repeated_start": "Reject any non-fresh/unfunded owner, pre-existing writer or worker before preview, lease or funding operations. Assign a new writer reference only after successful acquisition. A rejected second Start preserves the existing writer/worker, original ledger and risk-bound archive.",
+    "capabilities": "Read the same mutex-protected controller mounted at /api/paper/session. Running requires original owner status, durable writer, worker and canonical source hash; missing/degraded ownership is unverified. This endpoint never creates or mutates execution state.",
+    "frontend": "Render validated stopped, running, cold-review and unverified states while legacy/manual/LIVE controls stay disabled. Fresh unfunded sessions display stopped. Numeric funding/fee inputs and fee consent have explicit native accessible names.",
+    "test_harness": "Restore archiveMessage in the retained W19 VM closure; retain original error/plain-text assertions and add fresh-state/cold-archive refresh coverage."
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "workflow": ".github/workflows/ktrade-w33a-native-paper-owner-windows.yml",
+    "harness": "qualification-harness/ktrade-w33a-native-paper.ps1",
+    "witness_sha": "dd5b173084c7ed7058b9cb9b3e4f976465203324",
+    "run_id": 40716704079,
+    "job_id": 122916239229,
+    "status": "completed",
+    "conclusion": "success",
+    "all_final_steps_success": true,
+    "frontend_tests": {
+      "passed": 40,
+      "failed": 0
+    },
+    "full_go_wails_proof": {
+      "source_sha": "de03335dc0052401d6afff2be54b4223cf941c4a",
+      "source_tree": "c4c993cecfa4e0b18efb103f11b3c746264ece75",
+      "run_id": 40714938900,
+      "job_id": 122909943652,
+      "witness_sha": "142904095e0afa6e0ad2e1a19b0205bdaa2f1b4d",
+      "step": "Frozen source full Go Wails regression and vet plus full app paper acceptance",
+      "step_conclusion": "success",
+      "overall_run_conclusion": "failure in later native numeric-input harness, not Go",
+      "commands": [
+        "go test -mod=readonly -tags ktrade_full -count=1 ./cmd/ktrade",
+        "go vet -mod=readonly -tags ktrade_full ./cmd/ktrade",
+        "go test -mod=readonly -tags ktrade_full,ktrade_w32e_fixture -count=1 -run TestW32E ./cmd/ktrade",
+        "go test -mod=readonly -count=1 ./... (root)",
+        "go vet -mod=readonly ./... (root)",
+        "go test -mod=readonly -count=1 ./... (tools/wails-pilot)",
+        "go vet -mod=readonly ./... (tools/wails-pilot)"
+      ],
+      "reuse_in_final_run": "Exact immutable source/tree, prior witness workflow/test contract and successful job step independently reverified through GitHub API; identical Windows image required. Only external native input code changed for retry."
+    },
+    "new_go_regressions": [
+      "TestW33ACapabilitiesObserveSameFundedOwnerWithoutFinancialMutation",
+      "TestW33ACapabilitiesRefuseMissingWorkerAndNeverResumeColdOwner"
+    ],
+    "full_suite_retained_original_financial_negatives": true
+  },
+  "toolchain": {
+    "go": "1.25.0 windows/amd64",
+    "node": "24.22.1",
+    "runner": "github-hosted windows-2022",
+    "image": "20261022.344.1",
+    "wails": "v2.17.0",
+    "webview2_runtime_version": "not separately reported"
+  },
+  "package": {
+    "fixture_mode": "w32e-compile-time-only",
+    "engine_tags": "ktrade_full,ktrade_w32e_fixture",
+    "shell_tags": "desktop,production",
+    "wails_exe_sha256": "7100741117b90680ad1dacecdad9d363a4467a60a0c71b5a52fc032dcd319761",
+    "original_go_engine_exe_sha256": "ed5fbd930fe636ca814554fda1e31d501caa2061ce11b81a0a5378ed38080238",
+    "disposable_zip_sha256": "0ae21cf8dbac2fbbc35680e5117ff016c62c806bd8f3c111f7c25b031668685f",
+    "paired_proofs_verified": true,
+    "release_candidate_fixture_refused": true,
+    "owner_data_adopted": false,
+    "public_binary_uploads": 0,
+    "synthetic_package_and_transient_paper_sources_disposed": true
+  },
+  "native_input_readback": [
+    {
+      "expected": "600",
+      "name": "Paper USDC",
+      "actual": "600"
+    },
+    {
+      "expected": "100",
+      "name": "Simulated fee (bps)",
+      "actual": "100"
+    }
+  ],
+  "native_financial_proof": {
+    "script_id": "6491c3610b3d2540464f0d9ed56cbdc6",
+    "source_id": "ktrade-reconcile-70312f7a7e6769980c46ebfa83851f98",
+    "live_orders_enabled": false,
+    "fill_count": 1,
+    "running_capabilities": {
+      "schema": "ktrade.operator.capabilities.v1",
+      "mode": "PAPER_ISOLATED_RUNNING",
+      "paper_orders_enabled": true,
+      "live_orders_enabled": false,
+      "strategy_execution_enabled": true,
+      "paper_accounting_enabled": true,
+      "requires_review": false,
+      "explanation": "Saved strategy runs in an isolated paper account with modeled fees. LIVE and manual orders remain disabled."
+    },
+    "fees_paid": "0.3225",
+    "mode_running": "PAPER_ISOLATED_RUNNING",
+    "simulated_fee_bps": 100,
+    "source_sha256": "7be3eaa15bc96afc8c1c26047d39daad28060afb77f3f5cf61ed4f67fda9c1df",
+    "fifo_basis": "32.5725",
+    "position_qty": "0.25",
+    "snapshot_seal": "acfa15143e96a46c79ae8d5af26ebec8e358fd1ee41ef4136c76f161153655e6",
+    "original_risk_proof_verified": true,
+    "ledger_hash": "ba3887197d17663a258d4ce80fe9e42b5caeea08954d74ea5fd67db8067b4532",
+    "duplicate_fill_count": 1,
+    "stop_unattended_enabled": false,
+    "realized_pnl": "0",
+    "cash": "567.4275"
+  },
+  "native_cold_replay_proof": {
+    "original_risk_proof_verified": true,
+    "paper_orders_enabled": false,
+    "new_session_fill_count": 0,
+    "ui_cold_archive_observed": true,
+    "source_id": "ktrade-reconcile-70312f7a7e6769980c46ebfa83851f98",
+    "old_account_stopped": true,
+    "snapshot_seal": "acfa15143e96a46c79ae8d5af26ebec8e358fd1ee41ef4136c76f161153655e6",
+    "execution_restore_eligible": false,
+    "unattended_enabled": false
+  },
+  "scenario": {
+    "input": "Genuine owned Windows UIAutomation, physical pointer and OS keyboard/clipboard. Original Monaco Compile and durable Save prompt, explicit numeric funding and fee acknowledgement, Start, Evaluate twice, Paper account, Stop, normal close, cold launch and Cold archive.",
+    "source": "Original saved Pine v6 strategy, final synthetic bar_index 29, market BUY qty 0.25. 30 closed synthetic BTC-USDC bars through compile-time sealed transport; final price 129.",
+    "simulated_initial_cash": "600",
+    "modeled_fee_bps": 100,
+    "gross_buy": "32.25",
+    "modeled_fee": "0.3225",
+    "remaining_cash": "567.4275",
+    "position_qty": "0.25",
+    "fifo_cost_basis_including_fee": "32.5725",
+    "realized_pnl": "0",
+    "fills": 1,
+    "repeated_evaluation_fills": 1,
+    "old_account_stopped": true,
+    "cold_new_process_fills": 0,
+    "cold_execution_restore_eligible": false,
+    "cold_snapshot_seal_unchanged": true,
+    "original_risk_proof_verified": true,
+    "browser_inspector": false,
+    "runtime_javascript_injection": false,
+    "DOM_state_injection": false,
+    "financial_mutation_in_passing_scenario": "Only through original native UI Start/Evaluate/Stop actions; API calls independently read and verify results.",
+    "normal_close": true
+  },
+  "retained_failed_attempts": [
+    {
+      "run_id": 40714408921,
+      "job_id": 122908046797,
+      "witness_sha": "08ae89ba21d8d338a9e693b2126f8ec426b23905",
+      "source_sha": "e65e5c917047122e8ba29a82298ae7c1a3bf2e69",
+      "reason": "37/39 Node tests passed; two retained W19 tests failed ReferenceError archiveMessage because their extracted VM context omitted an existing production closure variable.",
+      "baseline_reproduction": "Same two failures reproduced locally with exact untouched PR170 source/test content.",
+      "correction": "Repair the test context, preserving its assertions and adding explicit fresh-stopped/cold-message refresh coverage. No production compensation. Go/native stages were not reached."
+    },
+    {
+      "run_id": 40714938900,
+      "job_id": 122909943652,
+      "witness_sha": "142904095e0afa6e0ad2e1a19b0205bdaa2f1b4d",
+      "source_sha": "de03335dc0052401d6afff2be54b4223cf941c4a",
+      "reason": "All 40 frontend tests, complete full-tag app/root/nested-Wails Go tests/vet, tagged fixture tests and build passed. Native Save/Start/fill worked, but numeric keyboard setup left defaults (1000 cash, 50bps); account assertion correctly rejected default cash 967.58875 and fee 0.16125.",
+      "correction": "External harness uses physically focused native SendKeys numeric input with Value/RangeValue readback before Start. Expected 600 cash/100bps and financial assertions remained unchanged. Application source unchanged. Failure-only cleanup explicitly stopped the disposable synthetic account."
+    }
+  ],
+  "safety": {
+    "live_armed": false,
+    "live_orders_enabled": false,
+    "legacy_manual_broker_routes_locked": true,
+    "broker_order_intent": false,
+    "real_broker_credentials": false,
+    "owner_installed_data_access": false,
+    "isolated_paper_execution": "Explicitly started with simulated funds/fees only in disposable proof-owned qualification package; stopped and cold-disarmed before completion.",
+    "no_auto_rearm": true,
+    "no_financial_restore_from_cold_reader": true,
+    "merged": false,
+    "accepted_ref_mutation": false,
+    "signed": false,
+    "released": false,
+    "deployed": false
+  },
+  "limits": [
+    "One native synthetic PAPER market BUY at price129/qty0.25 with modeled100bps fees. This is not real-money trading or proof of current-production-data paper execution.",
+    "The deterministic compile-time fixture remains prohibited for release-candidate packaging. Prior PR170 P2 current market/Pine native proof is on source1c399965, not a new whole-source production-paper acceptance for this candidate.",
+    "Native test verifies repeated Evaluate on one finalized bar; duplicate Start ownership preservation is verified in the full Go regression, not by bypassing disabled native Start controls.",
+    "Cold restart replays the same stopped original archive read-only and creates no new fills or automatic execution. Process kill during an active intent/fill/checkpoint and live reconnect/failure matrices remain open.",
+    "Original financial owner, TradeGuard, fixed-point fee/FIFO ledger, risk-bound checkpoint publication and independent archive reader are reused. No replacement ledger, reset of risk state or automatic restored execution introduced.",
+    "Realized P&L is0 in this single BUY scenario; SELL/exit paths, unrealized mark/P&L, complete Pine order-type semantics and all product workflows are not qualified here.",
+    "Full root/nested-Wails and full-tag app Go tests/vet passed freshly on the final application source in run40714938900. The final success run reuses those exact-source results after correcting only external native numeric input; do not relabel the earlier overall failed run as success.",
+    "No installed-product/release readiness, production deployment, owner-data migration, performance/soak, all-DPI or LIVE-ready completion claim."
+  ],
+  "next": "Qualify current-production-data PAPER operation and active-process crash/restart faults while preserving one owner, original risk/ledger continuity and no auto-rearm; then complete exit/mark/P&L and remaining supported Pine execution semantics."
+}
