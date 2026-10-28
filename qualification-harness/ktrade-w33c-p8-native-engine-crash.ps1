@@ -30,22 +30,64 @@ function P8-DumpOwnedNativeWindows {
  }
 }
 function P8-FindEngineWarning {
- $deadline=(Get-Date).AddSeconds(15)
- do{
-  $shell.Refresh();if($shell.HasExited){throw 'P8_SHELL_EXITED_WITHOUT_NATIVE_ENGINE_WARNING'}
-  foreach($root in (Owned-Roots $shell)){
-   $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
-   $body=@($all|Where-Object {!$_.Current.IsOffscreen -and ([string]$_.Current.Name).Contains('The trading engine stopped unexpectedly.') -and ([string]$_.Current.Name).Contains('Trading was not resumed.')})
-   $buttons=@($all|Where-Object {!$_.Current.IsOffscreen -and $_.Current.IsEnabled -and $_.Current.Name -ceq 'OK' -and $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button})
-   if($body.Count -eq 1 -and $buttons.Count -eq 1 -and $root.Current.Name -ceq 'KTRADE engine stopped'){
-    Write-Output ('P8_NATIVE_OWNED_ENGINE_WARNING='+(@{root_name=$root.Current.Name;owner_pid=$root.Current.ProcessId;message=$body[0].Current.Name;button=$buttons[0].Current.Name;native_button_class=(W31-NativeClass $buttons[0])}|ConvertTo-Json -Compress))
-    return @{root=$root;button=$buttons[0]}
-   }
-  }
-  Start-Sleep -Milliseconds 200
- }while((Get-Date) -lt $deadline)
- P8-DumpOwnedNativeWindows
- throw 'P8_NATIVE_ENGINE_STOPPED_WARNING_NOT_OBSERVED'
+  $deadline=(Get-Date).AddSeconds(15)
+  do{
+    $shell.Refresh();if($shell.HasExited){throw 'P8_SHELL_EXITED_WITHOUT_NATIVE_ENGINE_WARNING'}
+    foreach($root in (Owned-Roots $shell)){
+      # Native Windows MessageDialog may be a Win32-owned #32770
+      # descendant of Wails main, *not* its own UIA RootElement child.
+      # Bind the actual dialog HWND to this exact shell PID and to the
+      # already-confirmed Wails-owned subtree; do not accept a page DOM
+      # text or an unrelated system dialog as a crash witness.
+      $desc=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+      $dialogCandidates=@($desc|Where-Object {
+        try{
+          $_.Current.Name -ceq 'KTRADE engine stopped' -and
+          $_.Current.ProcessId -eq $shell.Id -and
+          $_.Current.ClassName -ceq '#32770' -and
+          $_.Current.NativeWindowHandle -ne 0 -and
+          !$_.Current.IsOffscreen
+        }catch{$false}
+      })
+      foreach($dialog in $dialogCandidates){
+        $content=$dialog.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+        $body=@($content|Where-Object {
+          try{
+            $_.Current.ProcessId -eq $shell.Id -and
+            !$_.Current.IsOffscreen -and
+            ([string]$_.Current.Name).Contains('The trading engine stopped unexpectedly.') -and
+            ([string]$_.Current.Name).Contains('Trading was not resumed.')
+          }catch{$false}
+        })
+        # Native Win32 Button sometimes advertises UIA ControlType.Pane.
+        # Match actual Win32 class instead, with same process/owned HWND.
+        $buttons=@($content|Where-Object {
+          try{
+            $_.Current.ProcessId -eq $shell.Id -and
+            $_.Current.IsEnabled -and !$_.Current.IsOffscreen -and
+            $_.Current.Name -ceq 'OK' -and
+            (W31-NativeClass $_) -ceq 'Button' -and
+            $_.Current.NativeWindowHandle -ne 0
+          }catch{$false}
+        })
+        if($body.Count -eq 1 -and $buttons.Count -eq 1){
+          $r=$buttons[0].Current.BoundingRectangle;$d=$dialog.Current.BoundingRectangle
+          if($r.IsEmpty -or $d.IsEmpty -or $r.Left -lt $d.Left -or $r.Right -gt $d.Right -or $r.Top -lt $d.Top -or $r.Bottom -gt $d.Bottom){continue}
+          Write-Output ('P8_NATIVE_OWNED_ENGINE_WARNING='+(@{
+             root_name=$root.Current.Name;dialog_name=$dialog.Current.Name;
+             owner_pid=$dialog.Current.ProcessId;dialog_class=$dialog.Current.ClassName;
+             dialog_hwnd=$dialog.Current.NativeWindowHandle;
+             message=$body[0].Current.Name;button=$buttons[0].Current.Name;
+             native_button_class=(W31-NativeClass $buttons[0])
+          }|ConvertTo-Json -Compress))
+          return @{root=$dialog;button=$buttons[0]}
+        }
+      }
+    }
+    Start-Sleep -Milliseconds 200
+  }while((Get-Date) -lt $deadline)
+  P8-DumpOwnedNativeWindows
+  throw 'P8_NATIVE_ENGINE_STOPPED_WARNING_NOT_OBSERVED'
 }
 function P8-AcknowledgeWarning([object]$dialog){
  $root=$dialog.root;$button=$dialog.button
