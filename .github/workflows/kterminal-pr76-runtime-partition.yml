@@ -1,0 +1,126 @@
+name: K-Terminal PR76 runtime test partition diagnostic
+on:
+  push:
+    branches:
+      - qualification/kt-pr76-runtime-partition-20261028
+    paths:
+      - '.github/workflows/kterminal-pr76-runtime-partition.yml'
+permissions:
+  contents: read
+jobs:
+  runtime-partition:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/kt-pr76-runtime-partition-20261028'
+    runs-on: windows-2022
+    timeout-minutes: 39
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - group: product_pkg
+          - group: root_cmd_internal
+    env:
+      EXPECTED_SHA: '5eda7b770b17b7c4e43b5911997058b1e15d496c'
+      KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+      TEST_GROUP: ${{ matrix.group }}
+      CI: 'true'
+      GOFLAGS: '-mod=readonly'
+      GOTOOLCHAIN: local
+      KTERMINAL_LIVE_AUTHORITY: '0'
+      KTERMINAL_BROKER_ACCESS: '0'
+      KTERMINAL_PROMOTION: '0'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Verify authorized Windows runner and immutable private source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows') { throw 'KTERMINAL_UNTRUSTED_HOST' }
+          if ([string]::IsNullOrWhiteSpace($env:KTERMINAL_READ_TOKEN)) { throw 'KTERMINAL_PRIVATE_TOKEN_UNAVAILABLE' }
+          $h = @{Accept='application/vnd.github+json';Authorization=('Bearer '+$env:KTERMINAL_READ_TOKEN)}
+          try {
+            $c = Invoke-RestMethod -Method Get -Uri ('https://api.github.com/repos/Kboomllc/K-Terminal/commits/'+$env:EXPECTED_SHA) -Headers $h -TimeoutSec 25
+            if ($c.sha -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_EXACT_SOURCE_DRIFT' }
+          } catch { throw 'KTERMINAL_PRIVATE_PINNED_READ_FAILED' }
+          finally { Remove-Variable h,c -ErrorAction SilentlyContinue }
+          Write-Host ('KT45_PRIVATE_SOURCE_PINNED=PASS GROUP='+$env:TEST_GROUP)
+      - name: Checkout current K-Terminal immutable draft candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: '5eda7b770b17b7c4e43b5911997058b1e15d496c'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: private-checkout
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install source-era Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.22.12'
+          cache: false
+      - name: Execute one native test partition and report sanitized counters
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          $log = Join-Path $env:RUNNER_TEMP ('kterminal-g45-'+$env:TEST_GROUP+'.jsonl')
+          Push-Location -LiteralPath $root
+          try {
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'KT45_WRONG_SOURCE_HEAD' }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'KT45_SOURCE_DIRTY_BEFORE' }
+            $go = @(& git ls-files '*.go')
+            $graphify = @($go | Where-Object { $_ -like 'tools/graphify/*.go' })
+            $unaccounted = @($go | Where-Object { ($_ -notlike 'tools/graphify/*.go') -and ($_ -notmatch '^(main\.go|g20c_acceptance_main\.go|cmd/|internal/|pkg/)') })
+            if ($go.Count -ne 719 -or $graphify.Count -ne 4 -or $unaccounted.Count -ne 0) { throw 'KT45_GO_INVENTORY_DRIFT' }
+            if ($env:TEST_GROUP -ceq 'product_pkg') {
+              $targets = @('./pkg/...')
+            } elseif ($env:TEST_GROUP -ceq 'root_cmd_internal') {
+              $targets = @('.', './cmd/...', './internal/...')
+            } else { throw 'KT45_UNKNOWN_PARTITION' }
+            Write-Host ('KT45_TOOLCHAIN='+(& go version))
+            Write-Host ('KT45_PARTITION='+$env:TEST_GROUP)
+            & go test -json -count=1 -timeout 25m @targets *> $log
+            $exitCode=$LASTEXITCODE
+            $n=@{test_pass=0;test_fail=0;test_skip=0;package_pass=0;package_fail=0;unparsed=0}
+            Get-Content -LiteralPath $log | ForEach-Object {
+              if ($_ -match '"Action":"(pass|fail|skip)"') {
+                try {
+                  $entry = $_ | ConvertFrom-Json
+                  if ($null -ne $entry.Test -and $entry.Test -ne '') {
+                    if ($entry.Action -eq 'pass') {$n.test_pass++}
+                    if ($entry.Action -eq 'fail') {$n.test_fail++}
+                    if ($entry.Action -eq 'skip') {$n.test_skip++}
+                  } else {
+                    if ($entry.Action -eq 'pass') {$n.package_pass++}
+                    if ($entry.Action -eq 'fail') {$n.package_fail++}
+                  }
+                } catch { $n.unparsed++ }
+              }
+            }
+            Write-Host ('KT45_TEST_PASS_COUNT='+$n.test_pass)
+            Write-Host ('KT45_TEST_FAIL_COUNT='+$n.test_fail)
+            Write-Host ('KT45_TEST_SKIP_COUNT='+$n.test_skip)
+            Write-Host ('KT45_PACKAGE_PASS_COUNT='+$n.package_pass)
+            Write-Host ('KT45_PACKAGE_FAIL_COUNT='+$n.package_fail)
+            Write-Host ('KT45_UNPARSEABLE_EVENT_COUNT='+$n.unparsed)
+            Write-Host ('KT45_TEST_GROUP_STATUS='+$(if($exitCode -eq 0){'PASS'}else{'FAIL'})+' GROUP='+$env:TEST_GROUP)
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'KT45_SOURCE_MUTATED' }
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'KT45_SOURCE_SHA_DRIFT' }
+            Write-Host ('KT45_SOURCE_CLEAN=PASS SHA='+$env:EXPECTED_SHA)
+            Write-Host 'KT45_PRIVATE_LOGS_ARTIFACTS=NONE'
+            Write-Host 'KT45_NO_BROKER_OR_PROMOTION=TRUE'
+            if ($n.unparsed -ne 0) { throw 'KT45_DIAGNOSTIC_PARSE_INCOMPLETE' }
+            if ($exitCode -ne 0) { throw 'KT45_PARTITION_FAILED_PRIVATE_DETAILS_WITHHELD' }
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Delete private source from temporary Windows runner
+        if: always()
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue }
+          Write-Host 'KT45_PRIVATE_CHECKOUT_REMOVED=TRUE'
