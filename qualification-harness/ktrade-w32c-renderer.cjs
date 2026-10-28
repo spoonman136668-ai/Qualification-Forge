@@ -21,7 +21,9 @@ const hash=()=>crypto.createHash('sha256').update(fs.readFileSync(template)).dig
   await page.locator('#pineBtn').click();
   const editor=page.getByRole('textbox',{name:/Pine source editor/});
   async function apply(source,secondary){
-   await editor.click();await editor.press('Control+A');await page.keyboard.insertText(source);
+   await page.locator('#pine-editor-main .view-lines').click({position:{x:80,y:10}});
+   await page.keyboard.press('Control+A');await page.keyboard.insertText(source);
+   assert.equal(await page.evaluate(()=>window.KTRADE_APP.pineEditor.getValue()),source,'native editor input differs');
    const responsePromise=page.waitForResponse(r=>r.url()===metadata.url+'/api/pine/overlay'&&r.request().method()==='POST');
    await page.locator('#pineAddToChart').click();
    const response=await responsePromise;assert.equal(response.status(),200);const payload=await response.json();

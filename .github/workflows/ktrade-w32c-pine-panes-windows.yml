@@ -103,22 +103,24 @@ jobs:
         ('W32_PLAYWRIGHT_MODULE='+$module)|Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
         ('W32_NODE_EXE='+(Get-Command node.exe).Source)|Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
         Write-Output ('W32A_BROWSER_TOOL_LOCK_SHA256='+(Get-FileHash -LiteralPath (Join-Path $browserTools 'package-lock.json')).Hash)
-    - name: Final frozen-source full Go and Wails regression vet before build
+    - name: Reuse exact completed W32C full Go and Wails regression
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
-        $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
-        $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-        foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
-         Push-Location $dir
-         try{
-          & go test -mod=readonly -count=1 ./...
-          if($LASTEXITCODE -ne 0){throw 'W32C_FINAL_FULL_REGRESSION_FAILED'}
-          & go vet -mod=readonly ./...
-          if($LASTEXITCODE -ne 0){throw 'W32C_FINAL_VET_FAILED'}
-         }finally{Pop-Location}
+        if($env:ImageVersion -cne '20261022.344.1' -or (& node --version).Trim() -cne 'v24.22.1' -or (& go env GOVERSION).Trim() -cne 'go1.25.0'){throw 'W32C_REGRESSION_REUSE_ENVIRONMENT_DRIFT'}
+        $headers=@{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+        $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40663419736' -Headers $headers
+        if($run.status -cne 'completed' -or $run.head_sha -cne '429a380ebea3a6e59260c3dc3669fd2819b12c1a'){throw 'W32C_EXACT_SOURCE_WITNESS_DRIFT'}
+        $jobs=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40663419736/jobs' -Headers $headers
+        $job=@($jobs.jobs|Where-Object {$_.id -eq 122731830129})
+        if($job.Count -ne 1){throw 'W32C_EXACT_FULL_SOURCE_JOB_ABSENT'}
+        foreach($name in @('Verify immutable source and completed native foundations','Stage unchanged assets parse shell script and run affected interfaces','Final frozen-source full Go and Wails regression vet before build')){
+         $step=@($job[0].steps|Where-Object {$_.name -ceq $name})
+         if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){throw ('W32C_EXACT_COMPLETED_SOURCE_PROOF_ABSENT_'+$name)}
         }
-        Write-Output '::notice::W32C_FINAL_FULL_GO_WAILS_REGRESSION_VET=PASS'
+        Write-Output '::notice::W32C_PINNED_SOURCE_FULL_REGRESSION_REUSE_VERIFIED=PASS'
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Build exact current source-bound renderer package
       shell: pwsh
       run: |
@@ -245,6 +247,12 @@ jobs:
         if($LASTEXITCODE -ne 0){throw 'W32B_FRESH_NATIVE_INSTALL_FAILED'}
         $installed=($out -join [Environment]::NewLine)|ConvertFrom-Json
         if($installed.source_sha -cne $source -or $installed.app_launched -or $installed.live_armed){throw 'W32B_INSTALL_IDENTITY_DRIFT'}
+        foreach($relative in @('templates/chart.tmpl','static/pine_plot_renderer.js')){
+         $installedFile=Join-Path $installed.candidate_directory $relative
+         $sourceFile=Join-Path (Join-Path $env:GITHUB_WORKSPACE 'current') $relative
+         if(!(Test-Path -LiteralPath $installedFile) -or (Get-FileHash -LiteralPath $installedFile).Hash -cne (Get-FileHash -LiteralPath $sourceFile).Hash){throw 'W32C_INSTALLED_PLOT_ASSET_DRIFT'}
+        }
+        Write-Output '::notice::W32C_EXACT_NATIVE_INSTALLED_PLOT_ASSETS=PASS'
         $installedSetup=Join-Path $target 'maintenance/KTRADE-Setup.ps1'
         $savedPath=$env:PATH
         $env:PATH=(Join-Path $env:WINDIR 'System32')+';'+(Split-Path -Parent $ps51)+';'+$env:WINDIR
