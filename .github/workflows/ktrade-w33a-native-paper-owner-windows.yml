@@ -29,9 +29,9 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: e65e5c917047122e8ba29a82298ae7c1a3bf2e69
+          ref: de03335dc0052401d6afff2be54b4223cf941c4a
           path: current
-          fetch-depth: 3
+          fetch-depth: 8
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Fail closed on source identity scope and clean custody
@@ -40,13 +40,13 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W32E_WRONG_RUNNER'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-          if((& git -C $src rev-parse HEAD).Trim() -cne 'e65e5c917047122e8ba29a82298ae7c1a3bf2e69' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'f31384ce7dcc92d860dfa485c55df1f5c9d6639e'){throw 'W32E_EXACT_SOURCE_DRIFT'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'de03335dc0052401d6afff2be54b4223cf941c4a' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'c4c993cecfa4e0b18efb103f11b3c746264ece75'){throw 'W32E_EXACT_SOURCE_DRIFT'}
           if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
-          if((& git -C $src merge-base e65e5c917047122e8ba29a82298ae7c1a3bf2e69 1c399965d8ab88a42e25f9997e0db15dec15e6b0).Trim() -cne '1c399965d8ab88a42e25f9997e0db15dec15e6b0'){throw 'W32E_W32D_BASE_DRIFT'}
+          if((& git -C $src merge-base de03335dc0052401d6afff2be54b4223cf941c4a 1c399965d8ab88a42e25f9997e0db15dec15e6b0).Trim() -cne '1c399965d8ab88a42e25f9997e0db15dec15e6b0'){throw 'W32E_W32D_BASE_DRIFT'}
           $diff=@(& git -C $src diff --name-only 1c399965d8ab88a42e25f9997e0db15dec15e6b0 HEAD|Sort-Object)
-          $expect=@('cmd/ktrade/main_full.go','cmd/ktrade/operator_capabilities_full.go','cmd/ktrade/paper_session_full.go','cmd/ktrade/rb3_w33a_operator_paper_state_full_test.go','static/paper_session_controls.js','templates/chart.tmpl','tests/rb3_w33a_operator_paper_state.test.cjs'|Sort-Object)
-          if(Compare-Object $diff $expect){throw 'W33_SEVEN_PATH_SCOPE_DRIFT'}
-          Write-Output '::notice::W33_IMMUTABLE_SOURCE_7_PATH_AND_W32E_PARENT=PASS'
+          $expect=@('cmd/ktrade/main_full.go','cmd/ktrade/operator_capabilities_full.go','cmd/ktrade/paper_session_full.go','cmd/ktrade/rb3_w33a_operator_paper_state_full_test.go','static/paper_session_controls.js','templates/chart.tmpl','tests/rb3_w33a_operator_paper_state.test.cjs','tests/w19_paper_failure_feedback.test.cjs'|Sort-Object)
+          if(Compare-Object $diff $expect){throw 'W33_EIGHT_PATH_SCOPE_DRIFT'}
+          Write-Output '::notice::W33_IMMUTABLE_SOURCE_8_PATH_AND_W32E_PARENT=PASS'
       - name: Native Go
         uses: actions/setup-go@v5
         with:
@@ -111,15 +111,15 @@ jobs:
           try{
             $blocked=$false
             try{
-              & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $release -ExpectedSourceSha 'e65e5c917047122e8ba29a82298ae7c1a3bf2e69' -ReleaseCandidate -W32EQualificationFixture
+              & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $release -ExpectedSourceSha 'de03335dc0052401d6afff2be54b4223cf941c4a' -ReleaseCandidate -W32EQualificationFixture
             }catch{if($_.Exception.Message -like '*W32E_SYNTHETIC_FEED_FORBIDDEN_IN_RELEASE_CANDIDATE*'){$blocked=$true}else{throw}}
             if(!$blocked -or (Test-Path $release)){throw 'W32E_RELEASE_FIXTURE_REJECTION_MISSING'}
             Write-Output '::notice::W32E_RELEASE_FIXTURE_PROMOTION_REFUSED=PASS'
-            & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha 'e65e5c917047122e8ba29a82298ae7c1a3bf2e69' -W32EQualificationFixture
+            & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha 'de03335dc0052401d6afff2be54b4223cf941c4a' -W32EQualificationFixture
             if($LASTEXITCODE -ne 0){throw 'W32E_DISPOSABLE_PAIR_BUILD_FAILED'}
           }finally{Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue}
           $manifest=Get-Content -LiteralPath (Join-Path $build 'source-manifest.json') -Raw|ConvertFrom-Json
-          if($manifest.source_sha -cne 'e65e5c917047122e8ba29a82298ae7c1a3bf2e69' -or $manifest.fixture_mode -cne 'w32e-compile-time-only' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W32E_PAIR_SOURCE_OR_NONRELEASE_IDENTITY_DRIFT'}
+          if($manifest.source_sha -cne 'de03335dc0052401d6afff2be54b4223cf941c4a' -or $manifest.fixture_mode -cne 'w32e-compile-time-only' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W32E_PAIR_SOURCE_OR_NONRELEASE_IDENTITY_DRIFT'}
           $stage=Join-Path $build 'KTRADE-WailsPortable'
           foreach($name in @('ktrade.exe','ktrade-engine.exe','wails-paper-package-proof.json','paper-package-proof.json')){if(!(Test-Path -LiteralPath (Join-Path $stage $name))){throw 'W32E_PAIR_OR_PROOF_MISSING'}}
           [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w32e-package.txt'),$build)
