@@ -1,0 +1,84 @@
+'use strict';
+// Real original Go HTTP handler + original chart/Monaco/LightweightCharts.
+// The Go test process owns a sealed synthetic market transport. This is an
+// Edge fixture witness, separate from shipping Wails/WebView2 acceptance.
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const {chromium}=require(process.env.W32_PLAYWRIGHT_MODULE);
+const metadata=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+const root=process.argv[3],template=path.join(root,'templates/chart.tmpl');
+const hash=()=>crypto.createHash('sha256').update(fs.readFileSync(template)).digest('hex');const before=hash();
+(async()=>{
+ let browser,report;
+ const external=[],errors=[],actions=[];
+ try{
+  browser=await chromium.launch({channel:'msedge',headless:false});
+  const context=await browser.newContext({viewport:{width:1280,height:900}});
+  await context.route('**/*',route=>{const req=route.request(),url=new URL(req.url());if(url.origin!==metadata.url){external.push(url.origin);return route.abort();}if(req.method()!=='GET')actions.push(url.pathname);return route.continue();});
+  const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
+  await page.goto(metadata.url+'/chart',{waitUntil:'domcontentloaded'});
+  await page.locator('#symbolBtn').click();await page.locator('.ritem[data-s="BTC-USDC"]').click();
+  await page.waitForFunction(()=>window.KTRADE_APP?.s.candleContext?.product==='BTC-USDC'&&window.KTRADE_APP.s.candles.length===30);
+  await page.locator('#pinePaneToggle').click();
+  await page.waitForFunction(()=>!document.getElementById('pinePlotPane').hidden);
+  await page.locator('#pinePaneSize').click();
+  assert.equal(await page.locator('#pinePaneSize').getAttribute('aria-label'),'Restore standard Pine pane');
+  await page.locator('#pinePaneHide').click();
+  assert.equal(await page.locator('#pinePlotPane').isVisible(),false);
+  await page.locator('#pineBtn').click();
+  const editor=page.getByRole('textbox',{name:/Pine source editor/});
+  async function apply(source,secondary){
+   await page.locator('#pine-editor-main .view-lines').click({position:{x:80,y:10}});
+   await page.keyboard.press('Control+A');await page.keyboard.insertText(source);
+   assert.equal(await page.evaluate(()=>window.KTRADE_APP.pineEditor.getValue()),source,'native editor input differs');
+   const responsePromise=page.waitForResponse(r=>r.url()===metadata.url+'/api/pine/overlay'&&r.request().method()==='POST');
+   await page.locator('#pineAddToChart').click();
+   const response=await responsePromise;assert.equal(response.status(),200);const payload=await response.json();
+   assert.equal(payload.success,true);const p=payload.pane_model[0].plots[0];assert.equal(p.values.length,30);assert.deepEqual(p.values.slice(0,2),[null,null]);
+   for(let i=2;i<30;i++)assert.equal(p.values[i],99+i,'independent original Go SMA value');
+   await page.waitForFunction(()=>document.getElementById('pineApplyStatus').textContent==='Pine plots applied.');
+   await page.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));
+   const actual=await page.evaluate(secondary=>{
+    const k=window.KTRADE_APP,s=k.s._indicatorSeries[0],chart=secondary?k.s.pchart:k.s.chart;
+    let hits=0;
+    const container=document.getElementById(secondary?'pinePlotChart':'chart'),box=container.getBoundingClientRect();
+    for(const canvas of container.querySelectorAll('canvas')){
+     const r=canvas.getBoundingClientRect();if(!r.width||!r.height)continue;
+     const ctx=canvas.getContext('2d'),px=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+     for(const point of s.data()){
+      if(typeof point.value!=='number')continue;
+      const x=chart.timeScale().timeToCoordinate(point.time),y=s.priceToCoordinate(point.value);if(x===null||y===null)continue;
+      const cx=Math.round((box.left+x-r.left)*canvas.width/r.width),cy=Math.round((box.top+y-r.top)*canvas.height/r.height);
+      let found=false;
+      for(let dy=-3;dy<=3&&!found;dy++)for(let dx=-3;dx<=3;dx++){
+       const xx=cx+dx,yy=cy+dy;if(xx<0||yy<0||xx>=canvas.width||yy>=canvas.height)continue;
+       const i=(yy*canvas.width+xx)*4;if(px[i]>170&&px[i+2]>150&&px[i+1]<130){found=true;break;}
+      }
+      if(found)hits++;
+     }
+    }
+    return {data:s.data(),logical:Array.from({length:30},(_,i)=>s.dataByIndex(i)),version:LightweightCharts.version(),owner:s._chart===chart,dedicated:k.s.pchart!==k.s.vchart,volumes:k.s.vs.data().map(x=>x.value),count:k.s._indicatorSeries.length,hits,trade:document.getElementById('tradeBtn').disabled,submit:document.getElementById('orderSubmit').disabled};
+   },secondary);
+   assert.equal(actual.count,1);assert.ok(actual.owner);
+   assert.ok(actual.dedicated);assert.deepEqual(actual.volumes,Array.from({length:30},(_,i)=>10+i));
+   // LightweightCharts data() enumerates fulfilled rows. Exact logical-index
+   // readback must still show both NA bars and every candle-aligned value.
+   assert.equal(actual.data.length,28);assert.equal(actual.logical[0],null);assert.equal(actual.logical[1],null);
+   for(let i=2;i<30;i++){assert.equal(actual.logical[i].time,payload.candles[i].time);assert.equal(actual.logical[i].value,99+i);}
+   assert.equal(actual.data[27].value,128);assert.ok(actual.hits>=15,'original native average is absent at expected canvas coordinates');assert.ok(actual.trade&&actual.submit);
+   console.log('W32C_CHART_RUNTIME='+actual.version);
+   return actual.hits;
+  }
+  const priceHits=await apply(metadata.v5,false),secondaryHits=await apply(metadata.v6,true);
+  const layout=await page.evaluate(()=>JSON.parse(localStorage.getItem('ktrade_chart_pine_pane_v1')));
+  assert.deepEqual(layout,{schema:'ktrade.pine-pane-layout.v1',visible:true,percent:40});
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.waitForFunction(()=>window.KTRADE_APP?.s.pchart&&window.KTRADE_APP.s.pinePaneVisible&&window.KTRADE_APP.s.pinePanePercent===40);
+  assert.equal(await page.locator('#pinePaneSize').getAttribute('aria-label'),'Restore standard Pine pane');
+  assert.equal(await page.locator('#pinePaneCaption').textContent(),'No Pine plots applied.');
+  assert.equal(await page.evaluate(()=>window.KTRADE_APP.s._indicatorSeries.length),0,'layout restore must not apply source');
+  assert.deepEqual(await page.evaluate(()=>JSON.parse(localStorage.getItem('ktrade_chart_pine_pane_v1'))),layout);
+  assert.equal(before,hash());assert.deepEqual(external,[]);assert.deepEqual(errors,[]);assert.deepEqual(actions,['/api/pine/overlay','/api/pine/overlay']);
+  report={schema:'ktrade.w32d.dedicated-pine-pane.v1',browser:browser.version(),template_sha256:before,rows:30,na_prefix:2,price_plot_pixel_hits:priceHits,dedicated_pine_pixel_hits:secondaryHits,volume_rows_unchanged:30,restored_layout:layout,restored_applied_scripts:0,original_go_http:true,external_requests:0,financial_actions:0,live_armed:false,scope:'Windows Edge against original Go HTTP handlers with test-only synthetic transport; separate shipping WebView2 pane controls and editor proof'};
+ }finally{if(browser)await browser.close();fs.writeFileSync(metadata.stop,'renderer finished');}
+ assert.ok(report);console.log('::notice::W32D_DEDICATED_PINE_PIXELS_VOLUME_ISOLATION_LAYOUT_RESTORE_WITHOUT_EXECUTION=PASS');console.log(JSON.stringify(report));
+})().catch(e=>{console.error(e);process.exitCode=1;});
