@@ -79,7 +79,32 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          if($env:ImageVersion -cne '20261022.344.1'){throw 'W33_REUSED_GO_PROOF_REQUIRES_SAME_WINDOWS_IMAGE'}
+          if($env:ImageVersion -cne '20261022.344.1'){
+            # A different hosted image cannot inherit the earlier Go proof.
+            # Requalify every original command on this exact source instead.
+            $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+            $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+            Push-Location $src
+            try{
+              & go test -mod=readonly -tags ktrade_full -count=1 ./cmd/ktrade
+              if($LASTEXITCODE -ne 0){throw 'W33B_IMAGE_FULL_APP_REGRESSION_FAILED'}
+              & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+              if($LASTEXITCODE -ne 0){throw 'W33B_IMAGE_FULL_APP_VET_FAILED'}
+              & go test -mod=readonly -tags ktrade_full,ktrade_w32e_fixture -count=1 -run TestW32E ./cmd/ktrade
+              if($LASTEXITCODE -ne 0){throw 'W33B_IMAGE_FIXTURE_REGRESSION_FAILED'}
+            }finally{Pop-Location}
+            foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
+              Push-Location $dir
+              try{
+                & go test -mod=readonly -count=1 ./...
+                if($LASTEXITCODE -ne 0){throw 'W33B_IMAGE_FULL_REGRESSION_FAILED'}
+                & go vet -mod=readonly ./...
+                if($LASTEXITCODE -ne 0){throw 'W33B_IMAGE_VET_FAILED'}
+              }finally{Pop-Location}
+            }
+            Write-Output ('::notice::W33B_FRESH_FULL_GO_WAILS_TEST_VET_ON_ROTATED_IMAGE_'+$env:ImageVersion+'=PASS')
+            exit 0
+          }
           $headers=@{Accept='application/vnd.github+json';Authorization='Bearer ${{ github.token }}'}
           $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40721434117' -Headers $headers
           if($run.status -cne 'completed' -or $run.head_sha -cne '5dd1fe489a769bf8051aca4b52cace053438cc74'){throw 'W33_GO_PROOF_RUN_IDENTITY_CHANGED'}
