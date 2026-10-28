@@ -1,0 +1,38 @@
+{
+  "gate": "W33C-P1",
+  "result": "PASS_BOUNDED_PINE_INTENT_PROVENANCE_NOT_SELL_AUTHORITY",
+  "date": "2026-10-28",
+  "ktrade": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 175,
+    "head": "77f749bd0b9d5b1649c3f71271a1bd2327f3a70d",
+    "tree": "2a03dc17af4e0003c91388ccc97e6f6a9f76e5a7",
+    "base_qualified_P0": "54920c9800c86ca3d0dfa9498b619a142ed18859",
+    "changed_paths": [
+      "pkg/pine_compiler.go",
+      "pkg/pine_strategy.go",
+      "pkg/w33c_pine_exit_provenance_test.go"
+    ]
+  },
+  "windows": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "run": 40734259013,
+    "job": 122978438573,
+    "sha": "169becc10aa384f19d08f7ba2bbd136011130097",
+    "conclusion": "success",
+    "steps_all_success": true
+  },
+  "verified": [
+    "exact base, source tree and three-file scope",
+    "original Pine compilation distinguishes market close, market close-all and conditional exits through diagnostic IntentKind",
+    "Pine realtime v6 signal emission and conditional exact-native test",
+    "original paper owner still strictly rejects unauthorized SELL, source/fee/bar mismatches",
+    "fresh full root Go and nested Wails Go test/vet on Windows; no release"
+  ],
+  "limits": [
+    "Pine signal IntentKind is informational only; no production financial authority",
+    "Original native historical evaluation has yet to prove an admitted final-bar market close signal",
+    "No owned position or risk-checkpoint source-bound SELL execution, no stop/restart or real UI SELL verification",
+    "No merge, broker, owner profile or live orders"
+  ]
+}
