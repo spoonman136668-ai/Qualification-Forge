@@ -101,29 +101,7 @@ jobs:
             Write-Host ('KT_NATIVE_BUILD='+$(if($buildCode -eq 0){'PASS'}else{'FAIL'}))
             Send-EncryptedLog 'build'
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
-            & go test -vet=off -run '^
-            $testCode=$LASTEXITCODE
-            Write-Host ('KT_NATIVE_TEST_PACKAGE_COMPILE='+$(if($testCode -eq 0){'PASS'}else{'FAIL'}))
-            Send-EncryptedLog 'compile'
-            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_DIRTY_AFTER_DIAGNOSIS' }
-            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_SHA_CHANGED' }
-            Write-Host ('KT_SOURCE_UNCHANGED=PASS SHA='+$env:EXPECTED_SHA)
-            Write-Host 'KT_DIAGNOSTIC_TRANSPORT=ENCRYPTED_ONLY'
-            Write-Host 'KT_NATIVE_APPLICATION_ACCEPTANCE=NOT_GRANTED'
-            Write-Host 'KT_LIVE_TRADING=NONE'
-          } finally {
-            Pop-Location
-            $rsa.Dispose()
-            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
-          }
-      - name: Delete private source from ephemeral runner
-        if: always()
-        shell: pwsh
-        run: |
-          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
-          if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
-          Write-Host 'KT_PRIVATE_CHECKOUT_DELETED=TRUE'
- -count=1 -timeout 5m . ./cmd/... ./internal/... ./pkg/... *> $log
+            & go test -vet=off -run '^$' -count=1 -timeout 5m . ./cmd/... ./internal/... ./pkg/... *> $log
             $testCode=$LASTEXITCODE
             Write-Host ('KT_NATIVE_TEST_PACKAGE_COMPILE='+$(if($testCode -eq 0){'PASS'}else{'FAIL'}))
             Send-EncryptedLog 'compile'
