@@ -1,0 +1,116 @@
+name: KTRADE W33C P0 original SELL FIFO close and native owner refusal
+permissions:
+  contents: read
+on:
+  push:
+    branches: [qualification/ktrade-w33c-p0-sell-accounting-20261028]
+    paths: [.github/workflows/ktrade-w33c-p0-sell-accounting-windows.yml]
+  workflow_dispatch: {}
+concurrency:
+  group: ktrade-w33c-p0-sell
+  cancel-in-progress: true
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout witness pinned
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private KTRADE candidate without credentials persistence
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 54920c9800c86ca3d0dfa9498b619a142ed18859
+          path: current
+          fetch-depth: 5
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Check exact W33B base, source tree, two test-only paths and clean checkout
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W33C_UNVERIFIED_RUNNER'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '54920c9800c86ca3d0dfa9498b619a142ed18859'){throw 'W33C_SOURCE_SHA_DRIFT'}
+          if((& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '52247618f68e455011df62c33cd79268ab8fc6e8'){throw 'W33C_TREE_DRIFT'}
+          if((& git -C $src merge-base 54920c9800c86ca3d0dfa9498b619a142ed18859 ee9052b373bcf14084d70b8606ea8b262753a713).Trim() -cne 'ee9052b373bcf14084d70b8606ea8b262753a713'){throw 'W33C_W33B_BASE_DRIFT'}
+          $expect=@('internal/paperengine/w33c_sell_admission_refusal_test.go','internal/paperreconcile/w33c_sell_exit_accounting_test.go' | Sort-Object)
+          $files=@(& git -C $src diff --name-only ee9052b373bcf14084d70b8606ea8b262753a713 HEAD | Sort-Object)
+          if(Compare-Object -ReferenceObject $expect -DifferenceObject $files){throw 'W33C_SCOPE_NOT_TWO_TEST_FILES'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W33C_SOURCE_NOT_CLEAN'}
+          Write-Output '::notice::W33C_EXACT_W33B_DESCENDANT_TWO_TEST_PATHS_NO_PRODUCT_CODE_CHANGES=PASS'
+      - name: Configure Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Focused W33C original SELL FIFO cold replay and owner refusal
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -v -tags ktrade_full -run '^TestW33C' ./internal/paperreconcile ./internal/paperengine
+            if($LASTEXITCODE -ne 0){throw 'W33C_ORIGINAL_SELL_LEDGER_AND_OWNER_ADMISSION_TEST_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W33C_POSITIVE_OFFLINE_FIFO_AND_NEGATIVE_NATIVE_SELL_ADMISSION=PASS'
+      - name: Full original Go tests and vet on same native Windows image
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W33C_TAGGED_APP_TEST_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W33C_TAGGED_APP_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W33C_FULL_ROOT_TEST_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W33C_FULL_ROOT_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W33C_WAILS_TEST_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W33C_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W33C_FRESH_FULL_GO_AND_WAILS_TEST_VET=PASS'
+      - name: Compile original production engine and Wails shell with no fixture tag
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & go build -mod=readonly -p=1 -tags ktrade_full -o (Join-Path $env:RUNNER_TEMP 'w33c-go-engine.exe') ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W33C_ORIGINAL_GO_ENGINE_BUILD_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go build -mod=readonly -tags desktop,production -ldflags '-H windowsgui' -o (Join-Path $env:RUNNER_TEMP 'w33c-wails.exe') .
+            if($LASTEXITCODE -ne 0){throw 'W33C_NATIVE_WAILS_BUILD_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W33C_PRODUCTION_TAGGED_GO_WAILS_COMPILE_ONLY_NO_APP_LAUNCH=PASS'
+      - name: Dispose all transient code and binaries without upload
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($file in @('w33c-go-engine.exe','w33c-wails.exe')){
+            Remove-Item -LiteralPath (Join-Path $env:RUNNER_TEMP $file) -Force -ErrorAction SilentlyContinue
+          }
+          Remove-Item -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'current') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output '::notice::W33C_NO_RELEASE_UPLOAD_OWNER_DATA_OR_FINANCIAL_START=PASS'
