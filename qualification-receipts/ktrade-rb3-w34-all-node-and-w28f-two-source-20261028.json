@@ -1,0 +1,56 @@
+{
+  "schema": "ktrade.rb3.node-unfiltered-acceptance.v1",
+  "date": "2026-10-28",
+  "result": "PASS_NODE_AND_TWO_SOURCE_COMPAT_ONLY",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "draft_pr": 185,
+    "sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+    "tree": "9f1e559560ac14f4e6fc823dac9150e3a95f2c4d",
+    "parent_p10": "8881e7603facbcd761c66addf286b6a1f138e1d6",
+    "changed_paths": [
+      "tests/wails_w02_boot.test.cjs",
+      "tests/w17d1a_original_chart_uia.test.cjs"
+    ],
+    "production_paths_changed": 0
+  },
+  "windows": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "run": 40787477555,
+    "job": 123164175707,
+    "witness_sha": "6131512466f0af397ef5697eb2d8cd0286a1024f",
+    "overall_conclusion": "failure",
+    "individually_successful_test_stage": "node suite only"
+  },
+  "testing": {
+    "node_test_module_count": 30,
+    "node_test_assertions": 146,
+    "node_test_assertions_pass": 146,
+    "node_test_assertions_fail": 0,
+    "node_test_assertions_skipped": 0,
+    "standalone_two_root_test": "tests/rb3_w28f_original_browser_state.test.cjs",
+    "prior_source_sha": "9a525c0ac1b1481c1ba9532080d52e4c94ac5b39",
+    "current_source_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+    "standalone_results": [
+      "W28F_ORIGINAL_BROWSER_SAME_ORIGIN_FOUR_READER_COMPAT=PASS",
+      "W28F_ORIGIN_ISOLATION_NO_WEBVIEW_PROFILE_IMPORT=PASS"
+    ],
+    "total_test_files": 31
+  },
+  "failures_preserved": [
+    {
+      "run": 40786900540,
+      "reason": "Original unfiltered Node 147 assertions, 144 passed and three historical runner/mock-contract failures"
+    },
+    {
+      "run": 40787477555,
+      "reason": "After all Node files passed, Qualification-Forge PowerShell native Go helper incorrectly used reserved $args and passed empty argv; original Go tests never ran"
+    }
+  ],
+  "pending_run": 40787692876,
+  "limits": [
+    "PASS is scoped strictly to all Node tests including explicit legacy two-root W28F; full Go/vet/build/installer still not qualified.",
+    "Earlier failed overall Windows attempts remain FAILED; no success laundering.",
+    "No live broker, profile, release, installed owner data, promotion or merge."
+  ]
+}
