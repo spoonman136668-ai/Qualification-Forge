@@ -379,7 +379,7 @@ function Run-P9NativeRoundTrips {
  $terminal=W33-Get '/api/paper/session/archive'
  $null=P5-Account $terminal.account 4 $flatExpected
  $terminalRisk=P5-Checkpoint $terminal $true $flatExpected.cash $realized
- Write-Output ('P9_NATIVE_TWO_ROUND_TRIPS='+(@{script_id=$saved[0].id;source_sha256=$script:p5SourceHash;source_id=$terminal.source_id;entry_open=$entryOpen;exit_open=$exitOpen;buy_price=$buyPrice;sell_price=$sellPrice;buy_order_id=$buyExpected.entries[0].id;sell_order_id=$sellID;buy_fee=$buyFee;sell_fee=$sellFee;cash=$flat.cash;fees=$flat.fees_paid;realized_pnl=$flat.realized_pnl;position_qty=$flat.position_qty;basis=$flat.cost_basis;fill_count=4;duplicate_fill_count=4;ledger_hash=$sold.last_ledger_hash;sell_checkpoint=$risk;stopped_checkpoint=$terminalRisk;live_orders_enabled=$caps.live_orders_enabled}|ConvertTo-Json -Compress -Depth 6))
+ Write-Output ('P9_NATIVE_TWO_ROUND_TRIPS='+(@{script_id=$saved[0].id;source_sha256=$script:p5SourceHash;source_id=$terminal.source_id;entry_open=$entryOpen;exit_open=$exitOpen;buy_price=$buyPrice;sell_price=$sellPrice;buy_order_id=$buyExpected.entries[0].id;sell_order_id=$sellID;buy_fee=$buyFee;sell_fee=$sellFee;cash=$flat2.cash;fees=$flat2.fees_paid;realized_pnl=$flat2.realized_pnl;position_qty=$flat2.position_qty;basis=$flat2.cost_basis;fill_count=4;duplicate_fill_count=4;ledger_hash=$sold.last_ledger_hash;sell_checkpoint=$risk;stopped_checkpoint=$terminalRisk;live_orders_enabled=$caps.live_orders_enabled}|ConvertTo-Json -Compress -Depth 6))
  Write-Output '::notice::W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS'
  P5-Close $shell
  $script:shell=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
@@ -390,11 +390,11 @@ function Run-P9NativeRoundTrips {
  $null=Wait-W32EUI $shell 'Original chart DOM, Monaco editor and preferences controls observed.'
  Click-W32EUI $shell 'Pine Editor';Click-W32EUI $shell 'Cold archive'
  $null=Wait-W32EUI $shell 'COLD ACCOUNT · READ ONLY' 15
- $null=Wait-W32EUI $shell ($flat.cash+' USDC cash') 10
- $null=Wait-W32EUI $shell ('realized '+$flat.realized_pnl) 10
+ $null=Wait-W32EUI $shell ($flat2.cash+' USDC cash') 10
+ $null=Wait-W32EUI $shell ('realized '+$flat2.realized_pnl) 10
  $coldArchive=W33-Get '/api/paper/session/archive'
  if($coldArchive.snapshot_seal -cne $terminal.snapshot_seal -or $coldArchive.source_id -cne $terminal.source_id -or $coldArchive.account.stopped -ne $true -or $coldArchive.execution_restore_eligible -ne $false -or $coldArchive.original_risk_proof_verified -ne $true){throw 'P5_COLD_ORIGINAL_ACCOUNT_CHANGED'}
  $null=P5-Account $coldArchive.account 4 $flatExpected
- Write-Output ('P5_NATIVE_COLD_ACCOUNT='+(@{source_id=$coldArchive.source_id;snapshot_seal=$coldArchive.snapshot_seal;cash=$flat.cash;realized_pnl=$flat.realized_pnl;fees=$flat.fees_paid;old_account_stopped=$coldArchive.account.stopped;new_fill_count=$cold.fill_count;new_paper_enabled=$cold.paper_orders_enabled;execution_restore_eligible=$coldArchive.execution_restore_eligible;native_cold_cash_and_realized_observed=$true}|ConvertTo-Json -Compress))
+ Write-Output ('P5_NATIVE_COLD_ACCOUNT='+(@{source_id=$coldArchive.source_id;snapshot_seal=$coldArchive.snapshot_seal;cash=$flat2.cash;realized_pnl=$flat2.realized_pnl;fees=$flat2.fees_paid;old_account_stopped=$coldArchive.account.stopped;new_fill_count=$cold.fill_count;new_paper_enabled=$cold.paper_orders_enabled;execution_restore_eligible=$coldArchive.execution_restore_eligible;native_cold_cash_and_realized_observed=$true}|ConvertTo-Json -Compress))
  Write-Output '::notice::W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS'
 }
