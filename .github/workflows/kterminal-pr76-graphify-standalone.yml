@@ -1,0 +1,113 @@
+name: K-Terminal PR76 independent Graphify Go utilities qualification
+
+on:
+  push:
+    branches:
+      - qualification/kt-pr76-graphify-four-standalone-20261028
+    paths:
+      - '.github/workflows/kterminal-pr76-graphify-standalone.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  graphify-tools:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/kt-pr76-graphify-four-standalone-20261028'
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      EXPECTED_SHA: '5eda7b770b17b7c4e43b5911997058b1e15d496c'
+      KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+      GOFLAGS: '-mod=readonly'
+      GOTOOLCHAIN: 'local'
+      CI: 'true'
+      KTERMINAL_LIVE_AUTHORITY: '0'
+      KTERMINAL_BROKER_ACCESS: '0'
+      KTERMINAL_PROMOTION: '0'
+    steps:
+      - name: Verify immutable K-Terminal private source and trusted Windows host
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows') { throw 'KTERMINAL_WRONG_RUNNER' }
+          if (-not $env:KTERMINAL_READ_TOKEN) { throw 'KTERMINAL_PRIVATE_READ_SECRET_MISSING' }
+          $h = @{ Accept='application/vnd.github+json'; Authorization=('Bearer '+$env:KTERMINAL_READ_TOKEN) }
+          try {
+            $commit = Invoke-RestMethod -Uri ('https://api.github.com/repos/Kboomllc/K-Terminal/commits/'+$env:EXPECTED_SHA) -Headers $h -TimeoutSec 25
+            if ($commit.sha -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_SOURCE_DRIFT' }
+          } catch { throw 'KTERMINAL_PRIVATE_PINNED_READ_FAILED' }
+          finally { Remove-Variable h,commit -ErrorAction SilentlyContinue }
+          Write-Host 'KTERMINAL_PRIVATE_PINNED_READ=PASS'
+
+      - name: Checkout exact reviewed source privately
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: '5eda7b770b17b7c4e43b5911997058b1e15d496c'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: private-checkout
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set source-era Go toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: '1.22.12'
+          cache: false
+
+      - name: Independently compile and vet each standalone Graphify utility
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          $output = Join-Path $env:RUNNER_TEMP 'kterminal-graphify-standalone-exes'
+          $log = Join-Path $env:RUNNER_TEMP 'kterminal-graphify-standalone-private.log'
+          $expected = @(
+            'tools/graphify/g27_type_calls.go'
+            'tools/graphify/g30_type_calls.go'
+            'tools/graphify/g31_interpackage_calls.go'
+            'tools/graphify/g44_ast_call_witness.go'
+          )
+          Push-Location -LiteralPath $source
+          try {
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_SOURCE_IDENTITY_DRIFT' }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'KTERMINAL_SOURCE_INITIAL_DIRTY' }
+            $actual = @(& git ls-files -- 'tools/graphify/*.go' | Sort-Object)
+            $expectedSorted = @($expected | Sort-Object)
+            if ($actual.Count -ne 4 -or ($actual -join [char]10) -cne ($expectedSorted -join [char]10)) {
+              throw 'KTERMINAL_STANDALONE_TOOL_INVENTORY_DRIFT'
+            }
+            Write-Host ('KTERMINAL_STANDALONE_GO_TOOLCHAIN='+(& go version))
+            New-Item -ItemType Directory -Path $output -Force | Out-Null
+            foreach ($i in 0..3) {
+              $file = $expected[$i]
+              $bin = Join-Path $output ("tool" + $i + ".exe")
+              & go build -o $bin $file *> $log
+              if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $bin)) { throw ('KTERMINAL_STANDALONE_GO_BUILD_FAIL_SLOT_'+$i) }
+              & go vet $file *> $log
+              if ($LASTEXITCODE -ne 0) { throw ('KTERMINAL_STANDALONE_GO_VET_FAIL_SLOT_'+$i) }
+              Write-Host ('KTERMINAL_STANDALONE_GRAPHIFY_BUILD_VET_'+$i+'=PASS')
+            }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'KTERMINAL_SOURCE_MUTATED' }
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_SOURCE_FINAL_SHA_DRIFT' }
+            Write-Host ('KTERMINAL_STANDALONE_FOUR_BUILD_VET=PASS EXACT_SHA='+$env:EXPECTED_SHA)
+            Write-Host 'KTERMINAL_STANDALONE_TOOLS_EXECUTED=NO'
+            Write-Host 'KTERMINAL_NATIVE_RUNTIME_FULL_SUITE=NOT_CLAIMED'
+            Write-Host 'KTERMINAL_WPF_OBSIDIAN_PARTNER_ZIP=NOT_TESTED'
+            Write-Host 'KTERMINAL_NO_BROKER_NO_PROMOTION=TRUE'
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $output -Force -Recurse -ErrorAction SilentlyContinue
+          }
+
+      - name: Remove private source and tools from temporary runner
+        if: always()
+        shell: pwsh
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          if (Test-Path -LiteralPath $source) { Remove-Item -LiteralPath $source -Force -Recurse -ErrorAction SilentlyContinue }
+          Write-Host 'KTERMINAL_PRIVATE_SOURCE_ARTIFACTS=NONE'
