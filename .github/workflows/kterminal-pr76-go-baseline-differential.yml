@@ -1,0 +1,92 @@
+name: K-Terminal PR76 native Go base-versus-candidate differential
+on:
+  push:
+    branches:
+      - qualification/kt-pr76-go-baseline-differential-20261028
+    paths:
+      - '.github/workflows/kterminal-pr76-go-baseline-differential.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/kt-pr76-go-baseline-differential-20261028'
+    runs-on: windows-2022
+    timeout-minutes: 14
+    env:
+      EXPECTED_SHA: 'eb5d225ae73b698a59c68d840daf1ec678e1a0ec'
+      KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+      CI: 'true'
+      GOFLAGS: '-mod=readonly'
+      GOTOOLCHAIN: 'local'
+      KTERMINAL_LIVE_AUTHORITY: '0'
+      KTERMINAL_BROKER_ACCESS: '0'
+      KTERMINAL_PROMOTION: '0'
+    steps:
+      - name: Verify pinned baseline private source and trusted Windows runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows') { throw 'KTERMINAL_UNTRUSTED_HOST' }
+          if (-not $env:KTERMINAL_READ_TOKEN) { throw 'KTERMINAL_READ_SECRET_MISSING' }
+          $h = @{Accept='application/vnd.github+json';Authorization=('Bearer '+$env:KTERMINAL_READ_TOKEN)}
+          try {
+            $c = Invoke-RestMethod -Method Get -Uri ('https://api.github.com/repos/Kboomllc/K-Terminal/commits/'+$env:EXPECTED_SHA) -Headers $h -TimeoutSec 25
+            if ($c.sha -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_BASE_SHA_DRIFT' }
+          } catch { throw 'KTERMINAL_BASELINE_PINNED_READ_UNAVAILABLE' }
+          finally { Remove-Variable h,c -ErrorAction SilentlyContinue }
+          Write-Host 'KTERMINAL_BASELINE_PRIVATE_PINNED_READ=PASS'
+
+      - name: Checkout immutable reviewed PR base
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: 'eb5d225ae73b698a59c68d840daf1ec678e1a0ec'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: private-checkout
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Compare baseline Go compile, vet, and build privately
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          $log = Join-Path $env:RUNNER_TEMP 'kt-baseline-go-privately.log'
+          Push-Location -LiteralPath $source
+          try {
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_WRONG_BASE' }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'KTERMINAL_DIRTY_BASE' }
+            Write-Host ('KTERMINAL_BASELINE_GO_TOOLCHAIN='+(& go version))
+            & go test -run '^$' -count=1 -timeout 5m ./... *> $log
+            $compiled = ($LASTEXITCODE -eq 0)
+            Write-Host ('KTERMINAL_BASELINE_TEST_COMPILE='+$(if($compiled){'PASS'}else{'FAIL'}))
+            & go vet ./... *> $log
+            $vetted = ($LASTEXITCODE -eq 0)
+            Write-Host ('KTERMINAL_BASELINE_GO_VET='+$(if($vetted){'PASS'}else{'FAIL'}))
+            & go build ./... *> $log
+            $built = ($LASTEXITCODE -eq 0)
+            Write-Host ('KTERMINAL_BASELINE_GO_BUILD='+$(if($built){'PASS'}else{'FAIL'}))
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'KTERMINAL_BASE_MUTATED' }
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'KTERMINAL_BASE_HEAD_DRIFT' }
+            Write-Host ('KTERMINAL_BASELINE_CLEAN=PASS EXACT_SHA='+$env:EXPECTED_SHA)
+            Write-Host 'KTERMINAL_BASELINE_FULL_RUNTIME_TESTS=NOT_RUN'
+            Write-Host 'KTERMINAL_BASELINE_WPF_GUI=NOT_RUN'
+            Write-Host 'KTERMINAL_BASELINE_BROKER_AND_PROMOTION=NONE'
+            if (-not ($compiled -and $vetted -and $built)) { throw 'KTERMINAL_BASELINE_NATIVE_QUALIFICATION_FAILED_DETAILS_WITHHELD' }
+          } finally {
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+
+      - name: Remove private source checkout from ephemeral runner
+        if: always()
+        shell: pwsh
+        run: |
+          $path = Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          if (Test-Path -LiteralPath $path) { Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue }
+          Write-Host 'KTERMINAL_PRIVATE_SOURCE_ARTIFACTS=NONE'
