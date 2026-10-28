@@ -1,0 +1,252 @@
+{
+  "schema": "ktrade.w33b.production-paper-active-engine-crash.v1",
+  "status": "PASS",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "commit": "ee9052b373bcf14084d70b8606ea8b262753a713",
+    "tree": "6f8fc23881592c823880ac630372998022ffb7a7",
+    "branch": "feature/rb3-w33b-production-paper-crash-20261028",
+    "pull_request": 172,
+    "parent": "de03335dc0052401d6afff2be54b4223cf941c4a",
+    "paths": [
+      "internal/papercustody/custody.go",
+      "internal/papercustody/w33b_refused_owner_test.go"
+    ]
+  },
+  "fix": "Acquire the existing application writer lease before creating a candidate history directory; repeated active/crashed-writer refusal cannot create phantom history or alter the prior lease/checkpoint.",
+  "qualifications": {
+    "full_go": {
+      "run": 40724098870,
+      "job": 122942565969,
+      "witness": "73ed576db076b78eac205d4f5a04229b83216333",
+      "step": "Verify exact-source full Go Wails proof before external preview-field-only retry",
+      "mode": "FRESH_ALL_ORIGINAL_COMMANDS_ON_ROTATED_IMAGE",
+      "image": "20261026.347.1",
+      "tests": [
+        "go test -mod=readonly -tags ktrade_full -count=1 ./cmd/ktrade",
+        "go vet -mod=readonly -tags ktrade_full ./cmd/ktrade",
+        "go test -mod=readonly -tags ktrade_full,ktrade_w32e_fixture -count=1 -run TestW32E ./cmd/ktrade",
+        "root go test -mod=readonly -count=1 ./...",
+        "root go vet -mod=readonly ./...",
+        "tools/wails-pilot go test -mod=readonly -count=1 ./...",
+        "tools/wails-pilot go vet -mod=readonly ./..."
+      ],
+      "original_risk_custody_negative_tests_preserved": true
+    },
+    "prior_full_go": {
+      "run": 40721434117,
+      "job": 122933176890,
+      "witness": "5dd1fe489a769bf8051aca4b52cace053438cc74",
+      "overall_run_conclusion": "failure",
+      "full_go_step_conclusion": "success",
+      "tests": [
+        "go test -mod=readonly -tags ktrade_full -count=1 ./cmd/ktrade",
+        "go vet -mod=readonly -tags ktrade_full ./cmd/ktrade",
+        "go test -mod=readonly -tags ktrade_full,ktrade_w32e_fixture -count=1 -run TestW32E ./cmd/ktrade",
+        "root go test -mod=readonly -count=1 ./...",
+        "root go vet -mod=readonly ./...",
+        "tools/wails-pilot go test -mod=readonly -count=1 ./...",
+        "tools/wails-pilot go vet -mod=readonly ./..."
+      ]
+    }
+  },
+  "prior_attempts": [
+    {
+      "run": 40720829190,
+      "witness": "4dc8a59f59151b7b6a5ca27b388327eadff2303c",
+      "conclusion": "cancelled",
+      "reason": "Superseded during Go checks after review caught transient native action text being overwritten by normal status refresh. No Go PASS reused."
+    },
+    {
+      "run": 40721434117,
+      "job": 122933176890,
+      "witness": "5dd1fe489a769bf8051aca4b52cace053438cc74",
+      "conclusion": "failure",
+      "reason": "All 40 frontend, full Go/root/Wails tests/vet and production build passed. Native Save and 300 independent provider rows passed; external preview assertion used order instead of existing paper_order JSON field and refused before funding."
+    },
+    {
+      "run": 40722744806,
+      "job": 122937745494,
+      "witness": "347e33531f38884085cb3a64c4faf0ae98fc3f75",
+      "conclusion": "failure",
+      "reason": "Corrected preview, native Start, current-market fill, independent fixed-point account and repeated evaluation passed assertions. External Get-FileHash reader denied the active Windows writer handle before crash injection. Failure cleanup explicitly stopped only the disposable synthetic account and removed its package."
+    },
+    {
+      "run": 40723515413,
+      "job": 122940511490,
+      "witness": "0651a24dd084514c36c5e61fb5ccd4d2c81812a8",
+      "conclusion": "failure",
+      "reason": "Hosted Windows image changed from 20261022.344.1 to 20261025.346.1. Exact-image Go-proof reuse guard refused before build or financial Start. Retry adds full unchanged Go/test/vet execution on any different image; prior proof is never assumed applicable."
+    }
+  ],
+  "safety": {
+    "live_armed": false,
+    "real_broker_order_intent": false,
+    "real_broker_credentials": false,
+    "owner_installed_data_touched": false,
+    "merge": false,
+    "release": false,
+    "signing": false,
+    "promotion": false,
+    "deployment": false,
+    "public_binary_or_source_upload": false
+  },
+  "limits": [
+    "One disposable paper BUY at a current finalized public Coinbase close, with explicitly acknowledged simulated fees; not a broker fill or authenticated fee tier.",
+    "Engine force-killed after committed ledger and original risk-bound checkpoint, not mid-reservation/mid-commit, whole-machine power loss or shell force-kill.",
+    "Cold replay is read-only and abandoned writer custody remains unresolved; no automatic rearm, lease deletion or original-session resumption.",
+    "SELL/exit semantics, current mark/unrealized P&L, market/network reconnect faults and full release acceptance remain unqualified."
+  ],
+  "qualification": {
+    "run": 40724098870,
+    "job": 122942565969,
+    "witness": "73ed576db076b78eac205d4f5a04229b83216333",
+    "workflow_tree": "67cde35277a58a2b014968be88f9392112b13e5f",
+    "workflow": ".github/workflows/ktrade-w33b-production-paper-crash-windows.yml",
+    "harness": "qualification-harness/ktrade-w33b-production-paper-crash.ps1",
+    "url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40724098870",
+    "run_conclusion": "success"
+  },
+  "toolchain": {
+    "go": "1.25.0 windows/amd64",
+    "node": "24.22.1",
+    "windows_image": "20261026.347.1",
+    "runner": "github-hosted windows-2022",
+    "wails": "2.17.0",
+    "webview2_version_separately_reported": false
+  },
+  "market": {
+    "last_close_age_seconds": 14,
+    "last_volume": 2.70758558,
+    "rows": 300,
+    "timeframe": "1m",
+    "stale": false,
+    "source": "coinbase_advanced_public_rest",
+    "last_bar": 1793204400,
+    "first_bar": 1793186460,
+    "product": "BTC-USDC",
+    "finalized": true,
+    "last_close": 80388.78
+  },
+  "independent_market": {
+    "transport": "independent PowerShell HTTPS request, no source override",
+    "redirects_allowed": false,
+    "matched_current_finalized_ohlcv_rows": 300,
+    "endpoint": "https://api.coinbase.com/api/v3/brokerage/market/products/BTC-USDC/candles",
+    "raw_rows": 304,
+    "authentication": "none"
+  },
+  "preview": {
+    "status": "REVIEW_ONLY",
+    "paper_order": {
+      "id": "pine-preview-7fe34d5154119a6060a591a646d95dc94d06d68b19bdb9a1",
+      "side": "BUY",
+      "qty": "0.00025",
+      "price": "80388.78",
+      "fee_bps": 0
+    },
+    "orders_enabled": false,
+    "source_sha256": "16e94abb2395acd23ff57874e5f7b9d4653a3ffd749654e1c14e52b7a17b8dee",
+    "final_bar_sha256": "8c581d2c407cd68bfde474f3a66757c32eba888620cf2e40cb8746cbe8e70312",
+    "live_armed": false,
+    "final_bar_at": "2026-10-28T16:21:00Z"
+  },
+  "native_paper_crash": {
+    "final_bar_at": "2026-10-28T16:21:00Z",
+    "snapshot_seal": "ea1e2d91467b24f69d0ca8e58b881feb05082cfa61c5f4a4b2da0b47de26a230",
+    "final_bar_sha256": "8c581d2c407cd68bfde474f3a66757c32eba888620cf2e40cb8746cbe8e70312",
+    "live_orders_enabled": false,
+    "fill_count": 1,
+    "public_candle_count": 300,
+    "ledger_hash": "bee011e9364496afabbbe2a0b4515a39dc55cc698baf8e5f5426ad515048e993",
+    "crashed_pid": 4372,
+    "source_id": "ktrade-reconcile-0fb35569da91621396dbea3846a3be5c",
+    "qty": "0.00025",
+    "fifo_basis": "20.29816695",
+    "engine_respawned": false,
+    "prekill_writer": true,
+    "historical_account_stopped": false,
+    "gross": 20.097195,
+    "no_stop_injected": true,
+    "price": 80388.78,
+    "fees_paid": "0.20097195",
+    "realized_pnl": "0",
+    "duplicate_fill_count": 1,
+    "script_id": "1a3d4a31df33660df55bacdf48694397",
+    "source_sha256": "16e94abb2395acd23ff57874e5f7b9d4653a3ffd749654e1c14e52b7a17b8dee",
+    "prekill_worker": true,
+    "cash": "579.70183305"
+  },
+  "cold": {
+    "cold_start_http": 409,
+    "original_risk_proof_verified": true,
+    "snapshot_seal": "ea1e2d91467b24f69d0ca8e58b881feb05082cfa61c5f4a4b2da0b47de26a230",
+    "paper_orders_enabled": false,
+    "history_byte_identical": true,
+    "native_cash_observed": true,
+    "durable_custody_enabled": false,
+    "historical_account_stopped": false,
+    "lease_state": "OWNER_LEASE_UNRESOLVED",
+    "source_count": 1,
+    "unattended_enabled": false,
+    "source_id": "ktrade-reconcile-0fb35569da91621396dbea3846a3be5c",
+    "execution_restore_eligible": false,
+    "new_fill_count": 0
+  },
+  "frontend": {
+    "tests": 40,
+    "pass": 40,
+    "fail": 0
+  },
+  "package": {
+    "fixture_mode": "none",
+    "engine_tags": "ktrade_full",
+    "shell_tags": "desktop,production",
+    "source": "ee9052b373bcf14084d70b8606ea8b262753a713",
+    "wails_exe_sha256": "6fa3fb1596a525b82d838850583ccb20c2196d8ce36df7a65814f8a4cbcca46e",
+    "engine_exe_sha256": "617cef13c7196ac0aae42f858593c6fde9607119cabc2082375aa27c47811537",
+    "zip_sha256": "7f58f56c982e45fa1f4ae23f922a9a02ef4e0c326874f6d0e2dd34ca173cf162",
+    "release_candidate": false,
+    "os_temp_nonce_only": true,
+    "engine_vcs_modified_observed_after_offline_vendor_and_packaging": true,
+    "binary_upload": false,
+    "private_checkout_and_package_cleanup": "PASS"
+  },
+  "interaction": {
+    "native_saved_source": true,
+    "monaco_keyboard_compile_save": true,
+    "numeric_funding_and_fee_native_readbacks": true,
+    "native_paper_start_and_two_evaluations": true,
+    "cold_archive_native_ui_and_cash": true,
+    "post_crash_start_negative_probe": "loopback same-origin HTTP POST, HTTP 409 from abandoned writer lease",
+    "browser_inspector": false,
+    "runtime_javascript_injection": false,
+    "dom_injection": false
+  },
+  "paper_funding": {
+    "initial_cash": "600",
+    "currency": "USDC",
+    "simulated_fee_bps": 100,
+    "native_fee_acknowledged": true,
+    "authenticated_exchange_fee_tier": false
+  },
+  "strategy": {
+    "version": 6,
+    "source": "//@version=6\nstrategy(\"W33B current paper crash\", overlay=true)\nif bar_index == 299\n    strategy.entry(\"L\", strategy.long, qty=0.00025)",
+    "source_sha256": "16e94abb2395acd23ff57874e5f7b9d4653a3ffd749654e1c14e52b7a17b8dee",
+    "synthetic_saved_user_script": true,
+    "financial_market_transport": "normal original public Coinbase current finalized data, no fixture tags"
+  },
+  "native_field_readbacks": [
+    {
+      "expected": "600",
+      "actual": "600",
+      "name": "Paper USDC"
+    },
+    {
+      "expected": "100",
+      "actual": "100",
+      "name": "Simulated fee (bps)"
+    }
+  ]
+}
