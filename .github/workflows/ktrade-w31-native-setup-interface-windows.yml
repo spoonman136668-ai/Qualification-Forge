@@ -176,8 +176,8 @@ jobs:
          [void][W30Native]::ReadWindowString([IntPtr]$element.Current.NativeWindowHandle,13,[IntPtr]32768,$builder)
          return $builder.ToString()
         }
-        function Wait-Visible([object]$process,[string]$label,[bool]$button=$false){
-         $deadline=(Get-Date).AddSeconds(35)
+        function Wait-Visible([object]$process,[string]$label,[bool]$button=$false,[int]$timeoutSeconds=35){
+         $deadline=(Get-Date).AddSeconds($timeoutSeconds)
          do{
           $process.Refresh()
           if($process.HasExited){throw 'W29A_ORIGINAL_SHELL_EXITED'}
@@ -270,8 +270,34 @@ jobs:
          $handle=$shell.Handle
          $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
          if($owner.source_sha -cne $source -or $owner.live_armed -or ![string]::Equals($cim.ExecutablePath,(Join-Path $stage 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)){throw 'W30_NATIVE_RELEASE_CUSTODY_DRIFT'}
-         Click-Verified $shell 'Verify chart UI'
-         $null=Wait-Visible $shell 'Original chart DOM, Monaco editor and preferences controls observed.'
+         $qualifiedUI=$false
+         # Native WebView2 iframe and Monaco may become ready after the Wails
+         # launch lease exists. Never infer readiness from a running process
+         # or a button alone; only the genuine W28I nonce-verified SUCCESS
+         # text can satisfy this gate. Retry up to three operator-equivalent
+         # clicks, with exact identity, owner and origin checks unchanged.
+         for($attempt=1;$attempt -le 3;$attempt++){
+          Click-Verified $shell 'Verify chart UI'
+          try{
+           $null=Wait-Visible $shell 'Original chart DOM, Monaco editor and preferences controls observed.' $false 12
+           $qualifiedUI=$true
+           break
+          }catch{
+           $window=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+           $nodes=$window.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+           foreach($node in $nodes){
+            try{
+             $name=$node.Current.Name
+             if(!$node.Current.IsOffscreen -and $name -match 'Chart not fully ready|Original chart did not answer|Chart loaded\\?|Checking original chart|Chart identity unavailable|Monaco editor'){
+              Write-Output ('W31_ORIGINAL_CHART_ACTUAL_STATUS_'+$attempt+'='+$name)
+             }
+            }catch{}
+           }
+           if($attempt -eq 3){throw 'W31_REAL_WEBVIEW2_CHART_READY_NOT_CONFIRMED'}
+           Start-Sleep -Seconds 2
+          }
+         }
+         if(!$qualifiedUI){throw 'W31_REAL_WEBVIEW2_CHART_NOT_QUALIFIED'}
          $engines=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
          if($engines.Count -ne 1){throw 'W30_ORIGINAL_ENGINE_OWNER_UNCLEAR'}
          $engineID=[int]$engines[0].ProcessId
