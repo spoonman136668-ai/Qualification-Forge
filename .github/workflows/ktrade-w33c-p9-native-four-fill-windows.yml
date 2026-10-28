@@ -1,0 +1,326 @@
+name: KTRADE W33C P9 real Wails two current-market round trips
+# Native completion uses stable owner state; evidence readers share existing Windows writer handles.
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w33c-p9-native-four-fills
+  cancel-in-progress: true
+on:
+  push:
+    branches: [qualification/ktrade-w33c-p9-native-four-fill-20261028]
+    paths: [.github/workflows/ktrade-w33c-p9-native-four-fill-windows.yml]
+  workflow_dispatch: {}
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 81c20f6f4636a870a0126208cf1c9cf0c1dcab64
+          path: current
+          fetch-depth: 8
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Fail closed on source identity scope and clean custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W32E_WRONG_RUNNER'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '81c20f6f4636a870a0126208cf1c9cf0c1dcab64' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'ebf8872d142e8e0fb6748467a134ac7e0054cabd'){throw 'W32E_EXACT_SOURCE_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
+          if((& git -C $src merge-base 81c20f6f4636a870a0126208cf1c9cf0c1dcab64 b9094e9579d3079255a89c5af55677dcbe2dcbd5).Trim() -cne 'b9094e9579d3079255a89c5af55677dcbe2dcbd5'){throw 'W33B_PARENT_DRIFT'}
+          $diff=@(& git -C $src diff --name-only b9094e9579d3079255a89c5af55677dcbe2dcbd5 HEAD|Sort-Object)
+          $expect=@('internal/paperengine/owner.go','internal/paperengine/final_close_review.go','internal/paperengine/final_close_submit.go','internal/paperengine/next_entry.go','internal/paperengine/next_entry_test.go','internal/paperexit/review.go','cmd/ktrade/paper_session_runner_full.go','cmd/ktrade/next_entry_full_test.go'|Sort-Object)
+          if(Compare-Object $diff $expect){throw 'P9_EIGHT_PATH_SCOPE_DRIFT'}
+          Write-Output '::notice::W33C_P9_EXACT_SOURCE_EIGHT_CONTINUING_OWNER_PATHS=PASS'
+      - name: Native Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Native Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Stage unchanged original frontend vendor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_LOCK_FAILURE'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_STAGE_FAILURE'}
+            & node --test tests/rb3_w32a_original_chart_candles.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w32d_pine_pane.test.cjs tests/rb3_w33a_operator_paper_state.test.cjs tests/w19_paper_failure_feedback.test.cjs tests/w33c_p7_paper_valuation.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W32E_AFFECTED_CHART_NODE_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W32E_UNMODIFIED_CHART_FRONTEND_TESTS=PASS'
+      - name: Full exact-source original two-round-trip owner regression Go Wails vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -v -run '^TestW33CP9' ./internal/paperengine
+            if($LASTEXITCODE -ne 0){throw 'P9_ORIGINAL_NEXT_ENTRY_OWNER_FAILED'}
+            & go test -mod=readonly -count=1 -v -tags ktrade_full -run '^TestW33CP9' ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P9_NATIVE_SAVED_PINE_REENTRY_FAILED'}
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_APP_REGRESSION_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_APP_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_ROOT_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_ROOT_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_WAILS_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W33C_P9_FRESH_FULL_GO_WAILS_ORIGINAL_GUARDED_TWO_ROUND_TRIPS=PASS'
+      - name: Build original production pair with every synthetic tag excluded
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          Remove-Item Env:KTRADE_W13_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          Push-Location $src
+          try{
+            $files=(& go list -mod=readonly -tags ktrade_full -f '{{join .GoFiles " "}}' ./cmd/ktrade) -join ' '
+            if($LASTEXITCODE -ne 0 -or $files -notmatch 'main_full.go' -or $files -match 'w32e_webview_fixture|w13_fixture'){throw 'W32E_P2_SYNTHETIC_SOURCE_INCLUDED'}
+          }finally{Pop-Location}
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha '81c20f6f4636a870a0126208cf1c9cf0c1dcab64'
+          if($LASTEXITCODE -ne 0){throw 'W32E_P2_PRODUCTION_PAIR_BUILD_FAILED'}
+          $manifest=Get-Content -LiteralPath (Join-Path $build 'source-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.source_sha -cne '81c20f6f4636a870a0126208cf1c9cf0c1dcab64' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W32E_P2_PRODUCTION_IDENTITY_DRIFT'}
+          $stage=Join-Path $build 'KTRADE-WailsPortable'
+          $engineInfo=(& go version -m (Join-Path $stage 'ktrade-engine.exe')) -join "`n"
+          if($LASTEXITCODE -ne 0 -or $engineInfo -notmatch '-tags=ktrade_full' -or $engineInfo -match 'ktrade_w32e_fixture|ktrade_w13_fixture'){throw 'W32E_P2_PRODUCTION_TAGS_DRIFT'}
+          Write-Output $engineInfo
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w32e-package.txt'),$build)
+          Write-Output '::notice::W32E_P2_ORIGINAL_PRODUCTION_PAIR_NO_SYNTHETIC_TAGS_OR_TRANSPORT=PASS'
+      - name: Native current public OHLCV four fills two guarded round trips Stop cold
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Add-Type -AssemblyName UIAutomationClient
+          Add-Type -AssemblyName System.Drawing
+          Add-Type -AssemblyName System.Windows.Forms
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class W32EDpi { [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr hwnd); }
+          public static class W32EClose { [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd,uint msg,IntPtr a,IntPtr b); }
+          public static class W32ENativeInput {
+           [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
+           [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+           [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+           [StructLayout(LayoutKind.Sequential)] public struct POINT {public int X;public int Y;}
+           [DllImport("user32.dll")] public static extern bool GetPhysicalCursorPos(out POINT point);
+           [DllImport("user32.dll")] public static extern void mouse_event(uint f,uint a,uint b,uint c,UIntPtr d);
+           [DllImport("user32.dll")] public static extern void keybd_event(byte key,byte scan,uint flags,UIntPtr extra);
+          }
+          '@
+          # Interact solely via owned Windows screen/UIA/OS keyboard.
+          # No JavaScript, inspector, DOM hooks or renderer mutation.
+          # Both Pine and volume coordinates use exact UIA and LWC formulas; default price guides do not imply extra bars.
+          function Report-W32EUI([object]$proc,[string]$phase){
+            $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
+            $elements=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+            $items=[Collections.Generic.List[object]]::new()
+            foreach($e in $elements){try{
+              $v=$e.Current
+              if(!$v.IsOffscreen -and $v.Name -match '(BTC|USD|Coinbase|symbol|Search|Pine|chart)' -and $items.Count -lt 40){
+                $items.Add([pscustomobject]@{name=$v.Name;type=[string]$v.ControlType.ProgrammaticName;rect=[string]$v.BoundingRectangle})
+              }
+            }catch{}}
+            Write-Output ('W32E_UIA_STATE_'+$phase+'='+($items|ConvertTo-Json -Compress -Depth 4))
+          }
+          function Wait-W32EUI([object]$proc,[string]$name,[int]$seconds=22){
+            $until=(Get-Date).AddSeconds($seconds)
+            do{
+              $proc.Refresh();if($proc.HasExited){throw ('W32E_BROWSER_EXITED_'+$name)}
+              if($proc.MainWindowHandle -ne [IntPtr]::Zero){
+                $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
+                $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                foreach($el in $all){try{
+                  $exact=([string]$el.Current.Name) -ceq $name
+                  $matching=if($name -ceq 'BTC-USDC'){$exact}else{$exact -or ([string]$el.Current.Name).Contains($name)}
+                  if(!$el.Current.IsOffscreen -and $matching -and !$el.Current.BoundingRectangle.IsEmpty){return $el}
+                }catch{}}
+              }
+              Start-Sleep -Milliseconds 300
+            }while((Get-Date) -lt $until)
+            throw ('W32E_UI_NOT_FOUND_'+$name)
+          }
+          function Click-W32EUI([object]$proc,[string]$name){
+            $el=Wait-W32EUI $proc $name
+            $rect=$el.Current.BoundingRectangle
+            $outer=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle).Current.BoundingRectangle
+            if($rect.IsEmpty -or $rect.Width -lt 5 -or $rect.Height -lt 5 -or $rect.Left -lt $outer.Left -or $rect.Right -gt $outer.Right -or $rect.Top -lt $outer.Top -or $rect.Bottom -gt $outer.Bottom){throw ('W32E_UI_CONTROL_NOT_OWNED_'+$name)}
+            [void][W32ENativeInput]::SetForegroundWindow($proc.MainWindowHandle)
+            Start-Sleep -Milliseconds 150
+            if([W32ENativeInput]::GetForegroundWindow() -ne $proc.MainWindowHandle){throw 'W32E_FOREIGN_FOCUS'}
+            $targetX=[int]($rect.Left+$rect.Width/2);$targetY=[int]($rect.Top+$rect.Height/2)
+            $inputX=$targetX;$inputY=$targetY
+            $pos=[W32ENativeInput+POINT]::new()
+            for($attempt=0;$attempt -lt 4;$attempt++){
+              if(![W32ENativeInput]::SetCursorPos($inputX,$inputY)){throw 'W32E_NATIVE_CURSOR_REFUSED'}
+              Start-Sleep -Milliseconds 180
+              if(![W32ENativeInput]::GetPhysicalCursorPos([ref]$pos)){throw 'W32E_NATIVE_PHYSICAL_CURSOR_UNAVAILABLE'}
+              if([Math]::Abs($pos.X-$targetX) -le 3 -and [Math]::Abs($pos.Y-$targetY) -le 3){break}
+              $inputX=[int][Math]::Round($inputX*[double]$targetX/[Math]::Max(1,$pos.X))
+              $inputY=[int][Math]::Round($inputY*[double]$targetY/[Math]::Max(1,$pos.Y))
+            }
+            Write-Output ('W32E_PHYSICAL_POINTER_'+$name+'='+(@{target_x=$targetX;target_y=$targetY;physical_x=$pos.X;physical_y=$pos.Y;logical_input_x=$inputX;logical_input_y=$inputY}|ConvertTo-Json -Compress))
+            if([Math]::Abs($pos.X-$targetX) -gt 5 -or [Math]::Abs($pos.Y-$targetY) -gt 5){throw ('W32E_CLICK_COORDINATES_NOT_PHYSICAL_'+$name)}
+            $point=[System.Windows.Point]::new([double]$pos.X,[double]$pos.Y)
+            $actual=[System.Windows.Automation.AutomationElement]::FromPoint($point)
+            Write-Output ('W32E_HIT_TEST_'+$name+'='+$actual.Current.Name)
+            [W32ENativeInput]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 85
+            [W32ENativeInput]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 220
+          }
+          function Shortcut-W32E([byte]$key){
+            [W32ENativeInput]::keybd_event(0x11,0,0,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 45
+            [W32ENativeInput]::keybd_event($key,0,0,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 45
+            [W32ENativeInput]::keybd_event($key,0,2,[UIntPtr]::Zero)
+            [W32ENativeInput]::keybd_event(0x11,0,2,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 170
+          }
+          function Set-W32EPine([object]$proc,[string]$source){
+            $editor=Wait-W32EUI $proc 'Pine source editor'
+            if($editor.Current.ControlType -ne [System.Windows.Automation.ControlType]::Edit){throw 'W32E_REAL_MONACO_NOT_EDIT'}
+            $r=$editor.Current.BoundingRectangle;$outer=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle).Current.BoundingRectangle
+            $x=[int]($r.Left+12);$y=[int]($r.Top+9)
+            if($x -lt $outer.Left -or $x -ge $outer.Right -or $y -lt $outer.Top -or $y -ge $outer.Bottom){throw 'W32E_MONACO_OUTSIDE_OWNED_WINDOW'}
+            $quoted="'"+$source.Replace("'","''")+"'"
+            $code="Add-Type -AssemblyName System.Windows.Forms;[Windows.Forms.Clipboard]::SetText("+$quoted+")"
+            $ps51=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+            & $ps51 -NoProfile -STA -EncodedCommand ([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($code)))
+            if($LASTEXITCODE -ne 0){throw 'W32E_SYNTHETIC_PINE_CLIPBOARD_FAILED'}
+            [void][W32ENativeInput]::SetForegroundWindow($proc.MainWindowHandle)
+            [void][W32ENativeInput]::SetCursorPos($x,$y)
+            [W32ENativeInput]::mouse_event(2,0,0,0,[UIntPtr]::Zero);[W32ENativeInput]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+            Start-Sleep -Milliseconds 300
+            if([W32ENativeInput]::GetForegroundWindow() -ne $proc.MainWindowHandle){throw 'W32E_MONACO_FOCUS_CHANGED'}
+            $focused=[System.Windows.Automation.AutomationElement]::FocusedElement
+            if(!$focused.Equals($editor)){throw 'W32E_MONACO_EDIT_FOCUS_NOT_CONFIRMED'}
+            Shortcut-W32E 0x41
+            Shortcut-W32E 0x56
+            $null=Wait-W32EUI $proc 'Editor changed. Compile again.'
+          }
+          . (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w33c-p9-native-four-fill.ps1')
+          $build=[IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'w32e-package.txt'))
+          $stage=Join-Path $build 'KTRADE-WailsPortable'
+          $shell=$null
+          try{
+            $shell=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+            $null=$shell.Handle
+            $until=(Get-Date).AddSeconds(55)
+            $engine=$null;$port=$null
+            do{
+              $shell.Refresh()
+              if($shell.HasExited){throw 'W32E_ORIGINAL_WAILS_SHELL_EXITED'}
+              $children=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+              if($children.Count -eq 1){
+                $engine=$children[0]
+                $p=@(Get-NetTCPConnection -OwningProcess $engine.ProcessId -State Listen -ErrorAction SilentlyContinue|Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+                if($p.Count -eq 1){$port=[int]$p[0].LocalPort;break}
+              }
+              Start-Sleep -Milliseconds 500
+            }while((Get-Date) -lt $until)
+            if(!$port){throw 'W32E_ORIGINAL_ENGINE_NOT_LISTENING'}
+            $uri='http://127.0.0.1:'+$port
+            $c=Invoke-RestMethod -Uri ($uri+'/api/operator/capabilities') -TimeoutSec 10
+            if($c.mode -cne 'PAPER_STOPPED' -or $c.paper_orders_enabled -ne $false -or $c.live_orders_enabled -ne $false -or $c.strategy_execution_enabled -ne $false -or $c.paper_accounting_enabled -ne $false){throw 'W32E_PAPER_FINANCIAL_AUTHORITY_NOT_DISARMED'}
+            $deadline=(Get-Date).AddSeconds(30);$visible=$false
+            do{
+              $shell.Refresh()
+              if($shell.HasExited){throw 'W32E_WEBVIEW2_SHELL_CLOSED'}
+              if($shell.MainWindowHandle -ne [IntPtr]::Zero){
+                $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+                $els=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                foreach($el in $els){try{if(!$el.Current.IsOffscreen -and $el.Current.Name -ceq 'Toggle Pine indicator pane'){$visible=$true;break}}catch{}}
+              }
+              if($visible){break};Start-Sleep -Milliseconds 450
+            }while((Get-Date) -lt $deadline)
+            if(!$visible){throw 'W32E_REAL_WEBVIEW2_UI_NOT_VISIBLE'}
+            $after=Invoke-RestMethod -Uri ($uri+'/api/operator/capabilities') -TimeoutSec 10
+            if($after.mode -cne 'PAPER_STOPPED' -or $after.paper_orders_enabled -ne $false -or $after.live_orders_enabled -ne $false){throw 'W32E_POST_VIEW_FINANCIAL_AUTHORITY_CHANGED'}
+            Write-Output '::notice::W33C_P5_REAL_PRODUCTION_WAILS_WEBVIEW2=PASS'
+            Run-P9NativeRoundTrips
+
+          }finally{
+            if($null -ne $shell){
+              try{
+                $state=Invoke-RestMethod -Uri ($uri+'/api/paper/session') -TimeoutSec 5
+                if($state.paper_orders_enabled -eq $true){
+                  Write-Output 'W33_FAILURE_CLEANUP_EXPLICIT_SYNTHETIC_STOP'
+                  Invoke-RestMethod -Uri ($uri+'/api/paper/session/stop') -Method Post -ContentType 'application/json' -Headers @{Origin=$uri} -Body '{"reason":"W33 failed qualification cleanup"}' -TimeoutSec 10|Out-Null
+                }
+              }catch{}
+              $shell.Refresh()
+              if(!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero){[void][W32EClose]::PostMessage($shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)}
+              if(!$shell.WaitForExit(15000)){Stop-Process -Id $shell.Id -Force -ErrorAction SilentlyContinue;throw 'W33_NORMAL_CLOSE_TIMEOUT'}
+              if($shell.ExitCode -ne 0){throw 'W33_NORMAL_CLOSE_EXIT_NONZERO'}
+              Write-Output '::notice::W33_NATIVE_NORMAL_CLOSE=PASS'
+            }
+          }
+      - name: Cleanup isolated production PAPER qualification package
+        if: always()
+        shell: pwsh
+        run: |
+          $marker=Join-Path $env:RUNNER_TEMP 'w32e-package.txt'
+          if(Test-Path -LiteralPath $marker){
+            $root=[IO.File]::ReadAllText($marker)
+            if($root.StartsWith($env:RUNNER_TEMP) -and [IO.Path]::GetFileName($root) -match '^ktrade-w03-package-[a-f0-9]{32}$'){
+              Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction Stop
+              if(Test-Path -LiteralPath $root){throw 'W33_PACKAGE_CLEANUP_INCOMPLETE'}
+            }
+          }
+          $paperMarker=Join-Path $env:RUNNER_TEMP 'w33-paper-source.txt'
+          if(Test-Path -LiteralPath $paperMarker){
+            $id=[IO.File]::ReadAllText($paperMarker)
+            if($id -cnotmatch '^ktrade-reconcile-[a-z0-9]{12,48}$'){throw 'W33_CLEANUP_SOURCE_ID_INVALID'}
+            $suffix=$id.Substring('ktrade-reconcile-'.Length)
+            foreach($name in @($id,('ktrade-paper-partition-'+$suffix+'-btc-usdc'))){
+              $path=Join-Path $env:RUNNER_TEMP $name
+              if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction Stop}
+            }
+          }
+          Remove-Item (Join-Path $env:GITHUB_WORKSPACE 'current') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output '::notice::W33C_P9_SOURCE_PROOF_PRODUCTION_PAIR_DISPOSED_NATIVE_REENTRY_STILL_REQUIRED=PASS'
+
+
+
