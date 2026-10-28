@@ -113,17 +113,33 @@ function Check-W32EOSRaster([object]$before,[object]$after){
   Write-Output ('W32E_P1C_NATIVE_POINTS='+($points|ConvertTo-Json -Compress))
   Write-Output ('W32E_P1C_NATIVE_GEOMETRY='+(@{dpi_scale=$scale;plot_width_css=$plotWidth;plot_height_css=$plotHeight;chart_top_physical=$chartTop;price_axis_columns=$edges;time_axis_y=$axisY;warmup_positions_blank=$warmup}|ConvertTo-Json -Compress))
   if($hits -ne 28 -or $negative -ne 0 -or $warmup -ne 2){throw ('W32E_P1C_POINT_RASTER_FAILED_hits_'+$hits+'_negative_'+$negative+'_warmup_'+$warmup)}
-  # Independently identify all 30 native volume histogram bars from their
-  # teal pixels; this is also independent of the Pine line and its scale.
-  $volumeBars=0
+  # Native volume has its own default last-price guide, so connected color
+  # components are not a bar count. Map all 30 time/value coordinates using
+  # the independent histogram scale [0,39], excluding no screenshot pixels.
+  $volumeBars=0;$volumeNegative=0;$volumeNegativeChecks=0;$volumePoints=@()
+  $volumeCssHeight=[int][Math]::Floor($after.volume.height/$scale)
+  $volumeCssHeight-=$volumeCssHeight%2
+  $volumePlot=$volumeCssHeight-28
+  $volumeWidth=[int][Math]::Floor($after.volume.width/$scale)
+  $volumeWidth-=$volumeWidth%2
+  $volumeGuide=.2*$volumePlot*$scale
   for($i=0;$i -lt 30;$i++){
-    $x=($after.volume.width-(29-$i+.5)*($after.volume.width/30)-1)
-    $near=@($after.volume.teal|Where-Object {[Math]::Abs($_.x-$x) -le $radius})
+    $x=($volumeWidth-(29-$i+.5)*($volumeWidth/30)-1)*$scale
+    $y=($volumePlot-1-(.1*$volumePlot+(.7*$volumePlot-1)*(10+$i)/39))*$scale
+    $near=@($after.volume.teal|Where-Object {[Math]::Abs($_.x-$x) -le $radius -and [Math]::Abs($_.y-$y) -le $radius})
     if($near.Count -gt 0){$volumeBars++}
+    $wrongY=$y-6*$scale;$wrongHit=$false
+    if($wrongY -gt 0 -and [Math]::Abs($wrongY-$volumeGuide) -gt 3*$scale){
+      $volumeNegativeChecks++
+      $above=@($after.volume.teal|Where-Object {[Math]::Abs($_.x-$x) -le $radius -and [Math]::Abs($_.y-$wrongY) -le $radius})
+      if($above.Count -gt 0){$volumeNegative++;$wrongHit=$true}
+    }
+    $volumePoints+=@{bar=$i;expected_volume=10+$i;x=$x;y=$y;matched=$near.Count -gt 0;above_bar_matched=$wrongHit}
   }
-  if($volumeBars -ne 30){throw ('W32E_P1C_NATIVE_VOLUME_BAR_COUNT_'+$volumeBars)}
-  if($before.volume.teal_runs -ne 30 -or $after.volume.teal_runs -ne 30){throw ('W32E_P1C_NATIVE_VOLUME_RUNS_before_'+$before.volume.teal_runs+'_after_'+$after.volume.teal_runs)}
+  Write-Output ('W32E_P1C_NATIVE_VOLUME_POINTS='+($volumePoints|ConvertTo-Json -Compress))
+  if($volumeBars -ne 30 -or $volumeNegative -ne 0 -or $volumeNegativeChecks -lt 20){throw ('W32E_P1C_NATIVE_VOLUME_POINT_MAP_hits_'+$volumeBars+'_negative_'+$volumeNegative+'_checks_'+$volumeNegativeChecks)}
+  if($before.volume.teal_runs -ne $after.volume.teal_runs){throw 'W32E_P1C_VOLUME_RASTER_COMPONENTS_CHANGED'}
   if(!$volumeUnchanged){throw ('W32E_P1C_VOLUME_RASTER_CHANGED_before_'+$before.volume.hash+'_after_'+$after.volume.hash)}
-  Write-Output ('W32E_P1C_EXACT_RASTER_PROOF='+(@{source='1c399965d8ab88a42e25f9997e0db15dec15e6b0';mapped_points=$hits;displaced_negative_hits=$negative;warmup_positions_blank=$warmup;max_nearest_pixel_distance=($errors|Measure-Object -Maximum).Maximum;physical_tolerance=$radius;scale=$scale;baseline_pine_pixels=$before.pine.fuchsia.Count;applied_pine_pixels=$after.pine.fuchsia.Count;volume_pine_pixels=$after.volume.fuchsia.Count;native_volume_bars_unchanged=$volumeBars;volume_png_before=$before.volume.hash;volume_png_after=$after.volume.hash;pine_png_sha256=$after.pine.hash;pine_width=$pane.width;pine_height=$pane.height;oracle='independent pinned LWC 4.1.0 formulas with OS UIA DPI and neutral axis-border geometry';input='Win32/UIA/clipboard';capture='Windows Graphics.CopyFromScreen';browser_inspector=$false;runtime_javascript=$false}|ConvertTo-Json -Compress))
+  Write-Output ('W32E_P1C_EXACT_RASTER_PROOF='+(@{source='1c399965d8ab88a42e25f9997e0db15dec15e6b0';mapped_points=$hits;displaced_negative_hits=$negative;warmup_positions_blank=$warmup;max_nearest_pixel_distance=($errors|Measure-Object -Maximum).Maximum;physical_tolerance_per_axis=$radius;scale=$scale;baseline_pine_pixels=$before.pine.fuchsia.Count;applied_pine_pixels=$after.pine.fuchsia.Count;volume_pine_pixels=$after.volume.fuchsia.Count;native_volume_value_coordinate_hits=$volumeBars;volume_above_bar_negative_checks=$volumeNegativeChecks;volume_above_bar_negative_hits=$volumeNegative;volume_png_before=$before.volume.hash;volume_png_after=$after.volume.hash;pine_png_sha256=$after.pine.hash;pine_width=$pane.width;pine_height=$pane.height;oracle='independent pinned LWC 4.1.0 formulas with OS UIA DPI and neutral axis-border geometry';input='Win32/UIA/clipboard';capture='Windows Graphics.CopyFromScreen';browser_inspector=$false;runtime_javascript=$false}|ConvertTo-Json -Compress))
   Write-Output '::notice::W32E_P1C_NATIVE_28_POINT_COORDINATES_AND_VOLUME_RASTER_IDENTITY=PASS'
 }

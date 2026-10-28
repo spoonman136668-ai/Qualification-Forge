@@ -127,7 +127,7 @@ jobs:
           '@
           # Interact solely via owned Windows screen/UIA/OS keyboard.
           # No JavaScript, inspector, DOM hooks or renderer mutation.
-          # Pixel coordinates use exact UIA regions and LWC formulas, including its default last-price line.
+          # Both Pine and volume coordinates use exact UIA and LWC formulas; default price guides do not imply extra bars.
           function Report-W32EUI([object]$proc,[string]$phase){
             $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
             $elements=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
@@ -286,6 +286,10 @@ jobs:
             # Resizing to the visible editor retains bar spacing. Reload the
             # selected market through its genuine native control at the final
             # geometry so baseline and apply both show the entire 30-bar range.
+            # The sealed fixture timestamps follow UTC minutes. Keep the two
+            # native captures inside one minute without changing its clock.
+            $second=(Get-Date).Second
+            if($second -ge 40){Start-Sleep -Seconds (65-$second)}
             Click-W32EUI $shell 'BTCUSDC'
             Click-W32EUI $shell 'BTC-USDC'
             $null=Wait-W32EUI $shell 'BTCUSDC' 8
