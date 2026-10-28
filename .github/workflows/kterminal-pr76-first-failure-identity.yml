@@ -1,0 +1,136 @@
+name: K-Terminal PR76 compare first failing Go test privately
+on:
+  push:
+    branches: [qualification/kt-pr76-first-failure-identity-20261028]
+    paths: ['.github/workflows/kterminal-pr76-first-failure-identity.yml']
+permissions:
+  contents: read
+jobs:
+  compare:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/kt-pr76-first-failure-identity-20261028'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      EXPECTED_BASE: 'eb5d225ae73b698a59c68d840daf1ec678e1a0ec'
+      EXPECTED_HEAD: 'cc79b46408a43b1bc9ecd378092c883316b4325c'
+      EXPECTED_PKG_TREE: 'cbff43d7571253fc85f3e14267f59170cff7c471'
+      KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+      KTERMINAL_LIVE_AUTHORITY: '0'
+      KTERMINAL_BROKER_ACCESS: '0'
+      KTERMINAL_PROMOTION: '0'
+      CI: 'true'
+      GOFLAGS: '-mod=readonly'
+      GOTOOLCHAIN: 'local'
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Confirm immutable source read and locked Windows runner
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_OS -cne 'Windows' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted') { throw 'WRONG_RUNNER' }
+          if ([string]::IsNullOrWhiteSpace($env:KTERMINAL_READ_TOKEN)) { throw 'NO_PRIVATE_READ_ACCESS' }
+          $h=@{Authorization=('Bearer '+$env:KTERMINAL_READ_TOKEN); Accept='application/vnd.github+json'}
+          try {
+            foreach($pin in @($env:EXPECTED_BASE,$env:EXPECTED_HEAD)) {
+              $c=Invoke-RestMethod -Uri ('https://api.github.com/repos/Kboomllc/K-Terminal/commits/'+$pin) -Headers $h -TimeoutSec 30
+              if ($c.sha -cne $pin) { throw 'SOURCE_PIN_MISMATCH' }
+            }
+          } catch { throw 'IMMUTABLE_PRIVATE_SOURCE_READ_FAILED' }
+          finally { Remove-Variable c,h -ErrorAction SilentlyContinue }
+          Write-Host 'KT_PRIVATE_PINS_VERIFIED=PASS'
+      - name: Checkout original immutable main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: 'eb5d225ae73b698a59c68d840daf1ec678e1a0ec'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: original-main
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Checkout draft immutable PR
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: 'cc79b46408a43b1bc9ecd378092c883316b4325c'
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: draft-pr
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Pin original Go version
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Compare failure identity on the same Windows runner without disclosure
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $PSNativeCommandUseErrorActionPreference=$false
+          $out=@{}
+          try {
+            foreach($variant in @('baseline','candidate')) {
+              $relative=if($variant -eq 'baseline'){'original-main'}else{'draft-pr'}
+              $pin=if($variant -eq 'baseline'){$env:EXPECTED_BASE}else{$env:EXPECTED_HEAD}
+              $root=Join-Path $env:GITHUB_WORKSPACE $relative
+              $log=Join-Path $env:RUNNER_TEMP ('kt-first-failure-'+$variant+'.jsonl')
+              Push-Location -LiteralPath $root
+              try {
+                if ((& git rev-parse HEAD).Trim() -cne $pin) { throw 'SOURCE_PIN_DRIFT' }
+                if ((& git rev-parse HEAD:pkg).Trim() -cne $env:EXPECTED_PKG_TREE) { throw 'PACKAGE_SOURCE_NOT_IDENTICAL' }
+                if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'STARTING_WORKTREE_DIRTY' }
+                $watch=[Diagnostics.Stopwatch]::StartNew()
+                & go test -json -failfast -count=1 -timeout 15m ./pkg/... *> $log
+                $code=$LASTEXITCODE
+                $watch.Stop()
+                $first=$null
+                $packageFail=0
+                $namedFail=0
+                $failTestOutputs=New-Object 'System.Collections.Generic.List[string]'
+                Get-Content -LiteralPath $log -ErrorAction Stop | ForEach-Object {
+                  $ev=$null
+                  try { $ev=$_ | ConvertFrom-Json -ErrorAction Stop } catch {}
+                  if ($null -ne $ev) {
+                    if ($ev.Action -eq 'fail' -and -not [string]::IsNullOrEmpty($ev.Test)) {
+                      $namedFail++
+                      if ($null -eq $first) { $first=[string]$ev.Test }
+                    }
+                    if ($ev.Action -eq 'fail' -and [string]::IsNullOrEmpty($ev.Test)) {$packageFail++}
+                    if ($ev.Action -eq 'output' -and -not [string]::IsNullOrEmpty($ev.Test)) {
+                      $failTestOutputs.Add([string]$ev.Output)
+                    }
+                  }
+                }
+                if ($code -ne 0 -and [string]::IsNullOrEmpty($first)) { throw 'NO_NAMED_FAILING_TEST_DETECTED' }
+                $out[$variant]=@{test=$first;exit=$code;seconds=[int]$watch.Elapsed.TotalSeconds;named=$namedFail;packages=$packageFail}
+                if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'TEST_MUTATED_SOURCE' }
+                Write-Host ('KT_MATCHED_VARIANT='+$variant+' STATUS='+$(if($code -eq 0){'PASS'}else{'FAIL'})+' NAMED_FAILURES='+$namedFail+' PACKAGE_FAILURES='+$packageFail+' SECONDS='+[int]$watch.Elapsed.TotalSeconds)
+                Write-Host ('KT_EXACT_SOURCE_UNCHANGED=PASS VARIANT='+$variant)
+              } finally {
+                Pop-Location
+                Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+                $failTestOutputs=$null
+              }
+            }
+            if (-not $out.ContainsKey('baseline') -or -not $out.ContainsKey('candidate')) { throw 'MISSING_COMPARISON' }
+            $match=if($out.baseline.exit -eq 0 -and $out.candidate.exit -eq 0){'BOTH_PASS'}elseif($out.baseline.exit -eq 0){'BASELINE_ONLY_PASS'}elseif($out.candidate.exit -eq 0){'CANDIDATE_ONLY_PASS'}elseif($out.baseline.test -ceq $out.candidate.test){'SAME_FIRST_TEST'}else{'DIFFERENT_FIRST_TEST'}
+            Write-Host ('KT_FIRST_FAILURE_IDENTITY='+$match)
+            Write-Host 'KT_FAILURE_NAMES_AND_DETAILS=NOT_PUBLISHED'
+            Write-Host 'KT_FULL_SUITE_ACCEPTANCE=NOT_GRANTED'
+            Write-Host 'KT_TRADE_AND_RELEASE_AUTHORITY=NONE'
+            if($match -eq 'DIFFERENT_FIRST_TEST' -or $match -eq 'BASELINE_ONLY_PASS') { throw 'CANDIDATE_DIFFERENCE_REQUIRES_INVESTIGATION' }
+          } finally {
+            $out=$null
+          }
+      - name: Wipe both private source checkouts and all log files
+        if: always()
+        shell: pwsh
+        run: |
+          foreach($name in @('original-main','draft-pr')) {
+            $root=Join-Path $env:GITHUB_WORKSPACE $name
+            if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue}
+          }
+          Get-ChildItem -LiteralPath $env:RUNNER_TEMP -Filter 'kt-first-failure-*.jsonl' -ErrorAction SilentlyContinue | Remove-Item -Force -ErrorAction SilentlyContinue
+          Write-Host 'KT_PRIVATE_SOURCE_AND_LOG_ARTIFACTS=NONE'
