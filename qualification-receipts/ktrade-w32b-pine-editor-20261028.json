@@ -1,0 +1,190 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W32B",
+  "status": "PASS_BOUNDED_NATIVE_EDITOR",
+  "date": "2026-10-28",
+  "timezone": "Etc/UTC",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "sha": "7b0f86ccb0b9c9df10f9b14e21703be4f6824505",
+    "tree": "882e4f970f0d330268f7d5b4a5d8d5c0beb836dd",
+    "base_sha": "4e1ff0a3c483865f277ebf708484c436a14b6067",
+    "branch": "feature/rb3-w32b-native-pine-compile-20261028",
+    "draft_pr": 166,
+    "changed_paths": [
+      "templates/chart.tmpl",
+      "tests/rb3_w32b_pine_compile.test.cjs",
+      "cmd/ktrade/rb3_w32b_editor_compile_full_test.go",
+      "pkg/pine_parser.go",
+      "pkg/rb3_w32b_pine_header_test.go"
+    ]
+  },
+  "full_source_proof": {
+    "witness_sha": "120a38a1527336e8f7c9a9cd251b4048f7f0890d",
+    "run_id": 40656471085,
+    "job_id": 122708594747,
+    "overall_conclusion": "failure",
+    "source_verification_step": "success",
+    "focused_step": "success",
+    "full_regression_vet_step": "success",
+    "native_step": "failure",
+    "focused_node": {
+      "pass": 26,
+      "fail": 0
+    },
+    "go_commands": [
+      "go test -mod=readonly -count=1 -run 'TestRB3W32BHeader' ./pkg",
+      "go test -mod=readonly -tags ktrade_full -count=1 -run 'Test(RB3W32B|RB2EditorPineCompilerShares|PineLibrary)' ./cmd/ktrade"
+    ],
+    "full_commands": [
+      "root: go test -mod=readonly -count=1 ./...; go vet -mod=readonly ./...",
+      "tools/wails-pilot: go test -mod=readonly -count=1 ./...; go vet -mod=readonly ./..."
+    ],
+    "reuse_scope": "Only completed successful source/focused/full-regression steps are reused. This run is not native acceptance."
+  },
+  "qualification_identity": {
+    "go": "1.25.0",
+    "node": "24.22.1",
+    "os": "Windows Server 2022",
+    "runner_image": "windows-2022/20261022.344.1",
+    "goflags": "-p=2",
+    "gowork": "off",
+    "gomaxprocs": 2,
+    "cgo": true,
+    "webview2_runtime_version": "Not separately recorded; actual installed native WebView2 interaction is required.",
+    "compiled_cache_uploaded": false
+  },
+  "preserved_failures": [
+    {
+      "run_id": 40655572997,
+      "job_id": 122705663643,
+      "witness_sha": "79128ac23a888bc3530cc201c3a404d859d12661",
+      "source_sha": "951e9c7bf646636e75eabe4d48673344fb1da88c",
+      "classification": "Application parser defect",
+      "failure": "Original compile endpoint accepted unfinished indicator( as success:true.",
+      "resolution": "Fix original ParsePine header outer closing-delimiter handling; retain failing API regression and v5/v6 indicator/strategy parser tests."
+    },
+    {
+      "run_id": 40656471085,
+      "job_id": 122708594747,
+      "witness_sha": "120a38a1527336e8f7c9a9cd251b4048f7f0890d",
+      "classification": "Native editor input not confirmed",
+      "failure": "UIA SetFocus and SendKeys did not produce editor model change.",
+      "resolution": "Use owned physical editor click plus native keyboard shortcuts and exact source copy-back verification. Application source unchanged."
+    },
+    {
+      "run_id": 40657696349,
+      "witness_sha": "88452f07f27efacef47bddfb14a6e68481c3bc4d",
+      "conclusion": "cancelled",
+      "classification": "Superseded before acceptance",
+      "resolution": "Add exact native editor copy-back checks, including cold reopen."
+    },
+    {
+      "run_id": 40657821861,
+      "job_id": 122713220933,
+      "witness_sha": "e0d9bfa19d418091021409654ae46af9e034902b",
+      "classification": "UIA focus alone still insufficient for source input",
+      "failure": "No editor model change despite accessible focus.",
+      "resolution": "Owned physical editor click required before keyboard input; source copy-back remains mandatory."
+    },
+    {
+      "run_id": 40658733123,
+      "job_id": 122716112616,
+      "witness_sha": "e69c659bba4aa3e7f801bbe321c5fab0c2847865",
+      "classification": "Owned discard confirmation was not dismissed",
+      "failure": "Native source input, v5 compile/save and malformed rejection passed, then stored-open status was absent while confirmation remained.",
+      "resolution": "Require actual dismissal, bounded real mouse retries and fresh positive Open status plus source copy-back."
+    },
+    {
+      "run_id": 40659713842,
+      "job_id": 122719387881,
+      "witness_sha": "25778f35bc9c85ea4c60b9e1bb84fdcc2d6ea88f",
+      "classification": "Dialog observer null accessibility name",
+      "failure": "Observer called Contains on nullable UIA name after successful Save dialog closure.",
+      "resolution": "Null-safe name reads, two consecutive dialog absence observations; disappearing-element observations retry rather than prove dismissal."
+    }
+  ],
+  "safeguards": {
+    "paper_orders_enabled": false,
+    "live_orders_enabled": false,
+    "strategy_execution_enabled": false,
+    "paper_accounting_enabled": false,
+    "broker_orders_submitted": false,
+    "owner_installed_data_accessed": false,
+    "protected_refs_changed": false,
+    "merged": false,
+    "signed": false,
+    "promoted": false,
+    "release_authority": "none"
+  },
+  "limitations": [
+    "Bounded syntax/editor/library fixtures; not complete Pine v5/v6 semantic parity.",
+    "No native deterministic candle/overlay rendering or paper accounting/recovery acceptance in this gate.",
+    "No live credentials, broker/order submission, owner data cutover, retail release or deployment acceptance."
+  ],
+  "native_proof": {
+    "witness_sha": "1781e4192a6c8724166b1746aa659b81116b6f7c",
+    "run_id": 40660370386,
+    "job_id": 122721598495,
+    "conclusion": "success",
+    "workflow": ".github/workflows/ktrade-w32b-pine-editor-windows.yml",
+    "source_sha": "7b0f86ccb0b9c9df10f9b14e21703be4f6824505",
+    "source_tree": "882e4f970f0d330268f7d5b4a5d8d5c0beb836dd",
+    "focused_node": {
+      "pass": 26,
+      "fail": 0
+    },
+    "all_job_steps_success": true,
+    "scope": [
+      "Fresh disposable native install through original source-bound setup; guarded original Start Menu .lnk ShellExecute, exact Go engine PID/loopback port/source custody and positive original WebView2 chart/editor nonce.",
+      "Actual installed original Monaco source input via owned physical click and native keyboard/clipboard. No DOM editor injection or function replacement. Native copy-back must equal fixture source, allowing only Windows clipboard CRLF normalization; persisted Go library source must match exact original LF bytes.",
+      "Pine v5 indicator compile positive, explicit Compiled. Not applied or started. UI; compile creates no user library entry and preserves strict PAPER_STOPPED capabilities.",
+      "Actual original Save prompt, real OK, durable Go library v5 source equality and stable user identifier. Incomplete indicator( is visibly rejected and cannot overwrite saved v5 source.",
+      "Original library menu and dirty-source confirmation. Actual owned OK requires disappearance (two observations), at most three real clicks; two clicks were required in this final run. Positive original Open status and exact restored v5 editor copy-back.",
+      "Real v6 source input/copy-back/compile, explicit Save as a new immutable revision under same stable user identity; Go read verifies exact v6 source.",
+      "Normal zero-exit original Wails close with child engine and lease gone. Hash all files found in active immutable user revision; validate original index revision identity.",
+      "Cold guarded launch, original library menu Open, exact v6 Monaco copy-back and original Go compile positive. Stable stored source/identity and strict PAPER_STOPPED; second normal zero-exit close; recorded active revision file hashes unchanged.",
+      "Original native uninstall exits zero and reports one removed version and retained user data. No developer Go/Node on installed app runtime PATH. Fixture/private source/packages purged, no binary/cache artifact upload."
+    ],
+    "positive_notices": [
+      "32B_EXACT_SOURCE_FIVE_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS\r",
+      "32B_FOCUSED_UI_AND_ORIGINAL_GO_PINE_COMPILER_INTERFACES=PASS\r",
+      "32B_PINNED_FULL_REGRESSION_REUSE_VERIFIED=PASS\r",
+      "30_REAL_INSTALLED_ORIGINAL_WEBVIEW2_NONCE_AND_DISARM_W32B_FIRST=PASS\r",
+      "32B_REAL_WEBVIEW2_V5_V6_COMPILE_REJECTION_DURABLE_SAVE_OPEN_AND_NO_EXECUTION=PASS\r",
+      "30_REAL_INSTALLED_ORIGINAL_WEBVIEW2_NONCE_AND_DISARM_W32B_COLD=PASS\r",
+      "32B_REAL_INSTALLED_COLD_REOPEN_ORIGINAL_MONACO_LIBRARY_COMPILE_BYTE_PARITY=PASS\r",
+      "32B_EDITOR_QUALIFICATION_DISPOSABLE_NATIVE_UNINSTALL=PASS\r"
+    ],
+    "native_source_confirmed_lengths": [
+      73,
+      23,
+      73,
+      72,
+      72
+    ],
+    "uninstall": {
+      "schema": "ktrade.retained-uninstallation.v1",
+      "tool_source_sha": "7b0f86ccb0b9c9df10f9b14e21703be4f6824505",
+      "selected_source_sha": "7b0f86ccb0b9c9df10f9b14e21703be4f6824505",
+      "selection_digest": "978341d63bcaafb29ce0ac6acf72c9a6665792ecff845965f32837d26b76a22a",
+      "versions_removed": 1,
+      "code_files_removed": 177,
+      "completed": true,
+      "user_data_preserved": true,
+      "live_armed": false
+    },
+    "reuse_basis": "Final native witness verifies initial successful exact source/focused/full-regression steps in pinned run 40656471085/job 122708594747, although that run's native input failed. Clean source/tree/ancestry and scope checked again. Same source/dependencies, Go 1.25.0, Node 24.22.1 and exact Windows image required; focused tests and build/native workflow rerun. No failed native result reused as success."
+  },
+  "packages": [
+    {
+      "schema": "ktrade.setup-build.v1",
+      "source_sha": "7b0f86ccb0b9c9df10f9b14e21703be4f6824505",
+      "manifest_sha256": "da7a91498f9378ef54d5d54c81542fbadbd74e01a24875d0fce15e5a575260f7",
+      "archive_sha256": "2e504f9a853989b9003ccf7a91dbb6494652b436187db36ce9c2c42a6f235451",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    }
+  ]
+}
