@@ -6,11 +6,12 @@ $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
 $expected='0059d4b794552818b3f32798da7df27c75e21c5c'
 $tree='9f1e559560ac14f4e6fc823dac9150e3a95f2c4d'
 function Must([bool]$okay,[string]$reason){if(!$okay){throw $reason}}
-function RunNative([string]$cwd,[string]$name,[string[]]$args){
+function RunNative([string]$cwd,[string]$name,[string[]]$argv){
  Push-Location -LiteralPath $cwd
  try{
-  & $name @args
-  Must ($LASTEXITCODE -eq 0) ('RB3_COMMAND_FAILED_'+$name+'_'+($args -join '_'))
+  Must ($argv.Count -gt 0) 'RB3_EMPTY_NATIVE_COMMAND_ARGS'
+  & $name @argv
+  Must ($LASTEXITCODE -eq 0) ('RB3_COMMAND_FAILED_'+$name+'_'+($argv -join '_'))
  }finally{Pop-Location}
 }
 Must ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and $env:RUNNER_OS -ceq 'Windows') 'RB3_NOT_FRESH_HOSTED_WINDOWS'
