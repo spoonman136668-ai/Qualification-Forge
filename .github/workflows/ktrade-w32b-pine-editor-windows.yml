@@ -24,9 +24,9 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         repository: spoonman136668-ai/ktrade
-        ref: 951e9c7bf646636e75eabe4d48673344fb1da88c
+        ref: 7b0f86ccb0b9c9df10f9b14e21703be4f6824505
         path: current
-        fetch-depth: 2
+        fetch-depth: 3
         persist-credentials: false
         token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
     - name: Verify immutable source and completed native foundations
@@ -36,19 +36,19 @@ jobs:
       run: |
         $ErrorActionPreference='Stop'
         $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-        if((& git -C $src rev-parse HEAD).Trim() -cne '951e9c7bf646636e75eabe4d48673344fb1da88c' -or
-           (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '8b97d0b5dbdddeaafffffa81a52cdd318de975dd'){throw 'W30A_SOURCE_IDENTITY_DRIFT'}
+        if((& git -C $src rev-parse HEAD).Trim() -cne '7b0f86ccb0b9c9df10f9b14e21703be4f6824505' -or
+           (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '882e4f970f0d330268f7d5b4a5d8d5c0beb836dd'){throw 'W30A_SOURCE_IDENTITY_DRIFT'}
         foreach($pin in @(
           @{run=40651438994;sha='c3044b4359f4fd48289f51cda6cf754c0ea73532'}
         )){
           $r=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$pin.run) -Headers @{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
           if($r.status -cne 'completed' -or $r.conclusion -cne 'success' -or $r.head_sha -cne $pin.sha){throw 'W30A_EXACT_QUALIFICATION_FOUNDATION_ABSENT'}
         }
-        if((& git -C $src rev-parse HEAD~1).Trim() -cne '4e1ff0a3c483865f277ebf708484c436a14b6067'){throw 'W30A_PARENT_DRIFT'}
+        if((& git -C $src rev-parse HEAD~2).Trim() -cne '4e1ff0a3c483865f277ebf708484c436a14b6067'){throw 'W30A_PARENT_DRIFT'}
         $delta=@(& git -C $src diff --name-only 4e1ff0a3c483865f277ebf708484c436a14b6067 HEAD|Sort-Object)
-        $want=@('templates/chart.tmpl','tests/rb3_w32b_pine_compile.test.cjs','cmd/ktrade/rb3_w32b_editor_compile_full_test.go'|Sort-Object)
+        $want=@('templates/chart.tmpl','tests/rb3_w32b_pine_compile.test.cjs','cmd/ktrade/rb3_w32b_editor_compile_full_test.go','pkg/pine_parser.go','pkg/rb3_w32b_pine_header_test.go'|Sort-Object)
         if(Compare-Object $delta $want){throw 'W30A_FIVE_PATH_SCOPE_DRIFT'}
-        Write-Output '::notice::W32B_EXACT_SOURCE_THREE_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS'
+        Write-Output '::notice::W32B_EXACT_SOURCE_FIVE_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS'
         if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32A_UNEXPECTED_SOURCE_WORKTREE_STATE'}
     - name: Native Windows Go
       uses: actions/setup-go@v5
@@ -87,6 +87,8 @@ jobs:
         }finally{Pop-Location}
         Push-Location $src
         try{
+         & go test -mod=readonly -count=1 -run 'TestRB3W32BHeader' ./pkg
+         if($LASTEXITCODE -ne 0){throw 'W32B_ORIGINAL_PARSER_HEADER_REGRESSION_FAILED'}
          & go test -mod=readonly -tags ktrade_full -count=1 -run 'Test(RB3W32B|RB2EditorPineCompilerShares|PineLibrary)' ./cmd/ktrade
          if($LASTEXITCODE -ne 0){throw 'W32B_ORIGINAL_PINE_COMPILE_LIBRARY_INTERFACES_FAILED'}
         }finally{Pop-Location}
@@ -114,7 +116,7 @@ jobs:
         $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
         $src=Join-Path $env:GITHUB_WORKSPACE 'current'
         $build=Join-Path $env:GITHUB_WORKSPACE ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
-        & (Join-Path $src 'windows/Build-KTRADE-FreshInstaller.ps1') -OutputRoot $build -ExpectedSourceSha '951e9c7bf646636e75eabe4d48673344fb1da88c'
+        & (Join-Path $src 'windows/Build-KTRADE-FreshInstaller.ps1') -OutputRoot $build -ExpectedSourceSha '7b0f86ccb0b9c9df10f9b14e21703be4f6824505'
         if($LASTEXITCODE -ne 0){throw 'W32A_EXACT_PACKAGE_BUILD_FAILED'}
         [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w32b-build.txt'),$build)
     - name: Real installed WebView2 original Pine compile save open cold persistence
@@ -199,7 +201,7 @@ jobs:
         $target=Join-Path $env:GITHUB_WORKSPACE 'w32b pine editor installed'
         $programs=[Environment]::GetFolderPath('Programs')
         if(!(Test-Path -LiteralPath $programs)){New-Item -ItemType Directory -Path $programs -Force|Out-Null}
-        $source='951e9c7bf646636e75eabe4d48673344fb1da88c'
+        $source='7b0f86ccb0b9c9df10f9b14e21703be4f6824505'
         $out=@(& $ps51 -NoProfile -ExecutionPolicy Bypass -File (Join-Path $build 'KTRADE-SetupBundle/KTRADE-Setup.ps1') -Action Install -InstallRoot $target)
         if($LASTEXITCODE -ne 0){throw 'W32B_FRESH_NATIVE_INSTALL_FAILED'}
         $installed=($out -join [Environment]::NewLine)|ConvertFrom-Json
