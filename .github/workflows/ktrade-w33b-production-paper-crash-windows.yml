@@ -75,31 +75,26 @@ jobs:
           $syntaxErrors=$null;$tokens=$null
           $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w33b-production-paper-crash.ps1'),[ref]$tokens,[ref]$syntaxErrors)
           if($syntaxErrors.Count -ne 0){throw ($syntaxErrors|Out-String)}
-      - name: Frozen source full Go Wails regression and vet plus full app paper acceptance
+      - name: Verify exact-source full Go Wails proof before external preview-field-only retry
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
-          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-          Push-Location $src
-          try{
-            & go test -mod=readonly -tags ktrade_full -count=1 ./cmd/ktrade
-            if($LASTEXITCODE -ne 0){throw 'W33_FULL_APP_PINE_PAPER_REGRESSION_FAILED'}
-            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
-            if($LASTEXITCODE -ne 0){throw 'W33_FULL_APP_VET_FAILED'}
-            & go test -mod=readonly -tags ktrade_full,ktrade_w32e_fixture -count=1 -run TestW32E ./cmd/ktrade
-            if($LASTEXITCODE -ne 0){throw 'W33_SEALED_QUALIFICATION_TRANSPORT_TEST_FAILED'}
-          }finally{Pop-Location}
-          foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
-            Push-Location $dir
-            try{
-              & go test -mod=readonly -count=1 ./...
-              if($LASTEXITCODE -ne 0){throw 'W33_FINAL_FULL_REGRESSION_FAILED'}
-              & go vet -mod=readonly ./...
-              if($LASTEXITCODE -ne 0){throw 'W33_FINAL_VET_FAILED'}
-            }finally{Pop-Location}
+          if($env:ImageVersion -cne '20261022.344.1'){throw 'W33_REUSED_GO_PROOF_REQUIRES_SAME_WINDOWS_IMAGE'}
+          $headers=@{Accept='application/vnd.github+json';Authorization='Bearer ${{ github.token }}'}
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40721434117' -Headers $headers
+          if($run.status -cne 'completed' -or $run.head_sha -cne '5dd1fe489a769bf8051aca4b52cace053438cc74'){throw 'W33_GO_PROOF_RUN_IDENTITY_CHANGED'}
+          $jobs=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40721434117/jobs' -Headers $headers
+          $job=@($jobs.jobs|Where-Object {$_.id -eq 122933176890})
+          if($job.Count -ne 1){throw 'W33_GO_PROOF_JOB_IDENTITY_CHANGED'}
+          $step=@($job[0].steps|Where-Object {$_.name -ceq 'Frozen source full Go Wails regression and vet plus full app paper acceptance'})
+          if($step.Count -ne 1 -or $step[0].status -cne 'completed' -or $step[0].conclusion -cne 'success'){throw 'W33_GO_PROOF_NOT_SUCCESSFUL'}
+          $file=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/contents/.github/workflows/ktrade-w33b-production-paper-crash-windows.yml?ref=5dd1fe489a769bf8051aca4b52cace053438cc74' -Headers $headers
+          if($file.encoding -cne 'base64' -or $file.size -gt 64000){throw 'W33_GO_PROOF_WORKFLOW_CONTENT_UNQUALIFIED'}
+          $old=[Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($file.content))
+          foreach($required in @('ee9052b373bcf14084d70b8606ea8b262753a713','6f8fc23881592c823880ac630372998022ffb7a7','go test -mod=readonly -tags ktrade_full -count=1 ./cmd/ktrade','go vet -mod=readonly -tags ktrade_full ./cmd/ktrade','go test -mod=readonly -count=1 ./...','go vet -mod=readonly ./...','tools/wails-pilot')){
+            if(!$old.Contains($required)){throw 'W33_GO_PROOF_SOURCE_OR_TEST_CONTRACT_CHANGED'}
           }
-          Write-Output '::notice::W33_FROZEN_FULL_GO_WAILS_TEST_VET_AND_ORIGINAL_PAPER_NEGATIVES=PASS'
+          Write-Output '::notice::W33_EXACT_SOURCE_FULL_APP_ROOT_WAILS_GO_TEST_VET_REUSED_FROM_40721434117=PASS'
       - name: Build original production pair with every synthetic tag excluded
         shell: pwsh
         run: |

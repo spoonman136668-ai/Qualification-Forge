@@ -226,13 +226,14 @@ function Run-W33BNativePaper {
  $previewBody=@{script_id=$saved[0].id;product_id='BTC-USDC';timeframe='1m'}|ConvertTo-Json -Compress
  $preview=Invoke-RestMethod -Uri ($uri+'/api/paper/strategy/preview') -Method Post -Headers @{Origin=$uri} -ContentType 'application/json' -Body $previewBody -TimeoutSec 15
  $row=$bars.candles[-1]
- $closeAt=[DateTimeOffset]::FromUnixTimeSeconds([long]$row.time+60).ToString('yyyy-MM-ddTHH:mm:ssZ')
- if($preview.status -cne 'REVIEW_ONLY' -or $preview.final_bar_at -cne $closeAt -or $preview.orders_enabled -ne $false -or $preview.live_armed -ne $false -or $preview.review_proposal.order.qty -cne '0.00025' -or [decimal]$preview.review_proposal.order.price -ne [decimal]$row.close){throw 'W33B_CURRENT_NATIVE_PREVIEW_NOT_SAME_PUBLIC_BAR'}
- $price=[decimal]$preview.review_proposal.order.price
+ $closeEpoch=[long]$row.time+60
+ Write-Output ('W33B_INERT_PREVIEW='+(@{status=$preview.status;source_sha256=$preview.source_sha256;final_bar_at=$preview.final_bar_at;final_bar_sha256=$preview.final_bar_sha256;orders_enabled=$preview.orders_enabled;live_armed=$preview.live_armed;paper_order=$preview.review_proposal.paper_order}|ConvertTo-Json -Compress -Depth 5))
+ if($preview.status -cne 'REVIEW_ONLY' -or ([DateTimeOffset]$preview.final_bar_at).ToUnixTimeSeconds() -ne $closeEpoch -or $preview.orders_enabled -ne $false -or $preview.live_armed -ne $false -or $preview.review_proposal.paper_order.qty -cne '0.00025' -or [decimal]$preview.review_proposal.paper_order.price -ne [decimal]$row.close){throw 'W33B_CURRENT_NATIVE_PREVIEW_NOT_SAME_PUBLIC_BAR'}
+ $price=[decimal]$preview.review_proposal.paper_order.price
  $gross=[Math]::Round($price*[decimal]'0.00025',8,[MidpointRounding]::AwayFromZero)
  $fees=[Math]::Round($gross/100,8,[MidpointRounding]::AwayFromZero)
  if($gross -le 0 -or $gross -gt 100){throw 'W33B_PROSPECTIVE_ORIGINAL_RISK_LIMIT'}
- $expected=@{price=$price;id=$preview.review_proposal.order.id;cash=600-$gross-$fees;cost_basis=$gross+$fees;fees_paid=$fees}
+ $expected=@{price=$price;id=$preview.review_proposal.paper_order.id;cash=600-$gross-$fees;cost_basis=$gross+$fees;fees_paid=$fees}
  Click-W32EUI $shell 'Start isolated paper'
  $null=Wait-W32EUI $shell 'ISOLATED PAPER RUNNING' 15
  $running=W33-Get '/api/paper/session';$caps=W33-Get '/api/operator/capabilities'
