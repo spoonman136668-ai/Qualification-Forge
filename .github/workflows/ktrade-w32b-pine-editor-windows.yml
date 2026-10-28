@@ -370,7 +370,7 @@ jobs:
           foreach($root in (Owned-Roots $process)){
            $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
            foreach($node in $nodes){
-            if($node.Current.IsOffscreen -or !$node.Current.Name.Contains($message)){continue}
+            if($node.Current.IsOffscreen -or !([string]$node.Current.Name).Contains($message)){continue}
             $scope=$node
             for($level=0;$level -lt 8 -and $null -ne $scope;$level++){
              $all=$scope.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
@@ -389,13 +389,17 @@ jobs:
               [W30Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero);Start-Sleep -Milliseconds 100;[W30Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
               $clicks++
               $settle=(Get-Date).AddSeconds(2)
+              $clearPasses=0
               do{
                $present=$false
                foreach($currentRoot in (Owned-Roots $process)){
-                $currentNodes=$currentRoot.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
-                foreach($currentNode in $currentNodes){if(!$currentNode.Current.IsOffscreen -and $currentNode.Current.Name.Contains($message)){$present=$true;break}}
+                try{
+                 $currentNodes=$currentRoot.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+                 foreach($currentNode in $currentNodes){if(!$currentNode.Current.IsOffscreen -and ([string]$currentNode.Current.Name).Contains($message)){$present=$true;break}}
+                }catch [System.Windows.Automation.ElementNotAvailableException]{$present=$true}
                }
-               if(!$present){Write-Output ('W32B_OWNED_DIALOG_DISMISSED='+$message);return}
+               if($present){$clearPasses=0}else{$clearPasses++}
+               if($clearPasses -ge 2){Write-Output ('W32B_OWNED_DIALOG_DISMISSED='+$message);return}
                Start-Sleep -Milliseconds 150
               }while((Get-Date) -lt $settle)
               if($clicks -ge 3){throw ('W32B_OWNED_DIALOG_NOT_DISMISSED_'+$message)}
