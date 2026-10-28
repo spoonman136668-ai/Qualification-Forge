@@ -77,7 +77,7 @@ jobs:
             if (-not (Test-Path -LiteralPath $wheel)) { throw 'GRAPHIFY_WHEEL_MISSING' }
             $digest=(Get-FileHash -LiteralPath $wheel -Algorithm SHA256).Hash.ToLowerInvariant()
             if ($digest -cne '9722846e627a369150107dd792145c3e3a53e3d3da46f7a7bff9f96b75da857c') { throw 'GRAPHIFY_WHEEL_SHA256_DRIFT' }
-            & python -m pip install --no-deps $wheel *> $log
+            & python -m pip install $wheel *> $log
             if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_INSTALL_FAILED' }
             Write-Host 'KTERMINAL_GRAPHIFY_EXACT_WHEEL=PASS'
             & graphify extract . --code-only --max-workers 4 *> $log
