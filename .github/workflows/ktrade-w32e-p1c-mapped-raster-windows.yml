@@ -71,10 +71,8 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'W32E_AFFECTED_CHART_NODE_FAILED'}
           }finally{Pop-Location}
           Write-Output '::notice::W32E_UNMODIFIED_CHART_FRONTEND_TESTS=PASS'
-          & node --check (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w32e-p1c-observe.cjs')
-          if($LASTEXITCODE -ne 0){throw 'W32E_P1C_OBSERVER_SYNTAX'}
           $syntaxErrors=$null;$tokens=$null
-          $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w32e-p1c-raster.ps1'),[ref]$tokens,[ref]$syntaxErrors)
+          $null=[Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w32e-p1c-os-raster.ps1'),[ref]$tokens,[ref]$syntaxErrors)
           if($syntaxErrors.Count -ne 0){throw ($syntaxErrors|Out-String)}
       # Exact same immutable candidate's full root and nested Wails Go regression
       # and vet passed in runs #40687106769 and #40692748396. This witness
@@ -115,6 +113,7 @@ jobs:
           Add-Type -TypeDefinition @'
           using System;
           using System.Runtime.InteropServices;
+          public static class W32EDpi { [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr hwnd); }
           public static class W32EClose { [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd,uint msg,IntPtr a,IntPtr b); }
           public static class W32ENativeInput {
            [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hwnd);
@@ -127,8 +126,8 @@ jobs:
           }
           '@
           # Interact solely via owned Windows screen/UIA/OS keyboard.
-          # External loopback CDP reads fixed chart-coordinate getters only.
-          # No WebView2/DOM mutation, synthetic input, renderer hooks or source edits.
+          # No JavaScript, inspector, DOM hooks or renderer mutation.
+          # Pixel coordinates derive independently from OS geometry and pinned LWC formulas.
           function Report-W32EUI([object]$proc,[string]$phase){
             $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
             $elements=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
@@ -218,13 +217,10 @@ jobs:
             Shortcut-W32E 0x56
             $null=Wait-W32EUI $proc 'Editor changed. Compile again.'
           }
-          . (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w32e-p1c-raster.ps1')
+          . (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w32e-p1c-os-raster.ps1')
           $build=[IO.File]::ReadAllText((Join-Path $env:RUNNER_TEMP 'w32e-package.txt'))
           $stage=Join-Path $build 'KTRADE-WailsPortable'
           $shell=$null
-          $listener=[Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0)
-          $listener.Start();$debugPort=$listener.LocalEndpoint.Port;$listener.Stop()
-          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-address=127.0.0.1 --remote-debugging-port='+$debugPort
           try{
             $shell=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
             $until=(Get-Date).AddSeconds(55)
@@ -282,29 +278,19 @@ jobs:
             Click-W32EUI $shell 'Toggle Pine indicator pane'
             $null=Wait-W32EUI $shell 'No Pine plots applied.'
             Click-W32EUI $shell 'Pine Editor'
-            $debugListener=@(Get-NetTCPConnection -LocalPort $debugPort -State Listen -ErrorAction Stop)
-            if($debugListener.Count -ne 1 -or $debugListener[0].LocalAddress -notin @('127.0.0.1','::1')){throw 'W32E_P1C_DEBUG_NOT_LOOPBACK'}
-            $debugOwner=Get-CimInstance Win32_Process -Filter ('ProcessId='+$debugListener[0].OwningProcess)
-            if($debugOwner.Name -cne 'msedgewebview2.exe'){throw 'W32E_P1C_DEBUG_NOT_NATIVE_WEBVIEW2'}
-            $cursor=$debugOwner
-            for($hop=0;$hop -lt 8 -and $cursor.ProcessId -ne $shell.Id;$hop++){$cursor=Get-CimInstance Win32_Process -Filter ('ProcessId='+$cursor.ParentProcessId);if($null -eq $cursor){throw 'W32E_P1C_DEBUG_OWNER_LOST'}}
-            if($cursor.ProcessId -ne $shell.Id){throw 'W32E_P1C_DEBUG_NOT_OWNED_BY_WAILS'}
-            $d0=Read-W32ECoordinates 'baseline'
-            $baseline=Capture-W32EMapped $shell $d0
+            $baseline=Capture-W32EOS $shell 'NO_PLOT'
             $source="//@version=6`nindicator(`"W32E native raster witness`", overlay=false)`nplot(ta.sma(close, 3), `"Average`", color=color.fuchsia, linewidth=3)"
             Set-W32EPine $shell $source
             Click-W32EUI $shell 'Add to chart'
             $null=Wait-W32EUI $shell 'Pine plots applied.'
             Start-Sleep -Milliseconds 1000
-            $d1=Read-W32ECoordinates 'applied'
-            $applied=Capture-W32EMapped $shell $d1
-            Check-W32EExactRaster $baseline $applied $d0 $d1
+            $applied=Capture-W32EOS $shell 'PLOT_APPLIED'
+            Check-W32EOSRaster $baseline $applied
             $finalCaps=Invoke-RestMethod -Uri ($uri+'/api/operator/capabilities') -TimeoutSec 10
             if($finalCaps.mode -cne 'PAPER_STOPPED' -or $finalCaps.paper_orders_enabled -ne $false -or $finalCaps.live_orders_enabled -ne $false -or $finalCaps.strategy_execution_enabled -ne $false -or $finalCaps.paper_accounting_enabled -ne $false){throw 'W32E_P1C_FINANCIAL_AUTHORITY_CHANGED'}
             Write-Output '::notice::W32E_P1C_POST_RASTER_FINANCIAL_CAPABILITIES_DISARMED=PASS'
 
           }finally{
-            Remove-Item Env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS -ErrorAction SilentlyContinue
             if($null -ne $shell){
               $shell.Refresh()
               if(!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero){[void][W32EClose]::PostMessage($shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)}
