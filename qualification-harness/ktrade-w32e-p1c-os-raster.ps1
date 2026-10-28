@@ -46,7 +46,15 @@ function Capture-W32EOS([object]$proc,[string]$phase){
         if($px.G-$px.R -ge 40 -and $px.B-$px.R -ge 25 -and $px.G -gt 65 -and $px.R -lt 80){$teal.Add([pscustomobject]@{x=$x;y=$y})}
         if($px.R -eq 42 -and $px.G -eq 46 -and $px.B -eq 57){$columns[$x]++;$rows[$y]++}
       }}
-      $result[$kind]=[pscustomobject]@{width=$w;height=$h;hash=$hash;fuchsia=$fuchsia;teal=$teal;border_columns=$columns;border_rows=$rows;left=$left;top=$top}
+      $runs=0
+      if($kind -ceq 'volume'){
+        $occupied=New-Object bool[] $w
+        foreach($point in $teal){$occupied[$point.x]=$true}
+        $was=$false
+        foreach($occupiedColumn in $occupied){if($occupiedColumn -and !$was){$runs++};$was=$occupiedColumn}
+      }
+      Write-Host ('W32E_P1C_CAPTURE_'+$phase+'_'+$kind+'='+(@{width=$w;height=$h;left=$left;top=$top;hash=$hash;fuchsia=$fuchsia.Count;teal=$teal.Count;teal_column_runs=$runs;chart_top=$chartTop;scale=$scale}|ConvertTo-Json -Compress))
+      $result[$kind]=[pscustomobject]@{width=$w;height=$h;hash=$hash;fuchsia=$fuchsia;teal=$teal;teal_runs=$runs;border_columns=$columns;border_rows=$rows;left=$left;top=$top}
     }finally{$gfx.Dispose();$bmp.Dispose()}
   }
   return [pscustomobject]$result
@@ -54,7 +62,7 @@ function Capture-W32EOS([object]$proc,[string]$phase){
 function Check-W32EOSRaster([object]$before,[object]$after){
   if($before.scale -ne $after.scale){throw 'W32E_P1C_DPI_CHANGED'}
   foreach($kind in @('pine','volume')){foreach($key in @('left','top','width','height')){if($before.$kind.$key -ne $after.$kind.$key){throw ('W32E_P1C_GEOMETRY_CHANGED_'+$kind+'_'+$key)}}}
-  if($before.volume.hash -cne $after.volume.hash){throw ('W32E_P1C_VOLUME_RASTER_CHANGED_before_'+$before.volume.hash+'_after_'+$after.volume.hash)}
+  $volumeUnchanged=$before.volume.hash -ceq $after.volume.hash
   if($before.pine.fuchsia.Count -ne 0 -or $after.pine.fuchsia.Count -lt 80 -or $after.volume.fuchsia.Count -ne 0){throw 'W32E_P1C_PLOT_COLOR_ISOLATION_FAILED'}
   $scale=$after.scale;$pane=$after.pine
   # UIA independently anchors pane and header button. The pinned CSS has
@@ -114,6 +122,8 @@ function Check-W32EOSRaster([object]$before,[object]$after){
     if($near.Count -gt 0){$volumeBars++}
   }
   if($volumeBars -ne 30){throw ('W32E_P1C_NATIVE_VOLUME_BAR_COUNT_'+$volumeBars)}
+  if($before.volume.teal_runs -ne 30 -or $after.volume.teal_runs -ne 30){throw ('W32E_P1C_NATIVE_VOLUME_RUNS_before_'+$before.volume.teal_runs+'_after_'+$after.volume.teal_runs)}
+  if(!$volumeUnchanged){throw ('W32E_P1C_VOLUME_RASTER_CHANGED_before_'+$before.volume.hash+'_after_'+$after.volume.hash)}
   Write-Output ('W32E_P1C_EXACT_RASTER_PROOF='+(@{source='1c399965d8ab88a42e25f9997e0db15dec15e6b0';mapped_points=$hits;displaced_negative_hits=$negative;warmup_positions_blank=$warmup;max_nearest_pixel_distance=($errors|Measure-Object -Maximum).Maximum;physical_tolerance=$radius;scale=$scale;baseline_pine_pixels=$before.pine.fuchsia.Count;applied_pine_pixels=$after.pine.fuchsia.Count;volume_pine_pixels=$after.volume.fuchsia.Count;native_volume_bars_unchanged=$volumeBars;volume_png_before=$before.volume.hash;volume_png_after=$after.volume.hash;pine_png_sha256=$after.pine.hash;pine_width=$pane.width;pine_height=$pane.height;oracle='independent pinned LWC 4.1.0 formulas with OS UIA DPI and neutral axis-border geometry';input='Win32/UIA/clipboard';capture='Windows Graphics.CopyFromScreen';browser_inspector=$false;runtime_javascript=$false}|ConvertTo-Json -Compress))
   Write-Output '::notice::W32E_P1C_NATIVE_28_POINT_COORDINATES_AND_VOLUME_RASTER_IDENTITY=PASS'
 }

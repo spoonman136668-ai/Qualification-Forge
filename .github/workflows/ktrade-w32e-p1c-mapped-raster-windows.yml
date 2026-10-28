@@ -242,6 +242,11 @@ jobs:
             if($c.mode -cne 'PAPER_STOPPED' -or $c.paper_orders_enabled -ne $false -or $c.live_orders_enabled -ne $false -or $c.strategy_execution_enabled -ne $false -or $c.paper_accounting_enabled -ne $false){throw 'W32E_PAPER_FINANCIAL_AUTHORITY_NOT_DISARMED'}
             $bars=Invoke-RestMethod -Uri ($uri+'/api/candles?product=BTC-USDC&tf=1m') -TimeoutSec 15
             if($bars.success -ne $true -or @($bars.candles).Count -ne 30){throw 'W32E_ORIGINAL_CHART_SEALED_30_BARS_FAILED'}
+            for($i=0;$i -lt 30;$i++){
+              $row=$bars.candles[$i]
+              if([double]$row.open -ne 99+$i -or [double]$row.high -ne 103+$i -or [double]$row.low -ne 97+$i -or [double]$row.close -ne 100+$i -or [double]$row.volume -ne 10+$i){throw 'W32E_P1C_ORIGINAL_GO_OHLCV_DIFFERS'}
+              if($i -gt 0 -and [long]$row.time-[long]$bars.candles[$i-1].time -ne 60){throw 'W32E_P1C_ORIGINAL_GO_TIME_ALIGNMENT_DIFFERS'}
+            }
             $src="//@version=6`nindicator(`"W32E native sealed SMA`", overlay=false)`nplot(ta.sma(close, 3), `"Average`", color=color.fuchsia, linewidth=3)"
             $request=@{code=$src;symbol='BTC-USDC';timeframe='1m';limit=300}|ConvertTo-Json -Compress
             $overlay=Invoke-RestMethod -Uri ($uri+'/api/pine/overlay') -Method Post -ContentType 'application/json' -Body $request -TimeoutSec 15
@@ -278,6 +283,13 @@ jobs:
             Click-W32EUI $shell 'Toggle Pine indicator pane'
             $null=Wait-W32EUI $shell 'No Pine plots applied.'
             Click-W32EUI $shell 'Pine Editor'
+            # Resizing to the visible editor retains bar spacing. Reload the
+            # selected market through its genuine native control at the final
+            # geometry so baseline and apply both show the entire 30-bar range.
+            Click-W32EUI $shell 'BTCUSDC'
+            Click-W32EUI $shell 'BTC-USDC'
+            $null=Wait-W32EUI $shell 'BTCUSDC' 8
+            Start-Sleep -Milliseconds 1000
             $baseline=Capture-W32EOS $shell 'NO_PLOT'
             $source="//@version=6`nindicator(`"W32E native raster witness`", overlay=false)`nplot(ta.sma(close, 3), `"Average`", color=color.fuchsia, linewidth=3)"
             Set-W32EPine $shell $source
