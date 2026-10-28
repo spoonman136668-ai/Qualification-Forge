@@ -1,0 +1,541 @@
+{
+  "schema": "ktrade.rb3.integration-ancestry-readonly.v1",
+  "observed_date": "2026-10-28",
+  "repository": "spoonman136668-ai/ktrade",
+  "main": {
+    "sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "tree": "8b43e35338f9be645a9fbb5a79f14c3c6ab328e3",
+    "protected": false,
+    "required_checks": 0,
+    "active_rulesets": 0,
+    "protection_observation": "GitHub branch and rulesets read; no authority to merge"
+  },
+  "candidate": {
+    "sha": "8881e7603facbcd761c66addf286b6a1f138e1d6",
+    "tree": "ab851e1d0ac54ab9f15068bed7b59ea08897bbc1",
+    "ahead": 431,
+    "behind": 0,
+    "cumulative_approval": false,
+    "live_armed": false
+  },
+  "owner_contracts": [
+    "docs/rebuild/RB1_SINGLE_TRACK_CONTRACT.md",
+    "docs/rebuild/RB2_PRODUCT_COMPLETION_AND_COMPETITIVE_ACCEPTANCE.md",
+    "docs/rebuild/RB3_WAILS_CODEX_WEB_OWNER_DECISION_20261024.md"
+  ],
+  "verified_contiguous_open_draft_stack": {
+    "first_pr": 111,
+    "last_pr": 183,
+    "count": 70,
+    "number_gaps": [
+      164,
+      169,
+      173
+    ],
+    "base": "7acdfa2365f5074527ea6b716fd2e89fdbf30d92",
+    "head": "8881e7603facbcd761c66addf286b6a1f138e1d6",
+    "prs": [
+      {
+        "pr": 111,
+        "base": "7acdfa2365f5074527ea6b716fd2e89fdbf30d92",
+        "head": "4fa71a347090648ce219a278ae54af3c943b22fa",
+        "title": "RB2: bind new portable PAPER session to executable-owned durable custody",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 112,
+        "base": "4fa71a347090648ce219a278ae54af3c943b22fa",
+        "head": "b66b1608741d53732099c69c7e05e37acae63f18",
+        "title": "RB3 W13: qualification-only Wails PAPER fixture and full GUI lifecycle (stacked on #111)",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 113,
+        "base": "b66b1608741d53732099c69c7e05e37acae63f18",
+        "head": "08d4771f3b146a54cb3b308644fd894d5d8e5ac5",
+        "title": "W15: fix Pine indicator price/pane series owner (W15D/W15E Windows qualified)",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 114,
+        "base": "08d4771f3b146a54cb3b308644fd894d5d8e5ac5",
+        "head": "0d12d79d3c43c2ae007b7888f4f7abd941272369",
+        "title": "RB3 W17B: synthetic 695-file legacy-data parity, safe rollback and migration refusal",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 115,
+        "base": "0d12d79d3c43c2ae007b7888f4f7abd941272369",
+        "head": "8ff8cac406c380aceb679d5ee8072ea7a854cef5",
+        "title": "W17C1: protect unknown data against unsafe portable rollback",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 116,
+        "base": "8ff8cac406c380aceb679d5ee8072ea7a854cef5",
+        "head": "281c7cf794f4b6acc5de93360099d32472097682",
+        "title": "W17C2: preserve opaque installed target files and expose incomplete historical migration coverage",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 117,
+        "base": "281c7cf794f4b6acc5de93360099d32472097682",
+        "head": "04c936fb1ccb8e52951d75cca53dc74ff5bba543",
+        "title": "W17C3: escrow every historical source file before synthetic portable migration",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 118,
+        "base": "04c936fb1ccb8e52951d75cca53dc74ff5bba543",
+        "head": "8bae69a1b814391d9425b2d99043897f51df0e9e",
+        "title": "W17C4: reconcile historical omissions into verified inactive synthetic custody",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 119,
+        "base": "8bae69a1b814391d9425b2d99043897f51df0e9e",
+        "head": "a371715c099ee3daaf69b824e1fa6bcfee208aea",
+        "title": "W17C5: open restored historical Pine v5/v6 in the actual Go application API",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 120,
+        "base": "a371715c099ee3daaf69b824e1fa6bcfee208aea",
+        "head": "a2217ac51e8c375a69c024fa51cc274a232f66b8",
+        "title": "W17C6: bound restored Pine metadata to the real Wails read-only desktop",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 121,
+        "base": "a2217ac51e8c375a69c024fa51cc274a232f66b8",
+        "head": "ee7c474e0697bb9a83c8b967cfc02ccbe06dbf3b",
+        "title": "W17C8: restore Pine v5/v6 to real Monaco, edit/save and cold reopen safely",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 122,
+        "base": "ee7c474e0697bb9a83c8b967cfc02ccbe06dbf3b",
+        "head": "8dae8c2724b2215011178f05b9d48357364b3c10",
+        "title": "W17C9: prove allowlisted browser favorites transfer across rotating Go loopback origins",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 123,
+        "base": "8dae8c2724b2215011178f05b9d48357364b3c10",
+        "head": "22ab22ce08fb0e92b53fb3d899081eb664f0b7c8",
+        "title": "W17D0: preserve read-only Wails chart origin over cold restart",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 124,
+        "base": "22ab22ce08fb0e92b53fb3d899081eb664f0b7c8",
+        "head": "57c73e38cdd6001eaa85b7cff82604a2989eba49",
+        "title": "W17D1: persist original chart indicator favorites in real WebView2 cold starts",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 125,
+        "base": "57c73e38cdd6001eaa85b7cff82604a2989eba49",
+        "head": "1e4c8820875324a04c93fd7c23948ea5fd4f7417",
+        "title": "W17D1A: native-accessible chart favorite and cold Wails UIA evidence",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 126,
+        "base": "1e4c8820875324a04c93fd7c23948ea5fd4f7417",
+        "head": "e35a7a48c3214803f8be9a24478eeaad5dcf045e",
+        "title": "W17D2: recovery bridge for one proof-bound legacy WebView2 favorites origin",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 127,
+        "base": "e35a7a48c3214803f8be9a24478eeaad5dcf045e",
+        "head": "48e2f24b24651655cdb12caa2fd29e4cd4c6beb9",
+        "title": "W17D3: prove old-port favorites transfer in the same real Wails WebView2 profile",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 128,
+        "base": "48e2f24b24651655cdb12caa2fd29e4cd4c6beb9",
+        "head": "b448d577f89f86b2facc6a7f205fad116d876cd7",
+        "title": "W17D4: preserve original chart timeframe across Wails WebView2 restarts",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 129,
+        "base": "b448d577f89f86b2facc6a7f205fad116d876cd7",
+        "head": "10b036f34e8800108cbc4175ca1480c89fb263c1",
+        "title": "W17D5: persist original chart volume pane layout in WebView2",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 130,
+        "base": "10b036f34e8800108cbc4175ca1480c89fb263c1",
+        "head": "4bd4217b2870f3e9eebbabc6fe99aa09ea099fe6",
+        "title": "W17D6: original Wails chart horizontal-line drawings and cold persistence",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 131,
+        "base": "4bd4217b2870f3e9eebbabc6fe99aa09ea099fe6",
+        "head": "81bf13e33e0ec6a1fa73102e423af7b65232761b",
+        "title": "W17D7: real chart-coordinate two-point trendlines with guarded persistence",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 132,
+        "base": "81bf13e33e0ec6a1fa73102e423af7b65232761b",
+        "head": "bacaea4c52228ea89a3bb8dda579b9104b3a1e05",
+        "title": "W17D8: clip trendlines to original chart plot and redraw on pan/zoom/resize",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 133,
+        "base": "bacaea4c52228ea89a3bb8dda579b9104b3a1e05",
+        "head": "dee76619281f670b752159fe3f91ecbbde3525bb",
+        "title": "W17D9: prevent cross-market history and live-feed contamination",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 134,
+        "base": "dee76619281f670b752159fe3f91ecbbde3525bb",
+        "head": "c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5",
+        "title": "W18A: fresh proof-bound Wails candidate outside TEMP",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 135,
+        "base": "c9fbe65ee5bbaf8cc668524b2820aecc28f21bd5",
+        "head": "ec2b20ff06ac0111fdb77059dfe611f513e51f35",
+        "title": "W18B: keep fresh candidate chart origin stable across cold restarts",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 136,
+        "base": "ec2b20ff06ac0111fdb77059dfe611f513e51f35",
+        "head": "8257f1410fa844e7868ad5772050ed7d2e867921",
+        "title": "W19A: make unsupported Pine stops explicit and cold checkpoints deterministic",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 137,
+        "base": "8257f1410fa844e7868ad5772050ed7d2e867921",
+        "head": "ba72465c606216d985122ae1d2b8f33938fc9eca",
+        "title": "W21: clear stale OHLC and show unknown prices before verified data",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 138,
+        "base": "ba72465c606216d985122ae1d2b8f33938fc9eca",
+        "head": "8f879fe6e98c3eef2a4ca6b0893897cd29493459",
+        "title": "W22: verify candidate chart/editor/strategy assets before launching",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 139,
+        "base": "8f879fe6e98c3eef2a4ca6b0893897cd29493459",
+        "head": "36635f32f860eca3cacc7a9ede87b13d5f335858",
+        "title": "W23: preserve the candidate root in portable ZIPs",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 140,
+        "base": "36635f32f860eca3cacc7a9ede87b13d5f335858",
+        "head": "3b16cf3816cb2e12ba581fd14050172418889249",
+        "title": "W24: select verified paper histories for read-only review",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 141,
+        "base": "3b16cf3816cb2e12ba581fd14050172418889249",
+        "head": "471a04176e4d0d2c14979951aa38ce3e25c67541",
+        "title": "W25: select paper history in the native application",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 142,
+        "base": "471a04176e4d0d2c14979951aa38ce3e25c67541",
+        "head": "74d0f6a10f6d12615018a2fc81a2d76c956d4d70",
+        "title": "W26: extract only verified fresh candidate ZIPs into new isolated roots",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 143,
+        "base": "74d0f6a10f6d12615018a2fc81a2d76c956d4d70",
+        "head": "9774043a769e8d9865c7b60dfdab95691f562b05",
+        "title": "W27: verified side-by-side release selection and rollback without modifying owner data",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 144,
+        "base": "9774043a769e8d9865c7b60dfdab95691f562b05",
+        "head": "ec5c16d64dab19b6ccb389bca999917915f44c28",
+        "title": "W28A: require genuinely distinct verified binaries before upgrade/rollback continuity trials",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 145,
+        "base": "ec5c16d64dab19b6ccb389bca999917915f44c28",
+        "head": "cbe4aa2acae70534a87905fd9ac915cbee9eafac",
+        "title": "W28B: native two-version release proof and read-only Wails source identity",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 146,
+        "base": "cbe4aa2acae70534a87905fd9ac915cbee9eafac",
+        "head": "40bde6f352a4ca9ecdd41d1064cb0044295137b8",
+        "title": "W28C: block release switch/rollback while a verified Wails process is active",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 147,
+        "base": "40bde6f352a4ca9ecdd41d1064cb0044295137b8",
+        "head": "914b03cc117fd387b1fda1d23d489103f385a705",
+        "title": "W28D: escrow all stopped portable user data before version compatibility trials",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 148,
+        "base": "914b03cc117fd387b1fda1d23d489103f385a705",
+        "head": "9a525c0ac1b1481c1ba9532080d52e4c94ac5b39",
+        "title": "W28E: safe stopped Pine/strategy cold restore with original native reader reopen",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 149,
+        "base": "9a525c0ac1b1481c1ba9532080d52e4c94ac5b39",
+        "head": "b332d3c556290791108b63912da8e207f09718a2",
+        "title": "W28F: verify original browser preference and cold paper readers across real release sources",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 150,
+        "base": "b332d3c556290791108b63912da8e207f09718a2",
+        "head": "76df3e29cbe89403eeef6075ba4484a488312484",
+        "title": "W28G: explicit origin-aware chart preferences export/import in real KTRADE UI",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 151,
+        "base": "76df3e29cbe89403eeef6075ba4484a488312484",
+        "head": "67052a04eda51320da7d99dcafa65b6c22a4708d",
+        "title": "W28H: explicit stopped PAPER history read-only source nomination and original full reconciliation",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 152,
+        "base": "67052a04eda51320da7d99dcafa65b6c22a4708d",
+        "head": "a282385f776295eb0013c9904e6a9306595c06f1",
+        "title": "W28I: actual Wails desktop chart verification button and origin-pinned original DOM handshake",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 153,
+        "base": "a282385f776295eb0013c9904e6a9306595c06f1",
+        "head": "0e6d2c4073e20bc05096299e3ac96c6671fa333b",
+        "title": "W28J: compose selected stopped release, original cold escrow and explicit history review",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 154,
+        "base": "0e6d2c4073e20bc05096299e3ac96c6671fa333b",
+        "head": "56ce927f086910e31a827d705b5b9fec7ac36a35",
+        "title": "W28K: repair actual Go /chart template and Wails probe using original W17 saved-setting readers",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 155,
+        "base": "56ce927f086910e31a827d705b5b9fec7ac36a35",
+        "head": "7301a2a1117ed2ad556cc69fbe50595195d16848",
+        "title": "W28L: install desktop chart verifier before the startup readiness event",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 156,
+        "base": "7301a2a1117ed2ad556cc69fbe50595195d16848",
+        "head": "960caae504e19c4ceb27e681e59eaa50199a06fd",
+        "title": "W29: exclusive fresh installation of verified portable releases",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 157,
+        "base": "960caae504e19c4ceb27e681e59eaa50199a06fd",
+        "head": "f744558d2380dca1f7e1d67aa44990f8552d2907",
+        "title": "W29A: verify installed launch and enforce quarantine at shell startup",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 158,
+        "base": "f744558d2380dca1f7e1d67aa44990f8552d2907",
+        "head": "2ef4b548b1776ade4a05f99a3943568c88c1f725",
+        "title": "W29B: owned Windows shortcuts and data-preserving fresh uninstall",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 159,
+        "base": "2ef4b548b1776ade4a05f99a3943568c88c1f725",
+        "head": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+        "title": "W29C: self-contained setup package and installed maintenance",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 160,
+        "base": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+        "head": "608f1290745b84e882a9f6a8b64793cb6cf012a5",
+        "title": "W30: stopped installed update and rollback with retained version state",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 161,
+        "base": "608f1290745b84e882a9f6a8b64793cb6cf012a5",
+        "head": "f5d9a1e7859b5b62b36a37e9b6469c372a177a02",
+        "title": "W30A: qualified version-aware Windows shortcuts across update and rollback",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 162,
+        "base": "f5d9a1e7859b5b62b36a37e9b6469c372a177a02",
+        "head": "69a1161ab44e62fcc0ee58b8454f7190b8b7bed5",
+        "title": "W30B: qualified uninstall of all verified retained application versions",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 163,
+        "base": "69a1161ab44e62fcc0ee58b8454f7190b8b7bed5",
+        "head": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+        "title": "W31: native setup interface over verified installer and maintenance",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 165,
+        "base": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+        "head": "4e1ff0a3c483865f277ebf708484c436a14b6067",
+        "title": "W32A: qualified chart candle validation and bounded Windows renderer proof",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 166,
+        "base": "4e1ff0a3c483865f277ebf708484c436a14b6067",
+        "head": "7b0f86ccb0b9c9df10f9b14e21703be4f6824505",
+        "title": "W32B: original Pine Compile, header rejection, and installed Save/Open qualification",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 167,
+        "base": "7b0f86ccb0b9c9df10f9b14e21703be4f6824505",
+        "head": "f6274921f064f8590a3d02c2118b6ff9e50d916a",
+        "title": "W32C: qualified original Go Pine pane rendering and stale-result rejection",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 168,
+        "base": "f6274921f064f8590a3d02c2118b6ff9e50d916a",
+        "head": "9e5ff8fa1086c18bb862bb66ae834886c824cab9",
+        "title": "W32D: qualified dedicated Pine pane and persisted Windows layout",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 170,
+        "base": "9e5ff8fa1086c18bb862bb66ae834886c824cab9",
+        "head": "1c399965d8ab88a42e25f9997e0db15dec15e6b0",
+        "title": "W32E-P2: native Pine qualified with current production market data",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 171,
+        "base": "1c399965d8ab88a42e25f9997e0db15dec15e6b0",
+        "head": "de03335dc0052401d6afff2be54b4223cf941c4a",
+        "title": "W33A: qualified native paper fill, Stop, cold replay and duplicate-Start custody fix",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 172,
+        "base": "de03335dc0052401d6afff2be54b4223cf941c4a",
+        "head": "ee9052b373bcf14084d70b8606ea8b262753a713",
+        "title": "W33B: qualified production PAPER fill and committed-crash cold replay",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 174,
+        "base": "ee9052b373bcf14084d70b8606ea8b262753a713",
+        "head": "54920c9800c86ca3d0dfa9498b619a142ed18859",
+        "title": "W33C-P0: original SELL FIFO accounting, cold replay and native owner refusal",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 175,
+        "base": "54920c9800c86ca3d0dfa9498b619a142ed18859",
+        "head": "77f749bd0b9d5b1649c3f71271a1bd2327f3a70d",
+        "title": "W33C-P1: distinguish market close from conditional Pine exit signals",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 176,
+        "base": "77f749bd0b9d5b1649c3f71271a1bd2327f3a70d",
+        "head": "9914fe83db8fb76f9e0bd2beddb0a6a6d4daa46c",
+        "title": "W33C-P2: original ledger-bound read-only full SELL review, no execution admission",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 177,
+        "base": "9914fe83db8fb76f9e0bd2beddb0a6a6d4daa46c",
+        "head": "ecd4d156d4854835a4680a38322c37f861364e08",
+        "title": "W33C-P3: qualified native final-close intent and original owner custody review",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 178,
+        "base": "ecd4d156d4854835a4680a38322c37f861364e08",
+        "head": "06e03ab996961b1387474e969b1a2d000a194c36",
+        "title": "W33C-P4: qualified guarded PAPER SELL settlement and Stop custody",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 179,
+        "base": "06e03ab996961b1387474e969b1a2d000a194c36",
+        "head": "699fe5886d7d1d20dc19a88883fea6a506f8cd08",
+        "title": "W33C-P6: terminate the owned Windows engine when its shell crashes",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 180,
+        "base": "699fe5886d7d1d20dc19a88883fea6a506f8cd08",
+        "head": "75384a9cf11de5039369cc42b322747e251a6e2a",
+        "title": "W33C-P7: show current paper unrealized PnL and equity from the original ledger",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 181,
+        "base": "75384a9cf11de5039369cc42b322747e251a6e2a",
+        "head": "b9094e9579d3079255a89c5af55677dcbe2dcbd5",
+        "title": "W33C-P8: report an unexpected engine exit and close the native window",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 182,
+        "base": "b9094e9579d3079255a89c5af55677dcbe2dcbd5",
+        "head": "81c20f6f4636a870a0126208cf1c9cf0c1dcab64",
+        "title": "W33C-P9: continue native paper round trips within the same guarded owner",
+        "stage": "DRAFT_OPEN"
+      },
+      {
+        "pr": 183,
+        "base": "81c20f6f4636a870a0126208cf1c9cf0c1dcab64",
+        "head": "8881e7603facbcd761c66addf286b6a1f138e1d6",
+        "title": "W33C-P10: quarantine fourth PAPER SELL after interrupted risk checkpoint",
+        "stage": "DRAFT_OPEN"
+      }
+    ]
+  },
+  "independent_bounded_evidence": {
+    "p8_engine_crash_windows_run": 40777079407,
+    "p9_real_native_four_fill_windows_run": 40782827965,
+    "p10_pending_checkpoint_windows_run": 40781844398
+  },
+  "integration_status": "HOLD_UNPROTECTED_MAIN_AND_CUMULATIVE_RELEASE_NOT_QUALIFIED",
+  "limitations": [
+    "70 PRs are a contiguous tail from #111; the entire 431-commit ancestry includes earlier work and cannot be certified from these PRs alone.",
+    "This is a source identity and integration-scope inventory, not overall release or LIVE readiness.",
+    "No modifications to KTRADE application or GitHub main are authorized or made."
+  ]
+}
