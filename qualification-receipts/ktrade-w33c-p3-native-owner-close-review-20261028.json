@@ -1,0 +1,201 @@
+{
+  "schema": "ktrade.w33c-p3.native-finalized-close-owner-review.v1",
+  "status": "PASS",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "commit": "ecd4d156d4854835a4680a38322c37f861364e08",
+    "tree": "20aa0733f9907c4492eb90b3afb21e3026bebd8f",
+    "branch": "feature/rb3-w33c-p3-native-owner-close-review-20261028",
+    "parent": "9914fe83db8fb76f9e0bd2beddb0a6a6d4daa46c",
+    "parent_tree": "5ef34e4a94f1c6b11eeaf97bc992a350917befcc",
+    "pull_request": 177,
+    "paths": [
+      "pkg/pine_compiler.go",
+      "pkg/pine_strategy.go",
+      "pkg/pine_compile_v2.go",
+      "pkg/pine_finalized_close.go",
+      "pkg/w33c_p3_finalized_close_test.go",
+      "internal/paperengine/owner.go",
+      "internal/paperengine/final_close_review.go",
+      "internal/paperengine/w33c_p3_owner_review_test.go",
+      "internal/papercustody/verify_review.go",
+      "cmd/ktrade/paper_strategy_preview_full.go",
+      "cmd/ktrade/paper_final_close_review_full.go",
+      "cmd/ktrade/w33c_p3_native_close_full_test.go",
+      "cmd/ktrade/paper_session_full.go",
+      "cmd/ktrade/paper_session_runner_full.go"
+    ]
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "witness": "83adc9fb3b868d27410965d28ff3e19b40c7283f",
+    "tree": "cff2e7bad8b20afea6a356318177f97c3dc17030",
+    "run": 40761102299,
+    "workflow": ".github/workflows/ktrade-w33c-p3-native-owner-review-windows.yml",
+    "job": 123072945975,
+    "conclusion": "success",
+    "url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40761102299",
+    "notices": [
+      "W33C_P3_EXACT_SOURCE_FOURTEEN_PATH_NATIVE_REVIEW=PASS",
+      "W33C_P3_NATIVE_FINALIZED_CLOSE_ORIGINAL_OWNER_RISK_CUSTODY_NO_SELL_ADMISSION=PASS",
+      "W33C_P3_FULL_GO_AND_WAILS_REGRESSION=PASS",
+      "W33C_P3_NO_BROKER_NO_SELL_ADMISSION_NO_OWNER_PROFILE_NO_BINARY_UPLOAD=PASS"
+    ],
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Checkout qualification witness",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Checkout pinned private KTRADE candidate",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Exact qualified P2 ancestry and fourteen native owner review paths",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Go Windows",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Native finalized compiler original owner custody and saved-source controller proof",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Full root tagged-app and nested Wails regression and vet",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Cleanup",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Go Windows",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Checkout pinned private KTRADE candidate",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Checkout qualification witness",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "full_proof_reused": false,
+    "private_checkout_cleanup": "PASS"
+  },
+  "behavior": {
+    "original_compiler": true,
+    "v2_validation_preserved": true,
+    "normal_historical_chart_backtest_unchanged": true,
+    "earlier_bar_close_remains_historical": true,
+    "final_confirmed_bar_close_emits_pending_native_intent": true,
+    "global_realtime_mode_changed": false,
+    "native_controller_reads_canonical_saved_source": true,
+    "exact_held_application_and_session_lease_handles_verified": true,
+    "active_worker_required": true,
+    "owner_uses_own_original_ledger_and_retained_admitted_entry_proof": true,
+    "owner_reauthenticates_server_mark_hash_time_product_price": true,
+    "original_guard_risk_v2_proof_verified_in_killed_temporary_inspection_guard": true,
+    "settled_exposure_equity_realized_pnl_crosschecked": true,
+    "verified_full_close_durably_stops_without_native_sell": true,
+    "original_unsupported_order_message_contract_preserved": true
+  },
+  "focused_tests": [
+    "TestW33CP3FinalizedCloseUsesNativeCompilerWithoutHistoricalFill",
+    "TestW33CP3FinalizedCloseKeepsUnsupportedKindsDistinct",
+    "TestW33CP3OwnerCloseReviewReadsOwnOriginalLedgerAndRisk",
+    "TestW33CP3SavedNativeCloseMatchesSoleFundedOwnerAndStopsWithoutSell"
+  ],
+  "native_controller_scenario": {
+    "data": "sealed synthetic 1m candles, five then six finalized bars",
+    "original_saved_pine": "v6 strategy: entry L at bar 4 qty 1; full close L at bar 5",
+    "initial_simulated_cash": "600",
+    "modeled_fee_bps": 100,
+    "buy_price": "40",
+    "buy_qty": "1",
+    "cash_after_original_buy": "559.6",
+    "later_authenticated_close": "45",
+    "native_owner_fill_count_after_review_and_stop": 1,
+    "settled_sell": false,
+    "original_risk_bound_stop_archive": true,
+    "interaction": "Go httptest and trusted internal calls; no Windows UIAutomation"
+  },
+  "checks": {
+    "focused_original_P0_P1_P2_P3": true,
+    "full_tagged_app_test": true,
+    "full_tagged_app_vet": true,
+    "full_root_tests": true,
+    "full_root_vet": true,
+    "full_nested_Wails_tests": true,
+    "full_nested_Wails_vet": true
+  },
+  "retained_failure": {
+    "run": 40760434880,
+    "job": 123070575940,
+    "witness": "d73e39aadd655966876e29c02547f8ffeba8a64d",
+    "source": "b18deaa50f244c5a0cbbfa9db4553085b51f1afa",
+    "tree": "21f8417984155f98144487f0932d700c36fc96bd",
+    "focused_step": "success",
+    "full_regression_step": "failure",
+    "failure": "Retained TestW19UnsupportedOrderDuringRunningStrategyDurablyStops rejected changed generic unsupported-order error wording.",
+    "correction": "Restored original STOPPED: unsupported Pine order prefix and kept verified-close detail only as an addition. Original test unchanged; complete Windows regression rerun on revised source, no failed-run full proof reuse."
+  },
+  "safety": {
+    "live_armed": false,
+    "native_owner_submit_buy_only": true,
+    "new_broker_route": false,
+    "real_broker_order_intent": false,
+    "owner_credentials": false,
+    "owner_installed_data": false,
+    "auto_resume": false,
+    "stale_lease_deletion": false,
+    "new_execution_controller": false,
+    "merge": false,
+    "signing": false,
+    "promotion": false,
+    "deployment": false,
+    "binary_upload": false
+  },
+  "limits": [
+    "No native owner SELL execution or risk SELL reauthorization: a positive full-close review is inert and the running path durably stops.",
+    "Only sealed synthetic Go execution tests; no native Wails/WebView2 UI interaction or current-public-data BUY-to-SELL acceptance.",
+    "No settled SELL checkpoint, native SELL fee/FIFO/realized-PnL round trip, SELL crash/restart, mid-commit or forced-shell-kill qualification.",
+    "No release/product-completion claim. Next implement controlled original-owner reduce-only SELL admission with guarded post-fill/custody proof, then qualify actual native UI and cold replay."
+  ],
+  "toolchain": {
+    "go": "1.25.0 windows/amd64",
+    "runner": "windows-2022",
+    "windows_image": "20261025.346.1",
+    "node_required": false,
+    "webview2_runtime_launched": false
+  },
+  "prior_P2_qualification": {
+    "run": 40735370869,
+    "witness": "421b8fd75146ac31ac5de83fa141890f4c7be3ec",
+    "conclusion": "success",
+    "receipt_commit": "f531826d821935fb79733df5bc87fcddb0d4f998"
+  }
+}
