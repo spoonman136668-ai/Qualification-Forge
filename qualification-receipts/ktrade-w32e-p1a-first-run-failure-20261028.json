@@ -1,0 +1,57 @@
+{
+  "schema": "ktrade.qualification-attempt.v1",
+  "gate": "W32E-P1A",
+  "conclusion": "FAIL_NOT_QUALIFIED",
+  "observed_at": "2026-10-28",
+  "app_repo": "spoonman136668-ai/ktrade",
+  "app_source_sha": "1c399965d8ab88a42e25f9997e0db15dec15e6b0",
+  "app_source_tree": "92b8b9c1c40bfeed6fc7931eb66e37065a023b06",
+  "unchanged_qualified_base": "9e5ff8fa1086c18bb862bb66ae834886c824cab9",
+  "qualify": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "workflow_commit": "569cdc1f67265bf416f96c439eafbbca8754cdb4",
+    "run_id": 40677080188,
+    "job_id": 122778126094,
+    "conclusion": "failure",
+    "successful_steps": [
+      "source/parent/three-path custody",
+      "Windows Go/Node setup",
+      "staged source/vendor/affected frontend tests",
+      "tagged W32E Go focused tests"
+    ],
+    "failed_step": "Test sealed fixture Windows-only build and original Go regressions",
+    "failure_details": [
+      {
+        "test": "TestW28HExplicitStoppedOriginalJournalReconcilesWithoutExecution",
+        "message": "W28H physical data root differs from selected root"
+      },
+      {
+        "test": "TestW28HNoImplicitSourceGuessAndOwnerLockFailClosed",
+        "message": "W28H physical data root differs from selected root"
+      }
+    ],
+    "skipped": [
+      "release-candidate fixture rejection and disposable pair build",
+      "native installed Wails/WebView2+original Go 30-bar/28-value server"
+    ]
+  },
+  "classification": "LIKELY_WINDOWS_RUNNER_TEMP_ALIAS_CONFIGURATION_NOT_CONFIRMED",
+  "basis": [
+    "Existing W28H physical-root verifier uses filepath.EvalSymlinks and compares to requested path.",
+    "Qualified W32D workflow explicitly set $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP before the full Go test and build steps.",
+    "W32E P1A new workflow did not normalize TEMP/TMP in the failing full regression step.",
+    "The suspected fix is witness-only; do not weaken W28H data root checks."
+  ],
+  "next": [
+    "On authorized Windows witness, normalize TEMP/TMP to RUNNER_TEMP for full Go test, disposable builder, and native Wails launch.",
+    "Re-run the exact source SHA with unmodified W28H tests and full root/nested Wails regression.",
+    "Do not proceed to renderer pixel claims until full Windows run succeeds."
+  ],
+  "constraints": {
+    "app_source_unchanged_since_attempt": true,
+    "accepted_ref_unchanged": true,
+    "owner_data_unchanged": true,
+    "trading_disabled": true,
+    "run_result_must_not_be_treated_as_pass": true
+  }
+}
