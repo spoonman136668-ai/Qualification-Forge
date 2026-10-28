@@ -68,7 +68,8 @@ function Check-W32EOSRaster([object]$before,[object]$after){
   # independently of fuchsia output. Require a unique, near-continuous edge.
   $edges=@()
   for($x=[int](100*$scale);$x -lt $pane.width-10*$scale;$x++){
-    if($pane.border_columns[$x] -ge $plotHeight*$scale*.85){$edges+=,$x}
+    # The default last-value axis label covers part of the neutral border.
+    if($pane.border_columns[$x] -ge $plotHeight*$scale*.60){$edges+=,$x}
   }
   if($edges.Count -lt 1 -or $edges.Count -gt [Math]::Ceiling(2*$scale)){throw ('W32E_P1C_PRICE_AXIS_BORDER_AMBIGUOUS_'+($edges -join ','))}
   $plotWidth=[double]$edges[0]/$scale
@@ -79,6 +80,7 @@ function Check-W32EOSRaster([object]$before,[object]$after){
   # Thirty finite timestamps including the two whitespace warm-up positions.
   # Expected values come independently from the 30 synthetic Go OHLCV bars.
   $radius=[int][Math]::Ceiling(2*$scale)
+  $lastPriceY=$chartTop+.2*$plotHeight*$scale
   $points=@();$hits=0;$negative=0;$errors=@()
   for($i=2;$i -lt 30;$i++){
     $x=($plotWidth-(29-$i+.5)*($plotWidth/30)-1)*$scale
@@ -87,6 +89,7 @@ function Check-W32EOSRaster([object]$before,[object]$after){
     $local=@($pane.fuchsia|Where-Object {[Math]::Abs($_.x-$x) -le $radius -and [Math]::Abs($_.y-$y) -le $radius})
     if($local.Count -gt 0){$hits++;$errors+=($local|ForEach-Object {[Math]::Sqrt([Math]::Pow($_.x-$x,2)+[Math]::Pow($_.y-$y,2))}|Measure-Object -Minimum).Minimum}
     $wrongY=if($y+20*$scale -lt $chartTop+$plotHeight*$scale){$y+20*$scale}else{$y-20*$scale}
+    if([Math]::Abs($wrongY-$lastPriceY) -le 2*$radius){$wrongY=$y+20*$scale}
     $wrong=@($pane.fuchsia|Where-Object {[Math]::Abs($_.x-$x) -le $radius -and [Math]::Abs($_.y-$wrongY) -le $radius})
     if($wrong.Count -gt 0){$negative++}
     $points+=@{bar=$i;expected_sma=$value;x=$x;y=$y;matched=$local.Count -gt 0;wrong_y_matched=$wrong.Count -gt 0}
@@ -94,7 +97,9 @@ function Check-W32EOSRaster([object]$before,[object]$after){
   $warmup=0
   for($i=0;$i -lt 2;$i++){
     $x=($plotWidth-(29-$i+.5)*($plotWidth/30)-1)*$scale
-    $warm=@($pane.fuchsia|Where-Object {[Math]::Abs($_.x-$x) -le $radius -and $_.y -gt $chartTop -and $_.y -lt $chartTop+$plotHeight*$scale})
+    # LWC defaults include a dashed horizontal last-price line. Its known
+    # row is unrelated to the two NA samples and is excluded only here.
+    $warm=@($pane.fuchsia|Where-Object {[Math]::Abs($_.x-$x) -le $radius -and $_.y -gt $chartTop -and $_.y -lt $chartTop+$plotHeight*$scale -and [Math]::Abs($_.y-$lastPriceY) -gt $radius})
     if($warm.Count -eq 0){$warmup++}
   }
   Write-Output ('W32E_P1C_NATIVE_POINTS='+($points|ConvertTo-Json -Compress))
