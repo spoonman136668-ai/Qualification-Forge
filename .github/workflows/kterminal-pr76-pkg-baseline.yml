@@ -1,0 +1,134 @@
+name: K-Terminal original main native pkg runtime regression witness
+on:
+  push:
+    branches: [qualification/kt-pr76-pkg-baseline-20261028]
+    paths: ['.github/workflows/kterminal-pr76-pkg-baseline.yml']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    if: >-
+      github.repository == 'spoonman136668-ai/Qualification-Forge' &&
+      github.actor == 'spoonman136668-ai' &&
+      github.ref == 'refs/heads/qualification/kt-pr76-pkg-baseline-20261028'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: pkg
+            source_sha: eb5d225ae73b698a59c68d840daf1ec678e1a0ec
+            test_scope: './pkg/...'
+    env:
+      EXPECTED_SHA: ${{ matrix.source_sha }}
+      EVIDENCE_LABEL: ${{ matrix.label }}
+      KT_TEST_SCOPE: ${{ matrix.test_scope }}
+      KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
+      KTERMINAL_LIVE_AUTHORITY: '0'
+      KTERMINAL_BROKER_ACCESS: '0'
+      KTERMINAL_PROMOTION: '0'
+      CI: 'true'
+      GOFLAGS: '-mod=readonly'
+      GOTOOLCHAIN: local
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Confirm immutable private Git read
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if ($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows') { throw 'UNAUTHORIZED_RUNNER' }
+          if ([string]::IsNullOrWhiteSpace($env:KTERMINAL_READ_TOKEN)) { throw 'NO_PRIVATE_READ_TOKEN' }
+          $headers = @{Accept='application/vnd.github+json';Authorization=('Bearer '+$env:KTERMINAL_READ_TOKEN)}
+          try {
+            $commit=Invoke-RestMethod -Method Get -Uri ('https://api.github.com/repos/Kboomllc/K-Terminal/commits/'+$env:EXPECTED_SHA) -Headers $headers -TimeoutSec 25
+            if ($commit.sha -cne $env:EXPECTED_SHA) { throw 'SOURCE_SHA_DRIFT' }
+          } catch { throw 'PRIVATE_SOURCE_UNAVAILABLE' }
+          finally { Remove-Variable commit,headers -ErrorAction SilentlyContinue }
+          Write-Host ('KT_IMMUTABLE_PRIVATE_SOURCE_READ=PASS LABEL='+$env:EVIDENCE_LABEL)
+      - name: Checkout exact candidate or baseline
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: Kboomllc/K-Terminal
+          ref: ${{ matrix.source_sha }}
+          token: ${{ secrets.KTERMINAL_READ_TOKEN }}
+          path: private-checkout
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Install existing Go 1.22 toolchain
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5
+        with:
+          go-version: '1.22'
+          cache: false
+      - name: Encrypt private compiler errors to one-time public key
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          $log=Join-Path $env:RUNNER_TEMP 'private-go-error.log'
+          $p=[Security.Cryptography.RSAParameters]::new()
+          $p.Modulus=[Convert]::FromBase64String('0LCzcNKnivcc+PcSxSxzOig98Id1eEHjzCwj2t8MtbJt0vYeExmw1o80XgLBDSen9Gh/wWTC0B1T1IGDKcvljkDo3K2K+ehcNtnkM9Us54It2XOWWWbaNQTkPNC86BtG/G5KQoGI25iVvIztzPhNxpTWId9wcMSHR5xmqQvB2BWDNFLy+gy3KwxKjJpagu6JEmn3lcaVAWL/qAkNI7Eui9ZeQL050T+nLSA4l/HRCuFSoRMY7thS3O305Na6jgEP3CWxSypy1ClLQeVjDaoNDGCSSkaRv12WN5Y/pONqBfRJ4brBdv9wXXDBgZg0cg4D8izRq1+4yXWosZNaJ6GVGw==')
+          $p.Exponent=[Convert]::FromBase64String('AQAB')
+          $rsa=[Security.Cryptography.RSA]::Create()
+          $rsa.ImportParameters($p)
+          function Send-EncryptedLog([string]$phase) {
+            if (-not (Test-Path -LiteralPath $log)) { throw 'DIAGNOSTIC_FILE_MISSING' }
+            $bytes=[System.IO.File]::ReadAllBytes($log)
+            $total=[Math]::Min($bytes.Length,3200)
+            $start=[Math]::Max(0,$bytes.Length-$total)
+            $num=[int][Math]::Ceiling($total/160.0)
+            Write-Host ('KT_DIAG_'+$phase+'_ENCRYPTED_PARTS='+$num)
+            for ($i=0; $i -lt $num; $i++) {
+              $offset=160*$i
+              $n=[Math]::Min(160,$total-$offset)
+              $chunk=[byte[]]::new($n)
+              [Array]::Copy($bytes,($start+$offset),$chunk,0,$n)
+              $sealed=$rsa.Encrypt($chunk,[Security.Cryptography.RSAEncryptionPadding]::OaepSHA256)
+              Write-Host ('KT_RSA_'+$env:EVIDENCE_LABEL+'_'+$phase+'_'+$i.ToString('D3')+'='+[Convert]::ToBase64String($sealed))
+            }
+          }
+          Push-Location -LiteralPath $root
+          try {
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'WRONG_CHECKOUT_SHA' }
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'INITIAL_DIRTY_CHECKOUT' }
+            $allGo=@(& git ls-files '*.go')
+            $graphify=@($allGo|Where-Object {$_ -like 'tools/graphify/*.go'})
+            $other=@($allGo|Where-Object {($_ -notlike 'tools/graphify/*.go') -and ($_ -notmatch '^(main\.go|g20c_acceptance_main\.go|cmd/|internal/|pkg/)')})
+            if($allGo.Count -ne 719 -or $graphify.Count -ne 4 -or $other.Count -ne 0){throw 'UNEXPECTED_GO_SOURCE_SCOPE'}
+            Write-Host 'KT_FULL_NATIVE_SCOPE=ROOT_CMD_INTERNAL_PKG;FOUR_INDEPENDENT_GRAPHIFY_PROGRAMS_EXCLUDED_FROM_SINGLE_PACKAGE_BUILD'
+            Write-Host ('KT_GO_VERSION='+(& go version))
+            $scope=@{root='.';cmd='./cmd/...';internal='./internal/...';pkg='./pkg/...'}
+            if(-not $scope.ContainsKey($env:EVIDENCE_LABEL) -or $scope[$env:EVIDENCE_LABEL] -cne $env:KT_TEST_SCOPE) { throw 'INVALID_TEST_SCOPE' }
+            $watch=[Diagnostics.Stopwatch]::StartNew()
+            & go test -count=1 -timeout 30m $env:KT_TEST_SCOPE *> $log
+            $watch.Stop()
+            $lines=Get-Content -LiteralPath $log -ErrorAction SilentlyContinue
+            $failedTests=@($lines|Where-Object{$_ -match '^--- FAIL:'}).Count
+            $failedPackages=@($lines|Where-Object{$_ -match '^FAIL\s+\S+'}).Count
+            $timeoutSeen=@($lines|Where-Object{$_ -match 'test timed out after|panic: test timed out'}).Count
+            $panicSeen=@($lines|Where-Object{$_ -match '^panic:|^fatal error:'}).Count
+            Write-Host ('KT_TEST_FAMILY='+$env:EVIDENCE_LABEL+' SECONDS='+[int]$watch.Elapsed.TotalSeconds+' FAILING_TESTS='+$failedTests+' FAILING_PACKAGES='+$failedPackages+' TIMEOUT_MARKERS='+$timeoutSeen+' PANIC_MARKERS='+$panicSeen)
+            $testExit=$LASTEXITCODE
+            Write-Host ('KT_FULL_NATIVE_WINDOWS_GO_SUITE='+$(if($testExit -eq 0){'PASS'}else{'FAIL'}))
+            if($testExit -ne 0){ Send-EncryptedLog 'fulltest' }
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_DIRTY_AFTER_DIAGNOSIS' }
+            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_SHA_CHANGED' }
+            Write-Host ('KT_SOURCE_UNCHANGED=PASS SHA='+$env:EXPECTED_SHA)
+            Write-Host 'KT_DIAGNOSTIC_TRANSPORT=ENCRYPTED_ONLY'
+            Write-Host 'KT_NATIVE_APPLICATION_ACCEPTANCE=NOT_GRANTED'
+            Write-Host 'KT_WPF_GUI=NOT_TESTED'
+            if($testExit -ne 0){ throw 'KT_SCOPED_FULL_NATIVE_GO_SUITE_FAILED' }
+            Write-Host 'KT_LIVE_TRADING=NONE'
+          } finally {
+            Pop-Location
+            $rsa.Dispose()
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+      - name: Delete private source from ephemeral runner
+        if: always()
+        shell: pwsh
+        run: |
+          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
+          if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction SilentlyContinue }
+          Write-Host 'KT_PRIVATE_CHECKOUT_DELETED=TRUE'
