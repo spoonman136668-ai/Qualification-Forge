@@ -108,6 +108,17 @@ jobs:
             $results.build=($LASTEXITCODE -eq 0)
             if(-not $results.build){Report-SafeDiagnostics 'BUILD' $log}
             Write-Host ('KTERMINAL_GO_BUILD='+$(if($results.build){'PASS'}else{'FAIL'}))
+            # These four Go files are individually invoked Graphify command programs,
+            # not one multi-file Go package. Preserve original source without build tags.
+            foreach($tool in @('g27_type_calls.go','g30_type_calls.go','g44_ast_call_witness.go')) {
+              & go run ('tools/graphify/'+$tool) --self-test *> $log
+              if($LASTEXITCODE -ne 0){Report-SafeDiagnostics 'GRAPHIFY_TOOL' $log;throw 'GRAPHIFY_STANDALONE_GO_SELFTEST_FAILED'}
+            }
+            $g31Binary=Join-Path $env:RUNNER_TEMP 'kterminal-g31-standalone-probe.exe'
+            & go build -o $g31Binary tools/graphify/g31_interpackage_calls.go *> $log
+            if($LASTEXITCODE -ne 0){Report-SafeDiagnostics 'GRAPHIFY_TOOL' $log;throw 'GRAPHIFY_G31_STANDALONE_BUILD_FAILED'}
+            Remove-Item -LiteralPath $g31Binary -Force -ErrorAction SilentlyContinue
+            Write-Host 'KTERMINAL_GRAPHIFY_FOUR_STANDALONE_GO_TOOLS=PASS'
             if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_MUTATED' }
             if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_HEAD_DRIFT' }
             Write-Host ('KTERMINAL_SOURCE_UNCHANGED=PASS EXACT_SHA='+$env:EXPECTED_SHA)
