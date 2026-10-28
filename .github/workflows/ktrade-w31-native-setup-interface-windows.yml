@@ -168,7 +168,7 @@ jobs:
          $h=[IntPtr]$element.Current.NativeWindowHandle
          if($h -eq [IntPtr]::Zero -or ![W30Native]::IsChild($process.MainWindowHandle,$h)){return $false}
          $class=W31-NativeClass $element
-         return ($class -match ('^(?:WindowsForms10\\.)?'+$kind+'(?:\\.|$)'))
+         return ($class -match ('^(?:WindowsForms10\.)?'+$kind+'(?:\.|$)'))
         }
         function W31-ReadPath([object]$setup){
          $element=Setup-PathField $setup
