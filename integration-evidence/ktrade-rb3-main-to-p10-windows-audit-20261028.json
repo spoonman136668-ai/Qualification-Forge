@@ -1,0 +1,74 @@
+{
+  "schema": "ktrade.rb3.integration-boundary-receipt.v1",
+  "date": "2026-10-28",
+  "audit_status": "PASS_SOURCE_CUSTODY_GRAPH_AND_MAIN_PROTECTION_READ",
+  "integration_decision": "HOLD_MAIN_UNPROTECTED_AND_FULL_PRODUCT_RELEASE_NOT_QUALIFIED",
+  "repository": "spoonman136668-ai/ktrade",
+  "main": {
+    "sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "tree": "8b43e35338f9be645a9fbb5a79f14c3c6ab328e3",
+    "protected": false,
+    "required_status_checks": 0,
+    "active_rulesets_observed": 0
+  },
+  "candidate": {
+    "sha": "8881e7603facbcd761c66addf286b6a1f138e1d6",
+    "tree": "ab851e1d0ac54ab9f15068bed7b59ea08897bbc1",
+    "ahead": 431,
+    "behind": 0,
+    "exact_changed_paths": 310
+  },
+  "draft_tail": {
+    "first_pr": 111,
+    "last_pr": 183,
+    "verified_count": 70,
+    "commit_span": 261,
+    "preceding_untouched_gap_commits": 170,
+    "open_drafts_at_manifest_snapshot": true,
+    "all_pr_ancestry_attached": true
+  },
+  "scope_path_counts": {
+    "templates/": 1,
+    "docs/": 4,
+    "cmd/": 53,
+    "internal/": 63,
+    ".github/": 2,
+    "tests/": 36,
+    "pkg/": 37,
+    "tools/": 81,
+    "windows/": 13,
+    "static/": 15
+  },
+  "witness": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "workflow_sha": "b151b4c653f28690693e2a74e473da8f21ea0848",
+    "run_id": 40785906088,
+    "job_id": 123158906597,
+    "conclusion": "success",
+    "runner": "github-hosted Windows-2022",
+    "all_steps_success": true,
+    "manifest_path": "integration-evidence/ktrade-rb3-main-to-p10-tail-20261028.json",
+    "code_path": "qualification-harness/ktrade-rb3-integration-ancestry-readonly.ps1",
+    "read_only": true
+  },
+  "related_bounded_qualifications": {
+    "p8_native_crash": 40777079407,
+    "p9_native_paper_four_fill": 40782827965,
+    "p10_original_ledger_fault_full_windows": 40781844398
+  },
+  "release_blockers": [
+    "GitHub main branch is not protected; no required checks or rulesets found at observed branch state.",
+    "261 commits in #111-183 tail cannot certify the 170 earlier commits of the 431-commit cumulative stack.",
+    "No independent RB3 whole-candidate release acceptance across full Pine/chart/UI, historical data compatibility, live-ready adapter with mocks, packaging/installer/update/rollback, operator security, performance and Windows installed synthetic profile matrix.",
+    "No candidate integration review/CI authority on a protected target ref."
+  ],
+  "forbidden": [
+    "merge",
+    "alter main/protected refs",
+    "sign or release binaries",
+    "touch installed user app data",
+    "submit live broker orders",
+    "arm LIVE"
+  ],
+  "next": "Establish protected main + independent authorized merge checks, then source-pin one whole-product Windows candidate acceptance against the 431-commit tip. Do not use PAPER receipts to certify untested product-wide features."
+}
