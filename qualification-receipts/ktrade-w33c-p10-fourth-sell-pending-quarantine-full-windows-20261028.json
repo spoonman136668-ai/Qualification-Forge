@@ -1,0 +1,39 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W33C-P10",
+  "date": "2026-10-28",
+  "status": "PASS_FULL_WINDOWS_GO_WAILS_REGRESSION_BOUNDED_FAULT_INJECTION",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 183,
+    "sha": "8881e7603facbcd761c66addf286b6a1f138e1d6",
+    "tree": "ab851e1d0ac54ab9f15068bed7b59ea08897bbc1",
+    "parent": "81c20f6f4636a870a0126208cf1c9cf0c1dcab64",
+    "changed_paths": [
+      "internal/paperengine/w33c_p10_fourth_sell_pending_test.go"
+    ],
+    "production_code_modified": false
+  },
+  "witness": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "focused_run": 40780659564,
+    "full_run": 40781844398,
+    "workflow_sha": "40b1b8b613549c13282d0dc11056f1b7bb0143ca",
+    "conclusion": "success",
+    "every_step_success": true
+  },
+  "validated": [
+    "exact source SHA/tree/parent and one test-only path",
+    "original fourth SELL coordinator fill settled before injecting pending checkpoint evidence",
+    "original FIFO state four fills flat inventory cash 608.1 USDC realized PnL 8.1 USDC modeled fees 1.9 USDC",
+    "owner STOPPED and blocked from paper ordering; writer retained; cold ledger reader rejects pending",
+    "duplicate SELL or later BUY refused, pending retained and no auto-rearm",
+    "focused native Go fault test and vet on Windows",
+    "fresh full tagged cmd/ktrade Go test+vet; full root Go test+vet; nested Wails Go test+vet"
+  ],
+  "limits": [
+    "P10 is controlled Go fault-injection with fixed test economics, not a live or real WebView2 fourth-fill proof.",
+    "P9 real native four-fill UX remains independent and not qualified; #40781446706 failed at Windows UI visibility preflight although original Go test/build and AST passed.",
+    "No release, broker credentials, installed owner data, LIVE authority, PR merge or risk bypass."
+  ]
+}
