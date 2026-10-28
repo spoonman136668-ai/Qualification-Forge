@@ -1,4 +1,4 @@
-name: KTRADE RB3 exact whole-candidate source and disposable installed package Windows
+name: KTRADE RB3 exact whole-candidate source and disposable installed package Windows corrected strict array custody
 permissions:
   contents: read
 on:
