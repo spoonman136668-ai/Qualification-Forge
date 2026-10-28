@@ -68,7 +68,7 @@ jobs:
           function Report-SafeDiagnostics([string]$phase, [string]$file) {
             $txt = if(Test-Path -LiteralPath $file){Get-Content -LiteralPath $file -Raw -ErrorAction Stop}else{''}
             $categories = [ordered]@{
-              MOD_GRAPH_OUT_OF_SYNC = 'updates to go.mod needed|module updates disabled|go:.*go mod tidy|missing go.sum entry|go.mod is not tidy|go.sum is not tidy'
+              MOD_GRAPH_OUT_OF_SYNC = 'updates to go.mod needed|module updates disabled|go:.*go mod tidy|missing go.sum entry'
               DEPENDENCY_FETCH = 'no required module provides package|module .* not found|failed to download|proxy.golang.org|TLS handshake|i/o timeout|dial tcp|connection refused'
               SOURCE_COMPILE_ERROR = 'undefined:|redeclared in this block|cannot use |cannot refer to |not enough arguments|too many arguments|does not implement|invalid operation|syntax error'
               VERSION_COMPATIBILITY = 'requires go >=|go.mod requires|unsupported version|invalid go version|not supported in Go'
@@ -111,7 +111,7 @@ jobs:
               if ($s -match '^#\s+.*$|^.*\.go:\d+:\d+:') { return 'GO_COMPILER_DIAGNOSTIC_OTHER' }
               return 'UNCLASSIFIED_PRIVATE_FAILURE'
             }
-            & go test -vet=off -run '^
+            & go test -vet=off -run '^$' -count=1 -timeout 5m ./... *> $log
             $results.compile=($LASTEXITCODE -eq 0)
             Write-Host ('KTERMINAL_ALL_PACKAGE_TEST_COMPILE='+$(if($results.compile){'PASS'}else{'FAIL'}))
             if (-not $results.compile) { Write-Host ('KTERMINAL_TEST_COMPILE_FAILURE_CLASS='+(Get-Category $log)); Report-SafeDiagnostics 'TEST_COMPILE' $log }
@@ -129,44 +129,6 @@ jobs:
             $results.tidy=($LASTEXITCODE -eq 0)
             Write-Host ('KTERMINAL_GO_MOD_VERIFY='+$(if($results.tidy){'PASS'}else{'FAIL'}))
             if (-not $results.tidy) { Write-Host ('KTERMINAL_MODULE_VERIFY_FAILURE_CLASS='+(Get-Category $log)); Report-SafeDiagnostics 'MODULE_VERIFY' $log }
-            if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_MUTATED' }
-            if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_HEAD_DRIFT' }
-            Write-Host ('KTERMINAL_SOURCE_UNCHANGED=PASS EXACT_SHA='+$env:EXPECTED_SHA)
-            Write-Host 'KTERMINAL_FULL_RUNTIME_TESTS=NOT_RUN_IN_THIS_JOB'
-            Write-Host 'KTERMINAL_WPF_GUI=NOT_TESTED'
-            Write-Host 'KTERMINAL_TRADING_EXECUTION=NONE'
-            Write-Host 'KTERMINAL_PRIVATE_ARTIFACT_PUBLICATION=NONE'
-            if(-not ($results.compile -and $results.vet -and $results.build)) { throw 'KTERMINAL_NATIVE_COMPILE_OR_VET_FAILED' }
-          } finally {
-            Pop-Location
-            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
-          }
-
-      - name: Remove private checkout from ephemeral Windows workspace
-        if: always()
-        shell: pwsh
-        run: |
-          $root=Join-Path $env:GITHUB_WORKSPACE 'private-checkout'
-          if(Test-Path -LiteralPath $root){Remove-Item -LiteralPath $root -Force -Recurse -ErrorAction SilentlyContinue}
-          Write-Host 'KTERMINAL_PRIVATE_SOURCE_ARTIFACTS=NONE'
- -count=1 -timeout 5m ./... *> $log
-            $results.compile=($LASTEXITCODE -eq 0)
-            Write-Host ('KTERMINAL_ALL_PACKAGE_TEST_COMPILE='+$(if($results.compile){'PASS'}else{'FAIL'}))
-            if (-not $results.compile) { Write-Host ('KTERMINAL_TEST_COMPILE_FAILURE_CLASS='+(Get-Category $log)) }
-            & go vet ./... *> $log
-            $results.vet=($LASTEXITCODE -eq 0)
-            Write-Host ('KTERMINAL_GO_VET='+$(if($results.vet){'PASS'}else{'FAIL'}))
-            if (-not $results.vet) { Write-Host ('KTERMINAL_VET_FAILURE_CLASS='+(Get-Category $log)) }
-            & go build ./... *> $log
-            $results.build=($LASTEXITCODE -eq 0)
-            Write-Host ('KTERMINAL_GO_BUILD='+$(if($results.build){'PASS'}else{'FAIL'}))
-            if (-not $results.build) { Write-Host ('KTERMINAL_BUILD_FAILURE_CLASS='+(Get-Category $log)) }
-            # Go's read-only module graph is a common cross-version failure;
-            # inspect module health without changing the checked-out source.
-            & go mod tidy -diff *> $log
-            $results.tidy=($LASTEXITCODE -eq 0)
-            Write-Host ('KTERMINAL_GO_MOD_TIDY_DIFF_CLEAR='+$(if($results.tidy){'PASS'}else{'FAIL'}))
-            if (-not $results.tidy) { Write-Host ('KTERMINAL_TIDY_FAILURE_CLASS='+(Get-Category $log)) }
             if (@(& git status --porcelain --untracked-files=all).Count -ne 0) { throw 'SOURCE_MUTATED' }
             if ((& git rev-parse HEAD).Trim() -cne $env:EXPECTED_SHA) { throw 'SOURCE_HEAD_DRIFT' }
             Write-Host ('KTERMINAL_SOURCE_UNCHANGED=PASS EXACT_SHA='+$env:EXPECTED_SHA)
