@@ -1,0 +1,46 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W33C-P9-source",
+  "status": "PASS_BOUNDED_NATIVE_GO_CONTINUING_OWNER_REGRESSION_NOT_REAL_WEBVIEW2_FOUR_FILL",
+  "date": "2026-10-28",
+  "application": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pull_request": 182,
+    "sha": "81c20f6f4636a870a0126208cf1c9cf0c1dcab64",
+    "tree": "ebf8872d142e8e0fb6748467a134ac7e0054cabd",
+    "parent": "b9094e9579d3079255a89c5af55677dcbe2dcbd5",
+    "exact_paths": [
+      "cmd/ktrade/next_entry_full_test.go",
+      "cmd/ktrade/paper_session_runner_full.go",
+      "internal/paperengine/final_close_review.go",
+      "internal/paperengine/final_close_submit.go",
+      "internal/paperengine/next_entry.go",
+      "internal/paperengine/next_entry_test.go",
+      "internal/paperengine/owner.go",
+      "internal/paperexit/review.go"
+    ]
+  },
+  "windows": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "run_id": 40776031542,
+    "job_id": 123125440050,
+    "workflow_sha": "7aa4039fd0bb88d3f3772ccad6e11e7652fb9061",
+    "conclusion": "success",
+    "all_steps_success": true
+  },
+  "checks": [
+    "exact candidate source and tree, immutable parent and eight changed-path scope",
+    "fresh original Go full root and nested Wails regression and vet, including P9 continuing-session native Go tests",
+    "original Go next-entry requires same active paper owner, original worker and writer and original completed close risk-bound checkpoint",
+    "same finalized-bar duplicate cannot create additional fill or checkpoint",
+    "source-bound two-round-trip accounting and rejection paths",
+    "new source compiled with production-only Go/Wails tags without synthetic qualification fixture",
+    "scratch source checkout and test binaries disposed"
+  ],
+  "limits": [
+    "No current-public-market real Wails/WebView2 four-fill qualification from this run.",
+    "P8 independent original engine crash warning and open-position cold-owner witness remains separately unqualified pending repaired run #40777079407.",
+    "No broker calls, owner installed data, LIVE authority, PR merge, release or permanent runner/controller action."
+  ],
+  "next_gate": "P9 real native WebView2 four-fill two-cycle original owner using current independently verified public finalized candles, exact sealed ledger/fees/PnL, duplicate checks and Stop/cold; independently finish P8 warning/crash custody."
+}
