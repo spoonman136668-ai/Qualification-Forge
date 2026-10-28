@@ -1,0 +1,181 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W32C",
+  "status": "PASS_BOUNDED_ORIGINAL_GO_RENDERER_AND_NATIVE_EDITOR",
+  "date": "2026-10-28",
+  "timezone": "Etc/UTC",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "sha": "f6274921f064f8590a3d02c2118b6ff9e50d916a",
+    "tree": "37a45aa80e82758e329e96833f33cda9986b2ae2",
+    "base_sha": "7b0f86ccb0b9c9df10f9b14e21703be4f6824505",
+    "branch": "feature/rb3-w32c-native-pine-panes-20261028",
+    "draft_pr": 167,
+    "changed_paths": [
+      "pkg/pine_overlay_model.go",
+      "pkg/pine_overlay_model_v2.go",
+      "static/pine_plot_renderer.js",
+      "templates/chart.tmpl",
+      "tests/rb3_w32c_pine_renderer.test.cjs",
+      "tests/historical_pine_editor_chart_wiring.test.cjs",
+      "cmd/ktrade/rb3_w32c_overlay_full_test.go"
+    ]
+  },
+  "changes": [
+    "Use original Go pane-model plots with original color/width and exact candle-indexed NA values; normalize infinities consistently with existing raw-plot JSON NA behavior.",
+    "Share rendering and HTTP current-request checks between original Monaco Add to chart and builtin indicator controls; suppress late results after source/model revision, market, reload generation or superseding request changes.",
+    "Validate all pane/plot rows before allocation, retain prior display on allocation failure, remove series through original chart owner, clear overlays/markers on market reload and clear obsolete Pine markers.",
+    "Preserve line, stepline, area, histogram/columns, circles and segmented linebr presentation paths. Unsupported styles/line widths fail visibly; only listed bounded fixtures have renderer acceptance."
+  ],
+  "full_source_proof": {
+    "witness_sha": "429a380ebea3a6e59260c3dc3669fd2819b12c1a",
+    "run_id": 40663419736,
+    "job_id": 122731830129,
+    "overall_conclusion": "failure",
+    "source_step": "success",
+    "focused_step": "success",
+    "full_regression_vet_step": "success",
+    "renderer_step": "failure",
+    "native_editor_step": "skipped",
+    "focused_node": {
+      "pass": 40,
+      "fail": 0
+    },
+    "commands": [
+      "node --test tests/rb3_w32a_original_chart_candles.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/pine_library_compat_browser.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/historical_pine_editor_chart_wiring.test.cjs",
+      "go test -mod=readonly -count=1 -run TestRB3W32BHeader ./pkg",
+      "go test -mod=readonly -tags ktrade_full -count=1 -run 'Test(RB3W32CNative|RB3W32CNonfinite|RB3W32B|RB2EditorPineCompilerShares|PineLibrary)' ./cmd/ktrade",
+      "root and tools/wails-pilot, separately: go test -mod=readonly -count=1 ./...; go vet -mod=readonly ./..."
+    ],
+    "reuse_scope": "Only completed successful source/focused/full regression steps reused. The failed renderer run is not browser/native acceptance."
+  },
+  "final_proof": {
+    "witness_sha": "02485b9ceae7bbb0081457e1785297958c1ce234",
+    "run_id": 40665204403,
+    "job_id": 122737844567,
+    "conclusion": "success",
+    "all_job_steps_success": true,
+    "workflow": ".github/workflows/ktrade-w32c-pine-panes-windows.yml",
+    "harness": "qualification-harness/ktrade-w32c-renderer.cjs",
+    "focused_node": {
+      "pass": 40,
+      "fail": 0
+    },
+    "renderer": {
+      "schema": "ktrade.w32c.original-go-renderer.v1",
+      "browser": "156.0.4314.42",
+      "template_sha256": "e6664d84f88cc7f485386c9693870acf285a0d27145b9756c5e7b5bc7198932c",
+      "rows": 30,
+      "na_prefix": 2,
+      "price_plot_pixel_hits": 28,
+      "secondary_plot_pixel_hits": 28,
+      "original_go_http": true,
+      "external_requests": 0,
+      "financial_actions": 0,
+      "live_armed": false,
+      "scope": "Windows Edge against original Go HTTP handlers with test-only synthetic transport; separate shipping WebView2 lifecycle proof"
+    },
+    "scope": [
+      "Real original Go handlePineOverlay fetch/parse/CompilePineToIndicatorV2/Eval/pane-model/JSON request path; test-only HTTP transport seals public market requests to synthetic OHLCV, without an environment override in production builds. Production engine never compiles _test.go.",
+      "Independent SMA(3) expectations over 30 finalized synthetic rows, versions 5 and 6, both overlay modes; first two bars NA and all 28 later values match original Go results, with native color and line width retained.",
+      "Original saved user strategy review uses same native evaluator: final-bar inert long-entry proposal price 129/qty 1 and original overlay last SMA 128. REVIEW_ONLY, OrdersEnabled=false and LiveArmed=false. No paper ledger/account is started.",
+      "Actual Windows headful Microsoft Edge, original template/Monaco/LightweightCharts and user product selection, visible editor code click/keyboard input and Add to chart. Original Go executes each browser POST rather than replaying canned plot JSON. No chart/editor function replacement.",
+      "Real chart logical indexes prove two missing warm-up points and all 28 exact timestamps/values; 28 price-chart and 28 secondary-chart plot pixel hits at original time/price coordinates. LightweightCharts 4.1.0 data() enumerates fulfilled rows, so logical NA checks use dataByIndex().",
+      "Separate source-bound installed shipping Wails/WebView2 editor regression: exact installed template/renderer hashes, original source/PID/Go-engine custody, positive nonce and strict PAPER_STOPPED, physical native editing/copy-back, v5/v6 Compile, invalid source rejection, durable Save/Open and exact cold-reopen source/revision bytes.",
+      "Installed app runtime PATH excludes Go and Node. Normal original zero-exit close and child/lease cleanup; original native uninstall reports retained user data. Private source/packages and fixture dependency directory removed; no binary/cache artifact uploaded."
+    ],
+    "notices": [
+      "32C_EXACT_SOURCE_SEVEN_PATH_DELTA_AND_NATIVE_FOUNDATIONS=PASS\r",
+      "32B_FOCUSED_UI_AND_ORIGINAL_GO_PINE_COMPILER_INTERFACES=PASS\r",
+      "32C_PINNED_SOURCE_FULL_REGRESSION_REUSE_VERIFIED=PASS\r",
+      "32C_ORIGINAL_GO_HTTP_V5_V6_PANE_ALIGNMENT_REAL_EDGE_PIXELS=PASS\r",
+      "32C_ORIGINAL_GO_RENDERER_TEST_PROCESS_ZERO_EXIT=PASS\r",
+      "32C_EXACT_NATIVE_INSTALLED_PLOT_ASSETS=PASS\r",
+      "30_REAL_INSTALLED_ORIGINAL_WEBVIEW2_NONCE_AND_DISARM_W32B_FIRST=PASS\r",
+      "32B_REAL_WEBVIEW2_V5_V6_COMPILE_REJECTION_DURABLE_SAVE_OPEN_AND_NO_EXECUTION=PASS\r",
+      "30_REAL_INSTALLED_ORIGINAL_WEBVIEW2_NONCE_AND_DISARM_W32B_COLD=PASS\r",
+      "32B_REAL_INSTALLED_COLD_REOPEN_ORIGINAL_MONACO_LIBRARY_COMPILE_BYTE_PARITY=PASS\r",
+      "32B_EDITOR_QUALIFICATION_DISPOSABLE_NATIVE_UNINSTALL=PASS\r"
+    ],
+    "uninstall": {
+      "schema": "ktrade.retained-uninstallation.v1",
+      "tool_source_sha": "f6274921f064f8590a3d02c2118b6ff9e50d916a",
+      "selected_source_sha": "f6274921f064f8590a3d02c2118b6ff9e50d916a",
+      "selection_digest": "6f173704ee3d6250dd83491ee5ea5702b207d6d3ad1853ee05315340362aaad9",
+      "versions_removed": 1,
+      "code_files_removed": 178,
+      "completed": true,
+      "user_data_preserved": true,
+      "live_armed": false
+    },
+    "reuse_basis": "Final witness independently checks exact initial witness run/job and successful source/focused/full-regression steps, with same frozen application SHA/tree, dependencies, Go 1.25.0, Node 24.22.1 and Windows image. Focused tests, fresh package build, browser handler/canvas test and native installed editor regression all rerun. No failed renderer result reused as success."
+  },
+  "qualification_identity": {
+    "go": "1.25.0",
+    "node": "24.22.1",
+    "os": "Windows Server 2022",
+    "runner_image": "windows-2022/20261022.344.1",
+    "playwright_core": "1.56.1",
+    "tool_lock_sha256": "892dce40dbb3a92252a4a67f7ab19ec68e02af9e80d26b28c81875baadd97f97",
+    "lightweight_charts": "4.1.0",
+    "edge": "156.0.4314.42",
+    "webview2_runtime_version": "Not separately recorded; real installed WebView2 controls and nonce verified.",
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2,
+    "cgo": true
+  },
+  "packages": [
+    {
+      "schema": "ktrade.setup-build.v1",
+      "source_sha": "f6274921f064f8590a3d02c2118b6ff9e50d916a",
+      "manifest_sha256": "2ce5bd0095cf8778714ceaeabea461b63da01d7b7c3081898aaaccfbb2b7982d",
+      "archive_sha256": "fd4236f4b9058f065952072506311324af9daeeca3bfbf200407ac8bd8702849",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    }
+  ],
+  "preserved_failures": [
+    {
+      "run_id": 40663419736,
+      "job_id": 122731830129,
+      "witness_sha": "429a380ebea3a6e59260c3dc3669fd2819b12c1a",
+      "classification": "External browser input harness",
+      "failure": "Monaco view-line surface intercepts clicks directed at its internal textarea.",
+      "resolution": "Click visible code surface, send real browser input, verify exact actual editor text. Same application source."
+    },
+    {
+      "run_id": 40664443774,
+      "job_id": 122735279533,
+      "witness_sha": "15d319758cdb4b9ccb6fb7d795036b4e22ee12e1",
+      "classification": "Incorrect chart readback assertion",
+      "failure": "Expected 30 rows from data(), which returns 28 fulfilled rows for a two-bar NA prefix.",
+      "resolution": "Check all 30 logical positions via actual dataByIndex(): first two null, all 28 populated times and independently expected values exact. Retain 28 real canvas-coordinate hits. Original application source and alignment requirement unchanged.",
+      "upstream_contract_sources": [
+        "https://github.com/tradingview/lightweight-charts/blob/v4.1.0/src/api/series-api.ts",
+        "https://github.com/tradingview/lightweight-charts/blob/v4.1.0/src/model/data-layer.ts"
+      ]
+    }
+  ],
+  "safeguards": {
+    "paper_orders_enabled": false,
+    "live_orders_enabled": false,
+    "strategy_execution_enabled": false,
+    "paper_accounting_enabled": false,
+    "broker_orders_submitted": false,
+    "owner_installed_data_accessed": false,
+    "protected_refs_changed": false,
+    "merged": false,
+    "signed": false,
+    "promoted": false,
+    "release_authority": "none"
+  },
+  "limitations": [
+    "This is bounded original Go + Edge plot acceptance and separate shipping WebView2 editor regression. Deterministic plot pixels inside shipping WebView2 remain unqualified.",
+    "overlay=false currently shares the original secondary volume chart; dedicated per-indicator panes/layout persistence remain pending.",
+    "Only the listed SMA/NA/native strategy review fixtures are qualified; full Pine v5/v6 conformance, advanced styles, drawings/alerts and universal compatibility are not claimed.",
+    "Review-only proposal agreement does not qualify integrated paper ledger/fills/accounting/Stop/crash/restart.",
+    "No authenticated current operator market session, owner data migration, retail release, signing, promotion or live activation acceptance."
+  ]
+}
