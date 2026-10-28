@@ -87,6 +87,16 @@ jobs:
             foreach ($name in @('graph.json','graph.html','GRAPH_REPORT.md')) {
               if (-not (Test-Path -LiteralPath (Join-Path graphify-out $name))) { throw 'GRAPHIFY_MISSING_OUTPUT' }
             }
+            # Required identity input for original K-Terminal graph readers.
+            @(
+              'repository=Kboomllc/K-Terminal',
+              ('source_sha=' + $env:EXPECTED_SHA),
+              'graphify_version=0.9.92',
+              'graphify_wheel_sha256=9722846e627a369150107dd792145c3e3da46f7a7bff9f96b75da857c',
+              'extraction=code-only',
+              'labeling=no-llm'
+            ) | Set-Content -LiteralPath 'graphify-out/source-manifest.txt' -Encoding utf8
+            Write-Host 'KTERMINAL_GRAPHIFY_SOURCE_MANIFEST=PASS'
             & python -B tools/graphify/generate_readable_guide.py graphify-out *> $log
             if ($LASTEXITCODE -ne 0) { throw 'GRAPHIFY_GUIDE_FAILED' }
             & python -B tools/graphify/build_file_catalog.py graphify-out *> $log
