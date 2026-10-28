@@ -43,7 +43,7 @@ jobs:
           $uvx=Get-Command uvx -ErrorAction SilentlyContinue
           if(-not $uvx){throw 'QF_UVX_MISSING'}
           $v=(& uvx --from graphifyy==0.9.53 graphify --version 2>$null) -join ' '
-          if($LASTEXITCODE -ne 0 -or $v -notmatch '0\\.9\\.53'){throw 'QF_GRAPHIFY_VERSION_FAIL'}
+          if($LASTEXITCODE -ne 0 -or $v -notmatch '0\.9\.53'){throw 'QF_GRAPHIFY_VERSION_FAIL'}
           $vault=Join-Path $env:RUNNER_TEMP 'private-generated-obsidian'
           $log=Join-Path $env:RUNNER_TEMP 'private-extraction.log'
           Push-Location $root
