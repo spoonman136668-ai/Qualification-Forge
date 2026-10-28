@@ -1,0 +1,85 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W33C-P9-real-native-two-round-trips",
+  "date": "2026-10-28",
+  "status": "PASS_REAL_NATIVE_WEBVIEW2_CURRENT_PUBLIC_PAPER_FOUR_FILL_STOP_COLD",
+  "application": {
+    "repository": "spoonman136668-ai/ktrade",
+    "draft_pr": 182,
+    "head_sha": "81c20f6f4636a870a0126208cf1c9cf0c1dcab64",
+    "tree_sha": "ebf8872d142e8e0fb6748467a134ac7e0054cabd",
+    "parent_sha": "b9094e9579d3079255a89c5af55677dcbe2dcbd5",
+    "source_modified_during_witness": false
+  },
+  "witness": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "run_id": 40782827965,
+    "job_id": 123148538102,
+    "commit_sha": "e7371cfa7270fc83c46e3bd9148002ee196a938d",
+    "status": "completed",
+    "conclusion": "success",
+    "all_steps_success": true,
+    "runner": "github-hosted windows-2022",
+    "shell": "original Wails + WebView2",
+    "engine": "original production-tagged Go with no synthetic fixture",
+    "actual_native_ui_observed": true
+  },
+  "tests": [
+    "exact original app source/tree and eight-path diff from P8 parent",
+    "native PowerShell AST syntax preflight success",
+    "fresh original Go cmd/ktrade tagged and root regressions/vet, nested Wails regressions/vet success",
+    "original production pair compiled and manifest checks ensured no synthetic tags or broker transport",
+    "canonical user-owned Pine saved via real native Monaco and source revision checked",
+    "independent fresh Coinbase public finalized BTC-USDC 1m bar proof on each of four strictly increasing bars",
+    "single original Go owner and original active writer, simulated PAPER 600 USDC start and acknowledged 100bps fee",
+    "original guarded coordinator and TradeGuard settle exact BUY SELL BUY SELL, no browser-supplied trade order",
+    "FIFO cash/basis, realized PnL, modeled fees, original ledger hashes and immutable original risk checkpoints independently checked after each fill",
+    "same-bar repeated evaluation did not duplicate fills or checkpoint seals",
+    "original native Stop disabled paper and live orders, killed the original risk state",
+    "new Wails shell reopened read-only cold archived four-fill account, no automatic trading owner rearm",
+    "temporary production package, scratch source and child engine/WebView2 processes cleaned"
+  ],
+  "native_market": {
+    "product": "BTC-USDC",
+    "timeframe": "1m",
+    "order_sequence": [
+      "BUY",
+      "SELL",
+      "BUY",
+      "SELL"
+    ],
+    "fill_count": 4,
+    "initial_cash": "600",
+    "final_cash": "599.16104482",
+    "realized_pnl": "-0.83895518",
+    "modeled_fees": "0.81107768",
+    "final_position_qty": "0",
+    "final_basis": "0",
+    "source_sha256": "97135f63596f17475f308a918c1a2e147384f8d20217ebe241a62baa152e3975",
+    "source_id": "ktrade-reconcile-207edafccb6bf792f4181cae52cff72d",
+    "last_ledger_hash": "27bab9ca8c5f0601ceb7617532655bb26b734ccd50f67d73a72a5331282a0ec6",
+    "post_fourth_checkpoint_seal": "12ef4625486ff12656f1c0d05de7651f0465bc540eafde4897b37479a900886e",
+    "stopped_terminal_seal": "05aab60ab92bba2cf66df9d3eb28aba2336866e1b9946b8c0d247777337c0456",
+    "no_rearm_on_cold": true,
+    "live_orders_enabled": false,
+    "account_stopped": true,
+    "original_risk_killed_after_stop": true
+  },
+  "prior_failed_attempts": [
+    40777980497,
+    40779832660,
+    40781167858,
+    40781446706
+  ],
+  "prior_failures_are_not_passes": true,
+  "related_gates": {
+    "p8_native_engine_crash_success": 40777079407,
+    "p10_fourth_sell_interruption_full_windows_success": 40781844398
+  },
+  "limits": [
+    "This proves simulated PAPER source-bound native execution and Stop/cold custody, not live broker trading or profitable performance.",
+    "Native fixture used current Coinbase public market candles, no broker order, no installed owner profile or LIVE authority.",
+    "PR #182 remains draft/unmerged; no publication, signing, production release or live trading enablement authorized.",
+    "Full KTRADE product release, packaging, Pine compatibility and security acceptance are separate project-wide gates."
+  ]
+}
