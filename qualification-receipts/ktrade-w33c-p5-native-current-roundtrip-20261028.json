@@ -1,0 +1,90 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W33C-P5",
+  "result": "PASS",
+  "source_sha": "06e03ab996961b1387474e969b1a2d000a194c36",
+  "source_tree": "f281e59babfa2c317ad8a712e6c1aaf4b980136c",
+  "witness_sha": "fc54f794a50e87518b61e4cb2a8bb643ccf87dc0",
+  "run_id": 40769554910,
+  "job_id": 123102741128,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40769554910",
+  "execution": "production Windows Wails/WebView2, native UIA and keyboard/mouse, original anonymous public candles independently checked; disposable PAPER only",
+  "buy": {
+    "final_bar_hash": "5197871d86214f984d2833fb52ae464a845d7a0dd2f906d119a03baa26e67989",
+    "source_id": "ktrade-reconcile-df5c701c5efc9e5312bf49846efd980e",
+    "qty": "0.00025",
+    "basis": "20.5281288",
+    "gross": 20.32488,
+    "cash": "579.4718712",
+    "price": 81299.52,
+    "final_bar_time": 1793222160,
+    "order_id": "pine-preview-6ec55a506ec71c4e4a98b5a34ee53f9d637a062d032b8a4d",
+    "ledger_hash": "ebd54c39287ece7dd454843b1084637d89599ebfddc69692a5c3e5e0b7ab4e1c",
+    "fees": "0.2032488"
+  },
+  "round_trip": {
+    "position_qty": "0",
+    "cash": "599.6059962",
+    "sell_price": 81350,
+    "duplicate_fill_count": 2,
+    "buy_order_id": "pine-preview-6ec55a506ec71c4e4a98b5a34ee53f9d637a062d032b8a4d",
+    "stopped_checkpoint": {
+      "daily_pnl": -0.3940038,
+      "seal": "50a821c2f7fc19a7036dcb9ed2989c619795d594cc1a73d35e7af6dbc460c5b8",
+      "file_sha256": "eafaf5f1082b4a2bb5d4ebfbfd026f744430c05cd439d8e286a40320cd527a50",
+      "killed": true,
+      "equity": 599.6059962,
+      "exposure": 0,
+      "open_orders": 0
+    },
+    "source_sha256": "7e283649e34f59d25bb967d4e340eaec1284c5cb7682ef90617513937fb51099",
+    "ledger_hash": "6a5f40ec4327d309c446b4eee5cbbb14a70b8838fab7de0ee71fbe01519188dd",
+    "realized_pnl": "-0.3940038",
+    "sell_order_id": "pine-exit-759470f6dfd0a482f53d939910a42b62dd268fd24289c336",
+    "sell_checkpoint": {
+      "daily_pnl": -0.3940038,
+      "seal": "33fdc06a8b74dd5b34d9825212b6ca4a44714bdea10273232b0b8d6288e9069c",
+      "file_sha256": "69c5741ce66251b25efcdff02808c951d8b746ddf3463a0f9bba7e02f215fddd",
+      "killed": false,
+      "equity": 599.6059962,
+      "exposure": 0,
+      "open_orders": 0
+    },
+    "live_orders_enabled": false,
+    "buy_fee": 0.2032488,
+    "buy_price": 81299.52,
+    "sell_fee": 0.203375,
+    "basis": "0",
+    "script_id": "be55edca85bbd30f422d70d9366e005d",
+    "entry_open": 1793222100,
+    "source_id": "ktrade-reconcile-df5c701c5efc9e5312bf49846efd980e",
+    "fill_count": 2,
+    "fees": "0.4066238",
+    "exit_open": 1793222160
+  },
+  "cold_account": {
+    "snapshot_seal": "50a821c2f7fc19a7036dcb9ed2989c619795d594cc1a73d35e7af6dbc460c5b8",
+    "new_paper_enabled": false,
+    "source_id": "ktrade-reconcile-df5c701c5efc9e5312bf49846efd980e",
+    "native_cold_cash_and_realized_observed": true,
+    "old_account_stopped": true,
+    "cash": "599.6059962",
+    "new_fill_count": 0,
+    "execution_restore_eligible": false,
+    "fees": "0.4066238",
+    "realized_pnl": "-0.3940038"
+  },
+  "scope": [
+    "current source-bound native saved BUY and full SELL",
+    "100bps fee on each side; independent 8-decimal arithmetic; flat FIFO basis; original risk checkpoint",
+    "duplicate evaluation no extra fill/checkpoint",
+    "native Stop, normal close, cold same-account read-only replay; no auto rearm",
+    "same-source/image full Go proof reused from completed P4 run40767209088; frontend tests and production pair built again",
+    "owned synthetic package and PAPER scratch disposed; no release/binary upload"
+  ],
+  "limitations": [
+    "one bounded entry/full-close pair; no partial/conditional/reentry parity",
+    "no forced shell termination proof in this gate",
+    "no LIVE authority, broker credentials or orders, signing, promotion, merge or owner installed data"
+  ]
+}
