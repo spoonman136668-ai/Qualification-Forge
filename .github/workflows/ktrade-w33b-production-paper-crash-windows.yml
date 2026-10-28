@@ -1,5 +1,5 @@
 name: KTRADE W33B production PAPER active crash cold custody
-# Native completion uses stable owner state after normal UI refresh.
+# Native completion uses stable owner state; evidence readers share existing Windows writer handles.
 permissions:
   contents: read
 concurrency:

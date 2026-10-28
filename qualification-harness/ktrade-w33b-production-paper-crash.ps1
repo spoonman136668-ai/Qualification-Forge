@@ -174,7 +174,12 @@ function W33B-History {
  foreach($file in @(Get-ChildItem -LiteralPath $history -File -Recurse|Sort-Object FullName)){
   if(($file.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){throw 'W33B_UNSAFE_HISTORY_FILE'}
   $key=[IO.Path]::GetRelativePath($history,$file.FullName)
-  $map[$key]=(Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+  # Match Go's observational reader sharing: Get-FileHash disallows an
+  # existing Windows writer handle even when the writer permits reads.
+  $share=[IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete
+  $stream=[IO.File]::Open($file.FullName,[IO.FileMode]::Open,[IO.FileAccess]::Read,$share)
+  try{$map[$key]=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($stream)).ToLowerInvariant()}
+  finally{$stream.Dispose()}
  }
  return ($map|ConvertTo-Json -Compress)
 }
