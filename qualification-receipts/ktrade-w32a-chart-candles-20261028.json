@@ -1,0 +1,151 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W32A",
+  "status": "PASS_BOUNDED_SOURCE_AND_RENDERER",
+  "date": "2026-10-28",
+  "timezone": "America/New_York",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "sha": "4e1ff0a3c483865f277ebf708484c436a14b6067",
+    "tree": "2ac175a501d22c8fa714d60937a6bc97b7243208",
+    "base_sha": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+    "branch": "feature/rb3-w32a-validated-chart-candles-20261027",
+    "draft_pr": 165,
+    "changed_paths": [
+      "templates/chart.tmpl",
+      "tests/rb3_w32a_original_chart_candles.test.cjs"
+    ],
+    "initial_unqualified_sha": "32e891e0343bc0962312260c6e0785ec99f83d9c",
+    "followup_change": "Only correct VM-realm array equality in the test. Array type and zero-length assertions remain required; production candle validation is unchanged from initial draft."
+  },
+  "foundation": {
+    "source_sha": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+    "run_id": 40615926800,
+    "witness_sha": "5c2a6200f54b4a9e50c05e00ffe45f42a2b5b413",
+    "conclusion": "success"
+  },
+  "full_source_and_native_proof": {
+    "witness_sha": "c3044b4359f4fd48289f51cda6cf754c0ea73532",
+    "run_id": 40651438994,
+    "job_id": 122692191977,
+    "overall_conclusion": "success",
+    "source_sha": "4e1ff0a3c483865f277ebf708484c436a14b6067",
+    "source_tree": "2ac175a501d22c8fa714d60937a6bc97b7243208",
+    "focused_node_tests": {
+      "passed": 18,
+      "failed": 0
+    },
+    "tagged_candle_interface_command": "go test -mod=readonly -tags ktrade_full -count=1 -run 'Test(RB2|.*Candle)' ./cmd/ktrade",
+    "tagged_candle_package_seconds": 0.587,
+    "full_regression_commands": [
+      "root: go test -mod=readonly -count=1 ./...; go vet -mod=readonly ./...",
+      "tools/wails-pilot: go test -mod=readonly -count=1 ./...; go vet -mod=readonly ./..."
+    ],
+    "wails_backend_package_seconds": 5.034,
+    "native_scope": [
+      "Exact clean source/tree/three-commit ancestry and two-path delta.",
+      "Real distinct-source previous/current packages; original Windows setup GUI install, folder cancel, existing-root refusal and data-preserving uninstall.",
+      "Actual original Wails/WebView2 previous, updated and rolled-back native chart DOM/editor/preferences nonce-positive checks, source/PID/executable/Go-engine custody and strict PAPER_STOPPED capabilities.",
+      "Native GUI V1-to-V2 update, rollback No/Yes and cross-version status, all-retained-version uninstall, exact old/new data retention, owned shortcuts, tamper/active/writer/refusal cases.",
+      "No Go/Node on installed-app runtime PATH. Original normal production Go feed unchanged; this native witness is not deterministic candle-render acceptance."
+    ]
+  },
+  "final_renderer_proof": {
+    "witness_sha": "2d91c47beaf6cdb0bbb39d3ce38c72a9f4a8ebae",
+    "run_id": 40652953117,
+    "job_id": 122697118316,
+    "conclusion": "success",
+    "workflow": ".github/workflows/ktrade-w32a-chart-candles-windows.yml",
+    "harness": "qualification-harness/ktrade-w32a-renderer.cjs",
+    "result": {
+      "schema": "ktrade.w32a.renderer-witness.v1",
+      "browser": "156.0.4314.42",
+      "template_sha256": "c6b9bdc47bfbad7383e128d451b619403fc967eb8dca44267d386c1e4d1729e3",
+      "valid_rows": 30,
+      "candle_body_pixels": 30,
+      "cleared_green_pixels": 0,
+      "renderer": "Microsoft Edge loopback fixture; not installed Go feed or WebView2 candle acceptance",
+      "external_requests": 0,
+      "action_requests": 0,
+      "live_armed": false
+    },
+    "scope": [
+      "Exact proof-verified installed template and local pinned chart/editor assets, unmodified, loaded in genuine headful Windows Microsoft Edge.",
+      "Original loader and actual LightweightCharts series/canvas; no function or series replacement.",
+      "Thirty valid OHLCV rows and 30 candle-body pixel hits at original time/price coordinates; correct 5m fixture spacing through actual timeframe click.",
+      "Duplicate rows clear actual price/volume series and canvas (zero residual green pixels); unavailable feed stays empty; valid feed recovers through actual timeframe click.",
+      "Loopback-only synthetic HTTP and idle WebSocket fixture, blocked external browser requests, no action requests, disabled order controls.",
+      "Fresh native install and original native uninstall after renderer closes, zero renderer exit, all recorded data bytes retained."
+    ]
+  },
+  "qualification_identity": {
+    "go": "1.25.0",
+    "node": "24.22.1",
+    "os": "Windows Server 2022",
+    "runner_image": "windows-2022/20261022.344.1",
+    "goflags": "-p=2",
+    "gowork": "off",
+    "gomaxprocs": 2,
+    "cgo": true,
+    "playwright_core": "1.56.1",
+    "playwright_tool_lock_sha256": "892dce40dbb3a92252a4a67f7ab19ec68e02af9e80d26b28c81875baadd97f97",
+    "compiled_cache_uploaded": false,
+    "reuse_basis": "Final renderer witness independently verifies the exact successful initial full/native source run and its successful source/focused/tagged/full/native steps. Same immutable application source/tree/dependencies/toolchain/OS image. Only external renderer fixture changed; all strengthened renderer assertions and clean teardown rerun. No failed result reused as success."
+  },
+  "local_differential": {
+    "baseline_source_sha": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+    "baseline_scope": "Original loader extracted from pinned template excerpt, executed in VM by corrected test; not a Windows or whole-template runtime witness.",
+    "baseline_pass": 7,
+    "baseline_fail": 11,
+    "current_pass": 18,
+    "current_fail": 0
+  },
+  "packages": [
+    {
+      "schema": "ktrade.setup-build.v1",
+      "source_sha": "4e1ff0a3c483865f277ebf708484c436a14b6067",
+      "manifest_sha256": "399ecfcd4b0e8b170e10dfa9d3c0f79e1fc24a6e1e3ad9b70f8f4a6938817380",
+      "archive_sha256": "248ed0b63899ca1c2387ff3e56212f6e2feb499344cc9471884e1d680aca4333",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    }
+  ],
+  "preserved_failures": [
+    {
+      "scope": "Initial local test at 32e891e",
+      "classification": "Harness cross-realm prototype equality",
+      "result": "6 pass, 12 fail",
+      "resolution": "Compare Array.isArray and length, preserving true emptiness criterion."
+    },
+    {
+      "run_id": 40652246130,
+      "witness_sha": "cecc1cde290f071d49dcc09c55df6095dba8824f",
+      "job_id": 122694845558,
+      "conclusion": "failure",
+      "classification": "External fixture teardown ECONNRESET after renderer assertions",
+      "resolution": "Handle ECONNRESET only during browser shutdown; unexpected socket errors still fail. Publish PASS only after browser/server teardown. Final complete run exits zero."
+    }
+  ],
+  "safeguards": {
+    "paper_orders_enabled": false,
+    "live_orders_enabled": false,
+    "broker_orders_submitted": false,
+    "owner_installed_data_accessed": false,
+    "protected_refs_changed": false,
+    "merged": false,
+    "signed": false,
+    "released": false,
+    "private_source_or_binaries_uploaded": false,
+    "production_fixture_knob_added": false,
+    "webview2_debug_override_added": false
+  },
+  "limitations": [
+    "Bounded frontend validation and renderer qualification only. Issue #164 remains open.",
+    "Deterministic candle rendering used a separate Edge loopback fixture over exact installed assets. It is not an authenticated market feed, financial authority, or a candle-render witness inside the installed Wails WebView2 process.",
+    "Installed Wails proof covers original native UI lifecycle, DOM/editor/preferences handshake and strict stopped controls, not Pine execution or integrated candle/Pine/paper settlement.",
+    "Full original Pine v5/v6 editor/save/reload/overlay and isolated TradeGuard-paper-ledger/stop/restart acceptance remain pending.",
+    "Unsigned draft/unmerged; no owner-data migration or production acceptance."
+  ],
+  "next_gate": "W32 integrated installed original chart/Pine workflow, with honest separation of deterministic fixtures and Go execution authority."
+}
