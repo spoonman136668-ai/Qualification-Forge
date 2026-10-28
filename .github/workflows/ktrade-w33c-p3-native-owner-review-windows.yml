@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: b18deaa50f244c5a0cbbfa9db4553085b51f1afa
+          ref: ecd4d156d4854835a4680a38322c37f861364e08
           path: current
           fetch-depth: 6
           persist-credentials: false
@@ -38,8 +38,8 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'WRONG_RUNNER'}
           $root=Join-Path $env:GITHUB_WORKSPACE 'current'
-          if((& git -C $root rev-parse HEAD).Trim() -cne 'b18deaa50f244c5a0cbbfa9db4553085b51f1afa'){throw 'SOURCE_SHA_DRIFT'}
-          if((& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '21f8417984155f98144487f0932d700c36fc96bd'){throw 'SOURCE_TREE_DRIFT'}
+          if((& git -C $root rev-parse HEAD).Trim() -cne 'ecd4d156d4854835a4680a38322c37f861364e08'){throw 'SOURCE_SHA_DRIFT'}
+          if((& git -C $root rev-parse 'HEAD^{tree}').Trim() -cne '20aa0733f9907c4492eb90b3afb21e3026bebd8f'){throw 'SOURCE_TREE_DRIFT'}
           if((& git -C $root merge-base HEAD 9914fe83db8fb76f9e0bd2beddb0a6a6d4daa46c).Trim() -cne '9914fe83db8fb76f9e0bd2beddb0a6a6d4daa46c'){throw 'P0_ANCESTRY_DRIFT'}
           $actual=@(& git -C $root diff --name-only 9914fe83db8fb76f9e0bd2beddb0a6a6d4daa46c HEAD|Sort-Object)
           $expected=@('pkg/pine_compiler.go','pkg/pine_strategy.go','pkg/pine_compile_v2.go','pkg/pine_finalized_close.go','pkg/w33c_p3_finalized_close_test.go','internal/paperengine/owner.go','internal/paperengine/final_close_review.go','internal/paperengine/w33c_p3_owner_review_test.go','internal/papercustody/verify_review.go','cmd/ktrade/paper_strategy_preview_full.go','cmd/ktrade/paper_final_close_review_full.go','cmd/ktrade/w33c_p3_native_close_full_test.go','cmd/ktrade/paper_session_full.go','cmd/ktrade/paper_session_runner_full.go'|Sort-Object)
