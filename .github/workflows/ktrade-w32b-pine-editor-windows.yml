@@ -93,22 +93,24 @@ jobs:
          if($LASTEXITCODE -ne 0){throw 'W32B_ORIGINAL_PINE_COMPILE_LIBRARY_INTERFACES_FAILED'}
         }finally{Pop-Location}
         Write-Output '::notice::W32B_FOCUSED_UI_AND_ORIGINAL_GO_PINE_COMPILER_INTERFACES=PASS'
-    - name: Final frozen-source full Go and Wails regression vet before build
+    - name: Reuse exact completed W32B full Go and Wails source regression
       shell: pwsh
       run: |
         $ErrorActionPreference='Stop'
-        $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
-        $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-        foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
-         Push-Location $dir
-         try{
-          & go test -mod=readonly -count=1 ./...
-          if($LASTEXITCODE -ne 0){throw 'W32B_FINAL_FULL_REGRESSION_FAILED'}
-          & go vet -mod=readonly ./...
-          if($LASTEXITCODE -ne 0){throw 'W32B_FINAL_VET_FAILED'}
-         }finally{Pop-Location}
+        if($env:ImageVersion -cne '20261022.344.1' -or (& node --version).Trim() -cne 'v24.22.1' -or (& go env GOVERSION).Trim() -cne 'go1.25.0'){throw 'W32B_REGRESSION_REUSE_ENVIRONMENT_DRIFT'}
+        $headers=@{Authorization='Bearer '+$env:GITHUB_TOKEN;Accept='application/vnd.github+json'}
+        $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40656471085' -Headers $headers
+        if($run.status -cne 'completed' -or $run.head_sha -cne '120a38a1527336e8f7c9a9cd251b4048f7f0890d'){throw 'W32B_EXACT_FULL_SOURCE_WITNESS_DRIFT'}
+        $jobs=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/40656471085/jobs' -Headers $headers
+        $job=@($jobs.jobs|Where-Object {$_.id -eq 122708594747})
+        if($job.Count -ne 1){throw 'W32B_EXACT_FULL_SOURCE_JOB_ABSENT'}
+        foreach($name in @('Verify immutable source and completed native foundations','Stage unchanged assets parse shell script and run affected interfaces','Final frozen-source full Go and Wails regression vet before build')){
+         $step=@($job[0].steps|Where-Object {$_.name -ceq $name})
+         if($step.Count -ne 1 -or $step[0].conclusion -cne 'success'){throw ('W32B_EXACT_COMPLETED_SOURCE_PROOF_ABSENT_'+$name)}
         }
-        Write-Output '::notice::W32B_FINAL_FULL_GO_WAILS_REGRESSION_VET=PASS'
+        Write-Output '::notice::W32B_EXACT_882e4f970f0d330268f7d5b4a5d8d5c0beb836dd_TOOLCHAIN_IMAGE_COMPLETED_FULL_REGRESSION_REUSED=PASS'
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Build exact current source-bound renderer package
       shell: pwsh
       run: |
@@ -283,7 +285,15 @@ jobs:
         Add-Type -TypeDefinition @'
         using System; using System.Runtime.InteropServices;
         public static class W32BWindow { [DllImport("user32.dll")] public static extern IntPtr GetWindow(IntPtr window,uint command); }
+        public static class W32BInput { [DllImport("user32.dll")] public static extern void keybd_event(byte key,byte scan,uint flags,UIntPtr extra); }
         '@
+        function Native-Shortcut([byte]$key){
+         [W32BInput]::keybd_event(0x11,0,0,[UIntPtr]::Zero)
+         [W32BInput]::keybd_event($key,0,0,[UIntPtr]::Zero)
+         [W32BInput]::keybd_event($key,0,2,[UIntPtr]::Zero)
+         [W32BInput]::keybd_event(0x11,0,2,[UIntPtr]::Zero)
+         Start-Sleep -Milliseconds 200
+        }
         function Put-Clipboard([string]$text){
          $code="Add-Type -AssemblyName System.Windows.Forms;[Windows.Forms.Clipboard]::SetText('"+$text.Replace("'","''")+"')"
          & $ps51 -NoProfile -STA -EncodedCommand ([Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($code)))
@@ -292,10 +302,16 @@ jobs:
         function Enter-Pine([object]$process,[string]$source){
          Put-Clipboard $source
          $editor=Wait-Visible $process 'Pine source editor'
+         if($editor.Current.ControlType -ne [System.Windows.Automation.ControlType]::Edit){throw ('W32B_MONACO_INPUT_NOT_EDIT_'+$editor.Current.ControlType.ProgrammaticName)}
          [void][W30Native]::SetForegroundWindow($process.MainWindowHandle)
          Start-Sleep -Milliseconds 150
          if([W30Native]::GetForegroundWindow() -ne $process.MainWindowHandle){throw 'W32B_FOREIGN_EDITOR_FOCUS'}
-         $editor.SetFocus();[Windows.Forms.SendKeys]::SendWait('^a');Start-Sleep -Milliseconds 100;[Windows.Forms.SendKeys]::SendWait('^v')
+         $editor.SetFocus();Start-Sleep -Milliseconds 200
+         $focused=[System.Windows.Automation.AutomationElement]::FocusedElement
+         Write-Output ('W32B_NATIVE_INPUT_FOCUS='+($focused.Current|Select-Object Name,ControlType,HasKeyboardFocus|ConvertTo-Json -Compress -Depth 2))
+         if(!$focused.Equals($editor)){throw 'W32B_MONACO_FOCUS_NOT_CONFIRMED'}
+         Native-Shortcut 0x41
+         Native-Shortcut 0x56
          $null=Wait-Visible $process 'Editor changed. Compile again.'
         }
         function Owned-Roots([object]$process){
@@ -431,7 +447,7 @@ jobs:
          Write-Output ('W32B_PRIMARY_FAILURE='+$_.Exception.Message)
          if($null -ne $running){
           foreach($root in (Owned-Roots $running.shell)){
-           $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)|Select-Object -First 65|ForEach-Object {try{Write-Output ('W32B_UI='+($_.Current|Select-Object Name,ControlType,IsOffscreen,IsEnabled|ConvertTo-Json -Compress -Depth 2))}catch{}}
+           $root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)|Where-Object {$_.Current.Name -match 'Pine|pine|Compile|compiled|script|Save|Not compiled|Editor changed' -or $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit}|Select-Object -First 100|ForEach-Object {try{Write-Output ('W32B_UI='+($_.Current|Select-Object Name,ControlType,IsOffscreen,IsEnabled,HasKeyboardFocus,BoundingRectangle|ConvertTo-Json -Compress -Depth 2))}catch{}}
           }
          }
          throw
