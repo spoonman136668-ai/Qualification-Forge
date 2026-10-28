@@ -288,7 +288,7 @@ jobs:
            foreach($node in $nodes){
             try{
              $name=$node.Current.Name
-             if(!$node.Current.IsOffscreen -and $name -match 'Chart not fully ready|Original chart did not answer|Chart loaded\\?|Checking original chart|Chart identity unavailable|Monaco editor'){
+             if(!$node.Current.IsOffscreen -and $name -match 'Chart not fully ready|Original chart did not answer|Chart loaded\?|Checking original chart|Chart identity unavailable|Monaco editor'){
               Write-Output ('W31_ORIGINAL_CHART_ACTUAL_STATUS_'+$attempt+'='+$name)
              }
             }catch{}
