@@ -1,0 +1,441 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W32E-P2",
+  "outcome": "PASS_BOUND_NORMAL_PRODUCTION_BUILD_CURRENT_PUBLIC_CANDLES_ORIGINAL_GO_PINE_NATIVE_WEBVIEW2",
+  "date": "2026-10-28",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pull_request": 170,
+    "branch": "feature/rb3-w32e-native-webview-pine-fixture-20261028",
+    "sha": "1c399965d8ab88a42e25f9997e0db15dec15e6b0",
+    "tree": "92b8b9c1c40bfeed6fc7931eb66e37065a023b06",
+    "qualified_w32d_base": "9e5ff8fa1086c18bb862bb66ae834886c824cab9",
+    "application_source_changed_in_p2": false,
+    "qualification_changed_paths": [
+      ".github/workflows/ktrade-w32e-p2-production-market-windows.yml",
+      "qualification-harness/ktrade-w32e-p2-production-market.ps1"
+    ]
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "witness_sha": "20b7e10d480ac95bf694b7d28a99c7bc1d18dc4d",
+    "run_id": 40708057491,
+    "job_id": 122885444044,
+    "status": "completed",
+    "conclusion": "success",
+    "all_steps_success": true,
+    "attempts": 1,
+    "affected_frontend_tests": {
+      "passed": 33,
+      "failed": 0
+    },
+    "full_go_and_nested_wails_regression_vet": {
+      "run_id": 40687106769,
+      "job_id": 122812187062,
+      "witness_sha": "421a88d483aeff36cd628ea767c80a44c7aa39cc",
+      "conclusion": "success",
+      "source_sha": "1c399965d8ab88a42e25f9997e0db15dec15e6b0",
+      "exact_source_reuse": true,
+      "fresh_full_regression_in_p2": false
+    },
+    "prior_deterministic_native_pixel_reference": {
+      "run_id": 40703525601,
+      "witness_sha": "786996a9e56c9c7671ff3236d5b77cffaf264a91",
+      "conclusion": "success",
+      "receipt_sha": "496ed56d2fea77da9531d3e931d12659e0480aba"
+    }
+  },
+  "build": {
+    "engine_tags": "ktrade_full",
+    "shell_tags": "desktop,production",
+    "fixture_mode": "none",
+    "fixture_sources_excluded_by_go_list": true,
+    "engine_build_metadata_verified": true,
+    "synthetic_environment_flags_removed": true,
+    "source_http_transport_override": false,
+    "release_candidate": false,
+    "production_deployed": false,
+    "wails_exe_sha256": "fbe06289967731701f54c704c1e8773eee8acf41e9ff8b69c08b259b2e5c04e7",
+    "production_go_engine_exe_sha256": "377688e4ae98d32355820463a801d5e88ed99a9614dffb39a1be9502948ddea1",
+    "disposable_package_zip_sha256": "13e112fdd2a109cffe67a866d9666d0ec355391523f4de85532300dc9be4b92a",
+    "test_fixture_engine_sha256_for_distinction": "d77a6a327439b93d2b476d1f04825fc5f6e97e610f29c7ad9f385b1abcaf90db",
+    "package_disposed": true,
+    "public_binary_uploads": 0
+  },
+  "toolchain": {
+    "go": "1.25.0 windows/amd64",
+    "node": "24.22.1",
+    "wails": "v2.17.0",
+    "lightweight_charts": "4.1.0",
+    "runner": "github-hosted windows-2022",
+    "image": "20261022.344.1",
+    "webview2_runtime_version": "not separately recorded"
+  },
+  "market_observations": [
+    {
+      "rows": 300,
+      "first_bar": 1793180520,
+      "timeframe": "1m",
+      "stale": false,
+      "last_volume": 5.37368252,
+      "last_close": 80471.96,
+      "product": "BTC-USDC",
+      "last_close_age_seconds": 4,
+      "finalized": true,
+      "last_bar": 1793198460,
+      "source": "coinbase_advanced_public_rest"
+    },
+    {
+      "rows": 300,
+      "first_bar": 1793180580,
+      "timeframe": "1m",
+      "stale": false,
+      "last_volume": 5.62687113,
+      "last_close": 80469.29,
+      "product": "BTC-USDC",
+      "last_close_age_seconds": 19,
+      "finalized": true,
+      "last_bar": 1793198520,
+      "source": "coinbase_advanced_public_rest"
+    }
+  ],
+  "independent_provider": {
+    "matched_current_finalized_ohlcv_rows": 300,
+    "redirects_allowed": false,
+    "raw_rows": 303,
+    "transport": "independent PowerShell HTTPS request, no source override",
+    "authentication": "none",
+    "endpoint": "https://api.coinbase.com/api/v3/brokerage/market/products/BTC-USDC/candles"
+  },
+  "original_go_sma": {
+    "last_close_age_seconds": 9,
+    "computed": 298,
+    "overlay": false,
+    "na_prefix": 2,
+    "max_absolute_sma_error": 1.0186340659856796e-10,
+    "rows": 300,
+    "last_sma": 80454.93333333339,
+    "last_bar": 1793198520
+  },
+  "native_raster": {
+    "volume_fuchsia": 0,
+    "scale": 1,
+    "last_bar": 1793198520,
+    "max_sma": 81467.72333333339,
+    "source_transport_override": false,
+    "pine_height": 150,
+    "runtime_javascript": false,
+    "baseline_fuchsia": 0,
+    "baseline_volume_png": "7f111a60ed8bbed258173d0c362d48eb7b4ebf33261129bb37c9772cc5b1b06a",
+    "pine_width": 382,
+    "pine_png_sha256": "58c57a22a364d1dcadc0884ab7350bd8010e3ac390d5c2114d248562d5be3d7d",
+    "source": "1c399965d8ab88a42e25f9997e0db15dec15e6b0",
+    "physical_tolerance_per_axis": 2,
+    "applied_fuchsia": 2180,
+    "plot_height_css": 94,
+    "negative_hits": 0,
+    "browser_inspector": false,
+    "sampled_points": 28,
+    "applied_volume_png": "1d618890b26073e39fecba356c16504637f26f78282ca8104dffabfe996c89aa",
+    "fixture_mode": "none",
+    "plot_width_css": 312,
+    "min_sma": 80326.08333333342,
+    "rows": 300
+  },
+  "native_sampled_points": [
+    {
+      "x": 1.599999999999966,
+      "top_margin_negative_matched": false,
+      "y": 50.529918363060034,
+      "bar": 2,
+      "matched": true,
+      "time": 1793180700,
+      "sma": 81402.01
+    },
+    {
+      "x": 13.039999999999964,
+      "top_margin_negative_matched": false,
+      "y": 52.831176202659364,
+      "bar": 13,
+      "matched": true,
+      "time": 1793181360,
+      "sma": 81361.46666666666
+    },
+    {
+      "x": 24.480000000000018,
+      "top_margin_negative_matched": false,
+      "y": 52.16764654357229,
+      "bar": 24,
+      "matched": true,
+      "time": 1793182020,
+      "sma": 81373.15666666666
+    },
+    {
+      "x": 35.920000000000016,
+      "top_margin_negative_matched": false,
+      "y": 50.99592165656718,
+      "bar": 35,
+      "matched": true,
+      "time": 1793182680,
+      "sma": 81393.8
+    },
+    {
+      "x": 47.360000000000014,
+      "top_margin_negative_matched": false,
+      "y": 50.16759749132929,
+      "bar": 46,
+      "matched": true,
+      "time": 1793183340,
+      "sma": 81408.39333333337
+    },
+    {
+      "x": 58.79999999999998,
+      "top_margin_negative_matched": false,
+      "y": 50.872373077327836,
+      "bar": 57,
+      "matched": true,
+      "time": 1793184000,
+      "sma": 81395.97666666671
+    },
+    {
+      "x": 70.23999999999998,
+      "top_margin_negative_matched": false,
+      "y": 47.93956063207284,
+      "bar": 68,
+      "matched": true,
+      "time": 1793184660,
+      "sma": 81447.64666666673
+    },
+    {
+      "x": 81.67999999999998,
+      "top_margin_negative_matched": false,
+      "y": 53.54446585613863,
+      "bar": 79,
+      "matched": true,
+      "time": 1793185320,
+      "sma": 81348.90000000002
+    },
+    {
+      "x": 93.12,
+      "top_margin_negative_matched": false,
+      "y": 58.33788584843039,
+      "bar": 90,
+      "matched": true,
+      "time": 1793185980,
+      "sma": 81264.45000000003
+    },
+    {
+      "x": 104.56,
+      "top_margin_negative_matched": false,
+      "y": 57.19435198486562,
+      "bar": 101,
+      "matched": true,
+      "time": 1793186640,
+      "sma": 81284.5966666667
+    },
+    {
+      "x": 116,
+      "top_margin_negative_matched": false,
+      "y": 55.21738551557485,
+      "bar": 112,
+      "matched": true,
+      "time": 1793187300,
+      "sma": 81319.42666666671
+    },
+    {
+      "x": 127.44,
+      "top_margin_negative_matched": false,
+      "y": 57.89799236186553,
+      "bar": 123,
+      "matched": true,
+      "time": 1793187960,
+      "sma": 81272.20000000006
+    },
+    {
+      "x": 138.88,
+      "top_margin_negative_matched": false,
+      "y": 61.14866332644395,
+      "bar": 134,
+      "matched": true,
+      "time": 1793188620,
+      "sma": 81214.93000000004
+    },
+    {
+      "x": 150.32,
+      "top_margin_negative_matched": false,
+      "y": 66.9830699695178,
+      "bar": 145,
+      "matched": true,
+      "time": 1793189280,
+      "sma": 81112.14000000006
+    },
+    {
+      "x": 161.76,
+      "top_margin_negative_matched": false,
+      "y": 79.57802459619558,
+      "bar": 156,
+      "matched": true,
+      "time": 1793189940,
+      "sma": 80890.24333333339
+    },
+    {
+      "x": 173.2,
+      "top_margin_negative_matched": false,
+      "y": 83.48181913738233,
+      "bar": 167,
+      "matched": true,
+      "time": 1793190600,
+      "sma": 80821.46666666672
+    },
+    {
+      "x": 184.64,
+      "top_margin_negative_matched": false,
+      "y": 94.1111593847475,
+      "bar": 178,
+      "matched": true,
+      "time": 1793191260,
+      "sma": 80634.20000000003
+    },
+    {
+      "x": 196.07999999999998,
+      "top_margin_negative_matched": false,
+      "y": 92.76272029711657,
+      "bar": 189,
+      "matched": true,
+      "time": 1793191920,
+      "sma": 80657.95666666674
+    },
+    {
+      "x": 207.51999999999998,
+      "top_margin_negative_matched": false,
+      "y": 96.36436004344597,
+      "bar": 200,
+      "matched": true,
+      "time": 1793192580,
+      "sma": 80594.50333333341
+    },
+    {
+      "x": 218.95999999999998,
+      "top_margin_negative_matched": false,
+      "y": 96.19067306681681,
+      "bar": 211,
+      "matched": true,
+      "time": 1793193240,
+      "sma": 80597.5633333334
+    },
+    {
+      "x": 230.39999999999998,
+      "top_margin_negative_matched": false,
+      "y": 99.97602746925482,
+      "bar": 222,
+      "matched": true,
+      "time": 1793193900,
+      "sma": 80530.87333333341
+    },
+    {
+      "x": 241.84,
+      "top_margin_negative_matched": false,
+      "y": 94.19989488805719,
+      "bar": 233,
+      "matched": true,
+      "time": 1793194560,
+      "sma": 80632.63666666672
+    },
+    {
+      "x": 253.28,
+      "top_margin_negative_matched": false,
+      "y": 102.14446585613801,
+      "bar": 244,
+      "matched": true,
+      "time": 1793195220,
+      "sma": 80492.67000000006
+    },
+    {
+      "x": 264.72,
+      "top_margin_negative_matched": false,
+      "y": 97.07235205493875,
+      "bar": 255,
+      "matched": true,
+      "time": 1793195880,
+      "sma": 80582.03000000007
+    },
+    {
+      "x": 276.15999999999997,
+      "top_margin_negative_matched": false,
+      "y": 96.20145755229399,
+      "bar": 266,
+      "matched": true,
+      "time": 1793196540,
+      "sma": 80597.3733333334
+    },
+    {
+      "x": 287.6,
+      "top_margin_negative_matched": false,
+      "y": 103.40133141796017,
+      "bar": 277,
+      "matched": true,
+      "time": 1793197200,
+      "sma": 80470.52666666674
+    },
+    {
+      "x": 299.04,
+      "top_margin_negative_matched": false,
+      "y": 105.26610139798889,
+      "bar": 288,
+      "matched": true,
+      "time": 1793197860,
+      "sma": 80437.67333333341
+    },
+    {
+      "x": 310.48,
+      "top_margin_negative_matched": false,
+      "y": 104.28641603307636,
+      "bar": 299,
+      "matched": true,
+      "time": 1793198520,
+      "sma": 80454.93333333339
+    }
+  ],
+  "oracle": {
+    "input": "Real native UIAutomation-owned symbol selection and Monaco keyboard/clipboard, then Add to chart",
+    "capture": "Windows Graphics.CopyFromScreen; no canvas extraction, CDP, browser inspector or runtime JavaScript",
+    "market_identity": "BTC-USDC 1m; official Coinbase Advanced public market endpoint; no account credentials or order intent",
+    "bar_validation": "250..300 finite aligned strictly ordered consistent OHLCV rows; product identity, source/finalized/stale metadata and last closed age 2..120 seconds checked. Actual accepted counts were 300.",
+    "provider_validation": "Initial 300 Go rows independently matched OHLCV from a separate anonymous PowerShell HTTPS request to the fixed official endpoint, with redirects refused.",
+    "pine_validation": "All 298 finite SMA(3) values independently recomputed from the actual Go response candles; first two values required NA. Maximum observed arithmetic error 1.0186340659856796e-10.",
+    "raster_geometry": "Unmodified shared P1C OS capture and pinned LWC 4.1.0 time/price formulas, independent UIA/window DPI and neutral axis-border geometry. SMA min/max from original Go model, never fitted to fuchsia pixels.",
+    "sampling": "Exactly 28 indices: 2+round((N-3)*sample/27), sample 0..27; formula fixed before measurement. Two-physical-pixel tolerance per axis. All 28 top-margin negative probes missed.",
+    "clock": "Model and native apply captured in same UTC minute; original market clock and transport unchanged."
+  },
+  "safety": {
+    "mode": "PAPER_STOPPED",
+    "paper_orders_enabled": false,
+    "live_orders_enabled": false,
+    "strategy_execution_enabled": false,
+    "paper_accounting_enabled": false,
+    "capabilities_checked_before_and_after_native_market_raster": true,
+    "normal_native_close_exit_code": 0,
+    "go_child_exited": true,
+    "forced_termination_for_success": false,
+    "owner_installed_data_access": false,
+    "broker_order_intent": false,
+    "account_credentials": false,
+    "accepted_ref_mutation": false,
+    "merged": false,
+    "signed": false,
+    "released": false,
+    "deployed": false
+  },
+  "limits": [
+    "Bounded engineering qualification in a disposable proof-owned portable package built with normal production tags. It is not installed-product or release approval.",
+    "The exact source includes the older compile-time test-fixture files for deterministic P1C qualification, but they were excluded from this engine build. Manifest fixture_mode was none and Go binary build tags were verified.",
+    "All 298 original Go SMA values were numerically verified, but native pixels were sampled at 28 preselected positions rather than every dense 300-bar logical position.",
+    "Two NA positions are verified in the Go model here. P1C provides separate sparse native NA-position evidence; P2 does not claim native NA separation in a densely packed 300-bar chart.",
+    "The initial 300-candle snapshot was independently matched to Coinbase. The subsequent model/native snapshot advanced one finalized minute and was checked for Go arithmetic, finality/freshness and native point correspondence; it was not reported as the identical initial independent-provider snapshot.",
+    "Real market data and native charts can update between captures. P2 records differing volume screenshot hashes without claiming production volume raster identity. Deterministic volume isolation remains the separately qualified P1C result; P2 additionally requires zero fuchsia in volume.",
+    "One product/timeframe, one Pine v6 nonoverlay SMA, DPI scale 1 and native Pine region 382x150. Not all Pine styles/semantics, markets/timeframes, DPI, performance, soak, reconnect or bar-correction acceptance.",
+    "Full root/nested Wails Go regression/vet reused from exact-source successful P1A; P2 reran 33 affected frontend tests, normal production build, current public source agreement, runtime/Go/native acceptance, normal close and strict disposable cleanup.",
+    "No saved-strategy paper admission, fill/ledger/P&L, Stop/crash/restart end-to-end or LIVE readiness is claimed. Financial execution remained disabled."
+  ],
+  "next": "Integrate and qualify original saved-strategy PAPER lifecycle through one authoritative TradeGuard/ledger owner, account/P&L publication, Stop and cold/crash restart using disposable synthetic data; preserve existing current-market and native chart/Pine evidence."
+}
