@@ -1,0 +1,233 @@
+{
+  "schema": "ktrade.w33c-p4.original-guarded-full-close-settlement.v1",
+  "status": "PASS",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "commit": "06e03ab996961b1387474e969b1a2d000a194c36",
+    "tree": "f281e59babfa2c317ad8a712e6c1aaf4b980136c",
+    "branch": "feature/rb3-w33c-p4-guarded-full-close-20261028",
+    "pull_request": 178,
+    "parent": "ecd4d156d4854835a4680a38322c37f861364e08",
+    "parent_tree": "20aa0733f9907c4492eb90b3afb21e3026bebd8f",
+    "paths": [
+      "internal/paperengine/owner.go",
+      "internal/paperengine/final_close_review.go",
+      "internal/paperengine/final_close_submit.go",
+      "internal/paperengine/w33c_p4_close_settlement_test.go",
+      "cmd/ktrade/paper_final_close_review_full.go",
+      "cmd/ktrade/paper_session_runner_full.go",
+      "cmd/ktrade/w33c_p3_native_close_full_test.go",
+      "cmd/ktrade/w33c_p4_native_close_full_test.go"
+    ]
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "run": 40767209088,
+    "job": 123094448924,
+    "witness": "28b3a080fdf8abd438e4bce4512680d8cdbb0bdc",
+    "tree": "2e0353e57e855c079381a73755b36d752337cbba",
+    "workflow": ".github/workflows/ktrade-w33c-p4-guarded-close-windows.yml",
+    "conclusion": "success",
+    "fresh_focused_and_full_regression": true,
+    "full_proof_reused": false,
+    "notices": [
+      "W33C_P4_EXACT_SOURCE_EIGHT_PATH_GUARDED_CLOSE=PASS",
+      "W33C_P4_ORIGINAL_GUARDED_CLOSE_AND_POSTFILL_CUSTODY=PASS",
+      "W33C_P4_FULL_GO_AND_WAILS_REGRESSION=PASS",
+      "W33C_P4_ORIGINAL_PRODUCTION_GO_WAILS_BUILD_NO_FIXTURE=PASS",
+      "W33C_P4_PROOF_OWNED_PAPER_ONLY_NO_BROKER_NO_OWNER_PROFILE_NO_BINARY_UPLOAD=PASS"
+    ],
+    "steps": [
+      {
+        "name": "Set up job",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Checkout qualification witness",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Checkout pinned private KTRADE candidate",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Exact qualified P3 ancestry and eight guarded close paths",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Go Windows",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Original guarded close profit loss dedup risk veto and post-fill custody faults",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Full root tagged-app and nested Wails regression and vet",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Compile original production engine and Wails shell without fixtures",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Cleanup",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Go Windows",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Checkout pinned private KTRADE candidate",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Post Checkout qualification witness",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Complete job",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "earlier_candidate": {
+      "run": 40765625524,
+      "job": 123088873921,
+      "source": "bb85afc25cdc862db3d16fd6fe6b20b4a4332a60",
+      "tree": "51ad78b8f468f0d978a8bcbad04a81093a9ae534",
+      "witness": "7e8e7fc51712160909cac373d416b99b9b956327",
+      "conclusion": "success",
+      "scope": "Initial candidate before additional Stop pending-checkpoint retention hardening; final-source proof rerun in full and not reused."
+    }
+  },
+  "toolchain": {
+    "go": "1.25.0 windows/amd64",
+    "runner": "windows-2022",
+    "image": "20261022.344.1",
+    "node_required": false,
+    "webview2_runtime_launched": false
+  },
+  "production_build": {
+    "engine_tags": "ktrade_full",
+    "wails_tags": "desktop,production",
+    "fixture_tags_excluded": true,
+    "engine_sha256": "a40977e8880adc2e9fc93739de6a2017107169036a1e111c85ff2423de6de236",
+    "wails_sha256": "5ac277c1e95095dab490e3b4f5f10697946a33e3940d3e7ffe18a3d57b94b54d",
+    "published": false,
+    "package_or_installer_acceptance": false,
+    "binaries_and_private_checkout_disposed": true
+  },
+  "profit": {
+    "cash": "604.15",
+    "fees": "0.85",
+    "pnl": "4.15",
+    "fills": "2",
+    "qty": "0",
+    "seal": "00c2884ec11eea68b0dab35007f654be9291acdff78cb172ebb2714d374258cc"
+  },
+  "loss": {
+    "cash": "594.25",
+    "fees": "0.75",
+    "pnl": "-5.75",
+    "fills": "2",
+    "qty": "0",
+    "seal": "cd91a8b4e9124e10547f748e973778cecc2f4bd4e1361b1e74c6c02cf89e664c"
+  },
+  "saved_native_go_round_trip": {
+    "cash": "604.15",
+    "fees": "0.85",
+    "realized": "4.15",
+    "fills": "2",
+    "qty": "0",
+    "seal": "d23c559b708c385ae7c3c0182806ce4a42cf38d73705daa8794e32d1764e2e59"
+  },
+  "execution_contract": {
+    "single_original_owner": true,
+    "source_bound_original_pine": true,
+    "full_reduce_only_owned_position": true,
+    "caller_provided_order_qty_fee_or_ledger": false,
+    "generic_submit_still_buy_only": true,
+    "original_TradeGuard_unmodified": true,
+    "original_guard_check_reserve_postfill": true,
+    "original_coordinator_and_FIFO_ledger_unmodified": true,
+    "lease_and_original_BUY_checkpoint_required": true,
+    "postfill_zero_inventory_and_risk_verified": true,
+    "immutable_original_risk_checkpoint_before_next_cycle": true,
+    "exact_retry_no_fill_reserve_or_publication": true,
+    "one_entry_one_full_close_per_funded_owner": true,
+    "postfill_uncertainty_stops_execution_and_blocks_finalizer_release": true,
+    "abandoned_lease_and_pending_evidence_preserved": true,
+    "no_automatic_restore_or_retry": true,
+    "prior_archive_topology_and_verified_stopped_killed_risk_checkpoint_before_lease_release": true
+  },
+  "focused_tests": [
+    "TestW33CP4OriginalOwnerFullCloseFeesPnLExactRetryStopCold",
+    "TestW33CP4CloseRejectsUnprovenInputAndRequiresAppCheckpoint",
+    "TestW33CP4OriginalRiskRateVetoNeverFillsClose",
+    "TestW33CP4PostFillMarketAndCheckpointFaultsRetainOriginalCustody",
+    "TestW33CP4SavedPineOriginalGuardSellCheckpointStopAndCold",
+    "TestW33CP4NativePostSellPublicationFailureRetainsLeaseAndPendingEvidence",
+    "TestW33CP4ChangedSavedPineBeforeCloseStopsWithoutSell",
+    "TestW33CP4PendingCheckpointAfterSellBlocksRepeatedStopRelease"
+  ],
+  "negatives": [
+    "wrong source/product/final hash/time/price/nonfinite price/entry/conditional/close-all/partial/oversell/short",
+    "missing or foreign app writer",
+    "changed fee basis",
+    "unauthenticated or stale mark",
+    "mismatched original risk exposure",
+    "missing original BUY checkpoint",
+    "original guard orders-per-minute veto",
+    "missing native worker",
+    "saved-source drift before close",
+    "changed completed close and reentry after bounded round trip",
+    "post-fill market failure retains settled SELL and risk reservation/kill barrier",
+    "pending checkpoint injected after settled SELL, before archive publication; no financial success, no finalizer laundering, pending evidence and lease retained",
+    "generic forged SELL/exit refusal and cold no-adoption remain enabled",
+    "Pending evidence introduced after successful SELL but before explicit Stop blocks both Stop lease release and repeated finalization; stopped original account and evidence retained."
+  ],
+  "regression": [
+    "fresh go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade",
+    "fresh go vet -mod=readonly -tags ktrade_full ./cmd/ktrade",
+    "fresh root go test -mod=readonly -count=1 ./...",
+    "fresh root go vet -mod=readonly ./...",
+    "fresh tools/wails-pilot go test -mod=readonly -count=1 ./...",
+    "fresh tools/wails-pilot go vet -mod=readonly ./..."
+  ],
+  "test_contract_update": "P3's inert review API remains read-only; its saved-source test now uses explicit Stop after asserting no mutation. P4's separate settlement path has positive and refusal/fault tests. No original forged generic SELL test was removed or relaxed. Minute-boundary fixture waits keep real clock/finality checks enabled.",
+  "safety": {
+    "live_armed": false,
+    "real_broker_order_intent": false,
+    "broker_credentials": false,
+    "owner_installed_data": false,
+    "new_controller": false,
+    "kill_reset": false,
+    "stale_lease_deletion": false,
+    "protected_ref_mutation": false,
+    "merge": false,
+    "signing": false,
+    "release": false,
+    "promotion": false,
+    "deployment": false
+  },
+  "limits": [
+    "Sealed synthetic Go tests and Go httptest on Windows, not native Wails/WebView2 UI interaction or current-public-market SELL acceptance.",
+    "One original settled entry and one full spot close; partial closes, conditional orders, close-all, pyramiding, shorting, reentry and broad Pine parity are not qualified.",
+    "Post-fill faults are explicit test injections, not actual process/power loss at PREPARED/reservation/ledger/settlement/checkpoint boundaries or forced shell kill.",
+    "No current mark/unrealized PnL or full product/release completion claim. Next genuine native UI/current-market BUY-to-SELL-to-Stop and cold replay qualification."
+  ]
+}
