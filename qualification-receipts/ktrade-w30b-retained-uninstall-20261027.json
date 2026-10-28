@@ -1,0 +1,119 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W30B",
+  "status": "PASS",
+  "date": "2026-10-27",
+  "timezone": "America/New_York",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "sha": "69a1161ab44e62fcc0ee58b8454f7190b8b7bed5",
+    "tree": "7c0d3296c0616bb92240c659cfc67644b95d0b97",
+    "base_sha": "f5d9a1e7859b5b62b36a37e9b6469c372a177a02",
+    "branch": "feature/rb3-w30b-retained-uninstall-20261027",
+    "draft_pr": 162,
+    "changed_paths": [
+      "tools/wails-pilot/backend/installed_uninstall.go",
+      "tools/wails-pilot/backend/installed_uninstall_test.go",
+      "tools/wails-pilot/cmd/release-setup/main.go",
+      "windows/Install-KTRADE-Fresh.ps1",
+      "windows/Manage-KTRADE-FreshInstall.ps1"
+    ]
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "witness_sha": "339587c05ded490bbde0368576c7f75eb0526d88",
+    "run_id": 40605592251,
+    "job_id": 122544162567,
+    "workflow": ".github/workflows/ktrade-w30b-retained-uninstall-windows.yml",
+    "conclusion": "success"
+  },
+  "foundation": {
+    "source_sha": "f5d9a1e7859b5b62b36a37e9b6469c372a177a02",
+    "tree": "2a18f67aaf608520e2265f62afe32dbf23df3511",
+    "run_id": 40601840142,
+    "witness_sha": "67d2a6586d6d2ffcb39bf40004dea266bbdf36e4",
+    "conclusion": "success"
+  },
+  "toolchain": {
+    "go": "1.25.0",
+    "node": "24",
+    "os": "windows-2022",
+    "cgo": true,
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2,
+    "compiled_cache_uploaded": false
+  },
+  "tests": {
+    "affected_interfaces": "PASS",
+    "command": "go test -mod=readonly -race -count=1 -run '^Test(W30B|W30A|W30|W29|W26|W27|W28[CDE])' ./backend",
+    "backend_race_seconds": 10.108,
+    "full_regression": "PASS",
+    "full_command": "root and tools/wails-pilot: go test -mod=readonly -count=1 ./...; go vet -mod=readonly ./...",
+    "backend_full_seconds": 4.578,
+    "full_suite_elapsed_seconds": 224,
+    "note": "Backend package times are not total suite durations. One complete final frozen-source regression/vet ran in this same witness before both package builds."
+  },
+  "native_proofs": [
+    "Real b377a28051cb9594ddeb2da1ffe4252d418f0a6f and current-source self-contained unsigned packages built; actual Windows PowerShell 5.1 used without Go/Node in runtime PATH.",
+    "Actual ShellExecute .lnk activation of previous, updated and rolled-back original Wails/WebView2 releases, native pointer Verify chart UI nonce, exact PID/executable/source and original engine custody, strict PAPER_STOPPED capabilities.",
+    "Active uninstall/update/rollback/shortcut refresh refuses; modified and foreign link ownership refuses without removing application code or changing those link bytes.",
+    "Retained old engine, inserted unknown old asset and altered old maintenance tool each refuse uninstall before started marker; exact altered bytes preserved until fixture restores them.",
+    "Original stopped update copies only original W28E supported Pine/strategy files; browser, financial-shaped and unknown state stays version-local; full old/new stopped data parity across rollback.",
+    "Both distributions deleted; installed newer maintenance remains usable after rollback to old selected source.",
+    "Retained-version uninstall deduplicates the old/new/old selector chain and removes exactly two verified application versions: shell, engine and checked static/templates/strategies assets.",
+    "Every old/new data/profile file retained by name/count/hash; all maintenance files, original root receipts, unknown stage DLLs, root sentinel, retired shortcut note, maintenance note and unselected unknown code bytes retained.",
+    "All history-owned links removed after native completion using original ownership/hash/target checks.",
+    "Completed original uninstall marker remains byte-identical on refused automatic retry; installed old and new launch both refuse and no process lease appears.",
+    "Original WM_CLOSE normal shutdown checks exact retained native process handle zero exit, engine shutdown and original lease release."
+  ],
+  "unit_safety_proofs": [
+    "All retained data, maintenance, unknown and selected receipt bytes preserved.",
+    "Rollback duplicate candidate removed once.",
+    "Active/orphan/writer/source/stale-selection/retained-code/unknown-asset/old-maintenance/started-marker refusals preserve both versions' executables.",
+    "Concurrent original lease acquisition and retained uninstall cannot both succeed.",
+    "Real Windows locked file causes partial removal failure with original durable root-wide quarantine; prepared retained launch and automatic retry remain refused after releasing the file."
+  ],
+  "packages": [
+    {
+      "schema": "ktrade.setup-build.v1",
+      "source_sha": "b377a28051cb9594ddeb2da1ffe4252d418f0a6f",
+      "manifest_sha256": "ec1199dcc61b6c2e5538286fb0514136c96646cde5f86c9a4083f572281a655a",
+      "archive_sha256": "8963852369efa03ef75087eebec2d459e0616d1bcb29a927c531402a70ce8475",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    },
+    {
+      "schema": "ktrade.setup-build.v1",
+      "source_sha": "69a1161ab44e62fcc0ee58b8454f7190b8b7bed5",
+      "manifest_sha256": "4b39416a8b640ebb75af1ce4f128e4f4ca0643a5c7688d6f4f6fc3eb51b7da58",
+      "archive_sha256": "58be16da647474e95c82b002c5162d294c51bc641f62bb2fb503a83d92aa327e",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    }
+  ],
+  "failed_runs": [],
+  "safeguards": {
+    "paper_orders_enabled": false,
+    "live_orders_enabled": false,
+    "strategy_execution_enabled": false,
+    "paper_accounting_enabled": false,
+    "requires_review": true,
+    "owner_installed_data_accessed": false,
+    "protected_refs_changed": false,
+    "merged": false,
+    "signed": false,
+    "released": false,
+    "private_source_or_binaries_uploaded": false
+  },
+  "limitations": [
+    "Unsigned engineering candidate, draft/unmerged; no owner installation or data touched.",
+    "Maintenance tools and proof/selection/transition receipts deliberately remain for inspection, together with all version-local data and unknown files.",
+    "Native removal refuses altered retained code/maintenance or unknown asset insertions before removal; it does not adopt or delete those bytes.",
+    "Any partial native deletion retains original uninstall quarantine; there is no automatic repair, retry, source promotion or data migration.",
+    "No installer GUI or Apps & Features registration yet; no full product/chart-render/Pine-execution acceptance claim."
+  ],
+  "next_gate": "Native setup interface over the qualified installer and maintenance operations."
+}
