@@ -1,0 +1,78 @@
+{
+  "schema": "ktrade.rb3.w34.whole-candidate-installed-windows-receipt.v1",
+  "date": "2026-10-28",
+  "result": "PASS_BOUNDED_FULL_CANDIDATE_SOURCE_AND_DISPOSABLE_UNSIGNED_INSTALL_UNINSTALL",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "draft_pr": 185,
+    "sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+    "tree": "9f1e559560ac14f4e6fc823dac9150e3a95f2c4d",
+    "parent": "8881e7603facbcd761c66addf286b6a1f138e1d6",
+    "changed_paths": [
+      "tests/wails_w02_boot.test.cjs",
+      "tests/w17d1a_original_chart_uia.test.cjs"
+    ],
+    "runtime_code_changed": false
+  },
+  "independent_windows": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "run_id": 40787692876,
+    "job_id": 123164912030,
+    "workflow_commit": "858d21380e1e88c01555371c6e258dfab07f7446",
+    "runner": "github-hosted windows-2022",
+    "status": "completed",
+    "conclusion": "success",
+    "all_steps_success": true
+  },
+  "test_suites": {
+    "node_test_files": 31,
+    "node_test_module_assertions_pass": 146,
+    "node_test_module_assertions_fail": 0,
+    "node_test_module_assertions_skipped": 0,
+    "w28f_two_source_browser_compat_pass": true,
+    "previous_browser_source": "9a525c0ac1b1481c1ba9532080d52e4c94ac5b39",
+    "go_full_app_tagged_test_and_vet": "pass",
+    "go_root_full_test_and_vet": "pass",
+    "nested_wails_go_test_and_vet": "pass",
+    "negative_release_admission_tests": "pass",
+    "locked_monaco_and_charts_vendor_staging": "pass"
+  },
+  "setup": {
+    "builder": "windows/Build-KTRADE-FreshInstaller.ps1",
+    "source_pinned": true,
+    "source_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+    "unsigned": true,
+    "release_authority": "none",
+    "live_armed": false,
+    "source_bound_native_setup_install": true,
+    "stopped_inspect": true,
+    "uninstall": true,
+    "application_code_files_removed": 179,
+    "synthetic_unknown_user_file_sha256_before_after": "d8923347ec010be3cb6f5cf0d31cb6672c93116ffafb4e370ccff68e12248bf8",
+    "unknown_file_byte_identical": true,
+    "source_bound_setup_bundle_sha256": "7f42530cd5d6b7ec04cea84d428635ab4fa9913e14fd49f1c025fcaf859dd729",
+    "portable_zip_sha256": "1c52c53989a44f12f6c3a5066a0ae4545d4d07d7d34ad70f490bf7a77b14bdae",
+    "native_wails_exe_sha256": "68a87631ef1a774467534f38735e53b23b86e9acf641a4ba0f1d9f9af348bc8a",
+    "native_go_engine_sha256": "47bb8890848ff81c240636af13b596c188a3979cb8cb63da8721877677a1aac4",
+    "owner_data_accessed": false,
+    "real_broker_orders_sent": false,
+    "live_orders_armed": false
+  },
+  "previous_failed_runs": [
+    40786713127,
+    40786900540,
+    40787477555
+  ],
+  "release_blockers": [
+    "GitHub KTRADE main branch is unprotected.",
+    "Unsigned setup and missing independently approved publisher signature must remain non-releasable.",
+    "Actual two-version installed update/rollback and data continuity across binary versions not newly proven by this run.",
+    "Native installed Wails operator full functionality was not launched by this installer-only scenario; prior P9 native PAPER test is separately pinned to its own original application source.",
+    "Mock-only LIVE_READY_DISARMED broker adapter fault matrix, accessibility, security and performance release checks are separate outstanding deliverables.",
+    "Actual owner installed profile/data migration remains forbidden absent explicit authorization."
+  ],
+  "next": "Native installed Wails end-to-end over disposable application clone and distinct version-aware updater/rollback, with preserved unknown private files; verify main protection/admin, live mock adapter and whole release dossier separately.",
+  "promotion_authority": false,
+  "main_edited": false,
+  "merged": false
+}
