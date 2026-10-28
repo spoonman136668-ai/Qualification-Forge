@@ -20,7 +20,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 12
     env:
-      EXPECTED_SHA: 'fd5bddd262f773a09242f25bb949feea9421336c'
+      EXPECTED_SHA: '5eda7b770b17b7c4e43b5911997058b1e15d496c'
       KTERMINAL_READ_TOKEN: ${{ secrets.KTERMINAL_READ_TOKEN }}
       PYTHONDONTWRITEBYTECODE: '1'
       KTERMINAL_LIVE_AUTHORITY: '0'
@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: Kboomllc/K-Terminal
-          ref: 'fd5bddd262f773a09242f25bb949feea9421336c'
+          ref: '5eda7b770b17b7c4e43b5911997058b1e15d496c'
           token: ${{ secrets.KTERMINAL_READ_TOKEN }}
           path: private-checkout
           persist-credentials: false
