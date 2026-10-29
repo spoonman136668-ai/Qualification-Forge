@@ -194,6 +194,26 @@ function WaitPaper([string]$mode,[int]$seconds=12){
     $st.live_armed -eq $false){return $st}}catch{}
   Start-Sleep -Milliseconds 250
  }while((Get-Date) -lt $until)
+ # This is an original, disposable W13 fixture only. Preserve a bounded
+ # UIA refusal description without disclosing paths, source, payloads,
+ # balances or unrelated user state. Do not retry or bypass PAPER Start.
+ $notes=[Collections.Generic.List[string]]::new()
+ try{
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($script:parent.MainWindowHandle)
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+  foreach($el in $nodes){
+   $name=''
+   try{$name=[string]$el.Current.Name}catch{}
+   if($name.Length -lt 4 -or $name.Length -gt 240){continue}
+   if($name -notmatch '(PAPER|paper|fee|Fee|Save a user|strategy|USDC|Coinbase|unverified|refus|Source|script|acknowledge|ack|funded|STOPPED)'){continue}
+   if($notes.Count -ge 32){break}
+   $label=$name -replace '[^\x20-\x7E]',' '
+   $notes.Add($label.Substring(0,[Math]::Min(180,$label.Length)))
+  }
+ }catch{}
+ $statusValue=''
+ try{$statusValue=(Invoke-RestMethod -Uri ($script:base+'/api/paper/session') -TimeoutSec 4).mode}catch{}
+ Write-Host ('W39_TEST_ONLY_UI_REFUSAL mode='+$statusValue+' names='+($notes -join ' | '))
  throw ('W39_PAPER_UI_TRANSITION_NOT_OBSERVED_'+$mode)
 }
 function StartOriginal(){
