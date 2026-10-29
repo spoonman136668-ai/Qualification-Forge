@@ -18,7 +18,9 @@ $expected=@(
 foreach($entry in $expected){
  $actualSHA=(& git -C $entry.root rev-parse HEAD).Trim()
  $actualTree=(& git -C $entry.root rev-parse 'HEAD^{tree}').Trim()
- Require ($LASTEXITCODE -eq 0 -and $actualSHA -ceq $entry.sha -and $actualTree -ceq $entry.tree) ('W35B_'+$entry.name+'_EXACT_IDENTITY_FAILED')
+ $gitExit=$LASTEXITCODE
+ Write-Output ('W35B_SOURCE_ACTUAL_'+$entry.name+' SHA='+$actualSHA+' TREE='+$actualTree+' GIT_EXIT='+$gitExit)
+ Require ($gitExit -eq 0 -and $actualSHA -ceq $entry.sha -and $actualTree -ceq $entry.tree) ('W35B_'+$entry.name+'_EXACT_IDENTITY_FAILED')
  $status=@(& git -C $entry.root status --porcelain --untracked-files=no)
  Require ($status.Count -eq 0) ('W35B_'+$entry.name+'_DIRTY_TRACKED_SOURCE')
 }
