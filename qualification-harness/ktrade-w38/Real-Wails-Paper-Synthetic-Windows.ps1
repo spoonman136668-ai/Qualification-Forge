@@ -152,12 +152,23 @@ function ClickUI([object]$shell,[string]$label){
 function StartOriginal(){
  $stderr=Join-Path $env:RUNNER_TEMP ('W38-wails-'+[guid]::NewGuid().ToString('N')+'.err')
  $stdout=Join-Path $env:RUNNER_TEMP ('W38-wails-'+[guid]::NewGuid().ToString('N')+'.out')
- $script:parent=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru -RedirectStandardError $stderr -RedirectStandardOutput $stdout
+ # Native CreateProcess, not ShellExecute. Preserve the exact Go TEMP
+ # environment used by the stage provenance probe and build; Explorer's
+ # separate environment can select a different TEMP and would rightly fail
+ # the original portable path ownership check.
+ $psi=[Diagnostics.ProcessStartInfo]::new((Join-Path $stage 'ktrade.exe'))
+ $psi.UseShellExecute=$false
+ $psi.WorkingDirectory=$stage
+ $psi.RedirectStandardError=$true
+ $psi.RedirectStandardOutput=$true
+ $script:parent=[Diagnostics.Process]::Start($psi)
+ Require ($null -ne $script:parent) 'W38_NATIVE_CREATE_PROCESS_REFUSED'
  $deadline=(Get-Date).AddSeconds(50)
  do{
   $script:parent.Refresh()
   if($script:parent.HasExited){
-   $log=if(Test-Path -LiteralPath $stderr){(Get-Content -LiteralPath $stderr -Tail 12) -join '; '}else{'no GUI stderr captured'}
+   $log=try{$script:parent.StandardError.ReadToEnd()}catch{'GUI stderr unavailable'}
+   if($log.Length -gt 1500){$log=$log.Substring($log.Length-1500)}
    throw ('W38_WAILS_SHELL_PREMATURE_EXIT code='+$script:parent.ExitCode+' stderr='+$log)
   }
   if($script:parent.MainWindowHandle -ne [IntPtr]::Zero){break}
