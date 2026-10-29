@@ -1,0 +1,100 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W45 authenticated GET-only Coinbase product fee account preflight under unchanged public LIVE disarm",
+  "status": "completed",
+  "conclusion": "success",
+  "run_id": 40871629074,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40871629074",
+  "run_created_utc": "2026-10-29T12:14:26Z",
+  "run_completed_utc": "2026-10-29T12:22:48Z",
+  "job_id": 123439864959,
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/22",
+  "witness_sha": "f0e419c204e4645c83b1b3590b618c957f03d4d7",
+  "workflow_path": ".github/workflows/ktrade-w45-venue-readonly-windows.yml",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/192",
+  "source_sha": "48714e12fc5dfbb5b0860cd6d054baa25d50f870",
+  "source_tree": "43decd483605e1e6f3644ae176c74feb1dbe55ec",
+  "parent_sha": "d2f30b11bac9639b4d8a493a5891fe0c58ac0ccb",
+  "parent_qualification": {
+    "w44_run_id": 40860152641,
+    "conclusion": "success"
+  },
+  "changed_paths": [
+    "pkg/advanced_order_readiness.go",
+    "pkg/advanced_order_readiness_test.go"
+  ],
+  "original_paths_unchanged": [
+    "pkg/advanced_orders.go",
+    "pkg/advanced_order_once.go",
+    "pkg/advanced_order_auth.go",
+    "pkg/advanced_order_wire.go",
+    "internal/brokerintent",
+    "internal/brokerprecision",
+    "cmd",
+    "static",
+    "templates",
+    "windows",
+    "tools/wails-pilot"
+  ],
+  "build": {
+    "runner": "windows-2022",
+    "go": "1.25.0",
+    "node_major": 24,
+    "source_sha": "48714e12fc5dfbb5b0860cd6d054baa25d50f870",
+    "wails_exe_sha256": "4b3a9ee2acf970b33b3f5ad4321df0934f53b7733ea33f4fe0a5066bbd8ddbad",
+    "go_engine_sha256": "2832c5846ea735685374f8b91d80dfbde09fa4fb753c358b752d7252af6d3632",
+    "package_zip_sha256": "9ebe129a67093642c759315c2b4f398024b1ec9b82b45d31e717dd4b796b790c",
+    "synthetic_fixture_tags": "none",
+    "live_armed": false,
+    "release_authority": "none"
+  },
+  "verified_markers": [
+    "W45_EXACT_TWO_READONLY_FILES_AND_LIVE_SOURCE_FALSE=PASS",
+    "W45_IDENTICAL_LOCKED_FRONTEND_VENDOR_STAGE=PASS",
+    "W45_SIGNED_READONLY_PRODUCT_FEE_ACCOUNT_WITH_LIVE_SOURCE_DISARM=PASS",
+    "W45_SIGNED_MOCK_ONLY_THREE_GET_EVIDENCE_AND_PUBLIC_LIVE_DISABLED=PASS",
+    "W45_FRESH_FULL_GO_TAGGED_ROOT_WAILS_TEST_AND_VET=PASS",
+    "W45_ORIGINAL_PRODUCTION_PAIR_NO_SYNTHETIC_TAGS_OR_TRANSPORT=PASS",
+    "W45_SOURCE_PROOF_ONLY_PRODUCTION_PAIR_DISPOSED_NO_BROKER_OR_OWNER_DATA=PASS"
+  ],
+  "evidence_scope": [
+    "Generated synthetic in-memory ES256 credentials and injected in-memory HTTP transport only; no real venue or account network calls",
+    "Authenticated request signature checked for each exact GET URI, with no broker writes or credentials stored",
+    "Three GET-only endpoints: /products/{product}, /transaction_summary, /accounts/{uuid}",
+    "Product spot/on-line/disabled flags, exact base and quote increments, fee tier and identity/account currency bound to an immutable disarmed intent",
+    "Fails closed for missing/mismatched account/portfolio/product/fees/invalid amounts, unsupported products, malformed or duplicate responses, and unverifiable permission",
+    "Earlier W41-W44 private transport and durable-intent no-duplicate protections requalified including race tests",
+    "Whole tagged Go app/root, nested Wails tests and vet passed; genuine no-synthetic-tag Windows Go+Wails binaries built then disposed",
+    "Public liveBrokerageAuthorized() remains hardcoded false; no user-owned account, data, broker credentials, LIVE, mainline or release"
+  ],
+  "failed_runs": [
+    {
+      "run_id": 40870283054,
+      "reason": "invalid test fixture duplicate JSON key literal was malformed Go syntax"
+    },
+    {
+      "run_id": 40870722564,
+      "reason": "new preflight CRLF rejection accidentally encoded a source newline rather than escaped characters"
+    },
+    {
+      "run_id": 40871170110,
+      "reason": "negative fixture used valid BTC-USD and wrongly required pre-network refusal; adjusted to unsupported BTC-EUR, with remote mismatch independently tested"
+    }
+  ],
+  "not_qualified": [
+    "Authentic Coinbase read-only access to the user's account; only synthetic signed responses verified",
+    "Real account permissions and current balances, independent venue provenance and genuine fee schedule",
+    "TradeGuard risk reservation, fees/slippage/spread, available after outstanding orders and portfolio-wide exposure",
+    "Venue order preview, explicit per-trade owner order authorization and real-money brokerage execution",
+    "Fill and cancellation reconciliation, durable booking into existing financial owner and operator kill/rollback",
+    "Signed installation, mainline merge, deployment or product release"
+  ],
+  "merged": false,
+  "owner_data_touched": false,
+  "real_broker_requests": 0,
+  "live_armed": false,
+  "release_authority": "none",
+  "trading_permission_by_receipt": false
+}
