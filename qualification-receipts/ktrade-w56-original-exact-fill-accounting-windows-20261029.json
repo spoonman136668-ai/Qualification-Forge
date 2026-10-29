@@ -1,0 +1,102 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W56",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "a801cf9be65a5e4d0b9caf5d256a38d6b165da4b",
+  "source_tree": "a1460dd745870b728f8546d571906c28f3aab0a8",
+  "parent_sha": "83a73f850d059cc35d20ec06f7e265d00584be88",
+  "parent_tree": "7818db5ae400b8ce50b71bb59d2e7160b20de046",
+  "parent_qualification": {
+    "pr": 202,
+    "run_id": 40949094594,
+    "receipt_commit": "5bec0a8aaf1f4a1156d4b579538db030249baee7"
+  },
+  "pr": 203,
+  "branch": "feature/rb3-w56-original-exact-fill-accounting-20261029",
+  "witness_sha": "cc0339babb2bd329f163d4a340e453e3d88e1893",
+  "workflow_git_blob": "ac300c468afb00e1d8229cd18fa0ffd00febd5ef",
+  "frozen_probe_git_blob": "6858af493d7f75376cf7305f68dad32171a979a8",
+  "frozen_original_ledger_blob": "610a7315084e16bbd7f4a522a75105645efae723",
+  "paper_economic_witness": {
+    "sha256": "e25b501f226772a5a6854556e2dd8d32df32547091dd3b7c7f4f6968784cf745",
+    "states": 6,
+    "valuations": 2,
+    "rejections": [
+      true,
+      true,
+      true
+    ]
+  },
+  "run_id": 40953289556,
+  "job_id": 123726748038,
+  "conclusion": "success",
+  "environment": {
+    "os": "windows/amd64",
+    "runner_image": "windows-2022",
+    "image_version": "20261025.346.1",
+    "go_version": "1.25.0",
+    "node_version": "24.22.1",
+    "cgo_enabled": true,
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2
+  },
+  "changed_paths": [
+    "internal/brokerintent/fill_accounting.go",
+    "internal/brokerintent/fill_accounting_test.go",
+    "internal/papertrading/exact_fill_review.go",
+    "internal/papertrading/exact_fill_review_test.go",
+    "internal/papertrading/filled_amounts.go",
+    "internal/papertrading/ledger.go",
+    "pkg/advanced_order_fill_accounting.go",
+    "pkg/advanced_order_fill_accounting_test.go"
+  ],
+  "proofs": [
+    "original cash/fees/lots/FIFO mutation body extracted into one shared helper; body is byte-identical after only the typed side parameter rename; original PAPER validation/gross/basis-point fee rounding preserved",
+    "one unchanged qualification economic probe ran on separate clean worktrees at frozen W55 and candidate; six states, two mark valuations and three refusal checks matched exactly, omitting only wall-clock-dependent LastHash across runs",
+    "within-run duplicate and refused PAPER requests preserve full exact state including LastHash; main checkout remains clean after disposable witness worktrees",
+    "observed commission below the original eight-place unit remains exact in 24-place review; original PAPER's synthetic eight-place result remains unchanged",
+    "shared original FIFO partial close, final close and 1e-24 rounding residual conserve cash plus remaining basis against realized result; product lots remain separate while quote cash is common",
+    "missing/duplicate/malformed/underfunded/short/excess-precision/mixed-quote input refuses with zero projection and no caller mutation",
+    "existing original owner projects the latest complete monotonic fill set for every local held intent exactly once; status-only repeats do not debit again; additive late fills change exact quantities and costs",
+    "24 concurrent read reviews retain stable head-bound accounting; missing/corrupt/foreign evidence exposes zero partial projection; original full holds/native checkpoint and existing observation history remain unchanged",
+    "generated-key signed memory-only GETs -> W55 durable facts -> original accounting kernel passed with exact tiny commission, fully FILLED quantities and no public Place/Get/Cancel transport",
+    "cold stopped inspection preserves exact accounting changes, grants no writer or release authority, and separately binds safety state in the projection digest",
+    "eleven new source TestW56 roots plus the separate frozen compatibility probe passed; W41-W56 affected interfaces and W43/W53/W54/W55/W56 race tests passed",
+    "fresh full tagged app/root/nested Wails tests and vet passed",
+    "original production pair fixture mode none built and disposed; source LIVE gate remains literal false"
+  ],
+  "artifacts_sha256": {
+    "wails": "89ae2c834256dd9c3b87642bdab4de907f295d7193a3a607af47cae6e68f5186",
+    "engine": "f63e44e4ce30732acbfdf87afaa553acd9b0bfa6b827a7a681eb75c529708740",
+    "package": "326fab518483e6715e2123c4b04e9df0489e20d33237dfd3b3093433e248369e"
+  },
+  "live_source_disabled": true,
+  "opening_balance_verified": false,
+  "commission_currency_verified": false,
+  "accounting_committed": false,
+  "release_authorized": false,
+  "venue_reservation_established": false,
+  "real_credentials_used": false,
+  "new_boundary_real_broker_account_or_order_requests": 0,
+  "owner_data_touched": false,
+  "attempt_history": [],
+  "limitations": [
+    "native accounting is a read-only projection of exact changes attributable to durable BUY fills, not absolute account cash/inventory, available funds or a new persisted financial ledger",
+    "commission amounts are mathematically treated in quote units; their venue asset and whole-account opening balance are not independently verified",
+    "original PAPER retains eight-place quantity/price/fee rounding; new explicit-fee review selects 24-place integer units",
+    "pure-kernel ordered SELL/FIFO tests are arithmetic evidence only; native signed observation/custody remains BUY base-sized spot limit-GTC USDC only",
+    "all local held intents require complete durable observations; latest monotonic sets replay once, missing or corrupt evidence exposes zero projection",
+    "deterministic ordering of commuting BUY deltas does not establish venue execution ordering for future SELL/FIFO integration",
+    "original full holds/reservations, stopped/cold rules and public LIVE=false remain; no posting, release, account recovery, writer reopen, reset or activation",
+    "review bounded to 10000 unique fills and 100 products; cross-quote-currency netting refused",
+    "SQLite/native checkpoint/venue reads are non-atomic; account fence is local to OS TEMP/user namespace",
+    "no new native GUI acceptance on these binaries; production build is source/build proof and package was disposed",
+    "not LIVE_READY_DISARMED completion, real brokerage acceptance, release, signing, merge, deployment or migration"
+  ],
+  "mind_palace_advisory": {
+    "sha": "f31e4203892730ddbe24d44ce5674f5678d498aa",
+    "records_sha256": "c63a57fb7f27c8f1c0a5c89296882b07cc2ed51775629dda81acc4c304ce7f1b",
+    "reuse": "unchanged pins and previously validated bounded KTRADE/global records"
+  }
+}
