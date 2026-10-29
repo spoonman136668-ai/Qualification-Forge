@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 2806d352c90df7c38cb085ecc17bf2bd5729582d
+          ref: 369bf3a364ffb3429c32fd8868c147c5225e7880
           path: current
           fetch-depth: 32
           persist-credentials: false
@@ -41,8 +41,8 @@ jobs:
           if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W57_NOT_HOSTED_WINDOWS'}
           if((& git -C witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){throw 'W57_WITNESS_DRIFT'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '2806d352c90df7c38cb085ecc17bf2bd5729582d' -or
-            (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'b0bb1569a4d2a292478b5ecf2a68d8866d71c9e0'){throw 'W57_EXACT_SOURCE_TREE_DRIFT'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '369bf3a364ffb3429c32fd8868c147c5225e7880' -or
+            (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'c52994c5d04f2fd71c8cf782e70de97c7fecf127'){throw 'W57_EXACT_SOURCE_TREE_DRIFT'}
           if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W57_DIRTY_SOURCE'}
           $parent='a801cf9be65a5e4d0b9caf5d256a38d6b165da4b'
           if((& git -C $src merge-base HEAD $parent).Trim() -cne $parent){throw 'W57_W56_ANCESTRY_DRIFT'}
@@ -126,10 +126,10 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'W57_ORIGINAL_VENDOR_STAGE_FAILED'}
           }finally{Pop-Location}
           $package=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
-          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $package -ExpectedSourceSha '2806d352c90df7c38cb085ecc17bf2bd5729582d'
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $package -ExpectedSourceSha '369bf3a364ffb3429c32fd8868c147c5225e7880'
           if($LASTEXITCODE -ne 0){throw 'W57_ORIGINAL_UNSIGNED_PAIR_BUILD_FAILED'}
           $manifest=Get-Content (Join-Path $package 'source-manifest.json') -Raw|ConvertFrom-Json
-          if($manifest.source_sha -cne '2806d352c90df7c38cb085ecc17bf2bd5729582d' -or
+          if($manifest.source_sha -cne '369bf3a364ffb3429c32fd8868c147c5225e7880' -or
             $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W57_PRODUCTION_SOURCE_LIVE_DRIFT'}
           [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w57-package.marker'),$package)
           Write-Host '::notice::W57_ORIGINAL_NATIVE_WAILS_GO_NO_LIVE_NO_SYNTHETIC_PACKAGE=PASS'
@@ -144,5 +144,5 @@ jobs:
             if([IO.Path]::GetDirectoryName($path) -cne $env:RUNNER_TEMP -or [IO.Path]::GetFileName($path) -notmatch '^ktrade-w03-package-[a-f0-9]{32}$'){throw 'W57_UNSAFE_CLEANUP_ROOT'}
             Remove-Item -LiteralPath $path -Force -Recurse -ErrorAction Stop
           }
-          if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'current') rev-parse HEAD).Trim() -cne '2806d352c90df7c38cb085ecc17bf2bd5729582d'){throw 'W57_GIT_PRODUCT_MUTATION'}
+          if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'current') rev-parse HEAD).Trim() -cne '369bf3a364ffb3429c32fd8868c147c5225e7880'){throw 'W57_GIT_PRODUCT_MUTATION'}
           Write-Host '::notice::W57_DISPOSABLE_NO_OWNER_DATA_NO_BROKER_POST_NO_LIVE_NO_MERGE'
