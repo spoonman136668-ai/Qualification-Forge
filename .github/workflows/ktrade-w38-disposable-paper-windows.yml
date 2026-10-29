@@ -1,3 +1,4 @@
+# W38 harness retry: inspect bounded original Wails GUI startup stderr; no permissions changed.
 name: KTRADE W38 original disposable Wails synthetic PAPER operator acceptance
 permissions:
   contents: read
