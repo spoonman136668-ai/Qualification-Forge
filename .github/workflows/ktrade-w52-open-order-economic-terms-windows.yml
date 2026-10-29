@@ -45,9 +45,9 @@ jobs:
           if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
           if((& git -C $src merge-base 16626f94b84c8793e15a1eb90f285baf549acb5f ca7c784fad7992f12907b5cf6086b6c0b7ac7da1).Trim() -cne 'ca7c784fad7992f12907b5cf6086b6c0b7ac7da1'){throw 'W52_W49_PARENT_DRIFT'}
           $diff=@(& git -C $src diff --name-only ca7c784fad7992f12907b5cf6086b6c0b7ac7da1 HEAD|Sort-Object)
-          $expect=@('pkg/advanced_order_open_inventory.go','pkg/advanced_order_open_terms.go','pkg/advanced_order_open_terms_test.go'|Sort-Object)
+          $expect=@('pkg/advanced_order_open_inventory.go','pkg/advanced_order_open_inventory_test.go','pkg/advanced_order_open_stability.go','pkg/advanced_order_open_stability_test.go','pkg/advanced_order_open_terms.go','pkg/advanced_order_open_terms_test.go'|Sort-Object)
           if(Compare-Object $diff $expect){throw 'W52_SIX_TERMS_BINDING_PATHS_DRIFT'}
-          foreach($path in @('cmd','internal','static','templates','tests','tools','windows','go.mod','go.sum','package.json','package-lock.json','pkg/advanced_order_readiness.go','pkg/advanced_order_readiness_test.go','pkg/advanced_order_funding_screen.go','pkg/advanced_order_funding_screen_test.go','pkg/advanced_orders.go','pkg/advanced_order_once.go','pkg/advanced_order_auth.go','pkg/advanced_order_wire.go','pkg/advanced_order_exposure_screen.go','pkg/advanced_order_exposure_screen_test.go','pkg/advanced_order_open_reconciliation.go','pkg/advanced_order_open_reconciliation_test.go','pkg/advanced_order_open_inventory_test.go','pkg/advanced_order_open_stability.go','pkg/advanced_order_open_stability_test.go')){
+          foreach($path in @('cmd','internal','static','templates','tests','tools','windows','go.mod','go.sum','package.json','package-lock.json','pkg/advanced_order_readiness.go','pkg/advanced_order_readiness_test.go','pkg/advanced_order_funding_screen.go','pkg/advanced_order_funding_screen_test.go','pkg/advanced_orders.go','pkg/advanced_order_once.go','pkg/advanced_order_auth.go','pkg/advanced_order_wire.go','pkg/advanced_order_exposure_screen.go','pkg/advanced_order_exposure_screen_test.go','pkg/advanced_order_open_reconciliation.go','pkg/advanced_order_open_reconciliation_test.go','pkg/advanced_order_bounded_open_inventory.go','pkg/advanced_order_bounded_open_inventory_test.go')){
             $current=(& git -C $src rev-parse ('HEAD:'+$path)).Trim()
             $prior=(& git -C $src rev-parse ('ca7c784fad7992f12907b5cf6086b6c0b7ac7da1:'+$path)).Trim()
             if($LASTEXITCODE -ne 0 -or $current -cne $prior){throw ('W52_FINANCIAL_AUTH_MAIN_OR_DEPENDENCY_DRIFT_'+$path)}
@@ -199,4 +199,3 @@ jobs:
           }
           Remove-Item (Join-Path $env:GITHUB_WORKSPACE 'current') -Recurse -Force -ErrorAction SilentlyContinue
           Write-Output '::notice::W52_SOURCE_PROOF_ONLY_PRODUCTION_PAIR_DISPOSED_NO_BROKER_OR_OWNER_DATA=PASS'
-
