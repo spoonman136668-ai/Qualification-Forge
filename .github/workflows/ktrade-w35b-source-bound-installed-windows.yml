@@ -1,4 +1,4 @@
-# W35B exact evidence gate; original W29C nonce-only package root is preserved.
+# W35B pinned evidence gate; preserve W29C package-root and single native process record.
 name: KTRADE W35B pinned installed cross-version Windows qualification
 permissions:
   contents: read
