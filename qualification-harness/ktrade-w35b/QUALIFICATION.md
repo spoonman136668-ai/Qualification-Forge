@@ -8,7 +8,7 @@ controller, release approval, live-trading permission, or proof of Windows PASS.
 ## Source and baseline identities
 
 * W31 source `e51e03c22f906704295a24138ac1ceba5d9ea0d4`, Git tree
-  `5526682f7efafe4cd328fbac77ebb97e58dc7b9`.
+  `5526682f7efafe4cd328fbac77ebb97e58dc7b9e`.
 * W34 source `0059d4b794552818b3f32798da7df27c75e21c5c`, Git tree
   `9f1e559560ac14f4e6fc823dac9150e3a95f2c4d`, draft KTRADE PR #185.
 * Required existing successful independent Windows witnesses:
