@@ -122,16 +122,150 @@ function ClickUI([object]$shell,[string]$label){
  [W35BNative]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
 }
 function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
- $launch=Join-Path $maintenance 'release-launch.exe'
- Ordinary $launch $false
- $out=Join-Path $QualificationRoot ('app-'+$phase+'.out')
- $err=Join-Path $QualificationRoot ('app-'+$phase+'.err')
- $launcher=Start-Process -FilePath $launch -ArgumentList ('"'+$script:installedRoot+'"') -PassThru -RedirectStandardOutput $out -RedirectStandardError $err
+ # Mirror the independently qualified W31 native operator path: ShellExecute
+ # the original, current selection-bound .lnk, rather than spawning a redirected
+ # console launcher that can hide or detach the first real WebView2 window.
+ $current=Get-Content -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json') -Raw|ConvertFrom-Json
+ Require ($current.source_sha -ceq $receipt.source_sha -and $current.selection_digest -cmatch '^[a-f0-9]{64}
+ Require (Test-Path -LiteralPath $lease) ('W35B_'+$phase+'_NO_OWNER_LEASE')
+ $owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json
+ Require ($owner.source_sha -ceq $receipt.source_sha -and $owner.live_armed -eq $false) 'W35B_SOURCE_OR_DISARM_DRIFT'
+ $shell=Get-Process -Id $owner.pid
+ $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
+ Require ([string]::Equals($cim.ExecutablePath,(Join-Path $receipt.candidate_directory 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)) 'W35B_SHELL_EXE_DRIFT'
+ $verified=$false
+ for($attempt=1;$attempt -le 3;$attempt++){
+  ClickUI $shell 'Verify chart UI'
+  try{
+   $null=FindUI $shell 'Original chart DOM, Monaco editor and preferences controls observed.' $false 12
+   $verified=$true
+   break
+  }catch{
+   if($attempt -eq 3){throw ('W35B_'+$phase+'_NATIVE_WEBVIEW2_NOT_VERIFIED')}
+   Start-Sleep -Seconds 2
+  }
+ }
+ Require $verified 'W35B_WEBVIEW2_NOT_VERIFIED'
+ $engine=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+ Require ($engine.Count -eq 1) 'W35B_NATIVE_ENGINE_OWNERSHIP_DRIFT'
+ $ports=@(Get-NetTCPConnection -OwningProcess $engine[0].ProcessId -State Listen|Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+ Require ($ports.Count -eq 1) 'W35B_UNEXPECTED_LOOPBACK'
+ $cap=Invoke-RestMethod -Uri ('http://127.0.0.1:'+$ports[0].LocalPort+'/api/operator/capabilities') -TimeoutSec 5
+ Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and
+  $cap.live_orders_enabled -eq $false -and $cap.strategy_execution_enabled -eq $false -and
+  $cap.paper_accounting_enabled -eq $false -and $cap.requires_review -eq $true) 'W35B_OPERATOR_CAPABILITIES_DRIFT'
+ Write-Host ('::notice::W35B_NATIVE_'+$phase+'_WEBVIEW2_AND_PAPER_STOPPED=PASS')
+ return [pscustomobject]@{shell=$shell;handle=$shell.Handle;enginePid=[int]$engine[0].ProcessId}
+}
+function StopInstalled([object]$run){
+ Require ([W35BNative]::PostMessage($run.shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)) 'W35B_NORMAL_CLOSE_FAILED'
+ Require ($run.shell.WaitForExit(30000)) 'W35B_PROCESS_SHUTDOWN_FAILED'
+ Require (!(Get-Process -Id $run.enginePid -ErrorAction SilentlyContinue)) 'W35B_ORPHAN_ENGINE'
+ Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w28c-active-process.lock'))) 'W35B_LEASE_NOT_RELEASED'
+ Start-Sleep -Seconds 2
+}
+Require ($env:OS -ceq 'Windows_NT' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'W35B_EPHEMERAL_WINDOWS_ONLY'
+$script:ps51=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+Require (Test-Path -LiteralPath $script:ps51) 'W35B_POWERSHELL_51_MISSING'
+$QualificationRoot=[IO.Path]::GetFullPath($QualificationRoot)
+$runnerTemp=[IO.Path]::GetFullPath($env:RUNNER_TEMP)
+Require (([IO.Path]::GetDirectoryName($QualificationRoot)).TrimEnd('\') -ieq $runnerTemp.TrimEnd('\')) 'W35B_NOT_EPHEMERAL_TEMP_CHILD'
+Require (!(Test-Path -LiteralPath $QualificationRoot)) 'W35B_ROOT_ALREADY_EXISTS'
+$null=New-Item -ItemType Directory -Path $QualificationRoot
+$script:installedRoot=Join-Path $QualificationRoot 'KTRADE-W35B installed with spaces'
+$script:shortcuts=Join-Path $QualificationRoot 'Shortcuts'
+$null=New-Item -ItemType Directory -Path $script:shortcuts
+$null=Bundle $PreviousBundle $OldSHA
+$null=Bundle $CandidateBundle $NewSHA
+$oldSetup=Join-Path $PreviousBundle 'KTRADE-Setup.ps1'
+$newSetup=Join-Path $CandidateBundle 'KTRADE-Setup.ps1'
+$script:active=$null
+$savedPath=$env:PATH
+$env:PATH=(Join-Path $env:WINDIR 'System32')+';'+(Split-Path -Parent $script:ps51)+';'+$env:WINDIR
+Require (@(Get-Command go.exe,node.exe -ErrorAction SilentlyContinue).Count -eq 0) 'W35B_BUILD_TOOLS_ON_RUNTIME_PATH'
+try{
+ $old=Setup $oldSetup 'Install'
+ Require ($old.source_sha -ceq $OldSHA -and $old.app_launched -eq $false -and $old.live_armed -eq $false) 'W35B_OLD_INSTALL_DRIFT'
+ $oldMaint=Join-Path $script:installedRoot 'maintenance'
+ $oldReceiptPath=Join-Path $script:installedRoot '.ktrade-w29-install.json'
+ $oldReceiptHash=Hash $oldReceiptPath
+ $unknown=Join-Path $script:installedRoot 'unknown-owner-file.bin'
+ [IO.File]::WriteAllBytes($unknown,[byte[]](0,255,3,19,73,254))
+ $unknownHash=Hash $unknown
+ $script:active=StartInstalled $oldMaint $old 'PREVIOUS'
+ $null=Setup $newSetup 'Update' $false
+ Require ((Hash $oldReceiptPath) -ceq $oldReceiptHash) 'W35B_ACTIVE_UPDATE_MUTATED_RECEIPT'
+ StopInstalled $script:active;$script:active=$null
+ foreach($item in @(@{path='pine-library/w35b-retained.pine';body='//@version=6 indicator W35B'},
+                  @{path='strategies/w35b-retained.pine';body='//@version=6 strategy W35B'},
+                  @{path='unknown/w35b-local-state';body='DO_NOT_MIGRATE_THIS_UNKNOWN_STATE'})){
+  $path=Join-Path $old.candidate_directory ('data/'+$item.path)
+  $null=New-Item -ItemType Directory -Force -Path (Split-Path -Parent $path)
+  [IO.File]::WriteAllText($path,$item.body,[Text.UTF8Encoding]::new($false))
+ }
+ $oldHashes=Hashes (Join-Path $old.candidate_directory 'data')
+ $updated=Setup $newSetup 'Update'
+ Require ($updated.schema -ceq 'ktrade.installed-transition.v1' -and $updated.action -ceq 'select' -and
+  $updated.before.source_sha -ceq $OldSHA -and $updated.after.source_sha -ceq $NewSHA -and
+  $updated.live_armed -eq $false) 'W35B_UPDATE_IDENTITY_INVALID'
+ $new=$updated.after
+ $newMaint=Join-Path $script:installedRoot ('maintenance-'+(Split-Path -Leaf (Split-Path -Parent $new.candidate_directory)))
+ $newSetupInstalled=Join-Path $newMaint 'KTRADE-Setup.ps1'
+ $newInspect=Setup $newSetupInstalled 'Inspect'
+ Require ($newInspect.source_sha -ceq $NewSHA) 'W35B_UPDATED_MAINTENANCE_MISMATCH'
+ AssertHashes $oldHashes (Hashes (Join-Path $old.candidate_directory 'data')) 'W35B_OLD_DATA'
+ Require ((Hash (Join-Path $script:installedRoot '.ktrade-w30-before-000002.json')) -ceq $oldReceiptHash) 'W35B_OLD_RECEIPT_BACKUP_DRIFT'
+ foreach($rel in @('pine-library/w35b-retained.pine','strategies/w35b-retained.pine')){
+  Require ((Hash (Join-Path $old.candidate_directory ('data/'+$rel))) -ceq
+   (Hash (Join-Path $new.candidate_directory ('data/'+$rel)))) 'W35B_SUPPORTED_BYTES_CHANGED'
+ }
+ Require (!(Test-Path -LiteralPath (Join-Path $new.candidate_directory 'data/unknown/w35b-local-state'))) 'W35B_UNSUPPORTED_STATE_MIGRATED'
+ Require ((Hash $unknown) -ceq $unknownHash) 'W35B_UNKNOWN_ROOT_BYTES_CHANGED'
+ $script:active=StartInstalled $newMaint $new 'UPDATED'
+ $null=Setup $newSetupInstalled 'Rollback' $false
+ StopInstalled $script:active;$script:active=$null
+ $newHashes=Hashes (Join-Path $new.candidate_directory 'data')
+ $opaque=Join-Path $old.candidate_directory 'data/unknown/w35b-local-state'
+ $original=[IO.File]::ReadAllBytes($opaque)
+ try{
+  [IO.File]::WriteAllBytes($opaque,[byte[]]($original+[byte]120))
+  $null=Setup $newSetupInstalled 'Rollback' $false
+ }finally{[IO.File]::WriteAllBytes($opaque,$original)}
+ $rolled=Setup $newSetupInstalled 'Rollback'
+ Require ($rolled.action -ceq 'rollback' -and $rolled.after.source_sha -ceq $OldSHA -and
+  $rolled.live_armed -eq $false) 'W35B_ROLLBACK_IDENTITY_INVALID'
+ AssertHashes $oldHashes (Hashes (Join-Path $old.candidate_directory 'data')) 'W35B_ROLLBACK_OLD_DATA'
+ AssertHashes $newHashes (Hashes (Join-Path $new.candidate_directory 'data')) 'W35B_ROLLBACK_NEW_DATA'
+ Require ((Hash $unknown) -ceq $unknownHash) 'W35B_UNKNOWN_ROOT_BYTES_AFTER_ROLLBACK'
+ $oldAgain=Setup (Join-Path $oldMaint 'KTRADE-Setup.ps1') 'Inspect'
+ Require ($oldAgain.source_sha -ceq $OldSHA) 'W35B_ROLLED_BACK_MAINTENANCE_INVALID'
+ $script:active=StartInstalled $oldMaint $oldAgain 'ROLLED_BACK'
+ StopInstalled $script:active;$script:active=$null
+ AssertHashes $newHashes (Hashes (Join-Path $new.candidate_directory 'data')) 'W35B_RETAINED_NEW_DATA'
+ Write-Output '::notice::W35B_W31_TO_W34_REAL_INSTALLED_UPDATE_ROLLBACK=PASS'
+ Write-Output '::notice::W35B_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS'
+}finally{
+ $env:PATH=$savedPath
+ if($null -ne $script:active){Write-Warning 'W35B_ABORTED_WITH_OWNED_PROCESS: fail-closed ephemeral runner required; no automatic retry or takeover'}
+}
+) 'W35B_SELECTED_SHORTCUT_SOURCE_DRIFT'
+ $folder=Join-Path $script:shortcuts ('KTRADE-'+$current.selection_digest.Substring(0,16))
+ $shortcut=Join-Path $folder 'KTRADE.lnk'
+ $proof=Join-Path $folder '.ktrade-shortcut-receipt.json'
+ Ordinary $shortcut $false
+ Ordinary $proof $false
+ $owned=Get-Content -LiteralPath $proof -Raw|ConvertFrom-Json
+ Require ($owned.schema -ceq 'ktrade.windows-shortcut.v1' -and
+  $owned.source_sha -ceq $receipt.source_sha -and
+  $owned.selection_digest -ceq $current.selection_digest -and
+  $owned.root -ceq $script:installedRoot -and
+  $owned.target -ceq (Join-Path $receipt.candidate_directory 'ktrade.exe') -and
+  $owned.live_armed -eq $false -and
+  (Hash $shortcut) -ceq $owned.link_sha256) 'W35B_ORIGINAL_SHORTCUT_CUSTODY_DRIFT'
+ Start-Process -FilePath $shortcut
  $lease=Join-Path $script:installedRoot '.ktrade-w28c-active-process.lock'
  $until=(Get-Date).AddSeconds(45)
  do{
-  $launcher.Refresh()
-  Require (!$launcher.HasExited) ('W35B_'+$phase+'_LAUNCH_PREMATURE_EXIT')
   if(Test-Path -LiteralPath $lease){try{$owner=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json;if($owner.pid -gt 0){break}}catch{}}
   Start-Sleep -Milliseconds 300
  }while((Get-Date) -lt $until)
