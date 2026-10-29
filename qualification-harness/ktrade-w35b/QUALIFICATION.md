@@ -28,10 +28,10 @@ isolated runner workspace. The scripts demand `RUNNER_ENVIRONMENT=github-hosted`
 and create fresh, uniquely named fixture roots under `RUNNER_TEMP`.
 
 ```powershell
-& .\KTRADE-W35B-Build-And-Qualify.ps1 `
+& .\qualification-harness\ktrade-w35b\Build-And-Qualify.ps1 `
   -PreviousCheckout 'C:\runner\workspace\previous' `
   -CandidateCheckout 'C:\runner\workspace\candidate' `
-  -WitnessScript 'C:\runner\workspace\witness\KTRADE-W35B-Installed-CrossVersion.ps1'
+  -WitnessScript 'C:\runner\workspace\witness\qualification-harness\ktrade-w35b\Installed-CrossVersion.ps1'
 ```
 
 The wrapper verifies exact SHA and tree, clean tracked checkouts, nine
