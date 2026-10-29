@@ -1,0 +1,83 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W60",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "5b97371332c3b72a46401c2b491fc5261d0f5af6",
+  "source_tree": "b487892ac36c226ac1c64f074feb55c71c4d4457",
+  "parent_sha": "af8c3acf0319d97589ccc5203117db49875bfcf2",
+  "parent_qualification": {
+    "pr": 206,
+    "run_id": 40968172639,
+    "receipt_commit": "2c1ac9e91011377b16d028115bf10271e1e36b1b"
+  },
+  "source_pr": 207,
+  "source_branch": "feature/rb3-w60-unverified-cash-history-replay-20261029",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 32,
+  "qualification_branch": "qualification/ktrade-w60-unverified-cash-history-20261029",
+  "witness_sha": "9ab7f5dc65d97dad21baa21abd768e54d66585ed",
+  "workflow_path": ".github/workflows/ktrade-w60-unverified-cash-history-windows.yml",
+  "workflow_git_blob": "091b13d84dd0c6286229478d1eae50a58a9a7ce5",
+  "run_id": 40970484029,
+  "job_id": 123785698746,
+  "run_event": "push",
+  "run_attempt": 1,
+  "run_status": "completed",
+  "conclusion": "success",
+  "run_updated_at": "2026-10-29T23:12:02Z",
+  "environment": {
+    "os": "windows/amd64",
+    "runner_image": "windows-2022",
+    "image_version": "20261025.346.1",
+    "go_version": "1.25.0",
+    "node_version": "24.22.1",
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2,
+    "isolated_temp_tmp": true
+  },
+  "changed_paths": [
+    "pkg/advanced_order_cash_history_window.go",
+    "pkg/advanced_order_cash_history_window_test.go"
+  ],
+  "qualification_steps": {
+    "exact_w59_parent_tree_two_added_files_and_live_disarm": "PASS",
+    "original_w56_w57_w58_w59_financial_and_account_custody_unchanged": "PASS",
+    "w60_bounded_unverified_history_arithmetic_and_negative_tests": "PASS",
+    "original_w41_w60_risk_paper_financial_regression_and_race": "PASS",
+    "full_original_tagged_app_root_nested_wails_tests_and_vet": "PASS",
+    "offline_node_vendor": "PASS",
+    "original_unsigned_go_wails_production_pair_fixture_none_live_disarmed": "PASS",
+    "isolated_package_cleanup": "PASS"
+  },
+  "proofs": [
+    "proposed external cash-history arithmetic requires explicit UNVERIFIED source kind, original W59 financial fingerprint and durable head, bounded UTC/unique numbered entries and exact twenty-four-place amounts",
+    "hypothetical opening plus nontrade transfers plus BUY gross plus stated commission matches observed closing cash without elevation of commission asset or opening-balance authenticity",
+    "adversarial tests reject missing or duplicate history, inconsistent fee or trade values, wrong currency or account/portfolio, malformed dates/amounts and forged source attestation or financial authority",
+    "W60 adds no broker request path, wallet, native financial posting, original owner mutation, or LIVE authorization",
+    "independently run original tagged/root/nested Wails Go tests and vet, affected W41-W60 suite and race, original unsigned fixture-free Go/Wails package in isolated Windows environment",
+    "production package was disposed; original broker live gate remained source-disabled"
+  ],
+  "source_authenticated": false,
+  "source_complete": false,
+  "opening_balance_verified": false,
+  "commission_currency_verified": false,
+  "snapshot_atomic": false,
+  "accounting_committed": false,
+  "release_authorized": false,
+  "live_order_authorized": false,
+  "cross_process_exclusivity_verified": false,
+  "original_holds_retained": true,
+  "real_credentials_used": false,
+  "real_broker_account_or_order_requests": 0,
+  "owner_data_touched": false,
+  "native_gui_runtime_accepted": false,
+  "source_merged": false,
+  "limitations": [
+    "W60 tests only hypothetical, user-provided arithmetic coherence; no Coinbase v3 commission-asset attestation, authenticated complete transaction history, opening balance or spendable cash",
+    "strict 256-line window and W59 four-read fingerprint do not establish completeness, atomic venue snapshot or chronological continuity outside the proposed window",
+    "no authoritative financial posting, original hold release, cross-process account writer lease, trading authorization or LIVE brokerage activation",
+    "unsigned build tests are not installed native-operator UI acceptance, deployment, signing, merge or user-data migration",
+    "W60 remains a draft stacked on unmerged W59/W58/W57 branches; protected main unchanged"
+  ]
+}
