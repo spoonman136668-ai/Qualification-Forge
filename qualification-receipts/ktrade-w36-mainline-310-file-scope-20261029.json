@@ -1,0 +1,114 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W36 exact PR186 mainline 310-path source inventory and qualified foundation custody",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/186",
+  "source_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+  "source_tree": "9f1e559560ac14f4e6fc823dac9150e3a95f2c4d",
+  "main_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/16",
+  "run_id": 40799226177,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40799226177",
+  "job_id": 123203041133,
+  "run_created_utc": "2026-10-29T01:14:45Z",
+  "run_completed_utc": "2026-10-29T01:14:57Z",
+  "witness_sha": "daef6407d82ca3610897fc34e255e983dfee9766",
+  "witness_files": {
+    "manifest": {
+      "path": "qualification-harness/ktrade-w36/PR186-310-file-manifest.json",
+      "blob_sha": "d402e9083b630c5840518b1eda6b18f44055a28f"
+    },
+    "audit_script": {
+      "path": "qualification-harness/ktrade-w36/Audit-PR186-Mainline.py",
+      "blob_sha": "1f049d3dd73a8761994c90615108802178caf85d"
+    },
+    "workflow": {
+      "path": ".github/workflows/ktrade-w36-mainline-scope.yml",
+      "blob_sha": "bf613096f7ce5b4eb7359d17f77815382ae6fa64"
+    }
+  },
+  "changed_paths": {
+    "count": 310,
+    "unique": 310,
+    "added": 272,
+    "modified": 38,
+    "deleted": 0,
+    "added_lines": 29446,
+    "removed_lines": 977
+  },
+  "ancestry": {
+    "ahead_by": 434,
+    "behind_by": 0,
+    "merge_base": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58"
+  },
+  "groups": {
+    "ci": 2,
+    "docs": 5,
+    "app-go": 53,
+    "data-migration": 17,
+    "risk-guard": 10,
+    "paper": 36,
+    "pine-core-tests": 37,
+    "scripts": 4,
+    "ui-chart": 16,
+    "integration-tests": 36,
+    "wails": 81,
+    "windows-installer": 13
+  },
+  "passed": [
+    "W36_LIVE_MAIN_EXACT_CHECKOUT=PASS",
+    "W36_ALL_310_GIT_PATHS_NUMSTAT_AND_MODES=PASS",
+    "W36_MAINLINE_BASE_434_COMMITS_ZERO_BEHIND=PASS",
+    "W36_MAINLINE_CHECKOUT_AND_CANDIDATE_CUSTODY=PASS",
+    "W36_EXACT_W34_AND_W35B_WINDOWS_FOUNDATIONS=PASS",
+    "W36_SCOPE_ONLY_PASS_NO_RELEASE_NO_MERGE_NO_LIVE=TRUE"
+  ],
+  "foundations": [
+    {
+      "run_id": 40787692876,
+      "witness_sha": "858d21380e1e88c01555371c6e258dfab07f7446",
+      "conclusion": "success",
+      "scope": "W34 exact candidate original Go Node disposable setup Windows"
+    },
+    {
+      "run_id": 40796601906,
+      "witness_sha": "85948ad3188f15a8ea9d4c83481418cade29d278",
+      "conclusion": "success",
+      "scope": "W35B genuine installed W31-W34-W31 update rollback native UI Windows"
+    }
+  ],
+  "reviewed_in_diff_scope": [
+    "Original Go order-route and finalized-candle changes now explicitly fail closed",
+    "Historical P18C/P18D inline source assertions reconciled with current guarded API adapters",
+    "Original Pine compiler parser and strategy intent changes remain original, not replaced by toy engine",
+    "Risk guard, PAPER fill, coordinator, ledger and data restoration are high-sensitivity integration areas",
+    "Chart template replacement and native Wails package are major interface changes",
+    "No deleted paths; no symlink/submodule/binary or listed secret-artifact filename was admitted by the automated W36 proof"
+  ],
+  "boundaries": [
+    "This gate verifies entire 310-file identity and per-file change sizes, not a human semantic line-by-line audit of 29,446 insertions.",
+    "Private KTRADE REST API refused the source-read checkout credential with 403 on earlier run 40799074739; final run instead independently checked out live main via authenticated Git and succeeded.",
+    "GitHub PR state/draft/head/base/mergeable was separately read via connected GitHub after the audit; runner itself did not query private KTRADE PR metadata.",
+    "Automated W36 smoke is read-only Git/receipt custody, not a new native Windows product regression; existing W34/W35B exact source-bound Windows receipts supply those foundations.",
+    "Release completion, mock LIVE adapter and PAPER transaction behavior in updated installed W34 beyond stopped mode remain distinct future acceptance requirements."
+  ],
+  "status": "completed",
+  "conclusion": "success",
+  "first_failed_run_id": 40799074739,
+  "first_failure": "private REST API 403, no native product test failure",
+  "mainline_pr_state_verified": {
+    "draft": true,
+    "merged": false,
+    "conflict_free": true,
+    "head_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+    "base_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58"
+  },
+  "source_mutated": false,
+  "main_mutated": false,
+  "owner_data_touched": false,
+  "live_armed": false,
+  "signing_authority": "none",
+  "release_authority": "none",
+  "merge_authorized_by_receipt": false
+}
