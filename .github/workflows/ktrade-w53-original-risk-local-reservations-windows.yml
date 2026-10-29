@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: a6ddf8ded8cb9d3f1425bbe3b460040a89136982
+          ref: 161b12eb1883aee50c434c426c5be24789af57d4
           path: current
           fetch-depth: 32
           persist-credentials: false
@@ -41,9 +41,9 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W32E_WRONG_RUNNER'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-          if((& git -C $src rev-parse HEAD).Trim() -cne 'a6ddf8ded8cb9d3f1425bbe3b460040a89136982' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '5f8e4f52927590c5451fc27053fcadf118e25c51'){throw 'W32E_EXACT_SOURCE_DRIFT'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '161b12eb1883aee50c434c426c5be24789af57d4' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '57a5a02767622a6ca3def69293df0d59f88a8bb1'){throw 'W32E_EXACT_SOURCE_DRIFT'}
           if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
-          if((& git -C $src merge-base a6ddf8ded8cb9d3f1425bbe3b460040a89136982 dc2f3e376e1a6040a40519e04950d20a4508c319).Trim() -cne 'dc2f3e376e1a6040a40519e04950d20a4508c319'){throw 'W53_W49_PARENT_DRIFT'}
+          if((& git -C $src merge-base 161b12eb1883aee50c434c426c5be24789af57d4 dc2f3e376e1a6040a40519e04950d20a4508c319).Trim() -cne 'dc2f3e376e1a6040a40519e04950d20a4508c319'){throw 'W53_W49_PARENT_DRIFT'}
           $diff=@(& git -C $src diff --name-only dc2f3e376e1a6040a40519e04950d20a4508c319 HEAD|Sort-Object)
           $expect=@('internal/brokerintent/journal.go','internal/brokerintent/local_reservations.go','internal/brokerintent/local_reservations_test.go','pkg/advanced_order_local_reservations.go','pkg/advanced_order_local_reservations_test.go'|Sort-Object)
           if(Compare-Object $diff $expect){throw 'W53_FIVE_LOCAL_RESERVATION_PATHS_DRIFT'}
@@ -142,10 +142,10 @@ jobs:
             $files=(& go list -mod=readonly -tags ktrade_full -f '{{join .GoFiles " "}}' ./cmd/ktrade) -join ' '
             if($LASTEXITCODE -ne 0 -or $files -notmatch 'main_full.go' -or $files -match 'w32e_webview_fixture|w13_fixture'){throw 'W32E_P2_SYNTHETIC_SOURCE_INCLUDED'}
           }finally{Pop-Location}
-          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha 'a6ddf8ded8cb9d3f1425bbe3b460040a89136982'
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha '161b12eb1883aee50c434c426c5be24789af57d4'
           if($LASTEXITCODE -ne 0){throw 'W53_PRODUCTION_PAIR_BUILD_FAILED'}
           $manifest=Get-Content -LiteralPath (Join-Path $build 'source-manifest.json') -Raw|ConvertFrom-Json
-          if($manifest.source_sha -cne 'a6ddf8ded8cb9d3f1425bbe3b460040a89136982' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W53_PRODUCTION_IDENTITY_DRIFT'}
+          if($manifest.source_sha -cne '161b12eb1883aee50c434c426c5be24789af57d4' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W53_PRODUCTION_IDENTITY_DRIFT'}
           $stage=Join-Path $build 'KTRADE-WailsPortable'
           $engineInfo=(& go version -m (Join-Path $stage 'ktrade-engine.exe')) -join "`n"
           if($LASTEXITCODE -ne 0 -or $engineInfo -notmatch '-tags=ktrade_full' -or $engineInfo -match 'ktrade_w32e_fixture|ktrade_w13_fixture'){throw 'W32E_P2_PRODUCTION_TAGS_DRIFT'}
