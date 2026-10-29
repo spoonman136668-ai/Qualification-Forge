@@ -1,0 +1,93 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W52",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "dc2f3e376e1a6040a40519e04950d20a4508c319",
+  "source_tree": "2ccca193048acfddf42ef7a6316607b92a530dd6",
+  "parent_sha": "ca7c784fad7992f12907b5cf6086b6c0b7ac7da1",
+  "parent_tree": "c19e8bdce596d97b3beaa8c20dfaee0cd94dcf5a",
+  "source_branch": "feature/rb3-w52-open-order-economic-terms-20261029",
+  "pr": 199,
+  "witness_sha": "20157a9a1c5b52855f0b464048eae032c22a5eb5",
+  "run_id": 40917449183,
+  "job_id": 123601421039,
+  "conclusion": "success",
+  "runner": "windows-2022",
+  "go_version": "1.25.0",
+  "node_major": 24,
+  "changed_paths": [
+    "pkg/advanced_order_open_inventory.go",
+    "pkg/advanced_order_open_inventory_test.go",
+    "pkg/advanced_order_open_stability.go",
+    "pkg/advanced_order_open_stability_test.go",
+    "pkg/advanced_order_open_terms.go",
+    "pkg/advanced_order_open_terms_test.go"
+  ],
+  "unchanged_foundation_git_objects": {
+    "cmd": "b8333705b0c77aa226d5b0efbb11022ab7fa56a5",
+    "internal": "ff912258232c14d15d11d94b1920232e46736e40",
+    "static": "e438708dfe8d54250eaf4b17accb0b8aec5e3c83",
+    "templates": "70168e20868101907e84ada505c9abae28dc31c9",
+    "tests": "2b1df8b5ff1c408d7e4e3944cc83ae0e987a625e",
+    "tools": "f4d13c3f175cf7b8e089ab3cc96da1c2679dc671",
+    "windows": "0530b07e264e831f769590da6439a0d7e1937bfc",
+    "go.mod": "4edcb1945291b65726a7bb234ba15d00cb711b44",
+    "go.sum": "69585a34b570b18b077a232985e0bd116adaecd3",
+    "package.json": "e6e22acb2f188b3d1677a839813e7fec49f19540",
+    "package-lock.json": "594adf1a84906ddc9d9d5e7000881ca2ce9a414d",
+    "pkg/advanced_orders.go": "fd7e4737442b5452c3c52722b257a9c8347a1e38",
+    "pkg/advanced_order_once.go": "fb243e5948e72a88269242d4f5f75c72cb5c6eea",
+    "pkg/advanced_order_auth.go": "4e39484dacc23dc19e735f05f0937f6cff65d867",
+    "pkg/advanced_order_wire.go": "19abc0369f0dd900ab617d0e0beadad68cbac38b",
+    "pkg/advanced_order_bounded_open_inventory.go": "690c99b023f02b7d4039439e749e705368a2c3f6"
+  },
+  "proofs": {
+    "frozen_predecessor": "ca7c784fad7992f12907b5cf6086b6c0b7ac7da1 missed same-ID quantity/price/post-only amendments; observed on separate clean worktree with only explicit qualification probe added",
+    "candidate": "five W52 test functions passed; amendments refused through signed W49/W50/W51 memory-only composition; formatting/reorder equivalents preserved",
+    "malformed": "missing/null/unknown/multiple configurations, invalid decimals/boolean, duplicate/case/Unicode-alias envelopes and oversized terms refused",
+    "affected_interfaces": "W41-W52 and historical broker disarm focused regression and race checks passed",
+    "full": "fresh tagged app/root/nested Wails Go tests and vet passed",
+    "build": "original production pair fixture_mode none built and disposed"
+  },
+  "artifacts_sha256": {
+    "wails": "260319b7151e5954b8c6b3e3f5ffc27d8629b1b9ec1bf853e1c244956958dbf4",
+    "engine": "43f42d2d363509daa1eb2c7ab14b53515008c343f52cf1ac8680609a7e558294",
+    "package": "3e213ccc24b41fb0e53912129457633aee57b3d6779b1ad33a9a6ec617facde2"
+  },
+  "live_source_gate": false,
+  "real_broker_order_requests": 0,
+  "owner_data_touched": false,
+  "main_observed": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+  "mind_palace": {
+    "commit": "f31e4203892730ddbe24d44ce5674f5678d498aa",
+    "records_sha256": "c63a57fb7f27c8f1c0a5c89296882b07cc2ed51775629dda81acc4c304ce7f1b",
+    "role": "read-only advisory, current GitHub evidence authoritative"
+  },
+  "attempt_history": [
+    {
+      "run_id": 40916467879,
+      "witness": "5b0eb4e3305102b7dc7fa3770ea474f1c7c3e9b9",
+      "conclusion": "failure",
+      "cause": "qualification harness expected-path list error before code tests"
+    },
+    {
+      "run_id": 40916551387,
+      "witness": "cdaf495116ec741f7312513ceaa4e1dac8750860",
+      "conclusion": "cancelled",
+      "cause": "superseded during source review"
+    },
+    {
+      "run_id": 40916850553,
+      "witness": "cc7253798c5a6b1cba204b40cb1ef0e3816cd560",
+      "conclusion": "cancelled",
+      "cause": "superseded by final Unicode alias hardening"
+    }
+  ],
+  "limitations": [
+    "closed base-sized limit-GTC review subset only; other order configurations refused",
+    "not a time-atomic venue snapshot, original account owner lease, durable reservation or fill reconciliation",
+    "no new native GUI acceptance on these binaries",
+    "not LIVE_READY_DISARMED program completion, promotion, deployment, owner migration or real-money activation"
+  ],
+  "protocol_reference": "https://docs.cdp.coinbase.com/api-reference/advanced-trade-api/rest-api/orders/list-orders"
+}
