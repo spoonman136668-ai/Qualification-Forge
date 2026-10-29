@@ -99,7 +99,7 @@ jobs:
           try{
             & go test -mod=readonly -count=1 -v -run '^Test(W41Advanced|W42Advanced|W43|W44|W45|W46|W47|W48|W49|W50|W51|W52|W53|W54|HistoricalAdvancedOrderManager)' ./internal/brokerintent ./internal/brokerprecision ./pkg
             if($LASTEXITCODE -ne 0){throw 'W54_REPEAT_INVENTORY_OR_PRIOR_DISARM_REGRESSION'}
-            & go test -race -mod=readonly -count=1 -run '^TestW(43|53)' ./internal/brokerintent ./internal/brokerprecision ./pkg
+            & go test -race -mod=readonly -count=1 -run '^TestW(43|53|54)' ./internal/brokerintent ./internal/brokerprecision ./pkg
             if($LASTEXITCODE -ne 0){throw 'W54_REPEAT_INVENTORY_RACE_OR_DISARM_REGRESSION'}
           }finally{Pop-Location}
           Write-Output '::notice::W54_FILL_OBSERVATION_ORIGINAL_HOLD_RACE_AND_PUBLIC_LIVE_DISABLED=PASS'
