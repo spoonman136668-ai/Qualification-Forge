@@ -1,0 +1,36 @@
+'use strict';
+// W39: exact-source behavior contract of existing chart-origin native controls.
+// This audit does not claim physical UI button clicks or permission promotion.
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const cp=require('node:child_process');
+const path=require('node:path');
+const source=path.resolve(process.argv[2]||'candidate');
+const sha=cp.execFileSync('git',['-C',source,'rev-parse','HEAD'],{encoding:'utf8'}).trim();
+const tree=cp.execFileSync('git',['-C',source,'rev-parse','HEAD^{tree}'],{encoding:'utf8'}).trim();
+assert.equal(sha,'0059d4b794552818b3f32798da7df27c75e21c5c');
+assert.equal(tree,'9f1e559560ac14f4e6fc823dac9150e3a95f2c4d');
+const read=f=>fs.readFileSync(path.join(source,f),'utf8');
+const chart=read('templates/chart.tmpl'),controls=read('static/paper_session_controls.js');
+const account=read('static/paper_account_review.js'),engine=read('cmd/ktrade/paper_session_full.go');
+const portable=read('cmd/ktrade/rb2_portable_paper_owner_full.go');
+const build=read('windows/Build-KTRADE-WailsPortable.ps1');
+const wails=read('tools/wails-pilot/main_windows.go');
+const required=(s,a,context)=>{for(const x of a)assert.ok(s.includes(x),context+': '+x)};
+required(chart,['/static/paper_session_controls.js','/static/paper_account_review.js','id="operatorModeStatus"','id="tradeBtn"'], 'original chart integration');
+required(controls,['paperSessionStart','paperSessionEvaluate','paperSessionStop','paperSessionArchive','paperSessionOpenHistory','paperSessionStageReview','/api/paper/session/start','/api/paper/session/evaluate','/api/paper/session/stop','/api/paper/session/archive','/api/paper/session/stage-review','KTRADE_PINE_SAVED_SELECTION','fee_model_acknowledged:true','acknowledgment','Start requires saved strategy','PAPER_ISOLATED_RUNNING','PAPER_NOT_FUNDED','archive.disabled=false','legacyTrade.disabled=true','legacyOrder.disabled=true'],'original PAPER UI');
+required(account,['paperAccountReview','/api/paper/accounting','ktrade.paper.account.read-only.v1','requires_review!==true','risk_verified!==false','market_price_verified!==false'], 'original accounting');
+required(engine,['registerIsolatedNativePaperSession','rb2OwnedPortablePaperController','r.Method(http.MethodPost,"/api/paper/session/start"','r.Method(http.MethodPost,"/api/paper/session/stop"','r.Method(http.MethodPost,"/api/paper/session/evaluate"'],' original Go owner');
+required(portable,['rb3VerifyWailsPortableProof(exe)','KTRADE_PORTABLE_DISARMED','KTRADE_USE_LEGACY_CDP_CONFIG','rb2PortablePackageProofSchema','freshProof.ExeSHA256'],'original package owner proof');
+required(build,['W13QualificationFixture','KTRADE_W13_QUALIFICATION_ONLY','ktrade_full,ktrade_w13_fixture','live_armed=$false'],'synthetic build');
+required(wails,['backend.StartPortable(dir)','Bind:        []interface{}{pilot}','ChartURL() string'], 'one Wails owner');
+assert.ok(!controls.includes('/api/orders/place'),'legacy brokerage action must not be available in original PAPER controls');
+assert.ok(!wails.includes('func (p *Pilot) StartPaper('),'no parallel native Wails financial executor');
+const mode=controls.match(/start\.disabled=!fresh;[\s\S]*?stop\.disabled=!running;/);
+assert.ok(mode,'UI Start and Stop must require server state');
+assert.ok(controls.includes('if(!check.checked)throw Error('),'funding requires deliberate acknowledgment');
+assert.ok(controls.includes('data.live_armed!==false'),'server authority must never be inferred from UI');
+console.log('W39_EXACT_W34_ORIGINAL_CHART_UI_SOURCE=PASS');
+console.log('W39_ORIGINAL_GO_PAPER_START_STOP_ACCOUNT_ARCHIVE_BINDINGS=PASS');
+console.log('W39_NO_SECOND_FINANCIAL_OWNER_OR_LIVE_BINDING=PASS');
+console.log('W39_SCOPE_SOURCE_CONTRACT_ONLY_NO_NATIVE_CLICK_CLAIM=PASS');

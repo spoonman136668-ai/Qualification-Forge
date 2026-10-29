@@ -1,0 +1,34 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W39 existing original chart PAPER operator controls and Go-only authority source behavior",
+  "status": "completed",
+  "conclusion": "success",
+  "run_id": 40838100302,
+  "job_id": 123327585139,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40838100302",
+  "witness_sha": "13e0f47b6eb389d24db173733fae2ce21de33c91",
+  "source_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+  "source_tree": "9f1e559560ac14f4e6fc823dac9150e3a95f2c4d",
+  "original_controls": [
+    "paperSessionStart",
+    "paperSessionEvaluate",
+    "paperSessionStop",
+    "paperSessionArchive",
+    "paperSessionOpenHistory",
+    "paperSessionStageReview",
+    "paperAccountReview"
+  ],
+  "tested": [
+    "source pinned chart inclusion and control wiring",
+    "original Go exclusive PAPER owner and proof bounded Wails bridge",
+    "operator running/stopped/unverified/review-only negative Node tests",
+    "legacy order buttons remain disabled and no Wails native financial action added"
+  ],
+  "scope": "source contract and Node behavior only; no actual PAPER button-click WebView2 qualification claimed",
+  "prior_real_wails_paper_run": 40803645254,
+  "owner_data_touched": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "product_source_modified": false,
+  "merge_authority": false
+}
