@@ -1,0 +1,81 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W59",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "af8c3acf0319d97589ccc5203117db49875bfcf2",
+  "source_tree": "a702aa1552e5210991e3f336866c58f70c852e16",
+  "parent_sha": "7ed8e26370ad196fd04e8b21d455e11a90f66343",
+  "parent_qualification": {
+    "pr": 205,
+    "run_id": 40966132597,
+    "receipt_commit": "12cd69c03637b5ea0a99ca872dda96c5f23787e5"
+  },
+  "pr": 206,
+  "branch": "feature/rb3-w59-disarmed-four-read-evidence-20261029",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 31,
+  "witness_sha": "316cde88bfddaf802e8af29b4781aaaee5bf5f0e",
+  "workflow_path": ".github/workflows/ktrade-w59-four-read-financial-evidence-windows.yml",
+  "workflow_git_blob": "c425191b54de67b723fb902781c3214f4ffdd98b",
+  "run_id": 40968172639,
+  "job_id": 123777885800,
+  "run_event": "push",
+  "run_attempt": 1,
+  "run_status": "completed",
+  "conclusion": "success",
+  "run_updated_at": "2026-10-29T22:53:04Z",
+  "environment": {
+    "os": "windows/amd64",
+    "runner_image": "windows-2022",
+    "image_version": "20261025.346.1",
+    "go_version": "1.25.0",
+    "node_version": "24.22.1",
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2,
+    "isolated_temp_tmp": true
+  },
+  "changed_paths": [
+    "pkg/advanced_order_four_read_evidence.go",
+    "pkg/advanced_order_four_read_evidence_test.go"
+  ],
+  "qualification_steps": {
+    "exact_parent_source_tree_two_file_scope_live_disarm": "PASS",
+    "original_w58_gap_w57_signed_account_w56_financial_custody_unchanged": "PASS",
+    "four_signed_reads_digest_drift_refusal_focused": "PASS",
+    "affected_w41_to_w59_financial_risk_paper_and_race": "PASS",
+    "full_tagged_app_root_nested_wails_tests_and_vet": "PASS",
+    "offline_node_vendor": "PASS",
+    "unsigned_original_go_and_wails_pair_fixture_none_live_disarmed": "PASS",
+    "isolated_package_disposal_and_exact_ref_retention": "PASS"
+  },
+  "proofs": [
+    "four independently request-signed memory-only account GET observations are consumed through the previously qualified W57 and W58 read-only original owner and durable fill-accounting boundaries",
+    "two individually stable pairs are compared for temporal drift before constructing a normalized, domain-separated local SHA-256 financial evidence fingerprint",
+    "local fingerprint binds original account/portfolio, quoted balance, original held amount, durable fill head, hypothetical fee-related cash delta and unattributed arithmetic offset, but is not a venue cryptographic signature",
+    "zero authority for known opening balances, known venue commission currency, atomic account snapshot, financial posting, release or live order path",
+    "missing journal facts, stale review, wrong LIVE mode, closed original owner, changed signed account readings and malformed financial materials refuse in focused and affected suite",
+    "full native Windows tagged app, Go root and nested Wails tests and vet, source-bound unsigned original Wails/Go production build with fixture mode none passed; disposable package removed"
+  ],
+  "source_live_disabled": true,
+  "opening_balance_verified": false,
+  "commission_currency_verified": false,
+  "snapshot_atomic": false,
+  "accounting_committed": false,
+  "release_authorized": false,
+  "live_order_authorized": false,
+  "cross_process_exclusivity_verified": false,
+  "venue_reservation_established": false,
+  "real_credentials_used": false,
+  "new_boundary_real_broker_account_or_order_requests": 0,
+  "owner_data_touched": false,
+  "source_merged": false,
+  "limitations": [
+    "W59 is diagnostic observational consistency and local fingerprinting; it cannot establish a genuine opening balance, full economic reconciliation, broker-confirmed commission asset or spendable funds",
+    "two repeated account pairs are non-atomic with other venue/account/ledger events; repeated equality does not prove lack of intervening operations",
+    "financial offset retains hypothetical USDC commission treatment and cannot be posted as authoritative absolute cash or P&L",
+    "does not implement a cross-process exclusive durable writer, original financial posting/replay/recovery, hold release, brokerage POST or LIVE activation",
+    "no real brokerage credentials/account interactions and no native GUI/operator runtime acceptance; unsigned build artifacts disposed",
+    "source is stacked on draft W58; no protected-main merge, signing, installation, deployment or data migration"
+  ]
+}
