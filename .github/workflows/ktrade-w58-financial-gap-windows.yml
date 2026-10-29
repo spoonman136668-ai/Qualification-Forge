@@ -5,7 +5,7 @@ permissions:
 on:
   push:
     branches: [qualification/ktrade-w58-financial-gap-20261029]
-    paths: [.github/workflows/ktrade-w58-signed-account-variance-windows.yml]
+    paths: [.github/workflows/ktrade-w58-financial-gap-windows.yml]
 concurrency:
   group: ktrade-w58-financial-gap-20261029
   cancel-in-progress: false
