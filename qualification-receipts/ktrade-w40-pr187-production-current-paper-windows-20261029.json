@@ -1,0 +1,92 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W40",
+  "result": "PASS",
+  "source_sha": "40588f886e712223d0af289ee1d1439c6020236b",
+  "source_tree": "9b5d1eabe5f2218ee56094b7e4256ccb0499b11d",
+  "witness_sha": "b7906d69bb139ffe5cac91ed4937641da65095ba",
+  "run_id": 40839802148,
+  "job_id": 123333150599,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40839802148",
+  "regression": {
+    "node_test_files": 32,
+    "all_node_files_passed": true,
+    "w28f_predecessor": "9a525c0ac1b1481c1ba9532080d52e4c94ac5b39",
+    "w28f_distinct_readonly_inputs": true,
+    "fresh_tagged_app_root_nested_wails_tests_and_vet": true
+  },
+  "native": {
+    "production_pair_fixture_mode": "none",
+    "fixture_build_tags_absent": true,
+    "original_wails_webview2_window": true,
+    "canonical_monaco_saved_strategy": true,
+    "anonymous_public_coinbase_candles_independently_checked": true,
+    "initial_cash": "600",
+    "quantity_per_order": "0.00025",
+    "simulated_fee_bps": 100,
+    "source_id": "ktrade-reconcile-f647d042dc7829554811b328e0c533b0",
+    "four_settled_fills": {
+      "fill_count": 4,
+      "risk": {
+        "daily_pnl": -0.79103703,
+        "equity": 599.20896297,
+        "killed": false,
+        "seal": "f11238a16a24216bae50b968a6c1feb750bd5a956e50c0e659dbc3f5e67a0901",
+        "exposure": 0,
+        "open_orders": 0,
+        "file_sha256": "50d44a1c6b18c121519e36629aa2e61831e3df71412652ebf4656585b68a2029"
+      },
+      "sell1": 79900.72,
+      "realized_pnl": "-0.79103703",
+      "cash": "599.20896297",
+      "buy2": 79936.08,
+      "inventory": "0",
+      "fees": "0.79914453",
+      "sell2": 79944.4,
+      "first_checkpoint": "cfec1e7ea70b0be6aaef818a16b109eb87b82b1f16a0b77afde988a82137730c",
+      "buy1": 79876.61,
+      "last_ledger_hash": "8d4016d540c9505b6c0e5bdee50090e546c3975df37a72b16ca2463ab6e1c8ee",
+      "source_sha256": "1ee04ebf4e749249020b8b754c670bea9b70e337ec65524fde4cec74026de284",
+      "second_buy_checkpoint": "500e12fa374817a327d449ba619bfbc0196f3b09441c3f120efe58aeec0be9e7",
+      "checkpoint_seal": "f11238a16a24216bae50b968a6c1feb750bd5a956e50c0e659dbc3f5e67a0901"
+    },
+    "terminal_original_risk_checkpoint": {
+      "daily_pnl": -0.79103703,
+      "equity": 599.20896297,
+      "killed": true,
+      "seal": "ce1a24a770bdbbcdd2bcbe4a7cd063f0a2b1a8c0f992d4fe52c61c5dae843914",
+      "exposure": 0,
+      "open_orders": 0,
+      "file_sha256": "3fc54b1e0abefc24068ea61401dd392dc06bad34a7e4cb2dc54f94427f85bdc7"
+    },
+    "cold_account": {
+      "old_account_stopped": true,
+      "source_id": "ktrade-reconcile-f647d042dc7829554811b328e0c533b0",
+      "realized_pnl": "-0.79103703",
+      "native_cold_cash_and_realized_observed": true,
+      "execution_restore_eligible": false,
+      "fees": "0.79914453",
+      "new_fill_count": 0,
+      "snapshot_seal": "ce1a24a770bdbbcdd2bcbe4a7cd063f0a2b1a8c0f992d4fe52c61c5dae843914",
+      "cash": "599.20896297",
+      "new_paper_enabled": false
+    }
+  },
+  "harness_provenance": {
+    "financial_scenario_from_successful_w33c_p9_witness": "e7371cfa7270fc83c46e3bd9148002ee196a938d",
+    "adaptations": [
+      "exact PR187 source/tree and three-file delta over W34",
+      "new symbol accessibility name Select BTC-USDC",
+      "whole candidate full Go/Wails tests and all Node files once",
+      "separate sparse read-only W28F predecessor checkout",
+      "fourth-fill terminal ledger/risk receipt labels corrected"
+    ],
+    "unchanged_original_financial_assertions": true
+  },
+  "limitations": [
+    "not installed W34 PAPER activation; fresh disposable portable package only",
+    "not product completion, source parity/performance/soak or LIVE-ready release",
+    "no signed release, distribution, protected merge, owner profile, broker credentials, real order intent or LIVE activation"
+  ],
+  "live_orders_enabled": false
+}
