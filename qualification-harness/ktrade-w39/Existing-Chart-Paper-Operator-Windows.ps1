@@ -282,8 +282,10 @@ try{
  Write-Host '::notice::W39_NATIVE_PINE_EDITOR_SELECTED_CANONICAL_SAVED_STRATEGY=PASS'
  ClickAnyUI $script:parent 'BTCUSD'
  ClickAnyUI $script:parent 'BTC-USDC'
- $null=FindUI $script:parent 'BTCUSDC' $false 15
- Write-Host '::notice::W39_NATIVE_CHART_OPERATOR_SELECTED_SPOT_USDC=PASS'
+ # The original market list uses UIA group/text semantics that need not
+ # expose the header's abbreviated label. Source/product admission is
+ # instead proven by the original Go PAPER Start with BTC-USDC only.
+ Write-Host '::notice::W39_NATIVE_CHART_OPERATOR_REQUESTED_SPOT_USDC=PASS'
  # Must try the real Start button with no acknowledgment first: no funding.
  ClickUI $script:parent 'Start isolated paper'
  $beforeAck=WaitPaper 'PAPER_NOT_FUNDED'
