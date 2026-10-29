@@ -1,0 +1,38 @@
+name: KTRADE W39 original Go PAPER chart controls source custody
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - qualification/ktrade-w39-original-ui-paper-20261029
+    paths:
+      - .github/workflows/ktrade-w39-original-ui-paper.yml
+jobs:
+  source-ui:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0059d4b794552818b3f32798da7df27c75e21c5c
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          persist-credentials: false
+          path: candidate
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify exact original Go/Pine UI controls and safe route coupling
+        shell: pwsh
+        run: |
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W39_HOST_INVALID'}
+          & node witness/qualification-harness/ktrade-w39/Audit-Original-Paper-UI.cjs candidate
+          if($LASTEXITCODE -ne 0){throw 'W39_ORIGINAL_UI_SOURCE_CUSTODY_FAILED'}
+          & node --test candidate/tests/rb3_w33a_operator_paper_state.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'W39_ORIGINAL_UI_OPERATOR_NEGATIVES_FAILED'}
+          Write-Host '::notice::W39_ORIGINAL_OPERATOR_UI_SOURCE_AND_FAIL_CLOSED_TESTS=PASS'
