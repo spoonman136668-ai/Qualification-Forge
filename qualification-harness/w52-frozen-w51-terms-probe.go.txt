@@ -1,0 +1,31 @@
+package pkg
+
+import (
+ "strings"
+ "testing"
+)
+
+// Historical negative control only: this test belongs exclusively in the
+// frozen W51 predecessor checkout. Success records the old blind spot, not
+// acceptance of the new requirement. W52 must reject these same amendments.
+func TestW52FrozenW51TermsBlindSpotObserved(t *testing.T) {
+ intent,_,_,now,foundation:=w45Fixture(t)
+ original:=strings.TrimSuffix(w49MockOrder("order-001","client-001",intent.Binding.PortfolioID),"}")+`,"order_configuration":{"limit_limit_gtc":{"base_size":"0.001","limit_price":"80000","post_only":false}}}`
+ for _,change:=range []struct{name,from,to string}{
+  {"quantity",`"base_size":"0.001"`,`"base_size":"0.002"`},
+  {"price",`"limit_price":"80000"`,`"limit_price":"81000"`},
+  {"post-only",`"post_only":false`,`"post_only":true`},
+ }{
+  t.Run(change.name,func(t *testing.T){
+   amended:=strings.Replace(original,change.from,change.to,1)
+   if amended==original{t.Fatal("negative-control amendment did not occur")}
+   m,calls:=w50AuthenticatedTwoSweepFixture(t,[]string{w49Page(original,false,""),w49Page(amended,false,"")},intent,foundation)
+   review,err:=m.reviewRepeatedOpenOrderPages(intent,now)
+   n,reads:=calls()
+   if err!=nil || !review.MatchedAcrossReads || !review.ReviewOnly || review.OrdersObserved!=1 || n!=8 || reads!=2 || review.LiveOrderAuthorized || review.ReservationEstablished || review.SnapshotAtomic {
+    t.Fatal("frozen predecessor did not reproduce the specific documented blind spot",err)
+   }
+  })
+ }
+ t.Log("W52_FROZEN_W51_SAME_ID_TERMS_BLIND_SPOT=OBSERVED")
+}
