@@ -1,0 +1,29 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W51",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "ca7c784fad7992f12907b5cf6086b6c0b7ac7da1",
+  "source_tree": "c19e8bdce596d97b3beaa8c20dfaee0cd94dcf5a",
+  "parent_sha": "76a37d5c1f77ce7a7362d56dbc67e1f5bf2636ff",
+  "witness_sha": "89ef9a4824db5022e68ba7d5ca0275e20489a42c",
+  "run_id": 40911422899,
+  "job_id": 123580096004,
+  "conclusion": "success",
+  "proofs": [
+    "bounded signed OPEN-order read freshness tests",
+    "W41-W51 focused and race regression",
+    "fresh full Go tagged/root/nested Wails tests and vet",
+    "production no-fixture pair built and disposed"
+  ],
+  "artifacts_sha256": {
+    "wails": "f39bea1c5297d9cd1ad6e32f98fdce2cb8f4124c32ae4591eb855df445c0ea10",
+    "engine": "43a2b2c1445c23ed510afd8699e3389e33cd9a341da842eaffcba1e48b28e7f4",
+    "package": "bc8b8e89e098a37b6098df9e9e0322d49b14e4ab70e728b02e4444a3aa7984a2"
+  },
+  "live_armed": false,
+  "limitations": [
+    "matching timed GETs are not an atomic venue snapshot, reservation or execution permit",
+    "W52 review found missing quantity/price binding in inherited W49/W50 inventory; that requirement was not qualified by W51",
+    "not full product completion"
+  ]
+}
