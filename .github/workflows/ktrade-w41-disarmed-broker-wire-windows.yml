@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 529b589a7d20febf4b3a9c67dc239bb965ae6872
+          ref: 9c371d6539a1ed2ce8ca8aa989766371d6a41d64
           path: current
           fetch-depth: 8
           persist-credentials: false
@@ -42,9 +42,9 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W32E_WRONG_RUNNER'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '529b589a7d20febf4b3a9c67dc239bb965ae6872' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'af7a4bc13950156e3425d1c312c8203f2cadb860'){throw 'W32E_EXACT_SOURCE_DRIFT'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '9c371d6539a1ed2ce8ca8aa989766371d6a41d64' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '92550c880db77bf3320e9b8214acb358df9ecac4'){throw 'W32E_EXACT_SOURCE_DRIFT'}
           if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
-          if((& git -C $src merge-base 529b589a7d20febf4b3a9c67dc239bb965ae6872 40588f886e712223d0af289ee1d1439c6020236b).Trim() -cne '40588f886e712223d0af289ee1d1439c6020236b'){throw 'W33B_PARENT_DRIFT'}
+          if((& git -C $src merge-base 9c371d6539a1ed2ce8ca8aa989766371d6a41d64 40588f886e712223d0af289ee1d1439c6020236b).Trim() -cne '40588f886e712223d0af289ee1d1439c6020236b'){throw 'W33B_PARENT_DRIFT'}
           $diff=@(& git -C $src diff --name-only 40588f886e712223d0af289ee1d1439c6020236b HEAD|Sort-Object)
           $expect=@('pkg/advanced_orders.go','pkg/advanced_order_wire.go','pkg/advanced_order_wire_test.go'|Sort-Object)
           if(Compare-Object $diff $expect){throw 'W41_THREE_BROKER_WIRE_PATHS_DRIFT'}
@@ -130,10 +130,10 @@ jobs:
             $files=(& go list -mod=readonly -tags ktrade_full -f '{{join .GoFiles " "}}' ./cmd/ktrade) -join ' '
             if($LASTEXITCODE -ne 0 -or $files -notmatch 'main_full.go' -or $files -match 'w32e_webview_fixture|w13_fixture'){throw 'W32E_P2_SYNTHETIC_SOURCE_INCLUDED'}
           }finally{Pop-Location}
-          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha '529b589a7d20febf4b3a9c67dc239bb965ae6872'
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha '9c371d6539a1ed2ce8ca8aa989766371d6a41d64'
           if($LASTEXITCODE -ne 0){throw 'W32E_P2_PRODUCTION_PAIR_BUILD_FAILED'}
           $manifest=Get-Content -LiteralPath (Join-Path $build 'source-manifest.json') -Raw|ConvertFrom-Json
-          if($manifest.source_sha -cne '529b589a7d20febf4b3a9c67dc239bb965ae6872' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W32E_P2_PRODUCTION_IDENTITY_DRIFT'}
+          if($manifest.source_sha -cne '9c371d6539a1ed2ce8ca8aa989766371d6a41d64' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W32E_P2_PRODUCTION_IDENTITY_DRIFT'}
           $stage=Join-Path $build 'KTRADE-WailsPortable'
           $engineInfo=(& go version -m (Join-Path $stage 'ktrade-engine.exe')) -join "`n"
           if($LASTEXITCODE -ne 0 -or $engineInfo -notmatch '-tags=ktrade_full' -or $engineInfo -match 'ktrade_w32e_fixture|ktrade_w13_fixture'){throw 'W32E_P2_PRODUCTION_TAGS_DRIFT'}
