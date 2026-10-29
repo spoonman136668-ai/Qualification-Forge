@@ -1,0 +1,91 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W41",
+  "result": "PASS",
+  "source_sha": "9c371d6539a1ed2ce8ca8aa989766371d6a41d64",
+  "source_tree": "92550c880db77bf3320e9b8214acb358df9ecac4",
+  "witness_sha": "b679c4a085533632f7a03845903a3c201d55967d",
+  "run_id": 40843000165,
+  "job_id": 123343652329,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40843000165",
+  "scope": {
+    "changed_paths": [
+      "pkg/advanced_orders.go",
+      "pkg/advanced_order_wire.go",
+      "pkg/advanced_order_wire_test.go"
+    ],
+    "default_live_gate": "func liveBrokerageAuthorized() bool { return false }",
+    "new_public_arming_or_order_routes": false,
+    "unchanged_parent_components": [
+      "cmd",
+      "internal",
+      "static",
+      "templates",
+      "tests",
+      "tools",
+      "windows",
+      "go.mod",
+      "go.sum",
+      "package.json",
+      "package-lock.json"
+    ],
+    "parent_source": "40588f886e712223d0af289ee1d1439c6020236b",
+    "parent_native_public_market_proof": 40839802148
+  },
+  "focused_tests": {
+    "root_test_names": [
+      "TestW41AdvancedCreateUsesDocumentedJSONAndOnlyAcknowledges",
+      "TestW41AdvancedCreateAcknowledgementBindsSentSnapshot",
+      "TestW41AdvancedInvalidInputsNeverReachTransport",
+      "TestW41AdvancedUnknownAcknowledgementNeverRetriesOrLeaksBody",
+      "TestW41AdvancedHistoricalLookupAndCancelInitiationAreDistinct",
+      "TestW41AdvancedPublicMethodsRemainSourceDisabledWithAnyInjectedTransport",
+      "TestHistoricalAdvancedOrderManagerFailsClosedWithoutBrokerNetwork"
+    ],
+    "new_test_transport": "sealed in-memory HTTP doer with no socket or delegation to a real client",
+    "original_legacy_guard": "unchanged historical loopback fixture asserts zero actual brokerage requests",
+    "covered": [
+      "documented create market/limit JSON includes real body and explicit per-request client ID",
+      "sent request snapshot binds acknowledgement despite caller mutation during I/O",
+      "invalid input, missing auth and alternate endpoint refused before transport",
+      "response product/side/client/order identity checks; create ACK never fill",
+      "explicit rejection, timeout, rate limit, redirects, malformed/trailing/duplicate/oversized/non-UTF8 replies",
+      "historical order lookup and correctly identified cancel initiation",
+      "no automatic retry; bounded response and timeout; no raw body logging",
+      "source-locked public methods, nil manager and mock/config cannot authorize any request"
+    ]
+  },
+  "fresh_regression": {
+    "tagged_app_tests_and_vet": true,
+    "root_tests_and_vet": true,
+    "nested_wails_tests_and_vet": true,
+    "toolchain": "Go 1.25.0",
+    "production_pair_build": true,
+    "fixture_mode": "none",
+    "binaries_disposed": true
+  },
+  "production_hashes": {
+    "wails_sha256": "7216a66cde1d7c5c8b59b0a5641ca2fbb763dc7548d32087c5fa39a8720dff2a",
+    "engine_sha256": "c31f07b881c8bbf6ed26fed8c827acd37a711882bb60d3d4f614ae346f89627e",
+    "package_sha256": "2c8376a7e01f2f0d93c23a8181eba1af1e4ea3cc9477dec72eb8f8cf341842d3"
+  },
+  "prior_bounded_success": {
+    "source": "529b589a7d20febf4b3a9c67dc239bb965ae6872",
+    "run_id": 40842031911,
+    "result": "success",
+    "note": "followed by sent-request snapshot hardening and fresh full qualification on final source; no reuse of prior Go results for changed implementation"
+  },
+  "primary_protocol_references": [
+    "https://docs.cdp.coinbase.com/api-reference/advanced-trade-api/rest-api/orders/create-order",
+    "https://docs.cdp.coinbase.com/api-reference/advanced-trade-api/rest-api/orders/get-order",
+    "https://docs.cdp.coinbase.com/api-reference/advanced-trade-api/rest-api/orders/cancel-order"
+  ],
+  "limitations": [
+    "wire contract only; market IOC and limit GTC with bounded USD/USDC spot inputs",
+    "explicit client IDs are required; durable mode/account/intent uniqueness and idempotency journal remain higher-layer work",
+    "no real authentication/account/product precision/fee validation, guarded LIVE owner, partial-fill accounting or broker reconciliation acceptance",
+    "cancel acknowledgement is initiation only; order creation acknowledgement is not a financial fill",
+    "W40 native UI/public-market proof applies to the exact parent and unchanged components; W41 does not claim a new native LIVE scenario or full release readiness",
+    "draft/unmerged; no real broker intent/credentials, owner data, signing, distribution, promotion or production activation"
+  ]
+}
