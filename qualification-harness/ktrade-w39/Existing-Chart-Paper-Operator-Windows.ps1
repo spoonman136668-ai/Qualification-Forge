@@ -163,28 +163,54 @@ function ClickAnyUI([object]$shell,[string]$name){
  [W35BNative]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
  [W35BNative]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
 }
+function ReadAckState([object]$node){
+ try{
+  $pattern=$node.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
+  return @{state=[string]$pattern.Current.ToggleState;via='UIA TogglePattern'}
+ }catch{}
+ try{
+  $legacy=$node.GetCurrentPattern([System.Windows.Automation.LegacyIAccessiblePattern]::Pattern)
+  if($legacy.Current.Role -eq 44){
+   $state=if(($legacy.Current.State -band 16) -ne 0){'On'}else{'Off'}
+   return @{state=$state;via='native checkbox LegacyIAccessible state'}
+  }
+ }catch{}
+ return @{state='Unknown';via='not exposed by native accessibility provider'}
+}
 function ToggleAck([object]$shell){
- # WebView2's accessible checkbox can be exposed as its label rather than
- # TogglePattern on this Windows Server image. Only click a bounded,
- # visible checkbox/label belonging to the native process window.
+ # Exactly ONE physical action on the original input. Never dispatch Toggle
+ # and then click a fallback after an asynchronous readback: that can undo it.
  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
  $list=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
- foreach($el in $list){
-  try{
-   if($el.Current.ControlType -ne [System.Windows.Automation.ControlType]::CheckBox -or
-    $el.Current.IsOffscreen -or !$el.Current.IsEnabled){continue}
-   if($el.Current.Name -notmatch '(Acknowledge simulated paper fees|Fee estimate, not an exchange quote)'){continue}
-   $pattern=$el.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
-   Require ($pattern.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) 'W39_FEE_ALREADY_ACKED'
-   $pattern.Toggle()
-   Require ($pattern.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::On) 'W39_ACK_TOGGLE_REFUSED'
-   return
-  }catch{}
- }
- foreach($label in @('Acknowledge simulated paper fees','Fee estimate, not an exchange quote')){
-  try{ClickAnyUI $shell $label;return}catch{}
- }
- throw 'W39_NATIVE_FEE_ACK_CHECKBOX_AND_LABEL_NOT_FOUND'
+ $matches=@($list|Where-Object {
+  try{!$_.Current.IsOffscreen -and $_.Current.IsEnabled -and ([string]$_.Current.Name) -ceq 'Acknowledge simulated paper fees'}catch{$false}
+ }|Sort-Object { $r=$_.Current.BoundingRectangle;$r.Width*$r.Height })
+ Require ($matches.Count -ge 1) 'W39_EXACT_NATIVE_FEE_INPUT_NOT_FOUND'
+ $node=$matches[0];$rect=$node.Current.BoundingRectangle;$outer=$root.Current.BoundingRectangle
+ Require (!$rect.IsEmpty -and $rect.Width -ge 6 -and $rect.Height -ge 6 -and
+  $rect.Left -ge $outer.Left -and $rect.Right -le $outer.Right -and
+  $rect.Top -ge $outer.Top -and $rect.Bottom -le $outer.Bottom) 'W39_NONLOCAL_FEE_INPUT'
+ $before=ReadAckState $node
+ Require ($before.state -ne 'On') 'W39_FEE_ALREADY_ACKED_BEFORE_NATIVE_ACTION'
+ [void][W35BNative]::SetForegroundWindow($shell.MainWindowHandle)
+ Start-Sleep -Milliseconds 200
+ Require ([W35BNative]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W39_FEE_INPUT_FOREIGN_FOCUS'
+ Require ([W35BNative]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))) 'W39_FEE_POINTER_REFUSED'
+ Write-Host ('W39_NATIVE_FEE_SINGLE_CLICK='+(@{before=$before.state;provider=$before.via;control_type=$node.Current.ControlType.ProgrammaticName;rectangle=$rect.ToString();action_count=1}|ConvertTo-Json -Compress))
+ [W35BNative]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 100
+ [W35BNative]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ $until=(Get-Date).AddSeconds(3)
+ do{
+  Start-Sleep -Milliseconds 100
+  $after=ReadAckState $node
+  if($after.state -eq 'On'){break}
+ }while((Get-Date) -lt $until)
+ Write-Host ('W39_NATIVE_FEE_AFTER_SINGLE_ACTION='+(@{after=$after.state;provider=$after.via;action_count=1}|ConvertTo-Json -Compress))
+ Require ($after.state -ne 'Off' -and $after.state -ne 'Indeterminate') 'W39_SINGLE_NATIVE_FEE_CLICK_NOT_CHECKED'
+ # Some WebView2 providers expose the named input without checkbox state.
+ # In that case the unmodified client AND original Go Start must still prove
+ # fee_model_acknowledged=true. Never bypass that positive acceptance below.
 }
 function WaitPaper([string]$mode,[int]$seconds=12){
  $until=(Get-Date).AddSeconds($seconds)
