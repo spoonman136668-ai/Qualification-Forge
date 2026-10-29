@@ -162,7 +162,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
  Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and
   $cap.live_orders_enabled -eq $false -and $cap.strategy_execution_enabled -eq $false -and
   $cap.paper_accounting_enabled -eq $false -and $cap.requires_review -eq $true) 'W35B_OPERATOR_CAPABILITIES_DRIFT'
- Write-Output ('::notice::W35B_NATIVE_'+$phase+'_WEBVIEW2_AND_PAPER_STOPPED=PASS')
+ Write-Host ('::notice::W35B_NATIVE_'+$phase+'_WEBVIEW2_AND_PAPER_STOPPED=PASS')
  return [pscustomobject]@{shell=$shell;launcher=$launcher;enginePid=[int]$engine[0].ProcessId}
 }
 function StopInstalled([object]$run){
