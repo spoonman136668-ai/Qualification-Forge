@@ -1,0 +1,116 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W38 Wails v2 WebView2 and original Go PAPER paired actual Windows disposable operator acceptance",
+  "status": "completed",
+  "conclusion": "success",
+  "run_id": 40803645254,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40803645254",
+  "job_id": 123217343712,
+  "run_created_utc": "2026-10-29T01:59:10Z",
+  "run_completed_utc": "2026-10-29T02:03:06Z",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/18",
+  "witness_sha": "8b7bc5fbf85473ed1e7aeece95b14f55326b0a1d",
+  "workflow_path": ".github/workflows/ktrade-w38-disposable-paper-windows.yml",
+  "workflow_blob_sha": "ce4f9b7558eccd9a732e417ac1a3982e8693cf6e",
+  "harness_path": "qualification-harness/ktrade-w38/Real-Wails-Paper-Synthetic-Windows.ps1",
+  "harness_blob_sha": "86bb9f8c24ed3603a8d13dadc8491f3a82f37b63",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/186",
+  "source_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+  "source_tree": "9f1e559560ac14f4e6fc823dac9150e3a95f2c4d",
+  "platform": "github-hosted windows-2022",
+  "toolchain": {
+    "go": "1.25.0",
+    "node_major": 24,
+    "CGO_ENABLED": "1",
+    "GOWORK": "off"
+  },
+  "package": {
+    "builder": "windows/Build-KTRADE-WailsPortable.ps1",
+    "mode": "W13QualificationFixture",
+    "fixture_build_tag": "ktrade_w13_fixture",
+    "market_data": "six synthetic finalized one-minute BTC-USDC candles; strictly compile-time-only proof-bound",
+    "parent": "fresh random OS TEMP child",
+    "shell": "Wails v2/WebView2",
+    "engine": "original Go ktrade_full; Pine/TradeGuard/original durable ledger",
+    "wails_exe_sha256": "68a87631ef1a774467534f38735e53b23b86e9acf641a4ba0f1d9f9af348bc8a",
+    "go_engine_exe_sha256": "8ef39ae28b2e733aa54674bf6409cc59051eaf4870261de581f9789dec352351",
+    "zip_sha256": "7580955361703949e145ad062dff3c39ed1cb73c69fa1ed2e6e420c232eeb4f5",
+    "fresh_pair_proofs_verified": true,
+    "signature_status": "unsigned",
+    "release_authority": "none",
+    "live_armed": false
+  },
+  "passed": [
+    "W38_EXACT_SOURCE_TREE_AND_POWERSHELL_AST=PASS",
+    "W38_PINNED_W34_SOURCE_AND_TREE=PASS",
+    "W38_NET_AND_GO_TEMP_STAGE_IDENTITY=PASS",
+    "W38_FRESH_WAILS_AND_GO_PAIRED_PACKAGE=PASS",
+    "W38_REAL_WAILS_WEBVIEW2_ORIGINAL_CHART_MONACO_NATIVE_UI=PASS",
+    "W38_VERIFIED_DESKTOP_GO_PAPER_FUNDED_ONLY_AFTER_ORIGINAL_FEE_ACK=PASS",
+    "W38_GENUINE_WAILS_OWNED_GO_PAPER_FILL_RISK_AND_FEES=PASS",
+    "W38_STOP_PREVENTED_FURTHER_PAPER_EXECUTION=PASS",
+    "W38_REAL_WAILS_RESTART_COLD_ARCHIVE_NO_AUTO_REARM=PASS",
+    "W38_NO_REAL_BROKER_NO_OWNER_DATA_NO_RELEASE_NO_LIVE=PASS",
+    "W38_REAL_WAILS_PAPER_OPERATOR_FULL_GATE=PASS"
+  ],
+  "financial_acceptance": {
+    "explicit_simulated_initial_cash": "600",
+    "simulated_fee_bps": 100,
+    "fee_acknowledged": true,
+    "funding_without_ack_refused": true,
+    "product_id": "BTC-USDC",
+    "paper_original_fill_count": 1,
+    "fees_paid": "0.4",
+    "position_qty": "1",
+    "original_risk_proof_verified": true,
+    "stop_persisted": true,
+    "evaluate_after_stop_refused": true,
+    "restart_cold_history_read_only": true,
+    "restart_execution_restore_eligible": false,
+    "legacy_order_post_http_status": 423,
+    "live_orders_enabled": false
+  },
+  "native_ui": {
+    "actual_Wails_WebView2_window": true,
+    "original_UIAutomation_user_interaction": "native Verify chart UI button",
+    "chart_DOM_verified": true,
+    "Monaco_and_preference_controls_verified": true,
+    "paper_funding_via_original_localhost_HTTP_API": true,
+    "paper_funding_via_native_UI_button": false
+  },
+  "prior_failed_runs": [
+    {
+      "run_id": 40801771132,
+      "reason": "Wails GUI process refused OS TEMP ancestry; package build and hashes succeeded"
+    },
+    {
+      "run_id": 40802191564,
+      "reason": "GUI stderr confirmed Wails staging must be direct child of OS TEMP"
+    },
+    {
+      "run_id": 40802671670,
+      "reason": "Go/.NET builder and runtime temp roots still disagreed under shell launcher"
+    },
+    {
+      "run_id": 40803149686,
+      "reason": "Shell replacement alone retained Wails staging temp mismatch"
+    }
+  ],
+  "witness_resolution": "Original application path constraints unchanged; build with original .NET TEMP builder; preserve hashes while locating fresh package under Go OS TEMP, and use native CreateProcess with explicit TEMP/TMP/TMPDIR bound to that verified source. Final run produced live Wails UI and genuine original engine PAPER acceptance.",
+  "limits": [
+    "Installed W34 unsigned setup remains PAPER_STOPPED: this was a separate fresh W13 test-only Wails portable package.",
+    "Native UI interaction verified original chart and Monaco; funding/Stop used explicit original loopback API, not UI buttons.",
+    "The market fixture is synthetic, not live data or broker activity.",
+    "Not evidence of LIVE-ready broker adapter, real-money activation, user-installed data migration, production release or signing.",
+    "PR #186 and #18 remain draft/unmerged; no protected main ref changed."
+  ],
+  "source_changed": false,
+  "main_changed": false,
+  "owner_data_touched": false,
+  "real_broker_access": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "merge_authorized_by_receipt": false
+}
