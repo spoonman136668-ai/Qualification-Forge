@@ -164,13 +164,16 @@ function ClickAnyUI([object]$shell,[string]$name){
  [W35BNative]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
 }
 function ToggleAck([object]$shell){
+ # WebView2's accessible checkbox can be exposed as its label rather than
+ # TogglePattern on this Windows Server image. Only click a bounded,
+ # visible checkbox/label belonging to the native process window.
  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
  $list=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
  foreach($el in $list){
   try{
    if($el.Current.ControlType -ne [System.Windows.Automation.ControlType]::CheckBox -or
-    $el.Current.Name -cne 'Acknowledge simulated paper fees' -or
     $el.Current.IsOffscreen -or !$el.Current.IsEnabled){continue}
+   if($el.Current.Name -notmatch '(Acknowledge simulated paper fees|Fee estimate, not an exchange quote)'){continue}
    $pattern=$el.GetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern)
    Require ($pattern.Current.ToggleState -eq [System.Windows.Automation.ToggleState]::Off) 'W39_FEE_ALREADY_ACKED'
    $pattern.Toggle()
@@ -178,7 +181,10 @@ function ToggleAck([object]$shell){
    return
   }catch{}
  }
- throw 'W39_NATIVE_FEE_ACK_CHECKBOX_NOT_FOUND'
+ foreach($label in @('Acknowledge simulated paper fees','Fee estimate, not an exchange quote')){
+  try{ClickAnyUI $shell $label;return}catch{}
+ }
+ throw 'W39_NATIVE_FEE_ACK_CHECKBOX_AND_LABEL_NOT_FOUND'
 }
 function WaitPaper([string]$mode,[int]$seconds=12){
  $until=(Get-Date).AddSeconds($seconds)
@@ -288,6 +294,7 @@ try{
  Write-Host '::notice::W39_NATIVE_CHART_OPERATOR_REQUESTED_SPOT_USDC=PASS'
  # Must try the real Start button with no acknowledgment first: no funding.
  ClickUI $script:parent 'Start isolated paper'
+ Start-Sleep -Milliseconds 1000
  $beforeAck=WaitPaper 'PAPER_NOT_FUNDED'
  Require ($beforeAck.paper_orders_enabled -eq $false) 'W39_UNACKNOWLEDGED_UI_START_FUNDED'
  Write-Host '::notice::W39_UI_FEE_ACK_REQUIRED_AND_UNFUNDED=PASS'
