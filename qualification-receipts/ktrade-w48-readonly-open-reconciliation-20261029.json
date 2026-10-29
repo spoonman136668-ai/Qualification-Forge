@@ -1,0 +1,61 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W48 read-only open-order snapshot coherence with W47 exact disarmed exposure",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 195,
+  "source_sha": "040d2982610778b988e92e05ddd38d05ebd41473",
+  "source_tree": "23ceeb6c883dd7e7eb0328d7047e80e9a8d46de5",
+  "parent_sha": "fc15dcabb002db1ae5a294d6e378cc94bea7d911",
+  "added_only_files": [
+    "pkg/advanced_order_open_reconciliation.go",
+    "pkg/advanced_order_open_reconciliation_test.go"
+  ],
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 25,
+  "witness_sha": "7f119cc919e1136b18582980338cf06799884e90",
+  "workflow_path": ".github/workflows/ktrade-w48-readonly-open-reconcile-windows.yml",
+  "workflow_blob_sha": "f2ac2e1270941b90ff8e724b3cbfb5e559ef3691",
+  "run_id": 40881364247,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40881364247",
+  "job_id": 123473437729,
+  "run_created_utc": "2026-10-29T13:22:41Z",
+  "run_completed_utc": "2026-10-29T13:32:05Z",
+  "run_status": "completed",
+  "conclusion": "success",
+  "windows_runner": "windows-2022",
+  "qualification_markers": [
+    "W48_EXACT_TWO_NEW_READONLY_FILES_AND_LIVE_SOURCE_FALSE=PASS",
+    "W48_IDENTICAL_LOCKED_FRONTEND_VENDOR_STAGE=PASS",
+    "W48_OPEN_ORDER_SNAPSHOT_NEGATIVES_EXACT_EXPOSURE_AND_PUBLIC_LIVE_DISABLED=PASS",
+    "W48_FRESH_FULL_GO_TAGGED_ROOT_WAILS_TEST_AND_VET=PASS",
+    "W48_ORIGINAL_PRODUCTION_PAIR_NO_SYNTHETIC_TAGS_OR_TRANSPORT=PASS",
+    "W48_SOURCE_PROOF_ONLY_PRODUCTION_PAIR_DISPOSED_NO_BROKER_OR_OWNER_DATA=PASS"
+  ],
+  "build": {
+    "package_source_sha": "040d2982610778b988e92e05ddd38d05ebd41473",
+    "wails_exe_sha256": "0a51fe101a4d22f784e8b0cc169a48e4b6124019e79ebd226a78ae3de7ff3624",
+    "go_engine_sha256": "12019563e042aa7412b6bf6e1a4a8117706d2abbca3e3b33c67d0ad6fd67da66",
+    "zip_sha256": "065332333eb1d2cd453ce8a30871bbbc2be351affa66a14a9761e7624349bf32",
+    "synthetic_tags_included": false,
+    "live_armed": false,
+    "release_authority": "none"
+  },
+  "verified_scopes": [
+    "Bounded exact 24-place snapshot-to-intent coherence with W47 aggregate exposure",
+    "Refusal on unknown, missing, duplicate, partially filled, stale, mismatched or unpaginated open orders",
+    "No reservations, LIVE permits, or executed broker requests from read-only observations",
+    "W41–W48 focused negative tests and race detector",
+    "Full ktrade_full main Go, root Go, nested Wails tests/vet",
+    "Original no-fixture unsigned Windows Wails + Go source build"
+  ],
+  "limitations": [
+    "A caller-supplied complete venue snapshot is not independently authenticated or proved complete by this helper",
+    "No durable owner-locked funds reservation, actual broker outstanding order reconciliation, or verified account state exists in this gate",
+    "No broker execution/fill/cancel, owner machine testing, real account funding, risk lease, LIVE activation, signing, release or mainline merge"
+  ],
+  "public_live_gate": "source-hardcoded-false",
+  "merged": false,
+  "owner_data_accessed": false,
+  "broker_network_used": false,
+  "real_orders_placed": false
+}
