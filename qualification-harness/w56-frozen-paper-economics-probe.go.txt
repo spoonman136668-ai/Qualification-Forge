@@ -1,0 +1,47 @@
+package papertrading
+
+import (
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"testing"
+)
+
+// This unchanged probe is run in separate worktrees at the frozen parent and
+// exact candidate. Event times/hashes differ across runs; within-run refusal
+// and idempotency must preserve those hashes. Only the cross-run economic
+// witness omits LastHash, an incidental wall-clock-dependent identity.
+func TestW56FrozenPaperEconomicsProbe(t *testing.T){
+	var random [16]byte;if _,err:=rand.Read(random[:]);err!=nil{t.Fatal(err)}
+	root:=filepath.Join(os.TempDir(),"ktrade-paper-w56-frozen-witness-"+hex.EncodeToString(random[:]))
+	t.Cleanup(func(){os.RemoveAll(root)})
+	type witness struct{States []State;Values []OfflineValuation;Rejected []bool}
+	w:=witness{States:[]State{},Values:[]OfflineValuation{},Rejected:[]bool{}}
+	appendState:=func(state State){state.LastHash="";w.States=append(w.States,state)}
+	state,err:=Initialize(root,"100");if err!=nil{t.Fatal(err)};appendState(state)
+	orders:=[]Request{
+		{ID:"half-up",Side:"BUY",Qty:"0.00000001",Price:"0.5",FeeBps:10000},
+		{ID:"second-lot",Side:"BUY",Qty:"0.3",Price:"3.33333333",FeeBps:13},
+		{ID:"partial-fifo",Side:"SELL",Qty:"0.15",Price:"4.00000001",FeeBps:17},
+		{ID:"close-residual",Side:"SELL",Qty:"0.15000001",Price:"2.75",FeeBps:99},
+	}
+	for n,order:=range orders{
+		state,err=Execute(root,order);if err!=nil{t.Fatal(err)};appendState(state)
+		if n==1||n==2{valuation,e:=ValueOffline(root,"5");if e!=nil{t.Fatal(e)};valuation.State.LastHash="";w.Values=append(w.Values,valuation)}
+	}
+	before,err:=Read(root);if err!=nil{t.Fatal(err)}
+	duplicate,err:=Execute(root,orders[0]);if err!=nil||!reflect.DeepEqual(before,duplicate){t.Fatal("duplicate changed exact current paper state",err)}
+	appendState(duplicate)
+	changed:=orders[0];changed.Price="0.6"
+	for _,order:=range []Request{changed,{ID:"unfunded",Side:"BUY",Qty:"1",Price:"1000",FeeBps:0},{ID:"short",Side:"SELL",Qty:"1",Price:"1",FeeBps:0}}{
+		_,err=Execute(root,order);w.Rejected=append(w.Rejected,err!=nil)
+		after,e:=Read(root);if err==nil||e!=nil||!reflect.DeepEqual(before,after){t.Fatal("refused request changed original paper ledger",err,e)}
+	}
+	raw,err:=json.Marshal(w);if err!=nil{t.Fatal(err)}
+	fmt.Println("W56_PAPER_ECONOMIC_WITNESS="+base64.StdEncoding.EncodeToString(raw))
+}

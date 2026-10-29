@@ -1,0 +1,230 @@
+name: KTRADE W56 original financial kernel exact fill accounting Windows
+# W56 reuses original financial mutation, preserves PAPER economics, and retains every hold.
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w56-original-exact-fill-accounting
+  cancel-in-progress: true
+on:
+  push:
+    branches: [qualification/ktrade-w56-original-exact-fill-accounting-20261029]
+    paths: [.github/workflows/ktrade-w56-original-exact-fill-accounting-windows.yml]
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a801cf9be65a5e4d0b9caf5d256a38d6b165da4b
+          path: current
+          fetch-depth: 32
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Fail closed on source identity scope and clean custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W32E_WRONG_RUNNER'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'a801cf9be65a5e4d0b9caf5d256a38d6b165da4b' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'a1460dd745870b728f8546d571906c28f3aab0a8'){throw 'W32E_EXACT_SOURCE_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
+          if((& git -C $src merge-base a801cf9be65a5e4d0b9caf5d256a38d6b165da4b 83a73f850d059cc35d20ec06f7e265d00584be88).Trim() -cne '83a73f850d059cc35d20ec06f7e265d00584be88'){throw 'W56_W49_PARENT_DRIFT'}
+          $diff=@(& git -C $src diff --name-only 83a73f850d059cc35d20ec06f7e265d00584be88 HEAD|Sort-Object)
+          $expect=@('internal/brokerintent/fill_accounting.go','internal/brokerintent/fill_accounting_test.go','internal/papertrading/exact_fill_review.go','internal/papertrading/exact_fill_review_test.go','internal/papertrading/filled_amounts.go','internal/papertrading/ledger.go','pkg/advanced_order_fill_accounting.go','pkg/advanced_order_fill_accounting_test.go'|Sort-Object)
+          if(Compare-Object $diff $expect){throw 'W56_EIGHT_ACCOUNTING_PATHS_DRIFT'}
+          foreach($path in @('cmd','static','templates','tests','tools','windows','go.mod','go.sum','package.json','package-lock.json','pkg/advanced_order_readiness.go','pkg/advanced_order_readiness_test.go','pkg/advanced_order_funding_screen.go','pkg/advanced_order_funding_screen_test.go','pkg/advanced_orders.go','pkg/advanced_order_once.go','pkg/advanced_order_auth.go','pkg/advanced_order_wire.go','pkg/advanced_order_exposure_screen.go','pkg/advanced_order_exposure_screen_test.go','pkg/advanced_order_open_reconciliation.go','pkg/advanced_order_open_reconciliation_test.go','pkg/advanced_order_bounded_open_inventory.go','pkg/advanced_order_bounded_open_inventory_test.go','internal/originaltradeguard','internal/paperengine','internal/papercustody','internal/paperauthority','internal/paperreconcile','internal/brokerprecision','pkg/advanced_order_open_inventory.go','pkg/advanced_order_open_inventory_test.go','pkg/advanced_order_open_stability.go','pkg/advanced_order_open_stability_test.go','pkg/advanced_order_open_terms.go','pkg/advanced_order_open_terms_test.go','internal/brokerintent/local_reservations.go','internal/brokerintent/local_reservations_test.go','pkg/advanced_order_local_reservations.go','pkg/advanced_order_local_reservations_test.go','pkg/advanced_order_fill_review_test.go','internal/brokerintent/local_observation_test.go','internal/papertrading/ledger_test.go','internal/papertrading/valuation_test.go','internal/brokerintent/journal.go','internal/brokerintent/local_observation.go','internal/brokerintent/fill_observations.go','internal/brokerintent/fill_observations_test.go','pkg/advanced_order_fill_review.go','pkg/advanced_order_fill_custody.go','pkg/advanced_order_fill_custody_test.go')){
+            $current=(& git -C $src rev-parse ('HEAD:'+$path)).Trim()
+            $prior=(& git -C $src rev-parse ('83a73f850d059cc35d20ec06f7e265d00584be88:'+$path)).Trim()
+            if($LASTEXITCODE -ne 0 -or $current -cne $prior){throw ('W56_FINANCIAL_AUTH_MAIN_OR_DEPENDENCY_DRIFT_'+$path)}
+          }
+          $broker=Get-Content -LiteralPath (Join-Path $src 'pkg/advanced_orders.go') -Raw
+          if($broker -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W56_SOURCE_LIVE_GATE_NOT_LOCKED'}
+          Write-Output '::notice::W56_EXACT_EIGHT_ACCOUNTING_FILES_AND_LIVE_SOURCE_FALSE=PASS'
+
+      - name: Native Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Verify original financial mutation and frozen PAPER economic compatibility
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $parent='83a73f850d059cc35d20ec06f7e265d00584be88'
+          if((& git -C $src rev-parse ($parent+':internal/papertrading/ledger.go')).Trim() -cne '610a7315084e16bbd7f4a522a75105645efae723'){throw 'W56_FROZEN_FINANCIAL_SOURCE_DRIFT'}
+          $old=((& git -C $src show ($parent+':internal/papertrading/ledger.go')) -join "`n").Replace("`r`n","`n")
+          $shared=(Get-Content -LiteralPath (Join-Path $src 'internal/papertrading/filled_amounts.go') -Raw).Replace("`r`n","`n")
+          $priorBody=[regex]::Match($old,'(?s)\tif e\.Side=="BUY" \{.*?\n\treturn nil').Value.Replace('e.Side','side')
+          $currentBody=[regex]::Match($shared,'(?s)\tif side=="BUY" \{.*?\n\treturn nil').Value
+          if($priorBody.Length -lt 500 -or $priorBody -cne $currentBody){throw 'W56_ORIGINAL_MUTATION_BODY_CHANGED'}
+          $ledger=Get-Content -LiteralPath (Join-Path $src 'internal/papertrading/ledger.go') -Raw
+          if(-not $ledger.Contains('gross:=mul(q,p)') -or -not $ledger.Contains('fee:=roundedQuotient(new(big.Int).Mul(gross,big.NewInt(int64(e.FeeBps))), big.NewInt(10000))')){throw 'W56_ORIGINAL_PAPER_ROUNDING_CHANGED'}
+          $probe=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/w56-frozen-paper-economics-probe.go.txt'
+          $frozen=Join-Path $env:RUNNER_TEMP 'w56-frozen-paper-witness'
+          $candidate=Join-Path $env:RUNNER_TEMP 'w56-current-paper-witness'
+          if((Test-Path -LiteralPath $frozen) -or (Test-Path -LiteralPath $candidate)){throw 'W56_UNCLEAN_WITNESS_ROOT'}
+          function Invoke-W56PaperWitness([string]$root){
+            Push-Location $root
+            try{
+              $output=@(& go test -mod=readonly -count=1 -v -run '^TestW56FrozenPaperEconomicsProbe$' ./internal/papertrading 2>&1)
+              $probeExit=$LASTEXITCODE
+              Write-Host ($output -join "`n")
+              if($probeExit -ne 0){throw 'W56_FROZEN_ECONOMIC_PROBE_FAILED'}
+              $markers=@($output|ForEach-Object{$_.ToString()}|Where-Object{$_ -match '^W56_PAPER_ECONOMIC_WITNESS='})
+              if($markers.Count -ne 1){throw 'W56_ECONOMIC_WITNESS_MISSING_OR_DUPLICATED'}
+              return $markers[0]
+            }finally{Pop-Location}
+          }
+          try{
+            & git -C $src worktree add --detach $frozen $parent
+            if($LASTEXITCODE -ne 0){throw 'W56_FROZEN_WORKTREE_FAILED'}
+            & git -C $src worktree add --detach $candidate HEAD
+            if($LASTEXITCODE -ne 0){throw 'W56_CURRENT_WORKTREE_FAILED'}
+            foreach($root in @($frozen,$candidate)){
+              if(@(& git -C $root status --porcelain).Count -ne 0){throw 'W56_WITNESS_DIRTY_BEFORE_PROBE'}
+              $target=Join-Path $root 'internal/papertrading/w56_qualification_probe_test.go'
+              if(Test-Path -LiteralPath $target){throw 'W56_WITNESS_FILE_ALREADY_PRESENT'}
+              Copy-Item -LiteralPath $probe -Destination $target
+            }
+            $baseline=Invoke-W56PaperWitness $frozen
+            $current=Invoke-W56PaperWitness $candidate
+            if($baseline -cne $current){throw 'W56_PAPER_ECONOMIC_NONREGRESSION_FAILED'}
+          }finally{
+            foreach($root in @($candidate,$frozen)){
+              if(Test-Path -LiteralPath $root){& git -C $src worktree remove --force $root;if($LASTEXITCODE -ne 0){throw 'W56_WITNESS_CLEANUP_FAILED'}}
+            }
+          }
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W56_MAIN_CHECKOUT_DIRTY_AFTER_WITNESS'}
+          Write-Output '::notice::W56_ORIGINAL_MUTATION_BODY_IDENTICAL_AND_FROZEN_PAPER_ECONOMICS_MATCH=PASS'
+      - name: Compile and run W56 exact accounting and retained original custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & gofmt -e internal/brokerintent/fill_accounting.go internal/brokerintent/fill_accounting_test.go internal/papertrading/exact_fill_review.go internal/papertrading/exact_fill_review_test.go internal/papertrading/filled_amounts.go internal/papertrading/ledger.go pkg/advanced_order_fill_accounting.go pkg/advanced_order_fill_accounting_test.go | Out-Null
+            if($LASTEXITCODE -ne 0){throw 'W56_GO_SOURCE_SYNTAX_FAILED'}
+            & go test -mod=readonly -count=1 -v -run '^TestW56' ./internal/papertrading ./internal/brokerintent ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W56_FOCUSED_COMPILER_OR_AUTHENTICATED_INVENTORY_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W56_FOCUSED_EXACT_FEES_ORIGINAL_FIFO_AND_HEAD_BOUND_DELTAS=PASS'
+      - name: Native Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Stage identical locked offline original chart and Monaco vendor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_LOCK_FAILURE'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_STAGE_FAILURE'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W56_IDENTICAL_LOCKED_FRONTEND_VENDOR_STAGE=PASS'
+      - name: Original intent continuity W41-W56 affected interfaces and local owner race regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -v -run '^Test(W41Advanced|W42Advanced|W43|W44|W45|W46|W47|W48|W49|W50|W51|W52|W53|W54|W55|W56|HistoricalAdvancedOrderManager)' ./internal/papertrading ./internal/brokerintent ./internal/brokerprecision ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W56_REPEAT_INVENTORY_OR_PRIOR_DISARM_REGRESSION'}
+            & go test -race -mod=readonly -count=1 -run '^TestW(43|53|54|55|56)' ./internal/papertrading ./internal/brokerintent ./internal/brokerprecision ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W56_REPEAT_INVENTORY_RACE_OR_DISARM_REGRESSION'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W56_ORIGINAL_ACCOUNTING_AND_DURABLE_FILL_CUSTODY_RACE_AND_LIVE_DISABLED=PASS'
+      - name: Fresh exact W56 full tagged app root Wails regression and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_APP_REGRESSION_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_APP_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_ROOT_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_ROOT_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_WAILS_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W56_FRESH_FULL_GO_TAGGED_ROOT_WAILS_TEST_AND_VET=PASS'
+      - name: Build original production pair with every synthetic tag excluded
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          Remove-Item Env:KTRADE_W13_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          Push-Location $src
+          try{
+            $files=(& go list -mod=readonly -tags ktrade_full -f '{{join .GoFiles " "}}' ./cmd/ktrade) -join ' '
+            if($LASTEXITCODE -ne 0 -or $files -notmatch 'main_full.go' -or $files -match 'w32e_webview_fixture|w13_fixture'){throw 'W32E_P2_SYNTHETIC_SOURCE_INCLUDED'}
+          }finally{Pop-Location}
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha 'a801cf9be65a5e4d0b9caf5d256a38d6b165da4b'
+          if($LASTEXITCODE -ne 0){throw 'W56_PRODUCTION_PAIR_BUILD_FAILED'}
+          $manifest=Get-Content -LiteralPath (Join-Path $build 'source-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.source_sha -cne 'a801cf9be65a5e4d0b9caf5d256a38d6b165da4b' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W56_PRODUCTION_IDENTITY_DRIFT'}
+          $stage=Join-Path $build 'KTRADE-WailsPortable'
+          $engineInfo=(& go version -m (Join-Path $stage 'ktrade-engine.exe')) -join "`n"
+          if($LASTEXITCODE -ne 0 -or $engineInfo -notmatch '-tags=ktrade_full' -or $engineInfo -match 'ktrade_w32e_fixture|ktrade_w13_fixture'){throw 'W32E_P2_PRODUCTION_TAGS_DRIFT'}
+          Write-Output $engineInfo
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w32e-package.txt'),$build)
+          Write-Output '::notice::W56_ORIGINAL_PRODUCTION_PAIR_NO_SYNTHETIC_TAGS_OR_TRANSPORT=PASS'
+      - name: Cleanup isolated production PAPER qualification package
+        if: always()
+        shell: pwsh
+        run: |
+          $marker=Join-Path $env:RUNNER_TEMP 'w32e-package.txt'
+          if(Test-Path -LiteralPath $marker){
+            $root=[IO.File]::ReadAllText($marker)
+            if($root.StartsWith($env:RUNNER_TEMP) -and [IO.Path]::GetFileName($root) -match '^ktrade-w03-package-[a-f0-9]{32}$'){
+              Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction Stop
+              if(Test-Path -LiteralPath $root){throw 'W33_PACKAGE_CLEANUP_INCOMPLETE'}
+            }
+          }
+          $paperMarker=Join-Path $env:RUNNER_TEMP 'w33-paper-source.txt'
+          if(Test-Path -LiteralPath $paperMarker){
+            $id=[IO.File]::ReadAllText($paperMarker)
+            if($id -cnotmatch '^ktrade-reconcile-[a-z0-9]{12,48}$'){throw 'W33_CLEANUP_SOURCE_ID_INVALID'}
+            $suffix=$id.Substring('ktrade-reconcile-'.Length)
+            foreach($name in @($id,('ktrade-paper-partition-'+$suffix+'-btc-usdc'))){
+              $path=Join-Path $env:RUNNER_TEMP $name
+              if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction Stop}
+            }
+          }
+          Remove-Item (Join-Path $env:GITHUB_WORKSPACE 'current') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output '::notice::W56_SOURCE_PROOF_ONLY_PRODUCTION_PAIR_DISPOSED_NO_BROKER_OR_OWNER_DATA=PASS'
+
