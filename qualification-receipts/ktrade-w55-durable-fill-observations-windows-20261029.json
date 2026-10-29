@@ -1,0 +1,94 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W55",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "83a73f850d059cc35d20ec06f7e265d00584be88",
+  "source_tree": "7818db5ae400b8ce50b71bb59d2e7160b20de046",
+  "parent_sha": "80ce4c6f3981a5002684f57584b36c04bb53fd52",
+  "parent_tree": "7e8cc56d33dbcbba19419ba3043870cc6ddab3d4",
+  "parent_qualification": {
+    "pr": 201,
+    "run_id": 40945221365,
+    "receipt_commit": "2487b7bd0b0ab3995c4b88d5e0efc36a971e8689"
+  },
+  "pr": 202,
+  "branch": "feature/rb3-w55-durable-fill-observations-20261029",
+  "witness_sha": "c992b4ba280c5cd90cf078b40c99ed708b43aaa3",
+  "workflow_git_blob": "198de34afd7fff6cd08be2190331b3e16100d297",
+  "run_id": 40949094594,
+  "job_id": 123712160930,
+  "conclusion": "success",
+  "changed_paths": [
+    "internal/brokerintent/fill_observations.go",
+    "internal/brokerintent/fill_observations_test.go",
+    "internal/brokerintent/journal.go",
+    "internal/brokerintent/local_observation.go",
+    "pkg/advanced_order_fill_custody.go",
+    "pkg/advanced_order_fill_custody_test.go",
+    "pkg/advanced_order_fill_review.go"
+  ],
+  "live_source_disabled": true,
+  "accounting_committed": false,
+  "release_authorized": false,
+  "venue_reservation_established": false,
+  "real_credentials_used": false,
+  "new_boundary_real_broker_account_or_order_requests": 0,
+  "owner_data_touched": false,
+  "attempt_history": [
+    {
+      "run_id": 40949058684,
+      "source_sha": "83a73f850d059cc35d20ec06f7e265d00584be88",
+      "witness_sha": "0904f974dc93b8c127ead631d9524c2beff727fd",
+      "conclusion": "cancelled",
+      "reason": "superseded harness expected-path list omitted the intentional journal schema change; corrected seven-path guard qualifies final run only"
+    }
+  ],
+  "limitations": [
+    "BUY base-sized spot limit-GTC USDC observations only; private signed source adapter authenticates metadata, native custody API alone does not authenticate venue facts",
+    "records and chain head commit in one existing SQLite journal; original local owner, account fence and full funding/risk holds are retained",
+    "normalization and exact sums are observation validation, not cash/lot/PnL accounting or a parallel financial owner",
+    "terminal late fills remain review evidence; repeated signed reads are non-atomic and do not establish future finality or global broker exclusivity",
+    "native PAPER uses synthetic price/basis-point fees and remains unchanged; genuine venue accounting/reconciliation integration and safe capital release/recovery remain unfinished",
+    "cold recovery is read-only, no writer reopen/adoption/retry, risk release, kill clearing or activation",
+    "bounded history: 1024 records, 16 MiB total, 256 fills per observation, 256 KiB per record; no automatic pruning or historical account migration",
+    "process-kill proof only, not a power-loss claim",
+    "production pair build/disposal is source/build proof; no new native GUI acceptance claimed",
+    "not LIVE_READY_DISARMED product completion, release, signing, merge, deployment, migration or runtime activation"
+  ],
+  "mind_palace_advisory": {
+    "sha": "f31e4203892730ddbe24d44ce5674f5678d498aa",
+    "records_sha256": "c63a57fb7f27c8f1c0a5c89296882b07cc2ed51775629dda81acc4c304ce7f1b",
+    "bootstrap_sha": "ceee64384ebfd6b9e00108ae22488505a68c53d1",
+    "authority": "advisory; current scoped project contract and owner instructions govern"
+  },
+  "environment": {
+    "os": "windows/amd64",
+    "runner_image": "windows-2022",
+    "image_version": "20261025.346.1",
+    "go_version": "1.25.0",
+    "node_version": "24.22.1",
+    "cgo_enabled": true,
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2
+  },
+  "proofs": [
+    "existing SQLite journal extended with immutable observation rows and a chain head; each record and head commit in one WAL/FULL transaction",
+    "original sole owner mutex reused for publication; exact immutable held intent and complete native risk reservation set verified; source projection preserves full validated W54 evidence",
+    "24 concurrent duplicate callers produce one durable event without another original risk/rate reservation; normalized exact decimal formatting replays the same durable identity",
+    "partial OPEN to terminal CANCELLED to additive late terminal fills retained; exact base/quote/commission facts remain bounded by original full hold",
+    "changed/disappearing fill identities or fees, order reassignment, terminal rewind, stale/future observations and cross-client order/entry collisions stop the original owner and preserve prior history",
+    "actual SQLite insert/head faults and injected before/after publication failures retain consistent head/body and original holds",
+    "real child processes forcibly killed immediately before/after SQLite commit: cold history contains zero/one new records respectively, preserves original held funding and account fence, and returns no writer/adoption handle",
+    "immutable-row triggers reject update/delete; corrupted body/head or missing tail fail closed with no partial evidence",
+    "private generated-key signed memory-only GETs publish complete parsed W54 observations; bad source, unheld intent or Stop cannot create durable facts; unrelated raw response/debug extensions excluded",
+    "twelve TestW55 roots (including crash-child helper) passed; W41-W55 affected interfaces and W43/W53/W54/W55 race checks passed",
+    "fresh full tagged app/root/nested Wails tests and vet passed",
+    "original production pair fixture mode none built and disposed; public LIVE gate remains literal false"
+  ],
+  "artifacts_sha256": {
+    "wails": "30dd6288837c95bb6679e2f9f05e9b8481e94de4300bf624c2229262c19b3b23",
+    "engine": "8a5932988ca61d32cc279665a35da78964f1b38c71d382512988b63133a98310",
+    "package": "841e06523f1fc4d99e159e64c29e5fad2520a3d36cb86f66ed4dc6522556ad1f"
+  }
+}
