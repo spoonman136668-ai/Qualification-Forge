@@ -1,0 +1,88 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W44 disarmed exact fixed-point precision, fee-bound evidence and immutable durable intent preflight",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/191",
+  "source_sha": "d2f30b11bac9639b4d8a493a5891fe0c58ac0ccb",
+  "source_tree": "fda8442f057278a31aec9879f53697c20d0f3b26",
+  "parent_sha": "53aa0dc0c3ee18f61afdaddd2eee899ec3e94e5d",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/21",
+  "run_id": 40860152641,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40860152641",
+  "job_id": 123401038066,
+  "run_created_utc": "2026-10-29T10:46:09Z",
+  "run_completed_utc": "2026-10-29T10:55:06Z",
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "witness_sha": "345a91e401a84f2d9cf9863cfeb958b203372e8f",
+  "workflow_path": ".github/workflows/ktrade-w44-disarmed-precision-windows.yml",
+  "workflow_blob_sha": "5365dded35a730fb4d68967402bf683e0735ea96",
+  "previous_failed_runs": [
+    40859113582,
+    40859568871,
+    40859704341
+  ],
+  "prior_blocker": "duplicated package/import header interrupted internal/brokerprecision/evidence.go fixed-point decimal regular expression; repaired in source commit d2f30b11",
+  "changed_source_paths_count": 6,
+  "changed_paths": [
+    "internal/brokerprecision/evidence.go",
+    "internal/brokerprecision/evidence_test.go",
+    "pkg/advanced_orders.go",
+    "pkg/advanced_order_once.go",
+    "pkg/advanced_order_once_test.go",
+    "pkg/advanced_order_precision_test.go"
+  ],
+  "foundations": [
+    {
+      "gate": "W43",
+      "run_id": 40854251403,
+      "witness_sha": "c6f193932cbf967bc9e1571a58e0dbf0367b33",
+      "conclusion": "success"
+    }
+  ],
+  "passed": [
+    "W44_EXACT_SOURCE_SIX_DISARMED_PRECISION_PATHS=PASS",
+    "W44_PARENT_W42_PAPER_UI_FOUNDATIONS_IDENTICAL_AND_LIVE_SOURCE_FALSE=PASS",
+    "W44_IDENTICAL_LOCKED_FRONTEND_VENDOR_STAGE=PASS",
+    "W44_MEMORY_ONLY_WIRE_FAULTS_AND_PUBLIC_ZERO_BROKER_ACCESS=PASS",
+    "W44_FRESH_FULL_GO_TAGGED_ROOT_WAILS_TEST_AND_VET=PASS",
+    "W44_SOURCE_PROOF_ONLY_PRODUCTION_PAIR_DISPOSED_NO_BROKER_OR_OWNER_DATA=PASS"
+  ],
+  "qualification_scope": [
+    "Source-pinned six-path-only delta and original unchanged LIVE disarm source",
+    "Go targeted brokerprecision, brokerintent and advanced-order memory-only mocked wire tests",
+    "Race detector for W43 and W44 intent journal and exact precision tests",
+    "Full ktrade_full native Go command tests and vet",
+    "Full native Go root test and vet and independent nested Wails module tests and vet",
+    "Original Node locked offline asset staging",
+    "Real Windows native Go and Wails paired binary production build with synthetic tags excluded",
+    "Fresh disposable source package destroyed without owner data interaction"
+  ],
+  "production_disarmed_package": {
+    "source_sha": "d2f30b11bac9639b4d8a493a5891fe0c58ac0ccb",
+    "wails_exe_sha256": "d90c680ea7742cfb5cdeea918d17234b47d4ff4fb190c584df23ce86369af657",
+    "go_engine_sha256": "4981ee2b7988e276d0c83cf629cc326d0fd9c2a564957a733e2717c335536fe5",
+    "package_zip_sha256": "9a26e73817d87b2f9d256d0692e2948ab49120e72572d638534fae0d9561d485",
+    "fixture_mode": "none",
+    "live_armed": false,
+    "release_authority": "none",
+    "signed": false,
+    "launched": false
+  },
+  "boundaries": [
+    "Product/fee hash equality is internal evidence binding, not proof of authenticated Coinbase origin, fresh actual account balances or permission to trade.",
+    "Original public LIVE method remains source-disarmed and no real broker request is authorized.",
+    "An independent venue/account read-only authenticated source and TradeGuard/release owner would still need separate admission and evidence.",
+    "Not a production install acceptance, source merge, owner data migration, signing or release."
+  ],
+  "state": {
+    "qualified_scope": "W44 exact disarmed product/fee preflight and pinned full Windows regression",
+    "pr_draft": true,
+    "pr_merged": false,
+    "live_enabled": false,
+    "source_main_unchanged": true,
+    "owner_data_touched": false,
+    "release_authority": "none"
+  }
+}
