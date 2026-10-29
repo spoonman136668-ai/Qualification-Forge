@@ -1,0 +1,166 @@
+name: KTRADE W47 conservative multi-intent read-only exposure and LIVE disarm Windows
+# W47 adds a private pure conservative exposure screen; original W47 authenticated funding, W43 durable journal and hardcoded LIVE disarm are unchanged.
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w47-readonly-exposure
+  cancel-in-progress: true
+on:
+  push:
+    branches: [qualification/ktrade-w47-disarmed-exposure-20261029]
+    paths: [.github/workflows/ktrade-w47-exposure-readonly-windows.yml]
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact private KTRADE candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: fc15dcabb002db1ae5a294d6e378cc94bea7d911
+          path: current
+          fetch-depth: 32
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Fail closed on source identity scope and clean custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W32E_WRONG_RUNNER'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'fc15dcabb002db1ae5a294d6e378cc94bea7d911' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '496942a444d3c6125fb47b23009ca2e568f57e12'){throw 'W32E_EXACT_SOURCE_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
+          if((& git -C $src merge-base fc15dcabb002db1ae5a294d6e378cc94bea7d911 b3988c434f4375effda77623c85468b02f7622ed).Trim() -cne 'b3988c434f4375effda77623c85468b02f7622ed'){throw 'W47_W44_PARENT_DRIFT'}
+          $diff=@(& git -C $src diff --name-only b3988c434f4375effda77623c85468b02f7622ed HEAD|Sort-Object)
+          $expect=@('pkg/advanced_order_exposure_screen.go','pkg/advanced_order_exposure_screen_test.go'|Sort-Object)
+          if(Compare-Object $diff $expect){throw 'W47_NOT_EXACTLY_TWO_READONLY_PATHS'}
+          foreach($path in @('cmd','internal','static','templates','tests','tools','windows','go.mod','go.sum','package.json','package-lock.json','pkg/advanced_order_readiness.go','pkg/advanced_order_readiness_test.go','pkg/advanced_order_funding_screen.go','pkg/advanced_order_funding_screen_test.go','pkg/advanced_orders.go','pkg/advanced_order_once.go','pkg/advanced_order_auth.go','pkg/advanced_order_wire.go')){
+            $current=(& git -C $src rev-parse ('HEAD:'+$path)).Trim()
+            $prior=(& git -C $src rev-parse ('b3988c434f4375effda77623c85468b02f7622ed:'+$path)).Trim()
+            if($LASTEXITCODE -ne 0 -or $current -cne $prior){throw ('W47_FINANCIAL_AUTH_MAIN_OR_DEPENDENCY_DRIFT_'+$path)}
+          }
+          $broker=Get-Content -LiteralPath (Join-Path $src 'pkg/advanced_orders.go') -Raw
+          if($broker -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W47_SOURCE_LIVE_GATE_NOT_LOCKED'}
+          Write-Output '::notice::W47_EXACT_TWO_READONLY_FILES_AND_LIVE_SOURCE_FALSE=PASS'
+
+      - name: Native Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Native Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Stage identical locked offline original chart and Monaco vendor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_LOCK_FAILURE'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W32E_VENDOR_STAGE_FAILURE'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W47_IDENTICAL_LOCKED_FRONTEND_VENDOR_STAGE=PASS'
+      - name: Signed three GET read-only readiness negatives plus W41 to W44 regressions
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -v -run '^Test(W41Advanced|W42Advanced|W43|W44|W45|W46|W47|HistoricalAdvancedOrderManager)' ./internal/brokerintent ./internal/brokerprecision ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W47_READ_ONLY_OR_PRIOR_DISARM_REGRESSION'}
+            & go test -race -mod=readonly -count=1 -run '^TestW4[1-7]' ./internal/brokerintent ./internal/brokerprecision ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W47_READ_ONLY_AUTH_RACE_OR_DISARM_REGRESSION'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W47_MOCK_ONLY_READONLY_FUNDING_SCREEN_FEES_AND_PUBLIC_LIVE_DISABLED=PASS'
+      - name: Fresh exact W47 full tagged app root Wails regression and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_APP_REGRESSION_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_APP_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_ROOT_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_ROOT_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_WAILS_REGRESSION_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'P6_FULL_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Output '::notice::W47_FRESH_FULL_GO_TAGGED_ROOT_WAILS_TEST_AND_VET=PASS'
+      - name: Build original production pair with every synthetic tag excluded
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          Remove-Item Env:KTRADE_W13_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          $build=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          Push-Location $src
+          try{
+            $files=(& go list -mod=readonly -tags ktrade_full -f '{{join .GoFiles " "}}' ./cmd/ktrade) -join ' '
+            if($LASTEXITCODE -ne 0 -or $files -notmatch 'main_full.go' -or $files -match 'w32e_webview_fixture|w13_fixture'){throw 'W32E_P2_SYNTHETIC_SOURCE_INCLUDED'}
+          }finally{Pop-Location}
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha 'fc15dcabb002db1ae5a294d6e378cc94bea7d911'
+          if($LASTEXITCODE -ne 0){throw 'W47_PRODUCTION_PAIR_BUILD_FAILED'}
+          $manifest=Get-Content -LiteralPath (Join-Path $build 'source-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.source_sha -cne 'fc15dcabb002db1ae5a294d6e378cc94bea7d911' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W47_PRODUCTION_IDENTITY_DRIFT'}
+          $stage=Join-Path $build 'KTRADE-WailsPortable'
+          $engineInfo=(& go version -m (Join-Path $stage 'ktrade-engine.exe')) -join "`n"
+          if($LASTEXITCODE -ne 0 -or $engineInfo -notmatch '-tags=ktrade_full' -or $engineInfo -match 'ktrade_w32e_fixture|ktrade_w13_fixture'){throw 'W32E_P2_PRODUCTION_TAGS_DRIFT'}
+          Write-Output $engineInfo
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w32e-package.txt'),$build)
+          Write-Output '::notice::W47_ORIGINAL_PRODUCTION_PAIR_NO_SYNTHETIC_TAGS_OR_TRANSPORT=PASS'
+      - name: Cleanup isolated production PAPER qualification package
+        if: always()
+        shell: pwsh
+        run: |
+          $marker=Join-Path $env:RUNNER_TEMP 'w32e-package.txt'
+          if(Test-Path -LiteralPath $marker){
+            $root=[IO.File]::ReadAllText($marker)
+            if($root.StartsWith($env:RUNNER_TEMP) -and [IO.Path]::GetFileName($root) -match '^ktrade-w03-package-[a-f0-9]{32}$'){
+              Remove-Item -LiteralPath $root -Recurse -Force -ErrorAction Stop
+              if(Test-Path -LiteralPath $root){throw 'W33_PACKAGE_CLEANUP_INCOMPLETE'}
+            }
+          }
+          $paperMarker=Join-Path $env:RUNNER_TEMP 'w33-paper-source.txt'
+          if(Test-Path -LiteralPath $paperMarker){
+            $id=[IO.File]::ReadAllText($paperMarker)
+            if($id -cnotmatch '^ktrade-reconcile-[a-z0-9]{12,48}$'){throw 'W33_CLEANUP_SOURCE_ID_INVALID'}
+            $suffix=$id.Substring('ktrade-reconcile-'.Length)
+            foreach($name in @($id,('ktrade-paper-partition-'+$suffix+'-btc-usdc'))){
+              $path=Join-Path $env:RUNNER_TEMP $name
+              if(Test-Path -LiteralPath $path){Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction Stop}
+            }
+          }
+          Remove-Item (Join-Path $env:GITHUB_WORKSPACE 'current') -Recurse -Force -ErrorAction SilentlyContinue
+          Write-Output '::notice::W47_SOURCE_PROOF_ONLY_PRODUCTION_PAIR_DISPOSED_NO_BROKER_OR_OWNER_DATA=PASS'
