@@ -1,0 +1,84 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W54",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "80ce4c6f3981a5002684f57584b36c04bb53fd52",
+  "source_tree": "7e8cc56d33dbcbba19419ba3043870cc6ddab3d4",
+  "parent_sha": "161b12eb1883aee50c434c426c5be24789af57d4",
+  "parent_tree": "57a5a02767622a6ca3def69293df0d59f88a8bb1",
+  "pr": 201,
+  "branch": "feature/rb3-w54-signed-fill-reconciliation-20261029",
+  "witness_sha": "0243a9b0d5c0a1be2e2111841cc68ebf285850c9",
+  "workflow_git_blob": "81ecc8ba1ae67980cacfc2247ee5611262f7d111",
+  "run_id": 40945221365,
+  "job_id": 123698776420,
+  "conclusion": "success",
+  "changed_paths": [
+    "internal/brokerintent/local_observation.go",
+    "internal/brokerintent/local_observation_test.go",
+    "pkg/advanced_order_fill_review.go",
+    "pkg/advanced_order_fill_review_test.go"
+  ],
+  "live_source_disabled": true,
+  "venue_reservation_established": false,
+  "accounting_committed": false,
+  "release_authorized": false,
+  "real_credentials_used": false,
+  "new_boundary_real_broker_account_or_order_requests": 0,
+  "owner_data_touched": false,
+  "attempt_history": [
+    {
+      "run_id": 40944681019,
+      "source_sha": "a2ea57fb7bf0f5d6a762bc250ff37c33946bb8dd",
+      "witness_sha": "2e259cd128aff261a2807deb440b57c6fb1ef95c",
+      "conclusion": "cancelled",
+      "reason": "superseded by final custody deadline and additional late-fill tests"
+    },
+    {
+      "run_id": 40944925483,
+      "source_sha": "80ce4c6f3981a5002684f57584b36c04bb53fd52",
+      "witness_sha": "22599336401c27ec12243a34d24b6b623a9bceb1",
+      "conclusion": "cancelled",
+      "reason": "superseded qualification harness explicitly includes W54 under race detector"
+    }
+  ],
+  "limitations": [
+    "BUY base-sized spot limit-GTC USDC observations only; unsupported/edited/attached/quote-sized/ambiguous orders refuse",
+    "bounded repeated signed reads remain non-atomic; they do not establish global account exclusivity or future finality",
+    "positive terminal/partial fill observations retain the full original hold, not accounting settlement or capital-release permission",
+    "observations are not yet durably committed as financial reconciliation; no fill accounting, release, retry, dispatch, cold writer reopen, account recovery or automatic adoption",
+    "existing original risk/PAPER financial owners, W53 hold/fence/schema and public LIVE source gate unchanged",
+    "new boundary scenarios use generated keys and memory-only GETs; no real account or order requests",
+    "production pair build is source/build proof; no new native GUI acceptance on these binaries",
+    "not LIVE_READY_DISARMED product completion, release, signing, merge, deployment, migration or activation"
+  ],
+  "environment": {
+    "os": "windows/amd64",
+    "runner_image": "windows-2022",
+    "image_version": "20261025.346.1",
+    "go_version": "1.25.0",
+    "node_version": "24.22.1",
+    "cgo_enabled": true,
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2
+  },
+  "proofs": [
+    "exact immutable held intent and complete original risk reservation set verified before observation; unheld, altered, stopped or unknown native custody refused",
+    "generated-key ES256 independently verified for each memory-only GET with distinct signed tokens, fixed venue/paths and exact order/product/portfolio/page parameters",
+    "five positive scenarios: partial OPEN, partial CANCELLED, empty CANCELLED/EXPIRED, fully FILLED; four-page/256-fill bounds and complete cursor drain required",
+    "two fill scans bracketed by matching order identities, exact limit terms and counters; reordered page contents accepted as identical sets",
+    "exact rational base/quote/commission sums match order counters and funding hold; negative/exponent/contradictory/excess fees rejected",
+    "late/missing/duplicated/changed/foreign/future/quote-sized fills, edited or attached orders, pending cancellation, cancel initiation ACK, aliases, malformed/oversized/interrupted/proof-required responses refused with zero evidence",
+    "Stop during a scan prevents publication; clock regression and expired review refuse; final original custody verification included in acceptance time envelope",
+    "successful and failed reviews preserve complete SQLite hold/native risk custody; no accounting commit, release, order/cancel dispatch, cold writer or activation capability",
+    "six TestW54 roots passed; W41-W54 affected interfaces and W43/W53/W54 race checks passed",
+    "fresh full tagged app/root/nested Wails tests and vet passed",
+    "original production pair fixture mode none built and disposed; no new native GUI acceptance claimed"
+  ],
+  "artifacts_sha256": {
+    "wails": "bb5ea870cc0d9414fa9602c50c39bddf7d3451f7e4ec95a7e70ecdf802c410af",
+    "engine": "70851809db3f058c03f2d56d138f67e7ffaa456484aec0264487dcabbea407a7",
+    "package": "c1892f8e21a45a8425ba1f541b4c12806b96cea8a994b028abc8eddc6fd5ac65"
+  }
+}
