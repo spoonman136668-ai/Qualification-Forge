@@ -1,0 +1,1895 @@
+{
+  "schema": "ktrade.w36.mainline-scope.v1",
+  "kind": "read-only-independent-source-inventory",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 186,
+  "main_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+  "head_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+  "head_tree": "9f1e559560ac14f4e6fc823dac9150e3a95f2c4d",
+  "expected": {
+    "changed_files": 310,
+    "added": 272,
+    "modified": 38,
+    "deleted": 0,
+    "additions": 29446,
+    "deletions": 977,
+    "ahead_by": 434,
+    "behind_by": 0
+  },
+  "runs": [
+    {
+      "id": 40787692876,
+      "sha": "858d21380e1e88c01555371c6e258dfab07f7446",
+      "conclusion": "success",
+      "scope": "W34 original complete Go Node disposable Windows package"
+    },
+    {
+      "id": 40796601906,
+      "sha": "85948ad3188f15a8ea9d4c83481418cade29d278",
+      "conclusion": "success",
+      "scope": "W35B cross-version original installed W31-W34-W31 native Windows lifecycle"
+    }
+  ],
+  "files": [
+    {
+      "path": ".github/workflows/rb2-native-brave-focused-windows.yml",
+      "status": "added",
+      "additions": 83,
+      "deletions": 0
+    },
+    {
+      "path": ".github/workflows/rb2-wails-w01-windows.yml",
+      "status": "added",
+      "additions": 246,
+      "deletions": 0
+    },
+    {
+      "path": "AGENTS.md",
+      "status": "added",
+      "additions": 33,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade-paper-history-review/main.go",
+      "status": "added",
+      "additions": 31,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade-pine-restore-proof/main.go",
+      "status": "added",
+      "additions": 68,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade-w17c8-fixture/main.go",
+      "status": "added",
+      "additions": 73,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/main_full.go",
+      "status": "modified",
+      "additions": 187,
+      "deletions": 305
+    },
+    {
+      "path": "cmd/ktrade/next_entry_full_test.go",
+      "status": "added",
+      "additions": 163,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/operator_capabilities_full.go",
+      "status": "added",
+      "additions": 79,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/origin_security_full.go",
+      "status": "added",
+      "additions": 49,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/paper_authority_route_full.go",
+      "status": "modified",
+      "additions": 23,
+      "deletions": 1
+    },
+    {
+      "path": "cmd/ktrade/paper_candles_source_production_full.go",
+      "status": "added",
+      "additions": 11,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/paper_candles_source_w13_fixture_full.go",
+      "status": "added",
+      "additions": 51,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/paper_candles_source_w13_fixture_full_test.go",
+      "status": "added",
+      "additions": 59,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/paper_final_close_review_full.go",
+      "status": "added",
+      "additions": 51,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/paper_session_full.go",
+      "status": "added",
+      "additions": 477,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/paper_session_runner_full.go",
+      "status": "added",
+      "additions": 265,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/paper_strategy_preview_full.go",
+      "status": "added",
+      "additions": 289,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/paper_valuation_full.go",
+      "status": "added",
+      "additions": 38,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/paper_valuation_full_test.go",
+      "status": "added",
+      "additions": 56,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/pine_library_compat_full.go",
+      "status": "modified",
+      "additions": 15,
+      "deletions": 4
+    },
+    {
+      "path": "cmd/ktrade/rb2_advanced_public_candles_full.go",
+      "status": "added",
+      "additions": 148,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_advanced_public_candles_full_test.go",
+      "status": "added",
+      "additions": 117,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_coinbase_market_rows_full.go",
+      "status": "added",
+      "additions": 67,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_coinbase_market_rows_full_test.go",
+      "status": "added",
+      "additions": 58,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_durable_paper_session_full_test.go",
+      "status": "added",
+      "additions": 133,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_market_security_full_test.go",
+      "status": "added",
+      "additions": 64,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_native_pine_donor_bridge_full_test.go",
+      "status": "added",
+      "additions": 104,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_operator_capabilities_full_test.go",
+      "status": "added",
+      "additions": 76,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_paper_session_full_test.go",
+      "status": "added",
+      "additions": 241,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_paper_strategy_preview_full_test.go",
+      "status": "added",
+      "additions": 275,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_pine_shared_interpreter_full_test.go",
+      "status": "added",
+      "additions": 52,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_portable_custody_full_test.go",
+      "status": "added",
+      "additions": 50,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_portable_paper_cold_archive_full_test.go",
+      "status": "added",
+      "additions": 97,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_portable_paper_owner_full.go",
+      "status": "added",
+      "additions": 166,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_portable_paper_owner_full_test.go",
+      "status": "added",
+      "additions": 194,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_strategy_save_full_test.go",
+      "status": "added",
+      "additions": 122,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb2_verified_candles_full_test.go",
+      "status": "added",
+      "additions": 50,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb3_w32b_editor_compile_full_test.go",
+      "status": "added",
+      "additions": 34,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb3_w32c_overlay_full_test.go",
+      "status": "added",
+      "additions": 116,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb3_w33a_operator_paper_state_full_test.go",
+      "status": "added",
+      "additions": 96,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb3_wails_paper_lifecycle_full_test.go",
+      "status": "added",
+      "additions": 136,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb3_wails_portable_owner_full.go",
+      "status": "added",
+      "additions": 93,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/rb3_wails_portable_owner_full_test.go",
+      "status": "added",
+      "additions": 78,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/strategy_save_full.go",
+      "status": "added",
+      "additions": 76,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/verified_candles_full.go",
+      "status": "added",
+      "additions": 87,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w17c5_restored_supported_full_test.go",
+      "status": "added",
+      "additions": 178,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w17d0_stable_origin_full.go",
+      "status": "added",
+      "additions": 67,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w17d0_stable_origin_full_test.go",
+      "status": "added",
+      "additions": 91,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w18_candidate_origin_full.go",
+      "status": "added",
+      "additions": 138,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w18_candidate_origin_full_test.go",
+      "status": "added",
+      "additions": 107,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w19_unsupported_pine_order_full_test.go",
+      "status": "added",
+      "additions": 123,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w32e_webview_fixture_full_windows.go",
+      "status": "added",
+      "additions": 72,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w32e_webview_fixture_full_windows_test.go",
+      "status": "added",
+      "additions": 42,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w33c_p3_native_close_full_test.go",
+      "status": "added",
+      "additions": 59,
+      "deletions": 0
+    },
+    {
+      "path": "cmd/ktrade/w33c_p4_native_close_full_test.go",
+      "status": "added",
+      "additions": 139,
+      "deletions": 0
+    },
+    {
+      "path": "docs/rebuild/RB1_SINGLE_TRACK_CONTRACT.md",
+      "status": "added",
+      "additions": 78,
+      "deletions": 0
+    },
+    {
+      "path": "docs/rebuild/RB2_PRODUCT_COMPLETION_AND_COMPETITIVE_ACCEPTANCE.md",
+      "status": "added",
+      "additions": 82,
+      "deletions": 0
+    },
+    {
+      "path": "docs/rebuild/RB3_REGRESSION_RECONCILIATION.md",
+      "status": "added",
+      "additions": 37,
+      "deletions": 0
+    },
+    {
+      "path": "docs/rebuild/RB3_WAILS_CODEX_WEB_OWNER_DECISION_20261024.md",
+      "status": "added",
+      "additions": 38,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/durable_upgrade.go",
+      "status": "modified",
+      "additions": 69,
+      "deletions": 2
+    },
+    {
+      "path": "internal/durableupgrade/installed_reconcile_receipt.go",
+      "status": "added",
+      "additions": 150,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/installed_reconcile_receipt_test.go",
+      "status": "added",
+      "additions": 117,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/installed_reconcile_shadow.go",
+      "status": "added",
+      "additions": 114,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/installed_reconcile_shadow_test.go",
+      "status": "added",
+      "additions": 99,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/installed_transfer_shadow.go",
+      "status": "added",
+      "additions": 158,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/installed_transfer_shadow_test.go",
+      "status": "added",
+      "additions": 84,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17b_synthetic_legacy_migration_test.go",
+      "status": "added",
+      "additions": 175,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17c2_historical_coverage.go",
+      "status": "added",
+      "additions": 80,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17c2_install_coverage_test.go",
+      "status": "added",
+      "additions": 113,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17c3_synthetic_escrow_trial.go",
+      "status": "added",
+      "additions": 141,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17c3_synthetic_escrow_trial_test.go",
+      "status": "added",
+      "additions": 172,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17c4_inactive_historical.go",
+      "status": "added",
+      "additions": 271,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17c4_inactive_historical_test.go",
+      "status": "added",
+      "additions": 165,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17c5_supported_app_restore.go",
+      "status": "added",
+      "additions": 111,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17c_complete_data_digest.go",
+      "status": "added",
+      "additions": 111,
+      "deletions": 0
+    },
+    {
+      "path": "internal/durableupgrade/w17c_complete_data_digest_test.go",
+      "status": "added",
+      "additions": 110,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/atomicfile.go",
+      "status": "added",
+      "additions": 217,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/audit_original.go",
+      "status": "added",
+      "additions": 76,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/brokerless_boundary.go",
+      "status": "added",
+      "additions": 52,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/product_currency_original.go",
+      "status": "added",
+      "additions": 27,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/risk.go",
+      "status": "added",
+      "additions": 868,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/risk_policy_original.go",
+      "status": "added",
+      "additions": 140,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/risk_port_test.go",
+      "status": "added",
+      "additions": 83,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/tradeguard_continuity.go",
+      "status": "added",
+      "additions": 259,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/tradeguard_continuity_runtime.go",
+      "status": "added",
+      "additions": 254,
+      "deletions": 0
+    },
+    {
+      "path": "internal/originaltradeguard/validate-symbol.go",
+      "status": "added",
+      "additions": 111,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperapp/account_review.go",
+      "status": "added",
+      "additions": 151,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperapp/account_review_test.go",
+      "status": "added",
+      "additions": 140,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/checkpoint_order.go",
+      "status": "added",
+      "additions": 54,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/checkpoint_order_test.go",
+      "status": "added",
+      "additions": 127,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/custody.go",
+      "status": "added",
+      "additions": 333,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/custody_test.go",
+      "status": "added",
+      "additions": 142,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/original_risk_proof.go",
+      "status": "added",
+      "additions": 115,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/original_risk_proof_test.go",
+      "status": "added",
+      "additions": 69,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/recovery_comparison.go",
+      "status": "added",
+      "additions": 65,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/reviewed_stage.go",
+      "status": "added",
+      "additions": 162,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/reviewed_stage_test.go",
+      "status": "added",
+      "additions": 102,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/verify_review.go",
+      "status": "added",
+      "additions": 33,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/w28h_explicit_history.go",
+      "status": "added",
+      "additions": 170,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/w28h_explicit_history_test.go",
+      "status": "added",
+      "additions": 117,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papercustody/w33b_refused_owner_test.go",
+      "status": "added",
+      "additions": 37,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/final_close_review.go",
+      "status": "added",
+      "additions": 65,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/final_close_submit.go",
+      "status": "added",
+      "additions": 103,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/next_entry.go",
+      "status": "added",
+      "additions": 88,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/next_entry_test.go",
+      "status": "added",
+      "additions": 249,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/original_guard_adapter.go",
+      "status": "added",
+      "additions": 96,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/original_guard_adapter_test.go",
+      "status": "added",
+      "additions": 141,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/owner.go",
+      "status": "added",
+      "additions": 346,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/owner_test.go",
+      "status": "added",
+      "additions": 172,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/valuation.go",
+      "status": "added",
+      "additions": 72,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/valuation_test.go",
+      "status": "added",
+      "additions": 132,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/w33c_p10_fourth_sell_pending_test.go",
+      "status": "added",
+      "additions": 93,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/w33c_p3_owner_review_test.go",
+      "status": "added",
+      "additions": 47,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/w33c_p4_close_settlement_test.go",
+      "status": "added",
+      "additions": 161,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperengine/w33c_sell_admission_refusal_test.go",
+      "status": "added",
+      "additions": 42,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperexit/review.go",
+      "status": "added",
+      "additions": 158,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperexit/review_test.go",
+      "status": "added",
+      "additions": 136,
+      "deletions": 0
+    },
+    {
+      "path": "internal/paperreconcile/reconcile.go",
+      "status": "modified",
+      "additions": 38,
+      "deletions": 2
+    },
+    {
+      "path": "internal/paperreconcile/reconcile_test.go",
+      "status": "modified",
+      "additions": 78,
+      "deletions": 1
+    },
+    {
+      "path": "internal/paperreconcile/w33c_sell_exit_accounting_test.go",
+      "status": "added",
+      "additions": 72,
+      "deletions": 0
+    },
+    {
+      "path": "internal/papertrading/ledger.go",
+      "status": "modified",
+      "additions": 47,
+      "deletions": 8
+    },
+    {
+      "path": "internal/papertrading/valuation_test.go",
+      "status": "added",
+      "additions": 56,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/apphost/brave_host.go",
+      "status": "added",
+      "additions": 278,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/apphost/brave_host_test.go",
+      "status": "added",
+      "additions": 34,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/apphost/brave_registry_other.go",
+      "status": "added",
+      "additions": 5,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/apphost/brave_registry_windows.go",
+      "status": "added",
+      "additions": 123,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/p18_current_contract_test.go",
+      "status": "added",
+      "additions": 66,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/p18c_closeout_account_market_data_http_route_acceptance_gate_test.go",
+      "status": "modified",
+      "additions": 5,
+      "deletions": 33
+    },
+    {
+      "path": "pkg/p18c_closeout_account_market_data_http_surface_gate_test.go",
+      "status": "modified",
+      "additions": 3,
+      "deletions": 53
+    },
+    {
+      "path": "pkg/p18c_t05_account_market_data_http_request_response_contract_test.go",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 40
+    },
+    {
+      "path": "pkg/p18c_t06_account_market_data_http_deterministic_surface_contract_test.go",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 31
+    },
+    {
+      "path": "pkg/p18d_closeout_strategy_execution_http_route_acceptance_gate_test.go",
+      "status": "modified",
+      "additions": 5,
+      "deletions": 53
+    },
+    {
+      "path": "pkg/p18d_closeout_strategy_execution_http_surface_gate_test.go",
+      "status": "modified",
+      "additions": 4,
+      "deletions": 72
+    },
+    {
+      "path": "pkg/p18d_t05_strategy_execution_http_request_response_contract_test.go",
+      "status": "modified",
+      "additions": 4,
+      "deletions": 44
+    },
+    {
+      "path": "pkg/p18d_t06_strategy_execution_http_deterministic_surface_contract_test.go",
+      "status": "modified",
+      "additions": 4,
+      "deletions": 38
+    },
+    {
+      "path": "pkg/p19a_closeout_electron_desktop_surface_gate_test.go",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "pkg/p19a_t06_electron_desktop_deterministic_runtime_surface_test.go",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "pkg/p20a_closeout_desktop_packaging_route_acceptance_gate_test.go",
+      "status": "modified",
+      "additions": 3,
+      "deletions": 3
+    },
+    {
+      "path": "pkg/p20a_closeout_desktop_packaging_surface_gate_test.go",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "pkg/p20a_t04_desktop_packaging_entry_contract_test.go",
+      "status": "modified",
+      "additions": 3,
+      "deletions": 3
+    },
+    {
+      "path": "pkg/p20a_t06_desktop_packaging_deterministic_runtime_surface_test.go",
+      "status": "modified",
+      "additions": 3,
+      "deletions": 3
+    },
+    {
+      "path": "pkg/p21a_closeout_desktop_release_update_surface_gate_test.go",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "pkg/p21a_t04_desktop_release_update_entry_contract_test.go",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "pkg/p21a_t06_desktop_release_update_deterministic_surface_test.go",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "pkg/pine_compile_v2.go",
+      "status": "modified",
+      "additions": 13,
+      "deletions": 1
+    },
+    {
+      "path": "pkg/pine_compiler.go",
+      "status": "modified",
+      "additions": 19,
+      "deletions": 7
+    },
+    {
+      "path": "pkg/pine_finalized_close.go",
+      "status": "added",
+      "additions": 5,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/pine_overlay_model.go",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1
+    },
+    {
+      "path": "pkg/pine_overlay_model_v2.go",
+      "status": "modified",
+      "additions": 5,
+      "deletions": 1
+    },
+    {
+      "path": "pkg/pine_parser.go",
+      "status": "modified",
+      "additions": 16,
+      "deletions": 4
+    },
+    {
+      "path": "pkg/pine_strategy.go",
+      "status": "modified",
+      "additions": 7,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/r25c12_governance_wire_compat_test.go",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "pkg/r25c12_mixed_phase9_wire_compat_test.go",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 2
+    },
+    {
+      "path": "pkg/r25c12_parent_fixture_line_endings_test.go",
+      "status": "added",
+      "additions": 28,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/r25c12_parent_fixture_test.go",
+      "status": "added",
+      "additions": 61,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/rb3_w32b_pine_header_test.go",
+      "status": "added",
+      "additions": 29,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/testdata/r25c12/parent-wire.json",
+      "status": "added",
+      "additions": 156,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/w33c_p3_finalized_close_test.go",
+      "status": "added",
+      "additions": 57,
+      "deletions": 0
+    },
+    {
+      "path": "pkg/w33c_pine_exit_provenance_test.go",
+      "status": "added",
+      "additions": 63,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/capture_r25c12_parent_evidence.py",
+      "status": "added",
+      "additions": 39,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/probe_brave_chart.cjs",
+      "status": "added",
+      "additions": 231,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/stage_offline_vendor.cjs",
+      "status": "modified",
+      "additions": 13,
+      "deletions": 0
+    },
+    {
+      "path": "scripts/wails_w01_source_provenance.cjs",
+      "status": "added",
+      "additions": 47,
+      "deletions": 0
+    },
+    {
+      "path": "static/ktrade_preferences_transfer.js",
+      "status": "added",
+      "additions": 213,
+      "deletions": 0
+    },
+    {
+      "path": "static/paper_account_review.js",
+      "status": "added",
+      "additions": 118,
+      "deletions": 0
+    },
+    {
+      "path": "static/paper_session_controls.js",
+      "status": "added",
+      "additions": 286,
+      "deletions": 0
+    },
+    {
+      "path": "static/paper_strategy_review.js",
+      "status": "added",
+      "additions": 89,
+      "deletions": 0
+    },
+    {
+      "path": "static/pine_library_compat.js",
+      "status": "modified",
+      "additions": 14,
+      "deletions": 1
+    },
+    {
+      "path": "static/pine_pane_layout.js",
+      "status": "added",
+      "additions": 24,
+      "deletions": 0
+    },
+    {
+      "path": "static/pine_plot_renderer.js",
+      "status": "added",
+      "additions": 78,
+      "deletions": 0
+    },
+    {
+      "path": "static/trading.html",
+      "status": "modified",
+      "additions": 5,
+      "deletions": 0
+    },
+    {
+      "path": "static/w17d1_chart_favorites.js",
+      "status": "added",
+      "additions": 68,
+      "deletions": 0
+    },
+    {
+      "path": "static/w17d4_chart_timeframe.js",
+      "status": "added",
+      "additions": 42,
+      "deletions": 0
+    },
+    {
+      "path": "static/w17d5_pane_layout.js",
+      "status": "added",
+      "additions": 37,
+      "deletions": 0
+    },
+    {
+      "path": "static/w17d6_horizontal_lines.js",
+      "status": "added",
+      "additions": 72,
+      "deletions": 0
+    },
+    {
+      "path": "static/w17d7_trendlines.js",
+      "status": "added",
+      "additions": 171,
+      "deletions": 0
+    },
+    {
+      "path": "static/w28i_chart_probe.js",
+      "status": "added",
+      "additions": 62,
+      "deletions": 0
+    },
+    {
+      "path": "static/w28k_real_chart_transfer.js",
+      "status": "added",
+      "additions": 209,
+      "deletions": 0
+    },
+    {
+      "path": "templates/chart.tmpl",
+      "status": "modified",
+      "additions": 644,
+      "deletions": 249
+    },
+    {
+      "path": "tests/donor-shadow/rb2_pine_authentic_paper_test.go",
+      "status": "added",
+      "additions": 135,
+      "deletions": 0
+    },
+    {
+      "path": "tests/fixtures/w28f-original-paper-reader/main.go",
+      "status": "added",
+      "additions": 69,
+      "deletions": 0
+    },
+    {
+      "path": "tests/historical_pine_editor_chart_wiring.test.cjs",
+      "status": "modified",
+      "additions": 3,
+      "deletions": 1
+    },
+    {
+      "path": "tests/legacy_desktop_launch_contract.test.cjs",
+      "status": "added",
+      "additions": 27,
+      "deletions": 0
+    },
+    {
+      "path": "tests/pine_library_compat_browser.test.cjs",
+      "status": "modified",
+      "additions": 15,
+      "deletions": 1
+    },
+    {
+      "path": "tests/rb3_w28f_original_browser_state.test.cjs",
+      "status": "added",
+      "additions": 79,
+      "deletions": 0
+    },
+    {
+      "path": "tests/rb3_w28g_browser_preferences_transfer.test.cjs",
+      "status": "added",
+      "additions": 121,
+      "deletions": 0
+    },
+    {
+      "path": "tests/rb3_w28i_desktop_chart_handshake.test.cjs",
+      "status": "added",
+      "additions": 116,
+      "deletions": 0
+    },
+    {
+      "path": "tests/rb3_w28k_real_served_chart_transfer.test.cjs",
+      "status": "added",
+      "additions": 129,
+      "deletions": 0
+    },
+    {
+      "path": "tests/rb3_w28l_verifier_startup.test.cjs",
+      "status": "added",
+      "additions": 68,
+      "deletions": 0
+    },
+    {
+      "path": "tests/rb3_w32a_original_chart_candles.test.cjs",
+      "status": "added",
+      "additions": 124,
+      "deletions": 0
+    },
+    {
+      "path": "tests/rb3_w32b_pine_compile.test.cjs",
+      "status": "added",
+      "additions": 33,
+      "deletions": 0
+    },
+    {
+      "path": "tests/rb3_w32c_pine_renderer.test.cjs",
+      "status": "added",
+      "additions": 50,
+      "deletions": 0
+    },
+    {
+      "path": "tests/rb3_w32d_pine_pane.test.cjs",
+      "status": "added",
+      "additions": 28,
+      "deletions": 0
+    },
+    {
+      "path": "tests/rb3_w33a_operator_paper_state.test.cjs",
+      "status": "added",
+      "additions": 33,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17c6_wails_restored_preview.test.cjs",
+      "status": "added",
+      "additions": 52,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17c8_restored_monaco_cold_cdp.cjs",
+      "status": "added",
+      "additions": 310,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17c9_allowlisted_preference_transfer.cjs",
+      "status": "added",
+      "additions": 76,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17c9_allowlisted_preference_transfer.test.cjs",
+      "status": "added",
+      "additions": 51,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d1_chart_favorite_continuity.test.cjs",
+      "status": "added",
+      "additions": 51,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d1_real_webview2_favorites_cdp.cjs",
+      "status": "added",
+      "additions": 162,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d1a_original_chart_uia.test.cjs",
+      "status": "added",
+      "additions": 31,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d2_legacy_favorite_import.test.cjs",
+      "status": "added",
+      "additions": 48,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d3_old_origin_fixture.test.cjs",
+      "status": "added",
+      "additions": 20,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d3_prior_origin_http.cjs",
+      "status": "added",
+      "additions": 40,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d4_chart_timeframe_continuity.test.cjs",
+      "status": "added",
+      "additions": 72,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d5_chart_pane_layout.test.cjs",
+      "status": "added",
+      "additions": 66,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d6_chart_horizontal_lines.test.cjs",
+      "status": "added",
+      "additions": 78,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d7_original_trendlines.test.cjs",
+      "status": "added",
+      "additions": 89,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d8_trendline_geometry.test.cjs",
+      "status": "added",
+      "additions": 121,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w17d9_market_context.test.cjs",
+      "status": "added",
+      "additions": 48,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w19_paper_failure_feedback.test.cjs",
+      "status": "added",
+      "additions": 40,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w21_market_readout_integrity.test.cjs",
+      "status": "added",
+      "additions": 37,
+      "deletions": 0
+    },
+    {
+      "path": "tests/w33c_p7_paper_valuation.test.cjs",
+      "status": "added",
+      "additions": 74,
+      "deletions": 0
+    },
+    {
+      "path": "tests/wails_w01_source_provenance.test.cjs",
+      "status": "added",
+      "additions": 77,
+      "deletions": 0
+    },
+    {
+      "path": "tests/wails_w02_boot.test.cjs",
+      "status": "added",
+      "additions": 95,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/README.md",
+      "status": "added",
+      "additions": 15,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/backend.go",
+      "status": "added",
+      "additions": 264,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/backend_test.go",
+      "status": "added",
+      "additions": 70,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/capabilities.go",
+      "status": "added",
+      "additions": 63,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/capabilities_test.go",
+      "status": "added",
+      "additions": 49,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/fresh_install.go",
+      "status": "added",
+      "additions": 102,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/fresh_install_test.go",
+      "status": "added",
+      "additions": 62,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/fresh_installed_readonly.go",
+      "status": "added",
+      "additions": 165,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/fresh_installed_readonly_test.go",
+      "status": "added",
+      "additions": 128,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/fresh_launch.go",
+      "status": "added",
+      "additions": 56,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/fresh_launch_test.go",
+      "status": "added",
+      "additions": 50,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/fresh_uninstall.go",
+      "status": "added",
+      "additions": 116,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/fresh_uninstall_test.go",
+      "status": "added",
+      "additions": 85,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/installed_readonly.go",
+      "status": "added",
+      "additions": 284,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/installed_readonly_test.go",
+      "status": "added",
+      "additions": 292,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/installed_shortcuts.go",
+      "status": "added",
+      "additions": 46,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/installed_shortcuts_test.go",
+      "status": "added",
+      "additions": 42,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/installed_uninstall.go",
+      "status": "added",
+      "additions": 104,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/installed_uninstall_test.go",
+      "status": "added",
+      "additions": 98,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/installed_update.go",
+      "status": "added",
+      "additions": 173,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/installed_update_test.go",
+      "status": "added",
+      "additions": 130,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/portable.go",
+      "status": "added",
+      "additions": 281,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/portable_proof_test.go",
+      "status": "added",
+      "additions": 44,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/portable_test.go",
+      "status": "added",
+      "additions": 102,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/process_custody_other.go",
+      "status": "added",
+      "additions": 9,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/process_custody_windows.go",
+      "status": "added",
+      "additions": 43,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/process_custody_windows_test.go",
+      "status": "added",
+      "additions": 96,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/process_test.go",
+      "status": "added",
+      "additions": 90,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_candidate.go",
+      "status": "added",
+      "additions": 85,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_candidate_test.go",
+      "status": "added",
+      "additions": 150,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_compare.go",
+      "status": "added",
+      "additions": 80,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_compare_test.go",
+      "status": "added",
+      "additions": 109,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_extract.go",
+      "status": "added",
+      "additions": 118,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_extract_test.go",
+      "status": "added",
+      "additions": 73,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_identity.go",
+      "status": "added",
+      "additions": 36,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_identity_test.go",
+      "status": "added",
+      "additions": 53,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_process_lease.go",
+      "status": "added",
+      "additions": 109,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_process_lease_test.go",
+      "status": "added",
+      "additions": 73,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_state_escrow.go",
+      "status": "added",
+      "additions": 241,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_state_escrow_test.go",
+      "status": "added",
+      "additions": 106,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_supported_restore.go",
+      "status": "added",
+      "additions": 160,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_supported_restore_test.go",
+      "status": "added",
+      "additions": 101,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_switch.go",
+      "status": "added",
+      "additions": 153,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/release_switch_test.go",
+      "status": "added",
+      "additions": 71,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/setup_bundle.go",
+      "status": "added",
+      "additions": 134,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/setup_bundle_test.go",
+      "status": "added",
+      "additions": 74,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/setup_window_test.go",
+      "status": "added",
+      "additions": 55,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/w17c6_restored_preview.go",
+      "status": "added",
+      "additions": 205,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/w17c6_restored_preview_test.go",
+      "status": "added",
+      "additions": 133,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/w17d0_stable_origin.go",
+      "status": "added",
+      "additions": 34,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/w17d0_stable_origin_test.go",
+      "status": "added",
+      "additions": 42,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/w17d2_legacy_favorite_bridge.go",
+      "status": "added",
+      "additions": 140,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/w17d2_legacy_favorite_bridge_test.go",
+      "status": "added",
+      "additions": 132,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/w28j_stopped_history.go",
+      "status": "added",
+      "additions": 83,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/backend/w28j_stopped_history_test.go",
+      "status": "added",
+      "additions": 90,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-assets-digest/main.go",
+      "status": "added",
+      "additions": 26,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-compare/main.go",
+      "status": "added",
+      "additions": 26,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-extract/main.go",
+      "status": "added",
+      "additions": 10,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-history-preflight/main.go",
+      "status": "added",
+      "additions": 22,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-install/main.go",
+      "status": "added",
+      "additions": 17,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-launch/main.go",
+      "status": "added",
+      "additions": 20,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-maintain/main.go",
+      "status": "added",
+      "additions": 29,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-setup/main.go",
+      "status": "added",
+      "additions": 38,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-state-escrow/main.go",
+      "status": "added",
+      "additions": 29,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-supported-restore/main.go",
+      "status": "added",
+      "additions": 22,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/release-switch/main.go",
+      "status": "added",
+      "additions": 23,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/setup-window/main_windows.go",
+      "status": "added",
+      "additions": 47,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/w17c6-preview-digest/main.go",
+      "status": "added",
+      "additions": 23,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/w17d3-legacy-seed/frontend/boot.js",
+      "status": "added",
+      "additions": 15,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/w17d3-legacy-seed/frontend/index.html",
+      "status": "added",
+      "additions": 7,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/cmd/w17d3-legacy-seed/main_windows.go",
+      "status": "added",
+      "additions": 61,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/engine_watch.go",
+      "status": "added",
+      "additions": 16,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/engine_watch_test.go",
+      "status": "added",
+      "additions": 52,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/frontend/boot.js",
+      "status": "added",
+      "additions": 84,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/frontend/index.html",
+      "status": "added",
+      "additions": 14,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/frontend/restored-preview.js",
+      "status": "added",
+      "additions": 41,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/frontend/style.css",
+      "status": "added",
+      "additions": 8,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/frontend/w28i_desktop_verify.js",
+      "status": "added",
+      "additions": 110,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/go.mod",
+      "status": "added",
+      "additions": 36,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/go.sum",
+      "status": "added",
+      "additions": 74,
+      "deletions": 0
+    },
+    {
+      "path": "tools/wails-pilot/main_windows.go",
+      "status": "added",
+      "additions": 172,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Build-KTRADE-FreshInstaller.ps1",
+      "status": "added",
+      "additions": 59,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Build-KTRADE-Portable.ps1",
+      "status": "added",
+      "additions": 113,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Build-KTRADE-WailsPortable.ps1",
+      "status": "added",
+      "additions": 160,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Initialize-KTRADE-W08B-FreshReadOnly.ps1",
+      "status": "added",
+      "additions": 65,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Install-KTRADE-Fresh.ps1",
+      "status": "added",
+      "additions": 212,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Invoke-KTRADE-W06C-SyntheticVersionSwitch.ps1",
+      "status": "added",
+      "additions": 130,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Invoke-KTRADE-WailsAssetUpdate.ps1",
+      "status": "added",
+      "additions": 108,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Manage-KTRADE-FreshInstall.ps1",
+      "status": "added",
+      "additions": 204,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Probe-KTRADE-Portable-HTTP.ps1",
+      "status": "added",
+      "additions": 99,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Review-KTRADE-SelectedPaperHistory.ps1",
+      "status": "added",
+      "additions": 96,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Stage-KTRADE-W06A-ReadOnlyFixture.ps1",
+      "status": "added",
+      "additions": 87,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Stage-KTRADE-W08A-FreshCodeRelease.ps1",
+      "status": "added",
+      "additions": 124,
+      "deletions": 0
+    },
+    {
+      "path": "windows/Start-KTRADE-Portable.ps1",
+      "status": "added",
+      "additions": 55,
+      "deletions": 0
+    }
+  ]
+}
