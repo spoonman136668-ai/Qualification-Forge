@@ -1,0 +1,112 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W37 exact installed W34 original Pine and chart integration, legacy-order safety, distinct native PAPER and Node acceptance",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/186",
+  "source_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+  "source_tree": "9f1e559560ac14f4e6fc823dac9150e3a95f2c4d",
+  "previous_sha": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+  "previous_tree": "5526682f7efafe4cd328fbac77ebb97e58dc7b9e",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/17",
+  "run_id": 40799849022,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40799849022",
+  "job_id": 123205057307,
+  "run_created_utc": "2026-10-29T01:20:43Z",
+  "run_completed_utc": "2026-10-29T01:27:08Z",
+  "witness_sha": "7632f3814874341608da24b3e511249155169b8f",
+  "harness_path": "qualification-harness/ktrade-w37/Installed-Pine-Chart-Paper-Safety.ps1",
+  "harness_blob_sha": "91fb243b7030956ba50c5afa4f039ceaf1df9fa6",
+  "workflow_path": ".github/workflows/ktrade-w37-installed-pine-paper-windows.yml",
+  "workflow_blob_sha": "83d71b6e60f27e801723ea64f87895f98ea0d4ce",
+  "foundation": {
+    "W35B": {
+      "witness_sha": "85948ad3188f15a8ea9d4c83481418cade29d278",
+      "run_id": 40796601906,
+      "conclusion": "success",
+      "role": "original native installed W31 to W34 to W31 lifecycle"
+    },
+    "W34": {
+      "witness_sha": "858d21380e1e88c01555371c6e258dfab07f7446",
+      "run_id": 40787692876,
+      "conclusion": "success",
+      "role": "complete W34 original Go Node unsigned package"
+    }
+  },
+  "source_builds": [
+    {
+      "source_sha": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+      "manifest_sha256": "bc0c1c0c3ce0a1741651bf7e9aa1497b7399fb840177ce0a81a43d5d3128b045",
+      "archive_sha256": "0e6d53a8e301ecdaef68a4ff2d47d3e7e7feed8c7a198468d71b1745238f9f27",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    },
+    {
+      "source_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+      "manifest_sha256": "1135fa92c35c5973e4e99413dfaa91cb35595176ca6d88d68c32f74d6ca5d2b7",
+      "archive_sha256": "b2a266b08ae88f8a328d0eb3478ec3fa917ed732088c6401cd646712bf633b6d",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    }
+  ],
+  "native_installed_acceptance": {
+    "W31_installed_UI": "PASS",
+    "W34_installed_UI": "PASS",
+    "W31_post_rollback_UI": "PASS",
+    "W34_real_installed_chart_get": "PASS",
+    "W34_real_installed_pine_renderer_js": "PASS",
+    "W34_real_installed_pine_v5_v6_compile_no_trade": "PASS",
+    "W34_real_installed_malformed_pine_refusal": "PASS",
+    "W34_real_installed_legacy_order_post": "HTTP 423",
+    "W34_PAPER_STOPPED_before_after_order_refusal": "PASS",
+    "W34_LIVE_disarmed": "PASS",
+    "original_installed_select_update_rollback": "PASS",
+    "supported_strategy_and_pine_bytes_and_unknown_data_integrity": "PASS"
+  },
+  "original_native_disposable_paper_acceptance": {
+    "scope": "separate source-bound synthetic-only native Go controller, not installed W34 UI operating PAPER",
+    "tests": [
+      "TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly",
+      "TestW33CP10FourthSellPostSettlementPendingMustQuarantineWithoutRearm",
+      "TestRB3W32BOriginalEditorCompilerWorksWithoutMarketData"
+    ],
+    "conclusion": "success",
+    "go_tag": "ktrade_full",
+    "network_trading": false
+  },
+  "node_chart_pine_acceptance": {
+    "tests": [
+      "tests/rb3_w32a_original_chart_candles.test.cjs",
+      "tests/rb3_w32b_pine_compile.test.cjs",
+      "tests/rb3_w32c_pine_renderer.test.cjs",
+      "tests/rb3_w32d_pine_pane.test.cjs"
+    ],
+    "conclusion": "success"
+  },
+  "expected_success_markers": [
+    "W37_INSTALLED_W34_ORIGINAL_CHART_AND_PINE_RENDERER=PASS",
+    "W37_INSTALLED_W34_REAL_GO_PINE_V5_V6_COMPILE_AND_REFUSAL=PASS",
+    "W37_INSTALLED_W34_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS",
+    "W37_REAL_INSTALLED_NATIVE_PINE_CHART_SAFETY=PASS",
+    "W37_ORIGINAL_NATIVE_PAPER_FILL_STOP_COLD_RECOVERY_AND_PINE=PASS",
+    "W37_ORIGINAL_CHART_PINE_RENDERER_NODE=PASS",
+    "W37_NO_MERGE_NO_OWNER_DATA_NO_LIVE_NO_RELEASE"
+  ],
+  "not_qualified": [
+    "Real installed W34 UI PAPER funding or fill initiated by user; installed version deliberately PAPER_STOPPED",
+    "Operator workflow acceptance of all original Pine/alerts/charts/strategies beyond tested paths",
+    "Live-ready adapter end-to-end mock test, real broker credentials or production account activation",
+    "Owner data migration or actual user machine upgrade",
+    "Production signing, release, deployment or mainline merge"
+  ],
+  "status": "completed",
+  "conclusion": "success",
+  "mainline_pr_unmerged": true,
+  "protected_refs_unchanged": true,
+  "owner_data_touched": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "signing_authority": "none"
+}
