@@ -26,13 +26,13 @@ function HTTPCode([string]$base,[string]$endpoint,[object]$payload){
 }
 Require ($env:OS -ceq 'Windows_NT' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'W38_EPHEMERAL_WINDOWS_ONLY'
 Require ($env:RUNNER_TEMP -and (Test-Path -LiteralPath $env:RUNNER_TEMP -PathType Container)) 'W38_TEMP_REQUIRED'
-$sha='0059d4b794552818b3f32798da7df27c75e21c5c'
-$tree='9f1e559560ac14f4e6fc823dac9150e3a95f2c4d'
+$sha='40588f886e712223d0af289ee1d1439c6020236b'
+$tree='9b5d1eabe5f2218ee56094b7e4256ccb0499b11d'
 Require ((& git -C $CandidateCheckout rev-parse HEAD).Trim() -ceq $sha -and
  (& git -C $CandidateCheckout rev-parse 'HEAD^{tree}').Trim() -ceq $tree -and $LASTEXITCODE -eq 0) 'W38_EXACT_SOURCE_DRIFT'
 $dirty=@(& git -C $CandidateCheckout status --porcelain --untracked-files=no)
 Require ($dirty.Count -eq 0) 'W38_CANDIDATE_DIRTY'
-Write-Host '::notice::W38_PINNED_W34_SOURCE_AND_TREE=PASS'
+Write-Host '::notice::W39_PINNED_ACCESSIBLE_OPERATOR_SOURCE_AND_TREE=PASS'
 $env:KTRADE_W13_QUALIFICATION_ONLY='1'
 $stageRoot=Join-Path ([IO.Path]::GetTempPath()) ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
 $stage=Join-Path $stageRoot 'KTRADE-WailsPortable'
@@ -287,7 +287,9 @@ try{
  $null=FindUI $script:parent 'Opened stored Pine script' $false 15
  Write-Host '::notice::W39_NATIVE_PINE_EDITOR_SELECTED_CANONICAL_SAVED_STRATEGY=PASS'
  ClickAnyUI $script:parent 'BTCUSD'
- ClickAnyUI $script:parent 'BTC-USDC'
+ # The source-owned market list now exposes exact, focusable ARIA identity,
+ # and its click/Enter/Space handler remains the original changeSym.
+ ClickUI $script:parent 'Select BTC-USDC'
  # The original market list uses UIA group/text semantics that need not
  # expose the header's abbreviated label. Source/product admission is
  # instead proven by the original Go PAPER Start with BTC-USDC only.
