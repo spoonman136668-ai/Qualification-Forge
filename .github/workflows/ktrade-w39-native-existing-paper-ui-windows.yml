@@ -1,0 +1,79 @@
+# W38 keep original Go TEMP strict; pin process-local TMP/TEMP to verified staging parent.
+# W38 GUI spawn via native CreateProcess with inherited Go OS TEMP, no ShellExecute.
+# W38 qualifying unchanged Wails package relocated to verified Go native OS TEMP root.
+# W38 harness retry: inspect bounded original Wails GUI startup stderr; no permissions changed.
+name: KTRADE W39 existing native chart PAPER Start Evaluate Stop operator acceptance
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - qualification/ktrade-w39-native-existing-paper-ui-20261029
+    paths:
+      - .github/workflows/ktrade-w39-native-existing-paper-ui-windows.yml
+concurrency:
+  group: ktrade-w39-native-existing-paper-ui-20261029
+  cancel-in-progress: false
+jobs:
+  qualify:
+    name: Native chart UI controls call original Go PAPER Start Evaluate Stop
+    runs-on: windows-2022
+    timeout-minutes: 65
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout exact immutable W38 qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact W34 candidate under existing private read-only token
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0059d4b794552818b3f32798da7df27c75e21c5c
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Fail closed on changed source and PowerShell AST errors
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W39_HOST_NOT_EPHEMERAL_WINDOWS'}
+          if((& git -C witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){throw 'W39_WITNESS_SHA_DRIFT'}
+          if((& git -C candidate rev-parse HEAD).Trim() -cne '0059d4b794552818b3f32798da7df27c75e21c5c'){throw 'W39_KTRADE_SHA_DRIFT'}
+          if((& git -C candidate rev-parse 'HEAD^{tree}').Trim() -cne '9f1e559560ac14f4e6fc823dac9150e3a95f2c4d'){throw 'W39_KTRADE_TREE_DRIFT'}
+          foreach($file in @('witness/qualification-harness/ktrade-w39/Existing-Chart-Paper-Operator-Windows.ps1','candidate/windows/Build-KTRADE-WailsPortable.ps1')){
+            $tokens=$null;$syntaxErrors=$null
+            [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE $file),[ref]$tokens,[ref]$syntaxErrors)
+            if($syntaxErrors.Count -gt 0){throw ('W39_NATIVE_POWERSHELL_AST_INVALID '+$file+' '+(($syntaxErrors|ForEach-Object {$_.ToString()}) -join '; '))}
+          }
+          Write-Host '::notice::W39_EXACT_SOURCE_TREE_AND_POWERSHELL_AST=PASS'
+      - name: Pinned Go Windows native build toolchain
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Node locked offline chart and Monaco vendor staging
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build genuine bounded W13 portable Wails plus Go and verify original PAPER
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $script=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w39/Existing-Chart-Paper-Operator-Windows.ps1'
+          & $script -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate')
+          if(!$?){throw 'W39_REAL_WAILS_PAPER_OPERATOR_ACCEPTANCE_FAILED'}
+          Write-Host '::notice::W39_REAL_WAILS_PAPER_OPERATOR_FULL_GATE=PASS'
+      - name: Ensure no source mutation, owner release or LIVE authorization
+        if: always()
+        shell: pwsh
+        run: |
+          $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '0059d4b794552818b3f32798da7df27c75e21c5c'){throw 'W39_SOURCE_MUTATED'}
+          Write-Host '::notice::W39_NO_OWNER_DATA_NO_MERGE_NO_LIVE_NO_RELEASE=PASS'
