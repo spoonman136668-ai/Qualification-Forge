@@ -120,11 +120,16 @@ function ClickUI([object]$shell,[string]$label){
 }
 
 function StartOriginal(){
- $script:parent=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru
+ $stderr=Join-Path $env:RUNNER_TEMP ('W38-wails-'+[guid]::NewGuid().ToString('N')+'.err')
+ $stdout=Join-Path $env:RUNNER_TEMP ('W38-wails-'+[guid]::NewGuid().ToString('N')+'.out')
+ $script:parent=Start-Process -FilePath (Join-Path $stage 'ktrade.exe') -WorkingDirectory $stage -PassThru -RedirectStandardError $stderr -RedirectStandardOutput $stdout
  $deadline=(Get-Date).AddSeconds(50)
  do{
   $script:parent.Refresh()
-  Require (!$script:parent.HasExited) 'W38_WAILS_SHELL_PREMATURE_EXIT'
+  if($script:parent.HasExited){
+   $log=if(Test-Path -LiteralPath $stderr){(Get-Content -LiteralPath $stderr -Tail 12) -join '; '}else{'no GUI stderr captured'}
+   throw ('W38_WAILS_SHELL_PREMATURE_EXIT code='+$script:parent.ExitCode+' stderr='+$log)
+  }
   if($script:parent.MainWindowHandle -ne [IntPtr]::Zero){break}
   Start-Sleep -Milliseconds 350
  }while((Get-Date) -lt $deadline)
