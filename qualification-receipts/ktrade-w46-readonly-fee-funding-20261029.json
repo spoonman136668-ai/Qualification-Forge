@@ -1,0 +1,40 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W46 exact source-bound read-only fee-inclusive funding screening",
+  "status": "completed",
+  "conclusion": "success",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/193",
+  "source_sha": "b3988c434f4375effda77623c85468b02f7622ed",
+  "source_tree": "d9168418d94b793e3385d8ff350cf658b9fe7f13",
+  "previous_source_sha": "48714e12fc5dfbb5b0860cd6d054baa25d50f870",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/23",
+  "run_id": 40874351236,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40874351236",
+  "job_id": 123449211032,
+  "witness_sha": "c18dd55b3c639125ff67db1b53ca50bd8e28b305",
+  "markers": [
+    "W46_EXACT_TWO_READONLY_FILES_AND_LIVE_SOURCE_FALSE=PASS",
+    "W46_IDENTICAL_LOCKED_FRONTEND_VENDOR_STAGE=PASS",
+    "W46_MOCK_ONLY_READONLY_FUNDING_SCREEN_FEES_AND_PUBLIC_LIVE_DISABLED=PASS",
+    "W46_FRESH_FULL_GO_TAGGED_ROOT_WAILS_TEST_AND_VET=PASS",
+    "W46_ORIGINAL_PRODUCTION_PAIR_NO_SYNTHETIC_TAGS_OR_TRANSPORT=PASS",
+    "W46_SOURCE_PROOF_ONLY_PRODUCTION_PAIR_DISPOSED_NO_BROKER_OR_OWNER_DATA=PASS"
+  ],
+  "scope": "source-only read-only fee-inclusive funding tests on mocked signed GET responses, complete Go/Wails tests and original unsigned production build",
+  "live_gate": "liveBrokerageAuthorized() bool { return false }",
+  "reserved_funds": false,
+  "real_account_checked": false,
+  "real_orders": false,
+  "release": false,
+  "merged": false,
+  "production_source_changed": false,
+  "not_qualified": [
+    "account ownership and actual account credentials",
+    "atomic available-funds reservation",
+    "real venue outstanding order reconciliation",
+    "kill switch and owner-approved LIVE activation",
+    "real-money order placement, production signing and release"
+  ]
+}
