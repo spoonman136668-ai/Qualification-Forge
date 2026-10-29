@@ -1,0 +1,48 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W43",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "53aa0dc0c3ee18f61afdaddd2eee899ec3e94e5d",
+  "source_tree": "4f904b05cfe02f6b1253e49f7cd185d651c427f2",
+  "parent_sha": "136a1a5bc236805f3abc57c0ccab1e83c4b07fdc",
+  "pr": 190,
+  "witness_sha": "c6f193932cbfcb967bc9e1571a58e0dbf0367b33",
+  "run_id": 40854251403,
+  "job_id": 123381128910,
+  "conclusion": "success",
+  "runner": "windows-2022",
+  "go": "1.25.0",
+  "proofs": [
+    "immutable mode/account/portfolio/source/strategy/settings/bar/product/fee/risk/reservation/client-ID and exact amount binding",
+    "24 concurrent claims and 24 concurrent mock submissions: one transport attempt",
+    "WAL/FULL committed attempt before transport; tombstone detects state rewind",
+    "timeout/malformed/identity mismatch/rejection never retry; acknowledgement is not a fill",
+    "failed outcome write retains DISPATCHING",
+    "forced process termination and cold read-only review at PREPARED, DISPATCHING and ACKNOWLEDGED; old journal cannot reopen as writer",
+    "W43 race detector clean for journal and original manager composition",
+    "W41/W42/historical public source-disarm tests",
+    "fresh full tagged app, root and nested Wails tests/vet",
+    "original production pair fixture_mode none; disposed"
+  ],
+  "artifacts_sha256": {
+    "wails": "fd7cca1a8dcdae68c5bf85194886011e347d498e816a79f85f37cf0dece61c3a",
+    "engine": "500859149b8fe268ac3dae7e5144d8e6326883a180a121bd6d8e541c5bee06e2",
+    "package": "aca2d8dfc79def7c716f1cb7c245b6a1017704a20aebe2dcba9405e41a131237"
+  },
+  "live_armed": false,
+  "real_broker_order_requests": 0,
+  "owner_data_touched": false,
+  "unchanged_components": [
+    "original PAPER owner/ledger/custody/TradeGuard",
+    "chart, UI and dependency manifests"
+  ],
+  "limitations": [
+    "TEMP-only intent journal and private disarmed composition, not authenticated broker-account execution ownership",
+    "single-journal submission identity is not a global account namespace across arbitrary new test roots",
+    "bound evidence metadata still requires original risk/account/product/fee source verification",
+    "no fill/balance or reservation-release authority",
+    "no partial/late-fill or broker-ledger reconciliation completion",
+    "no new native GUI acceptance on these binaries",
+    "no release, installation, merge or LIVE_READY_DISARMED completion"
+  ]
+}
