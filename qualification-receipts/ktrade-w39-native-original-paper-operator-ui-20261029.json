@@ -1,0 +1,98 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W39",
+  "result": "PASS",
+  "source_sha": "40588f886e712223d0af289ee1d1439c6020236b",
+  "source_tree": "9b5d1eabe5f2218ee56094b7e4256ccb0499b11d",
+  "witness_sha": "09f26e6948b6b27b1cd0284179989ca62c7b3938",
+  "run_id": 40838933087,
+  "job_id": 123330327120,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40838933087",
+  "fixture": "original source-owned compile-time W13 market fixture in exact paired disposable Wails/WebView2 + Go app",
+  "fee_consent": {
+    "before": "Off",
+    "after": "On",
+    "provider": "native UIA TogglePattern",
+    "physical_actions": 1,
+    "unacknowledged_start_remained_unfunded": true
+  },
+  "native_results": [
+    "genuine native chart/Monaco UI verified",
+    "canonical saved user strategy selected through original UI",
+    "BTC-USDC selected through original accessible symbol picker",
+    "no fee acknowledgment: Start stayed PAPER_NOT_FUNDED",
+    "one physical checkbox click observed Off -> On",
+    "native Start established original PAPER owner, source-controlled fee consent and running capabilities",
+    "native Evaluate produced one original risk-bound settled ledger fill",
+    "native Stop durably stopped execution; stopped evaluation refused",
+    "native cold restart preserved read-only archive, original risk proof, no execution restore or automatic rearm"
+  ],
+  "focused_tests": {
+    "node_file": "tests/rb3_w39_paper_operator_accessibility.test.cjs",
+    "passed": 2,
+    "failed": 0
+  },
+  "binary_sha256": {
+    "wails": "e365644bf238541274a0a3805153e0ef24ef49621e97781700caada30fde5bdf",
+    "go_engine": "425f9012fbe05a34bd9b86825c5b85c6f89fb0569bedc2e974abc85f91afbe46"
+  },
+  "unchanged_w34_foundations": [
+    {
+      "path": "cmd",
+      "sha": "b8333705b0c77aa226d5b0efbb11022ab7fa56a5",
+      "identical_to_source_0059d4b794552818b3f32798da7df27c75e21c5c": true
+    },
+    {
+      "path": "go.mod",
+      "sha": "4edcb1945291b65726a7bb234ba15d00cb711b44",
+      "identical_to_source_0059d4b794552818b3f32798da7df27c75e21c5c": true
+    },
+    {
+      "path": "go.sum",
+      "sha": "69585a34b570b18b077a232985e0bd116adaecd3",
+      "identical_to_source_0059d4b794552818b3f32798da7df27c75e21c5c": true
+    },
+    {
+      "path": "internal",
+      "sha": "900ae9db3320d14a92435c85d9d842a98cbc6381",
+      "identical_to_source_0059d4b794552818b3f32798da7df27c75e21c5c": true
+    },
+    {
+      "path": "package-lock.json",
+      "sha": "594adf1a84906ddc9d9d5e7000881ca2ce9a414d",
+      "identical_to_source_0059d4b794552818b3f32798da7df27c75e21c5c": true
+    },
+    {
+      "path": "package.json",
+      "sha": "e6e22acb2f188b3d1677a839813e7fec49f19540",
+      "identical_to_source_0059d4b794552818b3f32798da7df27c75e21c5c": true
+    },
+    {
+      "path": "pkg",
+      "sha": "e2e18307f56a3cea8b823501f27fbc4a3bab51bf",
+      "identical_to_source_0059d4b794552818b3f32798da7df27c75e21c5c": true
+    },
+    {
+      "path": "tools",
+      "sha": "f4d13c3f175cf7b8e089ab3cc96da1c2679dc671",
+      "identical_to_source_0059d4b794552818b3f32798da7df27c75e21c5c": true
+    },
+    {
+      "path": "windows",
+      "sha": "0530b07e264e831f769590da6439a0d7e1937bfc",
+      "identical_to_source_0059d4b794552818b3f32798da7df27c75e21c5c": true
+    }
+  ],
+  "prior_attempt": {
+    "run_id": 40836847851,
+    "result": "failure",
+    "evidence": "native client remained PAPER_NOT_FUNDED with explicit fee acknowledgement refusal",
+    "repair": "qualification probe formerly could Toggle then click fallback after immediate asynchronous readback; replace with exactly one bounded physical input click and observed native Off -> On. No KTRADE source, Go consent gate, financial assertion or risk policy change"
+  },
+  "limitations": [
+    "compile-time synthetic market only; no current-public-market claim from W39",
+    "not an installed W34 PAPER activation or full product/release acceptance",
+    "no new full Go regression claim on W39 changed source; exact unchanged component identities retained with W34 prior qualified foundation",
+    "draft/unmerged; LIVE disabled; no real orders, broker credentials, owner data, signing, promotion or distribution"
+  ]
+}
