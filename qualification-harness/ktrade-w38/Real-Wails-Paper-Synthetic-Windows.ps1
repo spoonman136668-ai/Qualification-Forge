@@ -61,6 +61,36 @@ Require ($pair.live_armed -eq $false -and $fresh.live_armed -eq $false -and
  $pair.engine_exe_sha256 -ceq (Hash (Join-Path $stage 'ktrade-engine.exe')) -and
  $pair.wails_exe_sha256 -ceq $fresh.wails_exe_sha256 -and
  $pair.engine_exe_sha256 -ceq $fresh.engine_exe_sha256) 'W38_PAIRED_BINARIES_NOT_SOURCE_BOUND'
+# Windows Server .NET GetTempPath() and Go os.TempDir() can select
+# distinct OS TEMP roots (GetTempPath2 vs GetTempPath). Build using the
+# original W03 builder's required .NET root; move only the fully fresh
+# disposable package, unchanged, to the Go runtime's verified OS TEMP.
+# This does not loosen the original builder or Wails stage admission.
+$goTempProbe=Join-Path $env:RUNNER_TEMP ('w38-gotemp-'+[guid]::NewGuid().ToString('N')+'.go')
+$goProbe=@'
+package main
+import ("fmt";"os")
+func main(){fmt.Println(os.TempDir())}
+'@
+[IO.File]::WriteAllText($goTempProbe,$goProbe,[Text.UTF8Encoding]::new($false))
+try {
+ $goTempRaw=@(& go run $goTempProbe)
+ Require ($LASTEXITCODE -eq 0 -and $goTempRaw.Count -eq 1) 'W38_GO_RUNTIME_TEMP_PROBE_FAILED'
+ $goTemp=[IO.Path]::GetFullPath($goTempRaw[0]).TrimEnd([char]'\')
+ IsOrdinary $goTemp $true
+ $builderTemp=[IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([char]'\')
+ if(![string]::Equals($goTemp,$builderTemp,[StringComparison]::OrdinalIgnoreCase)){
+  $dest=Join-Path $goTemp (Split-Path -Leaf $stageRoot)
+  Require (!(Test-Path -LiteralPath $dest)) 'W38_GO_TEMP_STAGE_ALREADY_EXISTS'
+  Move-Item -LiteralPath $stageRoot -Destination $dest -ErrorAction Stop
+  $stageRoot=$dest
+  $stage=Join-Path $stageRoot 'KTRADE-WailsPortable'
+  IsOrdinary $stage $true
+  Require ((Hash (Join-Path $stage 'ktrade.exe')) -ceq $pair.wails_exe_sha256 -and
+   (Hash (Join-Path $stage 'ktrade-engine.exe')) -ceq $pair.engine_exe_sha256) 'W38_RELOCATED_BINARY_DIGEST_DRIFT'
+ }
+ Write-Host ('::notice::W38_NET_AND_GO_TEMP_STAGE_IDENTITY=PASS')
+}finally {Remove-Item -LiteralPath $goTempProbe -Force -ErrorAction SilentlyContinue}
 Write-Host '::notice::W38_FRESH_WAILS_AND_GO_PAIRED_PACKAGE=PASS'
 
 Add-Type -AssemblyName UIAutomationClient
