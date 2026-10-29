@@ -1,5 +1,5 @@
 name: KTRADE W46 exact-decimal fee-inclusive funding screen, LIVE source-disarmed Windows
-# Exact invalid-product prewire negative, escaped CRLF token guard and corrected duplicate-key fixture; mock-signed GET-only Coinbase product fee account snapshots; no real account, order or broker authorization.
+# W46 corrects valid changed size vs invalid increment: intent conflict belongs to W43 journal, never to private affordable-balance observation. W45 original auth and public LIVE disarm retained.
 permissions:
   contents: read
   actions: read
@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 513a55eee3846e6d08175c205ac44092c7349e49
+          ref: b3988c434f4375effda77623c85468b02f7622ed
           path: current
           fetch-depth: 32
           persist-credentials: false
@@ -42,9 +42,9 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W32E_WRONG_RUNNER'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'current'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '513a55eee3846e6d08175c205ac44092c7349e49' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '445459266bf3d6e9d55555d9925075190034882d'){throw 'W32E_EXACT_SOURCE_DRIFT'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'b3988c434f4375effda77623c85468b02f7622ed' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'd9168418d94b793e3385d8ff350cf658b9fe7f13'){throw 'W32E_EXACT_SOURCE_DRIFT'}
           if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W32E_DIRTY_SOURCE'}
-          if((& git -C $src merge-base 513a55eee3846e6d08175c205ac44092c7349e49 48714e12fc5dfbb5b0860cd6d054baa25d50f870).Trim() -cne '48714e12fc5dfbb5b0860cd6d054baa25d50f870'){throw 'W46_W44_PARENT_DRIFT'}
+          if((& git -C $src merge-base b3988c434f4375effda77623c85468b02f7622ed 48714e12fc5dfbb5b0860cd6d054baa25d50f870).Trim() -cne '48714e12fc5dfbb5b0860cd6d054baa25d50f870'){throw 'W46_W44_PARENT_DRIFT'}
           $diff=@(& git -C $src diff --name-only 48714e12fc5dfbb5b0860cd6d054baa25d50f870 HEAD|Sort-Object)
           $expect=@('pkg/advanced_order_funding_screen.go','pkg/advanced_order_funding_screen_test.go'|Sort-Object)
           if(Compare-Object $diff $expect){throw 'W46_NOT_EXACTLY_TWO_READONLY_PATHS'}
@@ -131,10 +131,10 @@ jobs:
             $files=(& go list -mod=readonly -tags ktrade_full -f '{{join .GoFiles " "}}' ./cmd/ktrade) -join ' '
             if($LASTEXITCODE -ne 0 -or $files -notmatch 'main_full.go' -or $files -match 'w32e_webview_fixture|w13_fixture'){throw 'W32E_P2_SYNTHETIC_SOURCE_INCLUDED'}
           }finally{Pop-Location}
-          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha '513a55eee3846e6d08175c205ac44092c7349e49'
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $build -ExpectedSourceSha 'b3988c434f4375effda77623c85468b02f7622ed'
           if($LASTEXITCODE -ne 0){throw 'W46_PRODUCTION_PAIR_BUILD_FAILED'}
           $manifest=Get-Content -LiteralPath (Join-Path $build 'source-manifest.json') -Raw|ConvertFrom-Json
-          if($manifest.source_sha -cne '513a55eee3846e6d08175c205ac44092c7349e49' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W46_PRODUCTION_IDENTITY_DRIFT'}
+          if($manifest.source_sha -cne 'b3988c434f4375effda77623c85468b02f7622ed' -or $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W46_PRODUCTION_IDENTITY_DRIFT'}
           $stage=Join-Path $build 'KTRADE-WailsPortable'
           $engineInfo=(& go version -m (Join-Path $stage 'ktrade-engine.exe')) -join "`n"
           if($LASTEXITCODE -ne 0 -or $engineInfo -notmatch '-tags=ktrade_full' -or $engineInfo -match 'ktrade_w32e_fixture|ktrade_w13_fixture'){throw 'W32E_P2_PRODUCTION_TAGS_DRIFT'}
