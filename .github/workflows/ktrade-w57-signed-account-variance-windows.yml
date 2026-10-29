@@ -87,6 +87,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
           try{
             & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
