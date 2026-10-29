@@ -89,6 +89,7 @@ try {
   Require ((Hash (Join-Path $stage 'ktrade.exe')) -ceq $pair.wails_exe_sha256 -and
    (Hash (Join-Path $stage 'ktrade-engine.exe')) -ceq $pair.engine_exe_sha256) 'W38_RELOCATED_BINARY_DIGEST_DRIFT'
  }
+ Write-Host ('W38_TEMP_PROBE NET='+$builderTemp+' GO='+$goTemp+' STAGE_PARENT='+([IO.Path]::GetDirectoryName($stageRoot))+' CMD_TMP='+$env:TMP+' CMD_TEMP='+$env:TEMP)
  Write-Host ('::notice::W38_NET_AND_GO_TEMP_STAGE_IDENTITY=PASS')
 }finally {Remove-Item -LiteralPath $goTempProbe -Force -ErrorAction SilentlyContinue}
 Write-Host '::notice::W38_FRESH_WAILS_AND_GO_PAIRED_PACKAGE=PASS'
@@ -159,6 +160,14 @@ function StartOriginal(){
  $psi=[Diagnostics.ProcessStartInfo]::new((Join-Path $stage 'ktrade.exe'))
  $psi.UseShellExecute=$false
  $psi.WorkingDirectory=$stage
+ # Windows GUI subsystem may compute a different default temp root than
+ # a regular console helper. Pin the child OS temp variables to the
+ # independently probed, original source-required stage location.
+ $runtimeTemp=[IO.Path]::GetDirectoryName($stageRoot)
+ Require ([string]::Equals($runtimeTemp,$goTemp,[StringComparison]::OrdinalIgnoreCase)) 'W38_STAGE_TEMP_PARENT_DRIFT'
+ $psi.Environment['TEMP']=$runtimeTemp
+ $psi.Environment['TMP']=$runtimeTemp
+ $psi.Environment['TMPDIR']=$runtimeTemp
  $psi.RedirectStandardError=$true
  $psi.RedirectStandardOutput=$true
  $script:parent=[Diagnostics.Process]::Start($psi)
