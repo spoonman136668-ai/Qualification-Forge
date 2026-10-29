@@ -1,0 +1,79 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W53",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "161b12eb1883aee50c434c426c5be24789af57d4",
+  "source_tree": "57a5a02767622a6ca3def69293df0d59f88a8bb1",
+  "parent_sha": "dc2f3e376e1a6040a40519e04950d20a4508c319",
+  "parent_tree": "2ccca193048acfddf42ef7a6316607b92a530dd6",
+  "pr": 200,
+  "branch": "feature/rb3-w53-original-risk-local-reservations-20261029",
+  "witness_sha": "e7c30c69304e4256d88a16c7e9bd994ee430a6a6",
+  "workflow_git_blob": "f3436300a8fc9f0b34c8bf2f188a29bacd161b84",
+  "run_id": 40927450119,
+  "job_id": 123636689044,
+  "conclusion": "success",
+  "environment": {
+    "os": "windows/amd64",
+    "runner_image": "windows-2022",
+    "image_version": "20261025.346.1",
+    "go_version": "1.25.0",
+    "node_version": "24.22.1",
+    "cgo_enabled": true,
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2
+  },
+  "changed_paths": [
+    "internal/brokerintent/journal.go",
+    "internal/brokerintent/local_reservations.go",
+    "internal/brokerintent/local_reservations_test.go",
+    "pkg/advanced_order_local_reservations.go",
+    "pkg/advanced_order_local_reservations_test.go"
+  ],
+  "proofs": [
+    "persistent local venue/account fence refuses duplicate roots and portfolio-metadata aliases",
+    "exact 24-place holds prevent local overcommitment; 24 concurrent duplicate callers consume one original risk/rate event",
+    "unmodified original TradeGuard veto and durable native checkpoint verified; historical float bridge rounds upward",
+    "PENDING intent/hold committed before original authorization; full native reservations plus v2 checkpoint stored afterward",
+    "source/identity/funding/clock/checkpoint drift and actual SQLite publication faults fail closed without release or retry",
+    "forced process kills at PENDING, ORIGINAL_RISK_WRITTEN and HELD_DISARMED retain funding and fence; cold review grants no owner or execution handle",
+    "11 generated-key signed memory-only GETs compose W46 funding and W51/W52 empty OPEN inventory with original risk-backed hold",
+    "bare legacy Register/Claim and public LIVE order methods cannot use local holds as an execution permit",
+    "W41-W53 focused interfaces and W43/W53 race checks passed",
+    "fresh full tagged app/root/nested Wails tests and vet passed",
+    "original production pair fixture mode none built and disposed"
+  ],
+  "artifacts_sha256": {
+    "wails": "bc8fe8b49397b95f07126d73cc9fa7c84d69968067a9096c34682e476a86162c",
+    "engine": "7bde5913d37217119525ce85b112f84faea5646aa2fc644c3dc238a3076d80a1",
+    "package": "4070626e8a6f543e5da20f4e17e9c11f32c55d4eea3f1f33f361a534eb18dded"
+  },
+  "live_source_disabled": true,
+  "venue_reservation_established": false,
+  "real_credentials_used": false,
+  "new_boundary_real_broker_account_or_order_requests": 0,
+  "owner_data_touched": false,
+  "attempt_history": [
+    {
+      "run_id": 40926810926,
+      "source_sha": "a6ddf8ded8cb9d3f1425bbe3b460040a89136982",
+      "witness_sha": "beadab3d5cc1ee5ad2bce4d88a99479a9ff7e42f",
+      "conclusion": "cancelled",
+      "reason": "superseded by venue/account identity hardening before final acceptance"
+    }
+  ],
+  "limitations": [
+    "local fence covers OS TEMP/user namespace; not global broker exclusivity",
+    "source-supplied Funding remains observation metadata; the private adapter supplies signed source checks but they are not venue-atomic",
+    "BUY limit USDC custody only; no actual execution capability or hold release API",
+    "original v2 omits kill/reservations; supplementary full snapshots are review evidence, never an automatic native-risk restore",
+    "SELL/market, partial or late fills, cancellation/release and historical real-account recovery remain unqualified",
+    "no new native GUI acceptance on these binaries",
+    "not LIVE_READY_DISARMED product completion, release, signing, merge, deployment, migration or activation"
+  ],
+  "mind_palace_advisory": {
+    "sha": "f31e4203892730ddbe24d44ce5674f5678d498aa",
+    "records_sha256": "c63a57fb7f27c8f1c0a5c89296882b07cc2ed51775629dda81acc4c304ce7f1b"
+  }
+}
