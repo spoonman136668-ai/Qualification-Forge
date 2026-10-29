@@ -37,7 +37,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 0059d4b794552818b3f32798da7df27c75e21c5c
+          ref: 40588f886e712223d0af289ee1d1439c6020236b
           path: candidate
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -47,8 +47,8 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W39_HOST_NOT_EPHEMERAL_WINDOWS'}
           if((& git -C witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){throw 'W39_WITNESS_SHA_DRIFT'}
-          if((& git -C candidate rev-parse HEAD).Trim() -cne '0059d4b794552818b3f32798da7df27c75e21c5c'){throw 'W39_KTRADE_SHA_DRIFT'}
-          if((& git -C candidate rev-parse 'HEAD^{tree}').Trim() -cne '9f1e559560ac14f4e6fc823dac9150e3a95f2c4d'){throw 'W39_KTRADE_TREE_DRIFT'}
+          if((& git -C candidate rev-parse HEAD).Trim() -cne '40588f886e712223d0af289ee1d1439c6020236b'){throw 'W39_KTRADE_SHA_DRIFT'}
+          if((& git -C candidate rev-parse 'HEAD^{tree}').Trim() -cne '9b5d1eabe5f2218ee56094b7e4256ccb0499b11d'){throw 'W39_KTRADE_TREE_DRIFT'}
           foreach($file in @('witness/qualification-harness/ktrade-w39/Existing-Chart-Paper-Operator-Windows.ps1','candidate/windows/Build-KTRADE-WailsPortable.ps1')){
             $tokens=$null;$syntaxErrors=$null
             [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE $file),[ref]$tokens,[ref]$syntaxErrors)
@@ -64,6 +64,13 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Fast focused Node regression of native USDC picker and exact PAPER refusal
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & node --test candidate/tests/rb3_w39_paper_operator_accessibility.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'W39_ORIGINAL_OPERATOR_ACCESSIBILITY_REGRESSION'}
+          Write-Host '::notice::W39_FAST_ORIGINAL_UI_NODE_ACCESSIBILITY=PASS'
       - name: Build genuine bounded W13 portable Wails plus Go and verify original PAPER
         shell: pwsh
         run: |
@@ -77,5 +84,5 @@ jobs:
         shell: pwsh
         run: |
           $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '0059d4b794552818b3f32798da7df27c75e21c5c'){throw 'W39_SOURCE_MUTATED'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '40588f886e712223d0af289ee1d1439c6020236b'){throw 'W39_SOURCE_MUTATED'}
           Write-Host '::notice::W39_NO_OWNER_DATA_NO_MERGE_NO_LIVE_NO_RELEASE=PASS'
