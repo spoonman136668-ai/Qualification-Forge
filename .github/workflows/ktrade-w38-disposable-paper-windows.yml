@@ -1,3 +1,4 @@
+# W38 keep original Go TEMP strict; pin process-local TMP/TEMP to verified staging parent.
 # W38 GUI spawn via native CreateProcess with inherited Go OS TEMP, no ShellExecute.
 # W38 qualifying unchanged Wails package relocated to verified Go native OS TEMP root.
 # W38 harness retry: inspect bounded original Wails GUI startup stderr; no permissions changed.
