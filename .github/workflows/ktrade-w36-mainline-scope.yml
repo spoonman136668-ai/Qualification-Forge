@@ -1,0 +1,53 @@
+name: KTRADE W36 full mainline scope and immutable windows witness audit
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - qualification/ktrade-w36-mainline-scope-20261028
+    paths:
+      - .github/workflows/ktrade-w36-mainline-scope.yml
+concurrency:
+  group: ktrade-w36-mainline-scope-20261028
+  cancel-in-progress: false
+jobs:
+  scope:
+    name: Independent source and PR186 310-file inventory verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      KTRADE_SOURCE_READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+    steps:
+      - name: Checkout pinned immutable qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact W34 candidate with full mainline ancestry
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0059d4b794552818b3f32798da7df27c75e21c5c
+          path: candidate
+          fetch-depth: 1000
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify witness, exact 310 Git paths and Windows source-bound foundations
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$RUNNER_ENVIRONMENT" = "github-hosted"
+          test "$(git -C witness rev-parse HEAD)" = "$GITHUB_SHA"
+          python3 -m py_compile witness/qualification-harness/ktrade-w36/Audit-PR186-Mainline.py
+          python3 witness/qualification-harness/ktrade-w36/Audit-PR186-Mainline.py \
+            candidate witness/qualification-harness/ktrade-w36/PR186-310-file-manifest.json
+          echo "::notice::W36_EXACT_INDEPENDENT_SOURCE_SCOPE=PASS"
+      - name: Confirm no promotion or source checkout mutation
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C witness rev-parse HEAD)" = "$GITHUB_SHA"
+          echo "::notice::W36_DRAFT_ONLY_NO_MERGE_NO_OWNER_DATA_NO_LIVE"
