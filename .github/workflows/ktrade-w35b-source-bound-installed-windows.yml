@@ -57,6 +57,18 @@ jobs:
             if($parseErrors.Count -ne 0){throw ('W35B_POWERSHELL_AST_INVALID_'+$relative+': '+(($parseErrors|ForEach-Object {$_.ToString()}) -join '; '))}
           }
           Write-Output '::notice::W35B_BOTH_POWERSHELL_SCRIPTS_AST=PASS'
+      - name: Measure immutable source and tree identity before installing build tools
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($item in @(@{path='previous';sha='e51e03c22f906704295a24138ac1ceba5d9ea0d4';tree='5526682f7efafe4cd328fbac77ebb97e58dc7b9'},@{path='candidate';sha='0059d4b794552818b3f32798da7df27c75e21c5c';tree='9f1e559560ac14f4e6fc823dac9150e3a95f2c4d'})){
+            $path=Join-Path $env:GITHUB_WORKSPACE $item.path
+            $actualSHA=(& git -C $path rev-parse HEAD).Trim()
+            $actualTree=(& git -C $path rev-parse 'HEAD^{tree}').Trim()
+            Write-Output ('W35B_EARLY_SOURCE_'+$item.path+' SHA='+$actualSHA+' TREE='+$actualTree+' GIT_EXIT='+$LASTEXITCODE)
+            if($LASTEXITCODE -ne 0 -or $actualSHA -cne $item.sha -or $actualTree -cne $item.tree){throw ('W35B_EARLY_EXACT_SOURCE_DRIFT_'+$item.path)}
+          }
+          Write-Output '::notice::W35B_EARLY_TWO_EXACT_GIT_IDENTITIES=PASS'
       - name: Install pinned Go and Node build-only toolchains
         uses: actions/setup-go@v5
         with:
