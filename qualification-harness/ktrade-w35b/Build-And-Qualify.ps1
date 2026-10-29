@@ -66,7 +66,7 @@ foreach($entry in $expected){
   Require ($LASTEXITCODE -eq 0) ('W35B_'+$entry.name+'_NPM_STAGE_FAILED')
   & node scripts/stage_offline_vendor.cjs
   Require ($LASTEXITCODE -eq 0) ('W35B_'+$entry.name+'_ORIGINAL_ASSET_STAGE_FAILED')
-  $bundleRoot=Join-Path $env:RUNNER_TEMP ('W35B-package-'+$entry.name+'-'+[guid]::NewGuid().ToString('N'))
+  $bundleRoot=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
   & (Join-Path $entry.root 'windows/Build-KTRADE-FreshInstaller.ps1') -OutputRoot $bundleRoot -ExpectedSourceSha $entry.sha
   Require ($LASTEXITCODE -eq 0) ('W35B_'+$entry.name+'_SOURCE_BUILD_FAILED')
   $zip=Join-Path $bundleRoot 'KTRADE-SetupBundle.zip'
