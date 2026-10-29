@@ -1,0 +1,36 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W42",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "136a1a5bc236805f3abc57c0ccab1e83c4b07fdc",
+  "source_tree": "2af866cc53f631cd81b0ae00bf429dc5202fe377",
+  "parent_sha": "9c371d6539a1ed2ce8ca8aa989766371d6a41d64",
+  "witness_sha": "7249cc9d23ddcbef4ba71e2f96388fad63a98358",
+  "run_id": 40853124285,
+  "job_id": 123377298566,
+  "conclusion": "success",
+  "runner": "windows-2022",
+  "go": "1.25.0",
+  "proofs": [
+    "five generated-key JWT test functions",
+    "W41 memory-only wire faults and historical public source-disarm guard",
+    "fresh full tagged app/root/nested Wails Go tests and vet",
+    "original production pair fixture_mode none; disposed"
+  ],
+  "artifacts_sha256": {
+    "wails": "98a3c523ca6e20c4b4db028f185e81d97794ae5ff07b076d88f3ca91a095a13b",
+    "engine": "1bbd0f56387075883c89ad7ff3a60f85ff1b730dfe729696f15573533c3a8330",
+    "package": "0280c6176a499c3b81f8806668584b240bde34546a4c1353e1c24bf3d61666dc"
+  },
+  "live_armed": false,
+  "real_broker_requests": 0,
+  "owner_data_touched": false,
+  "pr": 189,
+  "limitations": [
+    "authentication and wire repair only",
+    "no new native UI acceptance on these binaries",
+    "durable intent and original risk/account integration still required",
+    "not LIVE_READY_DISARMED product completion"
+  ],
+  "protocol_reference": "https://docs.cdp.coinbase.com/coinbase-app/authentication-authorization/api-key-authentication"
+}
