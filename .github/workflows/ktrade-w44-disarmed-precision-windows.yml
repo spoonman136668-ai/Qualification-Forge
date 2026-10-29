@@ -33,7 +33,7 @@ jobs:
           repository: spoonman136668-ai/ktrade
           ref: 843237d0e694e123928277ec33066a59dd4f4aa5
           path: current
-          fetch-depth: 8
+          fetch-depth: 32
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Fail closed on source identity scope and clean custody
