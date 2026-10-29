@@ -1,0 +1,103 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W35B pinned W31 to W34 native Windows installed update and rollback",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/15",
+  "witness_sha": "85948ad3188f15a8ea9d4c83481418cade29d278",
+  "workflow_path": ".github/workflows/ktrade-w35b-source-bound-installed-windows.yml",
+  "workflow_blob_sha": "c661b8763aa736b935d66ef7fbffaf66cf6cb226",
+  "build_harness_blob_sha": "b95e3895cbadb38128484488c53c144bfcc6fbdb",
+  "native_lifecycle_blob_sha": "8eac56f85282ed4ed025827c7793ab76facdc8d1",
+  "run_id": 40796601906,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40796601906",
+  "job_id": 123194474767,
+  "run_completed_utc": "2026-10-29T00:55:08Z",
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/185",
+  "baseline_sha": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+  "baseline_tree": "5526682f7efafe4cd328fbac77ebb97e58dc7b9e",
+  "source_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+  "source_tree": "9f1e559560ac14f4e6fc823dac9150e3a95f2c4d",
+  "foundation_runs": [
+    {
+      "run_id": 40615926800,
+      "witness_sha": "5c2a6200f54b4a9e50c05e00ffe45f42a2b5b413",
+      "role": "W31 genuine Windows setup interface and installed-application witness"
+    },
+    {
+      "run_id": 40787692876,
+      "witness_sha": "858d21380e1e88c01555371c6e258dfab07f7446",
+      "role": "W34 original Go Node and source-bound disposable unsigned package"
+    }
+  ],
+  "toolchain": {
+    "runner": "windows-2022",
+    "go": "1.25.0",
+    "node_major": 24,
+    "CGO_ENABLED": "1",
+    "GOWORK": "off",
+    "GOFLAGS": "-p=2",
+    "GOMAXPROCS": "2"
+  },
+  "packages": [
+    {
+      "source_sha": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+      "manifest_sha256": "41f9057f0bee494339592d7ede574b2304e4b3ae65194c3f2631f212ea8311a1",
+      "archive_sha256": "feb8530de2b530821e26904e8ff0dfa8312e23dfbc28eb10c500af52668e0d5d",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    },
+    {
+      "source_sha": "0059d4b794552818b3f32798da7df27c75e21c5c",
+      "manifest_sha256": "c84b04c92730e7eb68ae3880fabb447cb19dec6a053f675f52e6bdbeb313903c",
+      "archive_sha256": "eb836104de7879719d30a6765776f9d32c70cda8dee29e78aafb51a7ff3fe63b",
+      "signature_status": "unsigned",
+      "live_armed": false,
+      "release_authority": "none"
+    }
+  ],
+  "verified_steps": [
+    "Windows PowerShell AST syntax checks for both exact pinned harness scripts",
+    "Git HEAD and tree identity for exact W31 and W34 private source checkouts",
+    "Nine installer/update/rollback/launch components unchanged across both versions",
+    "Independent prior successful W31 and W34 Windows qualification receipts checked",
+    "Two original, separate, source-built W31/W34 Go/Wails unsigned Windows setup packages built",
+    "Original selected and hashed Windows shortcut, source-bound process, and real UIA chart/WebView2 nonce checks on previous, updated, and rolled-back native KTRADE shell",
+    "PAPER_STOPPED capabilities verified for all three actual Windows installed launch phases; LIVE disarmed",
+    "Active update and rollback refused; supported Pine/strategy bytes preserved; root install receipt archived and previous/new data hashes verified; unsupported and unknown state not automatically migrated",
+    "Real stopped W31 -> W34 update and W34 -> W31 rollback completed with native window relaunch and original process/lease checks",
+    "Native job source/witness unchanged and no owner data, release, merge, broker or LIVE permission"
+  ],
+  "final_markers": [
+    "W35B_NATIVE_PREVIOUS_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+    "W35B_NATIVE_UPDATED_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+    "W35B_NATIVE_ROLLED_BACK_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+    "W35B_W31_TO_W34_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+    "W35B_PINNED_INSTALLED_CROSS_VERSION_WINDOWS=PASS"
+  ],
+  "prior_failed_run_ids": [
+    40794010612,
+    40794250773,
+    40794364655,
+    40794579016,
+    40795575005,
+    40796331037
+  ],
+  "status": "completed",
+  "conclusion": "success",
+  "merged": false,
+  "protected_refs_changed": false,
+  "owner_data_touched": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "signing_authority": "none",
+  "not_qualified": [
+    "General release signoff, signing or publication",
+    "LIVE broker connectivity, real-money trading, or production data migration",
+    "Native PAPER transaction under updated installed W34 package beyond PAPER_STOPPED guard",
+    "Direct main merge or unrelated product changes"
+  ]
+}
