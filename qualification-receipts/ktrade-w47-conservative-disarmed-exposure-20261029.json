@@ -1,0 +1,71 @@
+{
+  "schema": "ktrade.qualification-receipt.v1",
+  "gate": "W47 conservative, disarmed cross-intent aggregate exposure review",
+  "status": "completed",
+  "conclusion": "success",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/194",
+  "source_sha": "fc15dcabb002db1ae5a294d6e378cc94bea7d911",
+  "source_tree": "496942a444d3c6125fb47b23009ca2e568f57e12",
+  "source_parent_sha": "b3988c434f4375effda77623c85468b02f7622ed",
+  "source_delta": [
+    "pkg/advanced_order_exposure_screen.go",
+    "pkg/advanced_order_exposure_screen_test.go"
+  ],
+  "source_files_changed": 2,
+  "source_additions": 203,
+  "source_deletions": 0,
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/24",
+  "run_id": 40876495221,
+  "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/40876495221",
+  "job_id": 123456547089,
+  "run_started_utc": "2026-10-29T12:49:40Z",
+  "run_completed_utc": "2026-10-29T12:59:07Z",
+  "witness_sha": "9d7fea329b6e5f6a496a1b35564f23de2766808b",
+  "source_w46_foundation": {
+    "run_id": 40874351236,
+    "witness_sha": "c18dd55b3c639125ff67db1b53ca50bd8e28b305",
+    "conclusion": "success"
+  },
+  "verification": [
+    "Exact two new Go files, parent ancestry and source/tree identity",
+    "Original W46 signed GET-only and W43 immutable journal/public LIVE lock unchanged",
+    "W47 exact 24-place aggregate funding and overbooking refusal, duplicate/conflicting client IDs and owner/currency drift",
+    "W47 claimed reservation or LIVE flags rejected, bounds and conservative in-memory concurrent deterministic evaluation",
+    "W41-W47 mock-only focused Go and race tests passed",
+    "Complete original tagged Go app, Go root and nested Wails tests/vet passed",
+    "Original Windows unsigned Wails+Go pair built with no W13 or W32E synthetic tags",
+    "Original production pair was disposed and no owner data or broker/network order was used"
+  ],
+  "markers": [
+    "W47_EXACT_TWO_READONLY_FILES_AND_LIVE_SOURCE_FALSE=PASS",
+    "W47_IDENTICAL_LOCKED_FRONTEND_VENDOR_STAGE=PASS",
+    "W47_MOCK_ONLY_READONLY_FUNDING_SCREEN_FEES_AND_PUBLIC_LIVE_DISABLED=PASS",
+    "W47_FRESH_FULL_GO_TAGGED_ROOT_WAILS_TEST_AND_VET=PASS",
+    "W47_ORIGINAL_PRODUCTION_PAIR_NO_SYNTHETIC_TAGS_OR_TRANSPORT=PASS",
+    "W47_SOURCE_PROOF_ONLY_PRODUCTION_PAIR_DISPOSED_NO_BROKER_OR_OWNER_DATA=PASS"
+  ],
+  "built_windows_sha256": {
+    "wails_exe": "0f32c2e2163b99158a6c9257947fa4b82e96381664b695229faae9663d4d8b5e",
+    "go_engine_exe": "ef55bc1262b3d3c9709055db50a3d107bbcf2e6700abf1d362c86d735a18fccf",
+    "package_zip": "250ad7f146d0fceb71e75b73ecb778f36e79fb8f886e7180c7bcbcfb7ccfe939"
+  },
+  "intent": "private read-only conservative multi-request exposure, not reservation",
+  "funds_reserved": false,
+  "broker_account_access": false,
+  "orders_placed": false,
+  "real_trading": false,
+  "public_live_source_guard": "func liveBrokerageAuthorized() bool { return false }",
+  "live_activated": false,
+  "product_released": false,
+  "owner_data_touched": false,
+  "source_merged": false,
+  "not_qualified": [
+    "Source/authenticity of the caller-supplied peer observations; untrusted data cannot mint a reservation",
+    "Durable account-level hold and atomic multi-process coordination",
+    "Venue reconciliation of existing open orders and available funds",
+    "Independent owner credential custody and emergency kill/disable",
+    "Actual broker account and transfer verification, production LIVE execution, signed release"
+  ]
+}
