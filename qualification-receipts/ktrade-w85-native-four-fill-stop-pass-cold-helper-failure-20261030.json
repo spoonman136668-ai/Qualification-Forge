@@ -1,0 +1,33 @@
+{
+  "schema": "ktrade.qualification.partial-failure.receipt.v1",
+  "run_id": 41079352178,
+  "job_id": 124143995748,
+  "witness": "b85a871148c6a7e6f0aaf7f1244448ecf82387c9",
+  "source_sha": "7ddea43a58e433de38244215b256d76988f5e9f6",
+  "source_tree": "5dc9bfce99e5f97fa3c434542509763ee8f29294",
+  "conclusion": "failure",
+  "verdict": "PARTIAL_NATIVE_FOUR_FILLS_AND_STOP_PASS_COLD_ADAPTER_HANDLE_RACE_FAIL",
+  "original_nested_wails_tests_vet": "PASS",
+  "node": {
+    "files": 33,
+    "cases": 152,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "both_unsigned_setup_packages": "PASS",
+  "installed_previous_and_updated_webview2_pine_compile_legacy_423": "PASS",
+  "original_current_market_native_paper": {
+    "fills": 4,
+    "round_trips": 2,
+    "fee_fifo_risk_and_pnl_independent": "PASS",
+    "duplicate_refusal": "PASS",
+    "native_stop_and_sealed_killed_risk": "PASS",
+    "real_broker_orders": 0
+  },
+  "cold_and_rollback": "NOT_ACCEPTED",
+  "failure": "New Diagnostics input adapter called UIA.FromHandle before cold reopened shell had a nonzero handle; original Wait helper already has the correct bounded readiness logic.",
+  "fix": "Guard zero handle and use original owned OS/UIA wait/click to open Diagnostics; no assertion, timeout, source or financial behavior changed.",
+  "owner_data_touched": false,
+  "live_armed": false
+}
