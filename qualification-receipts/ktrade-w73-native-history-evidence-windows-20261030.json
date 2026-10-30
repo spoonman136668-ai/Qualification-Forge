@@ -1,0 +1,62 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W73",
+  "purpose": "Exact-source Windows regression/build qualification only; no owner provider first-use or release acceptance",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 220,
+  "source_sha": "7dfec71777730f744e1749b8bd741fbd01f0d2f6",
+  "source_tree": "666239a1893a17b8e7984d2b28fbd3b23c7c15cf",
+  "parent_source_sha": "125eba6fb6adee2df31d6f895be5297370c93135",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 45,
+  "witness_sha": "3219db2bf6050c471b8983348d5350765b9f1fd5",
+  "workflow_path": ".github/workflows/ktrade-w73-native-history-evidence-windows.yml",
+  "workflow_blob": "5ca1c8c099136f86304d70ce877dce9273653574",
+  "run_id": 41034436031,
+  "job_id": 123991693234,
+  "status": "completed",
+  "conclusion": "success",
+  "checked_live_at": "2026-10-30",
+  "changed_paths": [
+    "pkg/advanced_order_v2_cdp_readonly.go",
+    "pkg/advanced_order_v2_history_candidate_owner_windows_test.go",
+    "pkg/advanced_order_v2_history_candidate_readonly.go",
+    "pkg/advanced_order_v2_history_candidate_readonly_test.go"
+  ],
+  "passed_checks": [
+    "Witness and exact KTRADE source SHA/tree, W72 ancestry and exactly four changed paths checked on hosted Windows; source LIVE=false",
+    "W73 candidate parsing, precision separation, terminal/page budget distinction, invalid identities/cursors/pages, sanitized refusals, cancellation and privacy",
+    "Owner-only test hook compiled without executing actual provider access",
+    "W41-W73 financial/risk/PAPER targeted regressions and race checks",
+    "Full tagged app, complete Go root and nested Wails tests and vet",
+    "Original fixture-free unsigned Go and Wails production pair built with LIVE disarmed",
+    "Disposable build cleanup and unchanged source identity verified"
+  ],
+  "build_evidence_from_job_log": {
+    "wails_exe_sha256": "e5babde0c158096a3408c582d3b18546feef78999ef16cd41b5c058e95ef1181",
+    "go_engine_sha256": "1ee3d9cd732d9ebad95f838bd66c0afa9c28bb008721d05cd6f47bd9876d410c",
+    "package_zip_sha256": "974d0de1afec1d178342b6478e9012b82635d335404e441eea48225cf5d1f2ac",
+    "fixture_mode": "none",
+    "app_started": false,
+    "live_armed": false
+  },
+  "data_origin": "Hosted Windows synthetic memory-only API responses; no real Coinbase access or owner credentials",
+  "actual_owner_first_use": "UNVERIFIED; separate owner-scoped diagnostic and receipt required",
+  "authority": {
+    "opening_balance_verified": false,
+    "commission_currency_verified": false,
+    "full_cash_history_reconciled": false,
+    "snapshot_atomic": false,
+    "financial_ledger_posted": false,
+    "hold_release_authorized": false,
+    "live_order_authorized": false,
+    "release_accepted": false,
+    "production_deployed": false
+  },
+  "limits": [
+    "W73 does not prove real provider v2 transaction-history availability or complete cash history.",
+    "A terminal cursor over a bounded history stream is not proof of opening cash, fee currency, or lifetime coverage.",
+    "A passing full source/build regression does not qualify installed-product release or RB3 cumulative integration.",
+    "KTRADE PR220 and Qualification-Forge PR45 remain draft/unmerged; no broker, deployment, signing, release or protected refs are mutated by this qualification."
+  ]
+}
