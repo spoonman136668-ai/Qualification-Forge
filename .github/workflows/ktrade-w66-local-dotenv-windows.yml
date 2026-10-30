@@ -85,7 +85,7 @@ jobs:
           $cfgParent=(& git -C $src rev-parse ($parent+':config.json')).Trim()
           if($cfgBlob -cne $cfgParent){throw 'W66_LEGACY_CONFIG_MODIFIED'}
           $ignore=Get-Content (Join-Path $src '.gitignore') -Raw
-          if($ignore -notmatch '(?m)^\.env$' -or $ignore -notmatch '(?m)^\*\*/\.env$'){throw 'W66_ENV_IGNORE_MISSING'}
+          if($ignore -notmatch '(?m)^\.env\r?$' -or $ignore -notmatch '(?m)^\*\*/\.env\r?$'){throw 'W66_ENV_IGNORE_MISSING'}
           if(@(& git -C $src ls-files '.env' '*/.env').Count -gt 0){throw 'W66_ENV_TRACKED'}
           $loader=Get-Content (Join-Path $src 'pkg/cdp_config.go') -Raw
           if($loader -notmatch 'w66ReadLocalEnv' -or $loader -notmatch 'KTRADE_LIVE_TRADING' -or
