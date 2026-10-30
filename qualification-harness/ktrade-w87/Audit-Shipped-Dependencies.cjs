@@ -50,16 +50,23 @@ function tarEntries(bytes){
  for(const key of shipping){const p=lock.packages[key];const r=await fetch(p.resolved,{signal:AbortSignal.timeout(60000)});if(!r.ok)throw Error('W87_REGISTRY_PACKAGE_FAILED');
   const data=Buffer.from(await r.arrayBuffer());if(data.length>40*1024*1024)throw Error('W87_PACKAGE_SIZE_REFUSED');
   const [alg,sum]=p.integrity.split('-');if(!['sha512','sha256'].includes(alg)||crypto.createHash(alg).update(data).digest('base64')!==sum)throw Error('W87_PACKAGE_INTEGRITY_FAILED');
-  const entries=tarEntries(zlib.gunzipSync(data,{maxOutputLength:200*1024*1024}));if(!entries.some(x=>/\/LICENSE/i.test(x.path)))throw Error('W87_LICENSE_MISSING');
+  const entries=tarEntries(zlib.gunzipSync(data,{maxOutputLength:200*1024*1024}));if(key!=='node_modules/fancy-canvas'&&!entries.some(x=>/\/LICENSE/i.test(x.path)))throw Error('W87_LICENSE_MISSING');
   const rootNotices=entries.filter(x=>/^package\/[^/]+$/.test(x.path));
   const primary=['LICENSE','LICENSE.md','LICENSE.txt','license'].find(n=>rootNotices.some(x=>x.path==='package/'+n));
-  if(!primary)throw Error('W87_PRIMARY_LICENSE_MISSING');
+  let fallback=null;
+  if(!primary&&key==='node_modules/fancy-canvas'){
+    const upstream='https://raw.githubusercontent.com/tradingview/fancy-canvas/7ece7601f05b624496f485cee65789ad691427df/LICENSE';
+    const response=await fetch(upstream,{signal:AbortSignal.timeout(30000)});if(!response.ok)throw Error('W87_UPSTREAM_LICENSE_UNAVAILABLE');
+    const expected=Buffer.from(await response.arrayBuffer()),hash='52d2ba0c8f8f4532bd524358d679693ff3dd9e40c56fe0c0c63061ed0733aa18';
+    for(const b of [expected,fs.readFileSync(path.join(root,'scripts/vendor-licenses/fancy-canvas-2.1.0.LICENSE')),fs.readFileSync(path.join(root,'static/vendor/licenses/fancy-canvas.LICENSE'))])if(crypto.createHash('sha256').update(b).digest('hex')!==hash)throw Error('W87_UPSTREAM_LICENSE_BYTES_DRIFT');
+    fallback={url:upstream,sha256:hash,shipped:true,reason:'published npm2.1.0 omits license'};
+  }else if(!primary)throw Error('W87_PRIMARY_LICENSE_MISSING');
   const name=key.replace('node_modules/','');
   for(const entry of rootNotices){const base=entry.path.slice('package/'.length);const target=name+'.'+(base===primary?'LICENSE':base);
     const shipped=fs.readFileSync(path.join(root,'static/vendor/licenses',target));
     if(crypto.createHash('sha256').update(shipped).digest('hex')!==entry.sha256)throw Error('W87_LICENSE_OR_NOTICE_NOT_SHIPPED_EXACTLY');
   }
-  licenses.push({package:key,version:p.version,licenses:entries,root_notices_shipped:rootNotices.length});
+  licenses.push({package:key,version:p.version,licenses:entries,root_notices_shipped:rootNotices.length,upstream_fallback:fallback});
  }
  console.log('W87_EXACT_NPM_TARBALL_LICENSE_INVENTORY='+JSON.stringify(licenses));
  if(affected.length)throw Error('W87_KNOWN_SHIPPING_JAVASCRIPT_VULNERABILITY');
