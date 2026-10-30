@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: cc9a0e2b90fae037a88246360ad93c5585aa8831
+          ref: 9fe979ec4b5da128a174b777d658461fd492d46e
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -38,6 +38,7 @@ jobs:
           try{
             & npm.cmd ci --ignore-scripts --no-audit --no-fund
             if($LASTEXITCODE -ne 0){throw 'W87_LOCKED_ASSET_INSTALL_FAILED'}
+            if((Get-FileHash scripts/vendor-licenses/fancy-canvas-2.1.0.LICENSE -Algorithm SHA256).Hash.ToLowerInvariant() -cne '52d2ba0c8f8f4532bd524358d679693ff3dd9e40c56fe0c0c63061ed0733aa18'){throw 'W87_UPSTREAM_LICENSE_CHECKOUT_BYTES_DRIFT'}
             & node --test tests/rb3_w88_vendor_staging.test.cjs
             if($LASTEXITCODE -ne 0){throw 'W87_STAGING_REGRESSION_FAILED'}
             & node scripts/stage_offline_vendor.cjs
@@ -53,7 +54,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or (& git -C $src rev-parse HEAD).Trim() -cne 'cc9a0e2b90fae037a88246360ad93c5585aa8831' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '025de2698b3a20abe59338d8c1e0a247c5ae46ad'){throw 'W87_SOURCE_OR_HOST_DRIFT'}
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or (& git -C $src rev-parse HEAD).Trim() -cne '9fe979ec4b5da128a174b777d658461fd492d46e' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'ca6c13628f678093ede20831e206800ddbd2d1ec'){throw 'W87_SOURCE_OR_HOST_DRIFT'}
           if(Test-Path (Join-Path $src '.env')){throw 'W87_DOTENV_REFUSED'}
           & node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w87/Audit-Shipped-Dependencies.cjs') $src
           if($LASTEXITCODE -ne 0){throw 'W87_LOCKED_SHIPPING_JAVASCRIPT_AUDIT_FAILED'}
