@@ -1,0 +1,111 @@
+name: KTRADE W83 real installed upgrade current-market native PAPER cold account rollback
+on:
+  push:
+    branches: [qualification/ktrade-w83b-installed-current-paper-20261030]
+    paths: [.github/workflows/ktrade-w83b-installed-current-paper-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w83-installed-current-paper-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 85
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Sanitized previously qualified PR221 predecessor
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0acfae265370b677dfe6de1386de793fb20b2460
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact repaired PR222 candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Source custody prior W82 security regression and original harness AST
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W83_HOSTED_WINDOWS_REQUIRED'}
+          foreach($pin in @(@('previous','0acfae265370b677dfe6de1386de793fb20b2460'),@('candidate','b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'),@('witness',$env:GITHUB_SHA))){
+            $p=Join-Path $env:GITHUB_WORKSPACE $pin[0]
+            if((& git -C $p rev-parse HEAD).Trim() -cne $pin[1] -or @(& git -C $p status --porcelain).Count -ne 0){throw 'W83_SHA_OR_CLEAN_CUSTODY_DRIFT'}
+          }
+          if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'candidate') rev-parse 'HEAD^{tree}').Trim() -cne '989020f81a7c731acf3bfa830c06e7e929805bcd'){throw 'W83_TREE_DRIFT'}
+          foreach($dir in @('previous','candidate')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(Test-Path (Join-Path $p '.env')){throw 'W83_DOTENV_REFUSED'}
+            $cfg=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
+            if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'W83_TRACKED_CREDENTIALS_REFUSED'}
+            if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W83_LIVE_AUTHORITY_DRIFT'}
+          }
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41071548527' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne 'fa0a90b503a95b4422251c27a7d2ea19b4671a6e'){throw 'W83_W82_REPAIRED_CANDIDATE_NOT_ACCEPTED'}
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          foreach($file in Get-ChildItem $dir -Filter '*.ps1' -File){
+            $tokens=$null;$errs=$null
+            [void][Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$errs)
+            if($errs.Count -ne 0){throw ('W83_HARNESS_AST_FAILED_'+$file.Name)}
+          }
+          if(@(Get-ChildItem $dir -Filter '*.ps1' -File).Count -ne 4){throw 'W83_FOUR_HARNESSES_REQUIRED'}
+          if((& git hash-object (Join-Path $dir 'Original-W40-Paper.ps1')).Trim() -cne 'c69c3c05ff7f4ef933856b036bfa23fbf0a760f1'){throw 'W83_ORIGINAL_W40_FINANCIAL_ASSERTIONS_DRIFT'}
+          Write-Host '::notice::W83_EXACT_SOURCES_W82_ACCEPTED_ORIGINAL_SCENARIO_AST_LIVE_DISABLED=PASS'
+      - name: Windows PowerShell installer core module boundary preflight
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $ps51=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+          $saved=$env:PSModulePath
+          try{
+            $env:PSModulePath=Join-Path (Split-Path -Parent $ps51) 'Modules'
+            & $ps51 -NoProfile -NonInteractive -Command 'Get-Command Get-FileHash -ErrorAction Stop|Out-Null'
+            if($LASTEXITCODE -ne 0){throw 'W83_NATIVE_PS51_FILE_HASH_UNAVAILABLE'}
+          }finally{$env:PSModulePath=$saved}
+          Write-Host '::notice::W83_PS7_PS51_SCOPED_CORE_MODULE_BOUNDARY=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Real unsigned install upgrade native paper Stop cold and rollback
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          & (Join-Path $h 'Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') -WitnessScript (Join-Path $h 'Installed-Paper-Lifecycle.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1')
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'W83_REAL_INSTALLED_CURRENT_MARKET_PAPER_AND_ROLLBACK_FAILED'}
+          Write-Host '::notice::W83_REAL_INSTALLED_UPGRADE_FOUR_CURRENT_NATIVE_PAPER_FILLS_STOP_COLD_ACCOUNT_ROLLBACK_HISTORY_RETAINED=PASS'
+      - name: Source custody and no production authority final
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($dir in @('previous','candidate')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(@(& git -C $p status --porcelain --untracked-files=no).Count -ne 0){throw 'W83_TRACKED_SOURCE_CHANGED'}
+          }
+          Write-Host '::notice::W83_HOSTED_EPHEMERAL_SYNTHETIC_DATA_PUBLIC_CANDLES_ONLY_NO_OWNER_INSTALL_NO_REAL_ORDERS_NO_LIVE_NO_RELEASE'

@@ -60,7 +60,14 @@ function Setup([string]$scriptPath,[string]$action,[bool]$shouldPass=$true){
  $errors=Join-Path $QualificationRoot ([guid]::NewGuid().ToString('N')+'.err')
  $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$scriptPath+'"'),'-Action',$action,
   '-InstallRoot',('"'+$script:installedRoot+'"'),'-ShortcutParent',('"'+$script:shortcuts+'"'))
- $proc=Start-Process -FilePath $script:ps51 -ArgumentList $arguments -Wait -PassThru -RedirectStandardOutput $log -RedirectStandardError $errors
+ # PS7's inherited module paths cannot supply PS5.1 core cmdlets.
+ # Bridge only this original installer child, then restore the PS7 host.
+ $modulePathBefore=$env:PSModulePath
+ try{
+  $env:PSModulePath=Join-Path (Split-Path -Parent $script:ps51) 'Modules'
+  Require (Test-Path -LiteralPath $env:PSModulePath -PathType Container) 'W83_WINDOWS_POWERSHELL_CORE_MODULES_REQUIRED'
+  $proc=Start-Process -FilePath $script:ps51 -ArgumentList $arguments -Wait -PassThru -RedirectStandardOutput $log -RedirectStandardError $errors
+ }finally{$env:PSModulePath=$modulePathBefore}
  $output=Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue
  $errorText=Get-Content -LiteralPath $errors -Raw -ErrorAction SilentlyContinue
  Remove-Item -LiteralPath $log,$errors -Force -ErrorAction SilentlyContinue

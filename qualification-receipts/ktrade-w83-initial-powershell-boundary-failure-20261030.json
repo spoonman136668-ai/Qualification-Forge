@@ -1,0 +1,16 @@
+{
+  "schema": "ktrade.qualification.failure.receipt.v1",
+  "run_id": 41075129303,
+  "job_id": 124129165881,
+  "witness": "dad36f2b3dca4ab4e3697db53a2e41f4e4b52131",
+  "source_sha": "b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a",
+  "conclusion": "failure",
+  "verdict": "FAIL_HARNESS_PS7_TO_PS51_MODULE_PATH_BOUNDARY",
+  "previous_and_candidate_setup_builds": "PASS",
+  "installer_phase": "FAILED before app launch: Windows PowerShell Get-FileHash unavailable with inherited PowerShell7 module environment",
+  "native_paper_fills": "NOT_RUN",
+  "fix_scope": "qualifier only: scope PS5.1 core modules around installer child; restore parent; preflight before builds",
+  "product_source_changed": false,
+  "owner_data_accessed": false,
+  "live_armed": false
+}
