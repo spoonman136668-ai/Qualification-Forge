@@ -51,6 +51,17 @@ function Wait-W32EUI([object]$proc,[string]$name,[int]$seconds=22){
   throw ('W32E_UI_NOT_FOUND_'+$name)
 }
 function Click-W32EUI([object]$proc,[string]$name){
+  # W85 keeps qualification details out of the normal workspace. Open the
+  # actual disclosure through the same owned OS/UIA click path when needed.
+  if($name -ceq 'Verify chart UI'){
+    $proc.Refresh()
+    $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
+    $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+    $visible=$false
+    foreach($node in $nodes){try{if(!$node.Current.IsOffscreen -and $node.Current.Name -ceq 'Verify chart UI'){$visible=$true;break}}catch{}}
+    if(!$visible){Click-W32EUI $proc 'Desktop diagnostics'}
+  }
+
   $el=Wait-W32EUI $proc $name
   $rect=$el.Current.BoundingRectangle
   $outer=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle).Current.BoundingRectangle
