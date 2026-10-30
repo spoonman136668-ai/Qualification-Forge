@@ -131,8 +131,52 @@ jobs:
           $ErrorActionPreference='Stop'
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'candidate')
           try{
-            & go test -mod=readonly -tags ktrade_full -count=1 -timeout 18m -run '^(TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly|TestW33CP10FourthSellPostSettlementPendingMustQuarantineWithoutRearm|TestRB3W32BOriginalEditorCompilerWorksWithoutMarketData)$' ./cmd/ktrade
+            & go test -mod=readonly -tags ktrade_full -count=1 -timeout 18m -run '^(TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly|TestRB3W32BOriginalEditorCompilerWorksWithoutMarketData)
+            & node --test tests/rb3_w32a_original_chart_candles.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w32d_pine_pane.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W74_CURRENT_SOURCE_CHART_PINE_NODE_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W74_ORIGINAL_NATIVE_PAPER_PINE_CHART_REGRESSIONS=PASS'
+      - name: Fail-closed exact source, no owner or released data touched
+        if: always()
+        shell: pwsh
+        run: |
+          $candidate=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $head=(& git -C $candidate rev-parse HEAD).Trim()
+          if($head -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6'){throw 'W74_PRODUCT_SHA_DRIFT'}
+          Write-Host '::notice::W74_EPHEMERAL_ONLY_NO_PRODUCTION_INSTALL_NO_USER_DATA_NO_BROKER_NO_LIVE_NO_MERGE'
+ ./cmd/ktrade
             if($LASTEXITCODE -ne 0){throw 'W74_CURRENT_SOURCE_NATIVE_PAPER_PINE_FAILED'}
+            # The W33C-P10 fourth-SELL test belongs to internal/paperengine,
+            # not cmd/ktrade. Require a named JSON test PASS, not merely an
+            # exit-zero from a Go package containing no matching test.
+            $p10Test='TestW33CP10FourthSellPostSettlementPendingMustQuarantineWithoutRearm'
+            $p10Output=@(& go test -json -mod=readonly -tags ktrade_full -count=1 -timeout 18m -run ('^'+$p10Test+'
+            & node --test tests/rb3_w32a_original_chart_candles.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w32d_pine_pane.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W74_CURRENT_SOURCE_CHART_PINE_NODE_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W74_ORIGINAL_NATIVE_PAPER_PINE_CHART_REGRESSIONS=PASS'
+      - name: Fail-closed exact source, no owner or released data touched
+        if: always()
+        shell: pwsh
+        run: |
+          $candidate=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $head=(& git -C $candidate rev-parse HEAD).Trim()
+          if($head -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6'){throw 'W74_PRODUCT_SHA_DRIFT'}
+          Write-Host '::notice::W74_EPHEMERAL_ONLY_NO_PRODUCTION_INSTALL_NO_USER_DATA_NO_BROKER_NO_LIVE_NO_MERGE'
+) ./internal/paperengine)
+            $p10Exit=$LASTEXITCODE
+            $p10Output|ForEach-Object { Write-Host $_ }
+            if($p10Exit -ne 0){throw 'W74_P10_FOURTH_SELL_QUARANTINE_TEST_FAILED'}
+            $p10Pass=@($p10Output|Where-Object {
+              try {
+                $evt=$_|ConvertFrom-Json -ErrorAction Stop
+                $evt.Action -ceq 'pass' -and
+                $evt.Package -ceq 'ktrade/internal/paperengine' -and
+                $evt.Test -ceq $p10Test
+              }catch{ $false }
+            })
+            if($p10Pass.Count -ne 1){throw 'W74_P10_FOURTH_SELL_NAMED_TEST_PASS_NOT_OBSERVED'}
+            Write-Host '::notice::W74_P10_FOURTH_SELL_ORIGINAL_PAPER_QUARANTINE_EXECUTED=PASS'
             & node --test tests/rb3_w32a_original_chart_candles.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w32d_pine_pane.test.cjs
             if($LASTEXITCODE -ne 0){throw 'W74_CURRENT_SOURCE_CHART_PINE_NODE_FAILED'}
           }finally{Pop-Location}
