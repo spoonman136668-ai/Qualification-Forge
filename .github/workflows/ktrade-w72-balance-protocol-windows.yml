@@ -1,0 +1,78 @@
+name: KTRADE W72 test-only balance protocol observation qualification with exact production reuse
+on:
+  push:
+    branches: [qualification/ktrade-w72-balance-protocol-windows-20261030]
+    paths: [.github/workflows/ktrade-w72-balance-protocol-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w72-balance-protocol-source-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 125eba6fb6adee2df31d6f895be5297370c93135
+          path: current
+          fetch-depth: 3
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Prove only the excluded owner test changed from fully qualified W72
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W72_PROBE_NOT_HOSTED_WINDOWS'}
+          if((& git -C witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){throw 'W72_PROBE_WITNESS_DRIFT'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '125eba6fb6adee2df31d6f895be5297370c93135' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '2fd49033ca3b6acda2a7826d886f4405a681fba3' -or
+             (& git -C $src rev-parse 'HEAD^').Trim() -cne 'd914d6d6f966b94422ab8a0582a0a4f39c6bda43'){throw 'W72_PROBE_SOURCE_TREE_PARENT_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W72_PROBE_DIRTY_SOURCE'}
+          $changed=@(& git -C $src diff --name-only HEAD^ HEAD)
+          if($changed.Count -ne 1 -or $changed[0] -cne 'pkg/advanced_order_v2_v3_balance_protocol_owner_windows_test.go'){throw 'W72_PROBE_PRODUCTION_SOURCE_CHANGED'}
+          $allChanges=@(& git -C $src diff --name-only 'aee9f5007fbd963c8bbf42631d5089a1630ab477' HEAD|Sort-Object)
+          $onlyExcludedTests=@('pkg/advanced_order_v2_cdp_owner_windows_test.go','pkg/advanced_order_v2_v3_balance_protocol_owner_windows_test.go'|Sort-Object)
+          if(Compare-Object $allChanges $onlyExcludedTests){throw 'W72_PRODUCTION_OR_DEFAULT_BUILD_CHANGED'}
+          $prior=Get-Content (Join-Path $src 'pkg/advanced_order_v2_cdp_owner_windows_test.go') -Raw
+          if($prior -notmatch '^//go:build windows && ktrade_w71_owner_readonly'){throw 'W72_PARENT_OWNER_TAG_CHANGED'}
+          $test=Get-Content (Join-Path $src $changed[0]) -Raw
+          if($test -notmatch '^//go:build windows && ktrade_w72_owner_readonly' -or $test -match 'func init\('){throw 'W72_PROBE_DEFAULT_BUILD_ACTIVATION'}
+          $broker=Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw
+          if($broker -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W72_PROBE_LIVE_SOURCE_DRIFT'}
+          $receiptPath='qualification-receipts/ktrade-w71-native-cdp-v2-history-windows-20261030.json'
+          if((& git -C witness rev-parse ('HEAD:'+$receiptPath)).Trim() -cne 'e87b455fb8ee9b61982cb3f2642e1ca7967a149d'){throw 'W72_PROBE_FOUNDATION_RECEIPT_DRIFT'}
+          $receipt=Get-Content (Join-Path (Join-Path $env:GITHUB_WORKSPACE 'witness') $receiptPath) -Raw|ConvertFrom-Json
+          if($receipt.source_sha -cne 'aee9f5007fbd963c8bbf42631d5089a1630ab477' -or $receipt.run_id -ne 41025595146 -or $receipt.conclusion -cne 'success'){throw 'W72_PROBE_FULL_FOUNDATION_UNQUALIFIED'}
+          Write-Host '::notice::W72_PROBE_EXACT_TEST_ONLY_DELTA_PRODUCTION_AND_FULL_QUALIFICATION_REUSE=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Compile owner hook and test signed protocol, movement, hold and precision hypotheses
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item Env:KTRADE_W72_OWNER_READONLY -ErrorAction SilentlyContinue
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try {
+            & go test -mod=readonly -count=1 -v -tags ktrade_w72_owner_readonly -run '^TestW72(Protocol|Comparison|Refusal)' ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W72_PROBE_OBSERVER_SYNTHETIC_TEST_FAILED'}
+            & go vet -mod=readonly -tags ktrade_w72_owner_readonly ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W72_PROBE_TAGGED_VET_FAILED'}
+          } finally { Pop-Location }
+          Write-Host '::notice::W72_PROBE_FIFTEEN_SIGNED_GETS_MOVEMENT_HOLD_PRECISION_PRIVACY_AND_TAGGED_VET=PASS'
+          Write-Host '::notice::W72_PROBE_HOSTED_SYNTHETIC_ONLY_NO_OWNER_KEYS_NO_PROVIDER_CALL_NO_LIVE=PASS'
