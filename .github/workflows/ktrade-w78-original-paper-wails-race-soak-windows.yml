@@ -1,0 +1,158 @@
+name: KTRADE W78 exact W76 original paper custody Windows race and repeated Wails rollback
+on:
+  push:
+    branches: [qualification/ktrade-w78-original-paper-wails-race-soak-20261030]
+    paths: [.github/workflows/ktrade-w78-original-paper-wails-race-soak-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w78-original-paper-wails-race-soak-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      KTRADE_LIVE_TRADING: 'false'
+    steps:
+      - name: Exact independent W78 witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Exact accepted W77 Windows source regression foundation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 335ea22f8c6c842fdb28733084caf4123c2f8e9e
+          path: foundation
+          persist-credentials: false
+      - name: Exact original W76 candidate and one-test-only source ancestry
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0acfae265370b677dfe6de1386de793fb20b2460
+          fetch-depth: 2
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source, accepted W77 evidence and disconnected brokerage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W78_HOSTED_WINDOWS_REQUIRED'}
+          foreach($entry in @(
+            @('witness',$env:GITHUB_SHA),
+            @('foundation','335ea22f8c6c842fdb28733084caf4123c2f8e9e'),
+            @('product','0acfae265370b677dfe6de1386de793fb20b2460')
+          )){
+            $p=Join-Path $env:GITHUB_WORKSPACE $entry[0]
+            if((& git -C $p rev-parse HEAD).Trim() -cne $entry[1]){throw 'W78_GIT_SHA_DRIFT'}
+            if(@(& git -C $p status --porcelain).Count -ne 0){throw 'W78_DIRTY_CHECKOUT'}
+          }
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '1059c3e77dfb882f652994d9262f0eb681d03cb5'){throw 'W78_PRODUCT_TREE_DRIFT'}
+          if((& git -C $src rev-parse HEAD^).Trim() -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6'){throw 'W78_W73_PARENT_DRIFT'}
+          $diff=@(& git -C $src diff --name-only HEAD^ HEAD)
+          if($diff.Count -ne 1 -or $diff[0] -cne 'tests/paper_tradeguard_reconciliation.test.cjs'){throw 'W78_RUNTIME_SOURCE_CHANGED'}
+          $live=Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw
+          if($live -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W78_LIVE_NOT_DISARMED'}
+          if(Test-Path (Join-Path $src '.env')){throw 'W78_WORKSPACE_DOTENV_REFUSED'}
+          $p=Join-Path $env:GITHUB_WORKSPACE 'foundation/qualification-receipts/ktrade-w77-final-complete-windows-go-wails-build-20261030.json'
+          if((& git hash-object $p).Trim() -cne 'c4aae8ba85e4c66b375d26f40ccdbda343303b8a'){throw 'W78_W77_RECEIPT_BLOB_DRIFT'}
+          $w77=Get-Content $p -Raw|ConvertFrom-Json
+          if($w77.candidate_sha -cne '0acfae265370b677dfe6de1386de793fb20b2460' -or
+             $w77.candidate_tree -cne '1059c3e77dfb882f652994d9262f0eb681d03cb5' -or
+             $w77.verdict -cne 'PASS_SCOPED_FULL_WINDOWS_GO_WAILS_VET_AND_FIXTURE_FREE_BUILD' -or
+             $w77.run_id -ne 41057198253 -or $w77.run_conclusion -cne 'success'){throw 'W78_ORIGINAL_W77_ACCEPTANCE_DRIFT'}
+          Write-Host '::notice::W78_EXACT_RUNTIME_AND_W77_ACCEPTANCE_LIVE_DISARM=PASS'
+      - name: Go 1.25 Windows race runtime
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Original PAPER cold restart ledger custody and TradeGuard repeated under race
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try {
+            function Qualify([string]$pkg,[string[]]$names,[int]$n){
+              $pattern='^('+($names -join '|')+')$'
+              $raw=@(& go test -json -race -mod=readonly "-count=$n" -timeout 18m -run $pattern $pkg)
+              if($LASTEXITCODE -ne 0){
+                $raw|Select-Object -Last 100|ForEach-Object {Write-Host $_}
+                throw ('W78_ORIGINAL_GO_RACE_FAILED_'+$pkg)
+              }
+              $events=@($raw|ForEach-Object {$_|ConvertFrom-Json -ErrorAction Stop})
+              if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -gt 0){throw 'W78_ORIGINAL_TEST_FAILURE_OR_SKIP'}
+              $full='ktrade/'+$pkg.TrimStart('.','/')
+              foreach($name in $names){
+                $matches=@($events|Where-Object {$_.Action -ceq 'pass' -and $_.Package -ceq $full -and $_.Test -ceq $name})
+                if($matches.Count -ne $n){throw ('W78_RACE_NAMED_TEST_NOT_REPEATED_'+$name)}
+              }
+              Write-Host ('::notice::W78_ORIGINAL_RACE_REPEAT=PASS package='+$full+' cases='+$names.Count+' repetitions='+$n)
+            }
+            Qualify './internal/papertrading' @(
+              'TestKTRADER10RealOfflinePaperFIFOFeesAndRestart',
+              'TestKTRADER10PaperRiskRefusalsNeverMutateLedger',
+              'TestKTRADER10PaperLedgerTamperRefused',
+              'TestW56OriginalFIFOPartialCloseAndFinalResidualAtExactScale',
+              'TestW56SharedCashSeparateProductLotsAndNoInventedOpening'
+            ) 4
+            Qualify './internal/papercustody' @(
+              'TestDurableJournalSnapshotsReplayAndNeverRearm',
+              'TestDurableCheckpointTamperAndPendingAreNotHidden',
+              'TestApplicationOwnedSingleWriterAcrossDifferentPaperSessions'
+            ) 4
+            Qualify './internal/paperengine' @(
+              'TestOwnerStartSubmitStopAndColdRestartNeverRearms',
+              'TestOwnerRejectsUnverifiedFeeMarketAndAlteredPineOrder',
+              'TestNativeOriginalTradeGuardAndCoordinatorPaperLifecycle',
+              'TestNativeOriginalRiskPostFillFailureKillsAndNeverRearms'
+            ) 3
+          }finally{Pop-Location}
+      - name: Repeated original installed Wails rollback source and process lease refusals
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product/tools/wails-pilot')
+          try {
+            $names=@(
+              'TestW30InstalledUpdateAndRollbackRetainVersionsDataAndOriginalReceipts',
+              'TestW30InstalledUpdateRefusalsPreserveCurrentSelection',
+              'TestW30InterruptedCommitKeepsLaunchQuarantineAndOwnerBytes',
+              'TestW30RollbackRejectsAlteredPriorDataAndBackup',
+              'TestW30RollbackRejectsCoordinatedReceiptRewrite',
+              'TestW28CRunningProcessBlocksReleaseSelectionAndRollback',
+              'TestW28CRejectsUnselectedAndOrphanedLease'
+            )
+            $pattern='^('+($names -join '|')+')$'
+            $raw=@(& go test -json -mod=readonly -count=3 -timeout 18m -run $pattern ./backend)
+            if($LASTEXITCODE -ne 0){
+              $raw|Select-Object -Last 100|ForEach-Object {Write-Host $_}
+              throw 'W78_ORIGINAL_WAILS_ROLLBACK_REPEAT_FAILED'
+            }
+            $events=@($raw|ForEach-Object {$_|ConvertFrom-Json -ErrorAction Stop})
+            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -gt 0){throw 'W78_WAILS_FAILURE_OR_SKIP'}
+            foreach($name in $names){
+              $ok=@($events|Where-Object {$_.Action -ceq 'pass' -and $_.Package -ceq 'ktrade-wails-pilot/backend' -and $_.Test -ceq $name})
+              if($ok.Count -ne 3){throw ('W78_WAILS_NAMED_TEST_NOT_REPEATED_'+$name)}
+            }
+            Write-Host ('::notice::W78_ORIGINAL_WAILS_ROLLBACK_LEASE_REPEAT=PASS cases='+$names.Count+' repetitions=3')
+          }finally{Pop-Location}
+      - name: Fail closed source and user/broker isolation final
+        if: always()
+        shell: pwsh
+        run: |
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '0acfae265370b677dfe6de1386de793fb20b2460'){throw 'W78_CANDIDATE_SOURCE_CHANGED'}
+          if(@(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'W78_TRACKED_PRODUCT_CHANGED'}
+          Write-Host '::notice::W78_ISOLATED_WINDOWS_NO_OWNER_INSTALL_NO_BROKER_NO_LIVE_NO_RELEASE_NO_MERGE'
