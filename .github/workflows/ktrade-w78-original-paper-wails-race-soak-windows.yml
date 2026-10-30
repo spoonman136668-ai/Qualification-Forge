@@ -85,7 +85,7 @@ jobs:
           try {
             function Qualify([string]$pkg,[string[]]$names,[int]$n){
               $pattern='^('+($names -join '|')+')$'
-              $raw=@(& go test -json -race -mod=readonly -count=$n -timeout 18m -run $pattern $pkg)
+              $raw=@(& go test -json -race -mod=readonly "-count=$n" -timeout 18m -run $pattern $pkg)
               if($LASTEXITCODE -ne 0){
                 $raw|Select-Object -Last 100|ForEach-Object {Write-Host $_}
                 throw ('W78_ORIGINAL_GO_RACE_FAILED_'+$pkg)
