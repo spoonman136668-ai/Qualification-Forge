@@ -31,8 +31,8 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: b606ff04a21d88837fb1c9c10de506dcce7a6509
-          fetch-depth: 3
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          fetch-depth: 4
           path: source
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -42,18 +42,18 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W82_EPHEMERAL_WINDOWS_REQUIRED'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'source'
-          if((& git -C $src rev-parse HEAD).Trim() -cne 'b606ff04a21d88837fb1c9c10de506dcce7a6509' -or
-             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'fa4c6a0857afb5b86cfb427a08e4958bb234ff75' -or
-             (& git -C $src rev-parse HEAD^^).Trim() -cne '0acfae265370b677dfe6de1386de793fb20b2460'){throw 'W82_SOURCE_IDENTITY_DRIFT'}
-          $allowed=@('cmd/ktrade/w80_compile_performance_full_test.go','go.mod','go.sum','tools/wails-pilot/go.mod','tools/wails-pilot/go.sum','windows/Build-KTRADE-WailsPortable.ps1','windows/Go-Toolchain.version')
-          $changed=@(& git -C $src diff --name-only HEAD^^ HEAD)
-          if($changed.Count -ne 7 -or @($changed|Where-Object {$_ -cnotin $allowed}).Count -ne 0){throw 'W82_DELTA_DRIFT'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '989020f81a7c731acf3bfa830c06e7e929805bcd' -or
+             (& git -C $src rev-parse HEAD^^^).Trim() -cne '0acfae265370b677dfe6de1386de793fb20b2460'){throw 'W82_SOURCE_IDENTITY_DRIFT'}
+          $allowed=@('cmd/ktrade/w80_compile_performance_full_test.go','pkg/advanced_order_auth_test.go','go.mod','go.sum','tools/wails-pilot/go.mod','tools/wails-pilot/go.sum','windows/Build-KTRADE-WailsPortable.ps1','windows/Go-Toolchain.version')
+          $changed=@(& git -C $src diff --name-only HEAD^^^ HEAD)
+          if($changed.Count -ne 8 -or @($changed|Where-Object {$_ -cnotin $allowed}).Count -ne 0){throw 'W82_DELTA_DRIFT'}
           if(@(& git -C $src status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $src '.env'))){throw 'W82_SOURCE_ISOLATION_FAILED'}
           if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W82_LIVE_ARMED'}
           $tokens=$null;$errs=$null
           [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'),[ref]$tokens,[ref]$errs)
           if($errs.Count -ne 0){throw 'W82_BUILDER_AST_FAILED'}
-          Write-Host '::notice::W82_EXACT_SEVEN_PATH_CUSTODY_POWERSHELL_AST_LIVE_DISARM=PASS'
+          Write-Host '::notice::W82_EXACT_EIGHT_PATH_CUSTODY_POWERSHELL_AST_LIVE_DISARM=PASS'
       - name: Actual obsolete Go negative
         uses: actions/setup-go@v5
         with:
@@ -67,7 +67,7 @@ jobs:
           $src=Join-Path $env:GITHUB_WORKSPACE 'source'
           $out=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
           $refused=$false
-          try{& (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $out -ExpectedSourceSha 'b606ff04a21d88837fb1c9c10de506dcce7a6509'}
+          try{& (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $out -ExpectedSourceSha 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'}
           catch{if($_.Exception.Message -like '*W80_EXACT_SUPPORTED_TOOLCHAIN_REQUIRED*'){$refused=$true}else{throw 'W82_UNEXPECTED_OLD_TOOLCHAIN_REFUSAL'}}
           if(!$refused -or (Test-Path $out)){throw 'W82_OLD_TOOLCHAIN_NOT_REFUSED_BEFORE_OUTPUT'}
           Write-Host '::notice::W82_ACTUAL_GO125_REFUSED_WITHOUT_PACKAGE_OUTPUT=PASS'
@@ -181,11 +181,11 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'W82_ORIGINAL_OFFLINE_VENDOR_FAILED'}
           }finally{Pop-Location}
           $root=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
-          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $root -ExpectedSourceSha 'b606ff04a21d88837fb1c9c10de506dcce7a6509'
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $root -ExpectedSourceSha 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'
           if($LASTEXITCODE -ne 0){throw 'W82_ORIGINAL_PAIR_PRODUCTION_BUILD_FAILED'}
           $manifest=Get-Content -LiteralPath (Join-Path $root 'source-manifest.json') -Raw|ConvertFrom-Json
           if($manifest.schema -cne 'ktrade.wails.package-qualification.v1' -or
-             $manifest.source_sha -cne 'b606ff04a21d88837fb1c9c10de506dcce7a6509' -or
+             $manifest.source_sha -cne 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a' -or
              $manifest.fixture_mode -cne 'none' -or $manifest.go_version -cne 'go1.26.10' -or $manifest.live_armed -or
              $manifest.release_candidate -or
              $manifest.desktop -cne 'Wails v2 / WebView2'){throw 'W82_WAILS_PAIR_MANIFEST_REJECTED'}
@@ -287,6 +287,6 @@ jobs:
             Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Stop
           }
           $src=Join-Path $env:GITHUB_WORKSPACE 'source'
-          if((& git -C $src rev-parse HEAD).Trim() -cne 'b606ff04a21d88837fb1c9c10de506dcce7a6509'){throw 'W82_SOURCE_SHA_CHANGED'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'){throw 'W82_SOURCE_SHA_CHANGED'}
           if(@(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'W82_TRACKED_SOURCE_MUTATED'}
           Write-Host '::notice::W82_NO_OWNER_DATA_NO_CONNECTED_BROKER_NO_ORDER_NO_LIVE_NO_RELEASE_NO_MERGE'
