@@ -14,8 +14,8 @@ function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:OS -ceq 'Windows_NT' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'W83_UNAUTHORIZED_EXECUTION_ENVIRONMENT'
 Require ($env:RUNNER_TEMP -and (Test-Path -LiteralPath $env:RUNNER_TEMP -PathType Container)) 'W83_RUNNER_TEMP_REQUIRED'
 $expected=@(
- @{name='PREVIOUS';root=$PreviousCheckout;sha='0acfae265370b677dfe6de1386de793fb20b2460';tree='1059c3e77dfb882f652994d9262f0eb681d03cb5'},
- @{name='CANDIDATE';root=$CandidateCheckout;sha='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a';tree='989020f81a7c731acf3bfa830c06e7e929805bcd'}
+ @{name='PREVIOUS';root=$PreviousCheckout;sha='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a';tree='989020f81a7c731acf3bfa830c06e7e929805bcd'},
+ @{name='CANDIDATE';root=$CandidateCheckout;sha='7ddea43a58e433de38244215b256d76988f5e9f6';tree='5dc9bfce99e5f97fa3c434542509763ee8f29294'}
 )
 foreach($entry in $expected){
  $actualSHA=(& git -C $entry.root rev-parse HEAD).Trim()
