@@ -1,0 +1,63 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W66",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 213,
+  "source_branch": "feature/rb3-w66-local-env-cdp-readonly-20261029",
+  "source_sha": "ec1e13cdd4d32e0e34e6f519a9cbed678c7a50f8",
+  "source_tree": "1ca786c3146bdaba18d5f3e9b735b46e8f59d8fb",
+  "parent_source_sha": "7a7ce915ccebc0b28ca4d9b91b5d317510a02b7a",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 38,
+  "qualification_branch": "qualification/ktrade-w66-local-dotenv-windows-20261029",
+  "witness_sha": "5363190e1ef66dc5e166f42a5e6e0d81423a0bc2",
+  "workflow_path": ".github/workflows/ktrade-w66-local-dotenv-windows.yml",
+  "workflow_blob": "26b87026c42a7dfb32a24ee13d0e2788cca4d931",
+  "run_id": 40985609632,
+  "job_id": 123835796030,
+  "conclusion": "success",
+  "completed_utc": "2026-10-30T01:34:28Z",
+  "changed_paths": [
+    ".gitignore",
+    "pkg/cdp_config.go",
+    "pkg/cdp_config_env_test.go"
+  ],
+  "evidence": {
+    "exact_w65_parent_and_source_tree": "PASS",
+    "three_product_files_only": "PASS",
+    "original_w65_financial_and_live_disarm": "PASS",
+    "secure_local_dotenv_import_and_invalid_override_tests": "PASS",
+    "tracked_legacy_json_key_fallback_rejected": "PASS",
+    "ngrok_tunnel_omitted": "PASS",
+    "w41_w66_financial_risk_paper_and_race": "PASS",
+    "full_original_go_app_root_nested_wails_tests_and_vet": "PASS",
+    "original_unsigned_go_wails_pair_no_synthetic_feed": "PASS",
+    "isolated_binaries_destroyed": "PASS"
+  },
+  "separate_original_owner_real_provider_observations": {
+    "local_env_metadata_run": 40985702072,
+    "authenticated_coinbase_view_run": 40985870377,
+    "authenticated_v3_portfolio_account_list_run": 40986081029,
+    "coinbase_v3_view_verified": true,
+    "portfolio_visible_in_list": true,
+    "nonempty_v3_accounts": true,
+    "usdc_account_seen": true,
+    "observed_accounts_page_has_next": false,
+    "real_credential_values_logged": false,
+    "original_owner_data_written": false,
+    "financial_authority": false
+  },
+  "limitations": [
+    "W66 changes explicit legacy CDP configuration loading only; native application default does not activate legacy order manager, and native current LIVE remains disabled",
+    "the optional COINBASE_ACCOUNT_ID remains unset in owner-local .env and no v2-wallet v3-portfolio mapping is attested",
+    "production Coinbase v3 real View proof was separately obtained under owner-local source-pinned GET-only diagnostics, not during hosted Windows W66 CI",
+    "no authentic v2 OAuth, historical financial reconciliation, opening balance, fee asset, financial posting or funding hold release",
+    "W66 does not scrub old tracked config.json, which is separately sanitized by W67 source candidate; Git history must still be remediated",
+    "both source and qualification PR remain draft/unmerged; no LIVE trade or release authority"
+  ],
+  "credentials_uploaded": false,
+  "broker_orders_posted": 0,
+  "hold_release_authorized": false,
+  "live_orders_authorized": false,
+  "source_merged": false
+}
