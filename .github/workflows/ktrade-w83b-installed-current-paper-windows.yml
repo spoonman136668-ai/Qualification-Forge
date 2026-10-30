@@ -110,6 +110,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'candidate/tools/wails-pilot')
           try{
             & go test -mod=readonly -count=1 ./...
