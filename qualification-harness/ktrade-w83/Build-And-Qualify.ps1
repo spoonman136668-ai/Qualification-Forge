@@ -15,7 +15,7 @@ Require ($env:OS -ceq 'Windows_NT' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hos
 Require ($env:RUNNER_TEMP -and (Test-Path -LiteralPath $env:RUNNER_TEMP -PathType Container)) 'W83_RUNNER_TEMP_REQUIRED'
 $expected=@(
  @{name='PREVIOUS';root=$PreviousCheckout;sha='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a';tree='989020f81a7c731acf3bfa830c06e7e929805bcd'},
- @{name='CANDIDATE';root=$CandidateCheckout;sha='7ddea43a58e433de38244215b256d76988f5e9f6';tree='5dc9bfce99e5f97fa3c434542509763ee8f29294'}
+ @{name='CANDIDATE';root=$CandidateCheckout;sha='e5032bdd9ea5d47476f32515c464e3368fe34ebe';tree='73fd7234ea9592cb9e08f59c4c964b362e83ec8f'}
 )
 foreach($entry in $expected){
  $actualSHA=(& git -C $entry.root rev-parse HEAD).Trim()
