@@ -29,11 +29,20 @@ jobs:
           ref: abc7c154e320e34797912f951dea415ae0992fa6
           path: accepted
           persist-credentials: false
-      - name: Checkout exact original W73 whole-product source
+      - name: Checkout original W31 independent browser-state baseline
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 7dfec71777730f744e1749b8bd741fbd01f0d2f6
+          ref: e51e03c22f906704295a24138ac1ceba5d9ea0d4
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact W76 test-only child of W73 whole-product source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0acfae265370b677dfe6de1386de793fb20b2460
+          fetch-depth: 2
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -46,7 +55,8 @@ jobs:
           foreach($pair in @(
              @('witness',$env:GITHUB_SHA),
              @('accepted','abc7c154e320e34797912f951dea415ae0992fa6'),
-             @('product','7dfec71777730f744e1749b8bd741fbd01f0d2f6')
+             @('previous','e51e03c22f906704295a24138ac1ceba5d9ea0d4'),
+             @('product','0acfae265370b677dfe6de1386de793fb20b2460')
           )){
             $p=Join-Path $root $pair[0]
             $head=(& git -C $p rev-parse HEAD).Trim()
@@ -55,13 +65,20 @@ jobs:
           }
           $src=Join-Path $root 'product'
           $tree=(& git -C $src rev-parse 'HEAD^{tree}').Trim()
-          if($tree -cne '666239a1893a17b8e7984d2b28fbd3b23c7c15cf'){throw 'W75_W73_TREE_DRIFT'}
+          if($tree -cne '1059c3e77dfb882f652994d9262f0eb681d03cb5'){throw 'W75_W76_TEST_ONLY_TREE_DRIFT'}
+          $parent=(& git -C $src rev-parse HEAD^).Trim()
+          if($parent -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6'){throw 'W75_W76_W73_PARENT_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD)
+          if($delta.Count -ne 1 -or $delta[0] -cne 'tests/paper_tradeguard_reconciliation.test.cjs'){throw 'W75_W76_SCOPE_MUST_BE_ONE_PAPER_TEST_ONLY'}
+          $sharedBlob=(& git -C $src rev-parse 'HEAD:internal/papertrading/filled_amounts.go').Trim()
+          $oldSharedBlob=(& git -C $src rev-parse 'HEAD^:internal/papertrading/filled_amounts.go').Trim()
+          if($sharedBlob -cne $oldSharedBlob -or $sharedBlob -cne '2c46814fa2514e96cca95aa7e2f021b6532dcc8a'){throw 'W75_ORIGINAL_SHARED_PAPER_GUARD_CHANGED'}
           $p=Join-Path $root 'accepted/qualification-receipts/ktrade-w74-final-installed-native-fourth-sell-windows-20261030.json'
           if((& git hash-object $p).Trim() -cne '71ace41011b02341592d45dc2db343ca481e4f12'){throw 'W75_ORIGINAL_W74_RECEIPT_BLOB_DRIFT'}
           $receipt=Get-Content -LiteralPath $p -Raw|ConvertFrom-Json
           if($receipt.verdict -cne 'PASS_SCOPED_INSTALLED_W31_TO_W73_TO_W31_AND_P10_QUARANTINE' -or
              $receipt.candidate_sha -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6' -or
-             $receipt.candidate_tree -cne $tree -or $receipt.exact_workflow_witness_sha -cne '3d55dab1c52c1bbf296cbc279601fd4748c7f245' -or
+             $receipt.candidate_tree -cne '666239a1893a17b8e7984d2b28fbd3b23c7c15cf' -or $receipt.exact_workflow_witness_sha -cne '3d55dab1c52c1bbf296cbc279601fd4748c7f245' -or
              $receipt.run_id -ne 41048262607 -or $receipt.run_conclusion -cne 'success' -or
              !$receipt.named_test.actual_pass){throw 'W75_ORIGINAL_W74_WITNESS_NOT_ACCEPTED'}
           $broker=Get-Content -LiteralPath (Join-Path $src 'pkg/advanced_orders.go') -Raw
@@ -105,7 +122,18 @@ jobs:
             Write-Host ('W75_ALL_ORIGINAL_NODE_TEST_FILES_DISCOVERED='+$tests.Count)
             & node --version
             if($LASTEXITCODE -ne 0){throw 'W75_NODE_NOT_AVAILABLE'}
-            $tap=@(& node --test --test-reporter=tap @tests)
+            # W28F is a CLI source-tree cross-version verifier (not a node:test
+            # case). It requires two distinct pinned absolute source roots.
+            $special='tests/rb3_w28f_original_browser_state.test.cjs'
+            if($tests -cnotcontains $special){throw 'W75_ORIGINAL_BROWSER_STATE_TEST_MISSING'}
+            $batch=@($tests|Where-Object {$_ -cne $special})
+            if($batch.Count -ne ($tests.Count-1)){throw 'W75_ORIGINAL_BROWSER_TEST_NOT_EXACTLY_ONCE'}
+            $oldRoot=Join-Path $env:GITHUB_WORKSPACE 'previous'
+            $newRoot=Join-Path $env:GITHUB_WORKSPACE 'product'
+            & node $special $oldRoot $newRoot
+            if($LASTEXITCODE -ne 0){throw 'W75_W28F_ORIGINAL_TWO_SOURCE_BROWSER_COMPAT_FAILED'}
+            Write-Host '::notice::W75_W31_W76_ORIGINAL_BROWSER_STATE_TWO_ROOTS=PASS'
+            $tap=@(& node --test --test-reporter=tap @batch)
             $testExit=$LASTEXITCODE
             $tap|ForEach-Object { Write-Host $_ }
             if($testExit -ne 0){throw 'W75_ORIGINAL_NODE_TEST_SUITE_FAILED'}
@@ -118,7 +146,7 @@ jobs:
                $skipped.Count -ne 1 -or $cancelled.Count -ne 1){throw 'W75_NODE_TAP_SUMMARY_UNVERIFIED'}
             $n=[int]([regex]::Match($summary[0],'\d+$').Value)
             $ok=[int]([regex]::Match($pass[0],'\d+$').Value)
-            if($n -lt $tests.Count -or $ok -ne $n){throw 'W75_NODE_CASES_NOT_ALL_EXECUTED'}
+            if($n -lt $batch.Count -or $ok -ne $n){throw 'W75_NODE_CASES_NOT_ALL_EXECUTED'}
             Write-Host ('::notice::W75_ALL_ORIGINAL_OPERATOR_MARKET_PINE_SECURITY_NODE_CASES=PASS files='+$tests.Count+' cases='+$n)
           }finally{Pop-Location}
       - name: Assert read-only scoped acceptance identity and no production side effects
@@ -126,6 +154,6 @@ jobs:
         shell: pwsh
         run: |
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6'){throw 'W75_FINAL_PRODUCT_SOURCE_DRIFT'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '0acfae265370b677dfe6de1386de793fb20b2460'){throw 'W75_FINAL_PRODUCT_SOURCE_DRIFT'}
           if(@(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'W75_FINAL_TRACKED_PRODUCT_MUTATION'}
           Write-Host '::notice::W75_NO_OWNER_PROFILE_NO_BROKER_NO_TRADE_NO_LIVE_NO_MERGE_NO_RELEASE'
