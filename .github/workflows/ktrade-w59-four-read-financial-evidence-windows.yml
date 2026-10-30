@@ -1,0 +1,155 @@
+name: KTRADE W59 four-signed-read evidence anchor and W58 financial custody Windows
+permissions:
+  contents: read
+  actions: read
+on:
+  push:
+    branches: [qualification/ktrade-w59-four-read-financial-evidence-20261029]
+    paths: [.github/workflows/ktrade-w59-four-read-financial-evidence-windows.yml]
+concurrency:
+  group: ktrade-w59-financial-gap-20261029
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout exact witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact original W59 candidate with W58 ancestry
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: af8c3acf0319d97589ccc5203117db49875bfcf2
+          path: current
+          fetch-depth: 32
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact W58 parent and two W59 paths and source LIVE disarm
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W59_NOT_HOSTED_WINDOWS'}
+          if((& git -C witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){throw 'W59_WITNESS_DRIFT'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'af8c3acf0319d97589ccc5203117db49875bfcf2' -or
+            (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'a702aa1552e5210991e3f336866c58f70c852e16'){throw 'W59_EXACT_SOURCE_TREE_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W59_DIRTY_SOURCE'}
+          $parent='7ed8e26370ad196fd04e8b21d455e11a90f66343'
+          if((& git -C $src merge-base HEAD $parent).Trim() -cne $parent){throw 'W59_W58_ANCESTRY_DRIFT'}
+          $got=@(& git -C $src diff --name-only $parent HEAD|Sort-Object)
+          $expected=@('pkg/advanced_order_four_read_evidence.go','pkg/advanced_order_four_read_evidence_test.go'|Sort-Object)
+          if(Compare-Object $got $expected){throw 'W59_CHANGED_PRODUCT_SCOPE_DRIFT'}
+          $broker=Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw
+          if($broker -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W59_LIVE_SOURCE_NO_LONGER_LOCKED'}
+          $w56=(& git -C $src rev-parse 'HEAD:internal/brokerintent/fill_accounting.go').Trim()
+          $original=(& git -C $src rev-parse ($parent+':internal/brokerintent/fill_accounting.go')).Trim()
+          if($w56 -cne $original){throw 'W59_ORIGINAL_W58_FINANCIAL_PROJECTION_CHANGED'}
+          $w57account=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_account_variance.go').Trim()
+          $w57parent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_account_variance.go')).Trim()
+          if($w57account -cne $w57parent){throw 'W59_ORIGINAL_W58_SIGNED_ACCOUNT_REVIEW_CHANGED'}
+          $w58gap=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_financial_gap.go').Trim()
+          $w58parent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_financial_gap.go')).Trim()
+          if($w58gap -cne $w58parent){throw 'W59_ORIGINAL_W58_FINANCIAL_GAP_REVIEW_CHANGED'}
+          Write-Host '::notice::W59_EXACT_PARENT_TWO_PATHS_AND_LIVE_DISABLED=PASS'
+      - name: Native Go 1.25 for signed balance and original financial kernel
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: W59 four independent signed reads, digest, and drift refusal tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -v -run '^TestW59' ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W59_FOCUSED_ACCOUNT_VARIANCE_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W59_TWO_SIGNED_ACCOUNT_READS_AND_UNCERTAINTY_REFUSAL=PASS'
+      - name: W41 through W59 financial, original risk, PAPER and venue guards
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -run '^Test(W41Advanced|W42Advanced|W43|W44|W45|W46|W47|W48|W49|W50|W51|W52|W53|W54|W55|W56|W57|W58|W59|HistoricalAdvancedOrderManager)' ./pkg ./internal/brokerintent ./internal/papertrading ./internal/brokerprecision
+            if($LASTEXITCODE -ne 0){throw 'W59_ORIGINAL_FUNDING_RISK_PAPER_REGRESSION'}
+            & go test -race -mod=readonly -count=1 -run '^TestW(43|53|54|55|56|57|58|59)' ./pkg ./internal/brokerintent ./internal/papertrading ./internal/brokerprecision
+            if($LASTEXITCODE -ne 0){throw 'W59_FINANCIAL_RACE_REGRESSION'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W59_ALL_AFFECTED_ORIGINAL_RISK_AND_FINANCIAL_RACE=PASS'
+      - name: Full original tagged app root and nested Wails tests and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W59_FULL_TAGGED_APP_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W59_FULL_TAGGED_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W59_FULL_ORIGINAL_ROOT_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W59_FULL_ORIGINAL_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current/tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W59_ORIGINAL_WAILS_TESTS_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W59_ORIGINAL_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W59_FULL_NATIVE_APP_ROOT_WAILS_TESTS_AND_VET=PASS'
+      - name: Node build-time offline vendor without changing product
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original source-bound unsigned Wails and Go production pair, no synthetic feed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          Remove-Item Env:KTRADE_W13_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W59_NPM_LOCKED_VENDOR_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W59_ORIGINAL_VENDOR_STAGE_FAILED'}
+          }finally{Pop-Location}
+          $package=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $package -ExpectedSourceSha 'af8c3acf0319d97589ccc5203117db49875bfcf2'
+          if($LASTEXITCODE -ne 0){throw 'W59_ORIGINAL_UNSIGNED_PAIR_BUILD_FAILED'}
+          $manifest=Get-Content (Join-Path $package 'source-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.source_sha -cne 'af8c3acf0319d97589ccc5203117db49875bfcf2' -or
+            $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W59_PRODUCTION_SOURCE_LIVE_DRIFT'}
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w59-package.marker'),$package)
+          Write-Host '::notice::W59_ORIGINAL_NATIVE_WAILS_GO_NO_LIVE_NO_SYNTHETIC_PACKAGE=PASS'
+      - name: Fail closed, destroy isolated binaries and preserve exact refs
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $marker=Join-Path $env:RUNNER_TEMP 'w59-package.marker'
+          if(Test-Path -LiteralPath $marker){
+            $path=[IO.File]::ReadAllText($marker)
+            if([IO.Path]::GetDirectoryName($path) -cne $env:RUNNER_TEMP -or [IO.Path]::GetFileName($path) -notmatch '^ktrade-w03-package-[a-f0-9]{32}$'){throw 'W59_UNSAFE_CLEANUP_ROOT'}
+            Remove-Item -LiteralPath $path -Force -Recurse -ErrorAction Stop
+          }
+          if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'current') rev-parse HEAD).Trim() -cne 'af8c3acf0319d97589ccc5203117db49875bfcf2'){throw 'W59_GIT_PRODUCT_MUTATION'}
+          Write-Host '::notice::W59_DISPOSABLE_NO_OWNER_DATA_NO_BROKER_POST_NO_LIVE_NO_MERGE'
