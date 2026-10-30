@@ -55,10 +55,14 @@ function Click-W32EUI([object]$proc,[string]$name){
   # actual disclosure through the same owned OS/UIA click path when needed.
   if($name -ceq 'Verify chart UI'){
     $proc.Refresh()
-    $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
-    $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
     $visible=$false
-    foreach($node in $nodes){try{if(!$node.Current.IsOffscreen -and $node.Current.Name -ceq 'Verify chart UI'){$visible=$true;break}}catch{}}
+    if($proc.MainWindowHandle -ne [IntPtr]::Zero){
+      $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
+      $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+      foreach($node in $nodes){try{if(!$node.Current.IsOffscreen -and $node.Current.Name -ceq 'Verify chart UI'){$visible=$true;break}}catch{}}
+    }
+    # The original click/wait helper bounds window readiness and ownership.
+    # A new engine may listen before its actual WebView window has a handle.
     if(!$visible){Click-W32EUI $proc 'Desktop diagnostics'}
   }
 
