@@ -1,0 +1,162 @@
+name: KTRADE W86 supported Go original PAPER race and mock broker faults
+on:
+  push:
+    branches: [qualification/ktrade-w86-supported-runtime-risk-faults-20261030]
+    paths: [.github/workflows/ktrade-w86-supported-runtime-risk-faults-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w86-supported-runtime-risk-faults-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7ddea43a58e433de38244215b256d76988f5e9f6
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact source and fresh native acceptance preflight
+        shell: pwsh
+        env:
+          W86_WITNESS_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W86_HOSTED_WINDOWS_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '7ddea43a58e433de38244215b256d76988f5e9f6' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '5dc9bfce99e5f97fa3c434542509763ee8f29294' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'W86_SOURCE_DRIFT'}
+          if(Test-Path (Join-Path $src '.env')){throw 'W86_DOTENV_REFUSED'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W86_LIVE_AUTHORITY_DRIFT'}
+          $headers=@{Authorization=('Bearer '+$env:W86_WITNESS_TOKEN);Accept='application/vnd.github+json'}
+          $run=Invoke-RestMethod -Headers $headers -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41081618535' -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne '3be8f108a37ab6f091a53b6c79f73e2967d5d736'){throw 'W86_EXACT_NATIVE_W85_ACCEPTANCE_REQUIRED'}
+          Write-Host '::notice::W86_EXACT_CURRENT_SOURCE_NATIVE_W85_ACCEPTED_LIVE_DISABLED=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Original PAPER cold restart ledger custody and TradeGuard repeated under race
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try {
+            function Qualify([string]$pkg,[string[]]$names,[int]$n){
+              $pattern='^('+($names -join '|')+')$'
+              $raw=@(& go test -json -race -mod=readonly "-count=$n" -timeout 18m -run $pattern $pkg)
+              if($LASTEXITCODE -ne 0){
+                $raw|Select-Object -Last 100|ForEach-Object {Write-Host $_}
+                throw ('W86_ORIGINAL_GO_RACE_FAILED_'+$pkg)
+              }
+              $events=@($raw|ForEach-Object {$_|ConvertFrom-Json -ErrorAction Stop})
+              if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -gt 0){throw 'W86_ORIGINAL_TEST_FAILURE_OR_SKIP'}
+              $full='ktrade/'+$pkg.TrimStart('.','/')
+              foreach($name in $names){
+                $matches=@($events|Where-Object {$_.Action -ceq 'pass' -and $_.Package -ceq $full -and $_.Test -ceq $name})
+                if($matches.Count -ne $n){throw ('W86_RACE_NAMED_TEST_NOT_REPEATED_'+$name)}
+              }
+              Write-Host ('::notice::W86_ORIGINAL_RACE_REPEAT=PASS package='+$full+' cases='+$names.Count+' repetitions='+$n)
+            }
+            Qualify './internal/papertrading' @(
+              'TestKTRADER10RealOfflinePaperFIFOFeesAndRestart',
+              'TestKTRADER10PaperRiskRefusalsNeverMutateLedger',
+              'TestKTRADER10PaperLedgerTamperRefused',
+              'TestW56OriginalFIFOPartialCloseAndFinalResidualAtExactScale',
+              'TestW56SharedCashSeparateProductLotsAndNoInventedOpening'
+            ) 4
+            Qualify './internal/papercustody' @(
+              'TestDurableJournalSnapshotsReplayAndNeverRearm',
+              'TestDurableCheckpointTamperAndPendingAreNotHidden',
+              'TestApplicationOwnedSingleWriterAcrossDifferentPaperSessions'
+            ) 4
+            Qualify './internal/paperengine' @(
+              'TestOwnerStartSubmitStopAndColdRestartNeverRearms',
+              'TestOwnerRejectsUnverifiedFeeMarketAndAlteredPineOrder',
+              'TestNativeOriginalTradeGuardAndCoordinatorPaperLifecycle',
+              'TestNativeOriginalRiskPostFillFailureKillsAndNeverRearms'
+            ) 3
+          }finally{Pop-Location}
+      - name: Repeated original installed Wails rollback source and process lease refusals
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product/tools/wails-pilot')
+          try {
+            $names=@(
+              'TestW30InstalledUpdateAndRollbackRetainVersionsDataAndOriginalReceipts',
+              'TestW30InstalledUpdateRefusalsPreserveCurrentSelection',
+              'TestW30InterruptedCommitKeepsLaunchQuarantineAndOwnerBytes',
+              'TestW30RollbackRejectsAlteredPriorDataAndBackup',
+              'TestW30RollbackRejectsCoordinatedReceiptRewrite',
+              'TestW28CRunningProcessBlocksReleaseSelectionAndRollback',
+              'TestW28CRejectsUnselectedAndOrphanedLease'
+            )
+            $pattern='^('+($names -join '|')+')$'
+            $raw=@(& go test -json -mod=readonly -count=3 -timeout 18m -run $pattern ./backend)
+            if($LASTEXITCODE -ne 0){
+              $raw|Select-Object -Last 100|ForEach-Object {Write-Host $_}
+              throw 'W86_ORIGINAL_WAILS_ROLLBACK_REPEAT_FAILED'
+            }
+            $events=@($raw|ForEach-Object {$_|ConvertFrom-Json -ErrorAction Stop})
+            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -gt 0){throw 'W86_WAILS_FAILURE_OR_SKIP'}
+            foreach($name in $names){
+              $ok=@($events|Where-Object {$_.Action -ceq 'pass' -and $_.Package -ceq 'ktrade-wails-pilot/backend' -and $_.Test -ceq $name})
+              if($ok.Count -ne 3){throw ('W86_WAILS_NAMED_TEST_NOT_REPEATED_'+$name)}
+            }
+            Write-Host ('::notice::W86_ORIGINAL_WAILS_ROLLBACK_LEASE_REPEAT=PASS cases='+$names.Count+' repetitions=3')
+          }finally{Pop-Location}
+      - name: Every original W41-W73 mock broker and custody test under current race runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            if((& go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'W86_TOOLCHAIN_DRIFT'}
+            $pattern='^TestW(4[1-9]|5[0-9]|6[0-9]|7[0-3]|82)'
+            $list=@(& go test -mod=readonly -list $pattern ./pkg)
+            if($LASTEXITCODE -ne 0){throw 'W86_ORIGINAL_MATRIX_DISCOVERY_FAILED'}
+            $names=@($list|Where-Object {$_ -cmatch $pattern})
+            $required=@('TestW41AdvancedCreateUsesDocumentedJSONAndOnlyAcknowledges','TestW41AdvancedCreateAcknowledgementBindsSentSnapshot','TestW42AdvancedRESTJWTExactContract','TestW42AdvancedRESTFreshNonceAndNoTokenCache','TestW42AdvancedRESTRejectsInvalidKeysAndEntropyFailure','TestW73CandidateHistoryPreservesPrecisionWithoutGrantingCashAuthority','TestW73RefusesForeignCursorsIdentitiesAliasesAndMalformedPages','TestW73CancellationAndHTTPRefusalsHaveOnlySanitizedStatus','TestW82SupportedCryptoKeepsNonceAndSecureSignatureContract')
+            foreach($name in $required){if($names -cnotcontains $name){throw ('W86_REQUIRED_ORIGINAL_MATRIX_CASE_MISSING_'+$name)}}
+            if($names.Count -eq 0 -or @($names|Select-Object -Unique).Count -ne $names.Count){throw 'W86_MATRIX_DISCOVERY_INVALID'}
+            if(@($names|Where-Object {$_ -match 'OwnerNative|OwnerReadOnly'}).Count -ne 0){throw 'W86_ORIGINAL_OWNER_REAL_PROVIDER_TAGS_REFUSED'}
+            Write-Host ('W86_ORIGINAL_MOCK_MATRIX_DISCOVERED_ROOTS='+$names.Count)
+            $raw=@(& go test -json -mod=readonly -race -count=1 -timeout 18m -run $pattern ./pkg)
+            $exit=$LASTEXITCODE
+            $events=@($raw|ForEach-Object {$_|ConvertFrom-Json -ErrorAction Stop})
+            if($exit -ne 0){$raw|Select-Object -Last 50|ForEach-Object {Write-Host $_};throw 'W86_ORIGINAL_BROKER_FAULT_MATRIX_FAILED'}
+            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'W86_FAULT_MATRIX_FAILURE_OR_SKIP'}
+            foreach($name in $names){
+              if(@($events|Where-Object {$_.Action -ceq 'pass' -and $_.Package -ceq 'ktrade/pkg' -and $_.Test -ceq $name}).Count -ne 1){throw ('W86_ORIGINAL_MATRIX_ROOT_NOT_EXECUTED_'+$name)}
+            }
+            Write-Host ('::notice::W86_ALL_ORIGINAL_MOCK_BROKER_CUSTODY_AUTH_HISTORY_ROOTS_RACE=PASS roots='+$names.Count)
+          }finally{Pop-Location}
+      - name: Source and authority final
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '7ddea43a58e433de38244215b256d76988f5e9f6' -or @(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'W86_FINAL_SOURCE_DRIFT'}
+          Write-Host '::notice::W86_CURRENT_SUPPORTED_RUNTIME_ORIGINAL_TESTS_NO_REAL_KEYS_NO_OWNER_DATA_NO_BROKER_ORDERS_NO_LIVE_NO_RELEASE'
+
