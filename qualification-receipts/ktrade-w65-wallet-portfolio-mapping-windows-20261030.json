@@ -1,0 +1,73 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W65",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 212,
+  "source_branch": "feature/rb3-w65-provider-link-evidence-quarantine-20261029",
+  "source_sha": "7a7ce915ccebc0b28ca4d9b91b5d317510a02b7a",
+  "source_tree": "558e066224157966f3762ccc2256d30f49c01c02",
+  "parent_sha": "63a169fe8e281864fbcfaf2900ffc8fc4239a3cb",
+  "parent_qualification": {
+    "gate": "W64",
+    "source_pr": 211,
+    "run_id": 40979575451,
+    "receipt_commit": "a41739510f30938d3bf7d236eb47094d597274ac"
+  },
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 37,
+  "qualification_branch": "qualification/ktrade-w65-wallet-portfolio-mapping-20261029",
+  "witness_sha": "8f0230a00f6705cf77ea364481bb6d280a5785c6",
+  "workflow_path": ".github/workflows/ktrade-w65-wallet-portfolio-mapping-windows.yml",
+  "workflow_git_blob": "48dd2acd09bba090789ef62eee11784ebab17dd8",
+  "run_id": 40981425781,
+  "job_id": 123822152418,
+  "run_event": "push",
+  "run_attempt": 1,
+  "run_status": "completed",
+  "conclusion": "success",
+  "run_updated_at": "2026-10-30T00:53:22Z",
+  "environment": {
+    "os": "windows/amd64",
+    "runner_image": "windows-2022",
+    "go_version": "1.25.0",
+    "node_version": "24.x",
+    "isolated_temp_tmp": true
+  },
+  "changed_paths": [
+    "pkg/advanced_order_wallet_portfolio_link_review.go",
+    "pkg/advanced_order_wallet_portfolio_link_review_test.go"
+  ],
+  "qualification_steps": {
+    "exact_w64_parent_tree_two_new_files_and_source_live_disarm": "PASS",
+    "original_financial_v2_v3_and_tls_custody_unchanged": "PASS",
+    "w65_non_authorizing_wallet_portfolio_claim_and_refusals": "PASS",
+    "affected_w41_w65_risk_financial_paper_and_race": "PASS",
+    "full_original_tagged_app_root_nested_wails_tests_and_vet": "PASS",
+    "unsigned_original_go_wails_production_pair_no_synthetic_feed": "PASS",
+    "isolated_build_artifact_cleanup": "PASS"
+  },
+  "proofs": [
+    "operator-supplied v2 wallet-v3 portfolio candidate is neither provider-asserted account ownership nor permission to change original risk controls",
+    "W65 binds candidate claim to W64 locally observed wallet transcript, W59 four-signed-read digest and durable fill head; refuses forged account identity, financial authority, overclaimed privileges or tampered review",
+    "original account and financial kernel, held funds, v2 wallet parser, detached collector witness and system-CA client are unchanged and original source LIVE gate remains disarmed",
+    "independent Windows run checked source identity, W65 adversarial tests, W41-W65 regression/race, full original Go/Wails tests/vet, unsigned production native build and ephemeral cleanup"
+  ],
+  "real_credentials_used": false,
+  "real_broker_account_or_order_requests": 0,
+  "coinbase_oauth_consent_independently_verified": false,
+  "provider_attested_wallet_portfolio_mapping": false,
+  "complete_account_history_verified": false,
+  "opening_balance_verified": false,
+  "commission_currency_verified": false,
+  "accounting_committed": false,
+  "release_authorized": false,
+  "live_order_authorized": false,
+  "original_holds_retained": true,
+  "owner_data_touched": false,
+  "source_merged": false,
+  "limitations": [
+    "no real Coinbase v2 OAuth access, account ownership, authenticated provider account linkage, settled portfolio accounting or LIVE orders were exercised",
+    "CKB Windows Credential Manager discovery is a separate local metadata check and does not prove any CKB credentials grant Coinbase App v2 OAuth access",
+    "source/witness PRs remain draft/unmerged and original account holds preserved"
+  ]
+}
