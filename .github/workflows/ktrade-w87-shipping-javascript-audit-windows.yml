@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: c368aaa37a72ec193d0af14f392432c4b6453c31
+          ref: cc9a0e2b90fae037a88246360ad93c5585aa8831
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -53,7 +53,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or (& git -C $src rev-parse HEAD).Trim() -cne 'c368aaa37a72ec193d0af14f392432c4b6453c31' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'f424792ed406de053956cd763c3e2def938e7747'){throw 'W87_SOURCE_OR_HOST_DRIFT'}
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or (& git -C $src rev-parse HEAD).Trim() -cne 'cc9a0e2b90fae037a88246360ad93c5585aa8831' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '025de2698b3a20abe59338d8c1e0a247c5ae46ad'){throw 'W87_SOURCE_OR_HOST_DRIFT'}
           if(Test-Path (Join-Path $src '.env')){throw 'W87_DOTENV_REFUSED'}
           & node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w87/Audit-Shipped-Dependencies.cjs') $src
           if($LASTEXITCODE -ne 0){throw 'W87_LOCKED_SHIPPING_JAVASCRIPT_AUDIT_FAILED'}
