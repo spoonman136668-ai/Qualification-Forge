@@ -10,8 +10,8 @@ param(
 )
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$OldSHA='0acfae265370b677dfe6de1386de793fb20b2460'
-$NewSHA='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'
+$OldSHA='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'
+$NewSHA='7ddea43a58e433de38244215b256d76988f5e9f6'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 function Hash([string]$f){return (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant()}
 function Ordinary([string]$f,[bool]$dir){
@@ -60,7 +60,14 @@ function Setup([string]$scriptPath,[string]$action,[bool]$shouldPass=$true){
  $errors=Join-Path $QualificationRoot ([guid]::NewGuid().ToString('N')+'.err')
  $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$scriptPath+'"'),'-Action',$action,
   '-InstallRoot',('"'+$script:installedRoot+'"'),'-ShortcutParent',('"'+$script:shortcuts+'"'))
- $proc=Start-Process -FilePath $script:ps51 -ArgumentList $arguments -Wait -PassThru -RedirectStandardOutput $log -RedirectStandardError $errors
+ # PS7's inherited module paths cannot supply PS5.1 core cmdlets.
+ # Bridge only this original installer child, then restore the PS7 host.
+ $modulePathBefore=$env:PSModulePath
+ try{
+  $env:PSModulePath=Join-Path (Split-Path -Parent $script:ps51) 'Modules'
+  Require (Test-Path -LiteralPath $env:PSModulePath -PathType Container) 'W83_WINDOWS_POWERSHELL_CORE_MODULES_REQUIRED'
+  $proc=Start-Process -FilePath $script:ps51 -ArgumentList $arguments -Wait -PassThru -RedirectStandardOutput $log -RedirectStandardError $errors
+ }finally{$env:PSModulePath=$modulePathBefore}
  $output=Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue
  $errorText=Get-Content -LiteralPath $errors -Raw -ErrorAction SilentlyContinue
  Remove-Item -LiteralPath $log,$errors -Force -ErrorAction SilentlyContinue
@@ -156,6 +163,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
  $shell=Get-Process -Id $owner.pid
  $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
  Require ([string]::Equals($cim.ExecutablePath,(Join-Path $receipt.candidate_directory 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)) 'W83_SHELL_EXE_DRIFT'
+ if($receipt.source_sha -ceq $NewSHA){ClickUI $shell 'Desktop diagnostics'}
  $verified=$false
  for($attempt=1;$attempt -le 3;$attempt++){
   ClickUI $shell 'Verify chart UI'
@@ -214,7 +222,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
  $memory=[long]$shell.WorkingSet64+[long]$engineProcess.WorkingSet64
  Require ($startWatch.Elapsed.TotalSeconds -le 120) 'W83_NATIVE_STARTUP_EXCEEDED_PROSPECTIVE_120S_BUDGET'
  Require ($memory -le 1073741824) 'W83_SHELL_ENGINE_RESIDENT_EXCEEDED_PROSPECTIVE_1GIB_BUDGET'
- Write-Output ('W83_NATIVE_START_MEASUREMENT='+(@{phase=$phase;elapsed_ms=$startWatch.Elapsed.TotalMilliseconds;shell_engine_resident_bytes=$memory;startup_budget_ms=120000;resident_budget_bytes=1073741824;scope='native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded'}|ConvertTo-Json -Compress))
+ Write-Host ('W83_NATIVE_START_MEASUREMENT='+(@{phase=$phase;elapsed_ms=$startWatch.Elapsed.TotalMilliseconds;shell_engine_resident_bytes=$memory;startup_budget_ms=120000;resident_budget_bytes=1073741824;scope='native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded'}|ConvertTo-Json -Compress))
  return [pscustomobject]@{shell=$shell;handle=$shell.Handle;enginePid=[int]$engine[0].ProcessId}
 }
 function StopInstalled([object]$run){

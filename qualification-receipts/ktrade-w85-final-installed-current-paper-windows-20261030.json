@@ -1,0 +1,133 @@
+{
+  "schema": "ktrade.qualification.w85-installed-paper-windows.v1",
+  "gate": "W85",
+  "verdict": "PASS_SCOPED_SOURCE_PINNED_WINDOWS_INSTALLED_OPERATOR_MARKET_PAPER_COLD_ROLLBACK",
+  "product_repository": "spoonman136668-ai/ktrade",
+  "product_pr": 224,
+  "product_sha": "7ddea43a58e433de38244215b256d76988f5e9f6",
+  "product_tree": "5dc9bfce99e5f97fa3c434542509763ee8f29294",
+  "prior_full_windows_security_source": "b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a",
+  "prior_full_windows_security_tree": "989020f81a7c731acf3bfa830c06e7e929805bcd",
+  "source_delta": [
+    "tests/rb3_w85_desktop_operator_shell.test.cjs",
+    "tests/wails_w02_boot.test.cjs",
+    "tools/wails-pilot/frontend/boot.js",
+    "tools/wails-pilot/frontend/desktop_diagnostics.js",
+    "tools/wails-pilot/frontend/index.html",
+    "tools/wails-pilot/frontend/style.css",
+    "windows/Build-KTRADE-WailsPortable.ps1"
+  ],
+  "source_scope": "Only original presentation/test/PowerShell builder paths changed; Go engine, Pine, risk, finance, Go dependencies and LIVE authorization source reused byte-identically from W82 accepted parent",
+  "foundation": {
+    "gate": "W82",
+    "source_sha": "b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a",
+    "run_id": 41071548527,
+    "receipt_commit": "8f7e0f7f723d9bcf641c3573b0162ce515e535d5",
+    "receipt_blob": "495e74494ccb4f09ffa8d653fb4eb669dee45fb3",
+    "scope": "Full Go tagged/root/nested Wails Windows test-vet; zero known reachable Go scan findings at frozen database as checked, measured Pine compile budget; release unapproved"
+  },
+  "qualifier_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualifier_pr": 54,
+  "workflow_path": ".github/workflows/ktrade-w83b-installed-current-paper-windows.yml",
+  "executing_witness_sha": "3be8f108a37ab6f091a53b6c79f73e2967d5d736",
+  "executing_workflow_blob": "520b368299ea463af84947948940e64017cee32b",
+  "run_id": 41081618535,
+  "run_attempt": 1,
+  "job_id": 124151938333,
+  "job_status": "completed",
+  "job_conclusion": "success",
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "last_updated_utc": "2026-10-30T15:43:31Z",
+  "runner": "GitHub-hosted Windows",
+  "go_version": "1.26.10",
+  "original_node": {
+    "original_checked_in_node_files": 33,
+    "regular_cases": 152,
+    "passed": 152,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "original_W28F_two_root_browser_compatibility": "PASS"
+  },
+  "original_wails_nested_test_and_vet": "PASS",
+  "original_windows_installed_checks": [
+    "Original signed-free Windows setup built for PR223 and exact PR224 separately",
+    "Previous source authentic installed WebView2 Wails/PAPER_STOPPED PASS",
+    "Selected upgraded Wails native chart, Pine v5/v6, malformed source refusal, legacy HTTP423, NO_REARM PASS",
+    "Original native current-public-market W40 source four PAPER fills in two buy/sell rounds, fee/FIFO/TradeGuard/dedup/Stop PASS",
+    "Cold restarted stopped account: balances, fees and journal retained, NO_AUTO_REARM PASS",
+    "Rollback to original previous selected installed version, original and newly written history preserved PASS",
+    "No installed owner data or private brokerage calls, original product LIVE still disabled"
+  ],
+  "observed_hosted_windows_native_telemetry": {
+    "scope": "Selected native shortcut to verified WebView2 and safe capability; shell+Go engine resident snapshot; WebView child processes excluded",
+    "budgets": {
+      "startup_ms": 120000,
+      "resident_bytes": 1073741824
+    },
+    "previous": {
+      "startup_ms": 12025.9539,
+      "shell_engine_resident_bytes": 57053184
+    },
+    "updated": {
+      "startup_ms": 2787.1703,
+      "shell_engine_resident_bytes": 57704448
+    },
+    "rolled_back": {
+      "startup_ms": 2111.3377,
+      "shell_engine_resident_bytes": 56811520
+    },
+    "result": "PASS_SCOPED_SINGLE_HOSTED_VM_SNAPSHOT_NOT_LONG_SOAK"
+  },
+  "authentic_action_log_markers": [
+    "W85_EXACT_PRESENTATION_PACKAGING_ONLY_DELTA_ORIGINAL_ENGINE_AND_MODULES_W82_REUSE=PASS",
+    "W83_PS7_PS51_SCOPED_CORE_MODULE_BOUNDARY=PASS",
+    "W85_CURRENT_EMBEDDED_WAILS_ALL_ORIGINAL_TESTS_VET=PASS",
+    "W85_ALL_ORIGINAL_OPERATOR_MARKET_PINE_SECURITY_NODE_CASES=PASS",
+    "W33C_P9_REAL_WAILS_TWO_CONSECUTIVE_PUBLIC_MARKET_ROUNDTRIPS=PASS",
+    "W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+    "W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS",
+    "W83_REAL_INSTALLED_UPGRADE_FOUR_CURRENT_NATIVE_PAPER_FILLS_STOP_COLD_ACCOUNT_ROLLBACK_HISTORY_RETAINED=PASS"
+  ],
+  "previous_failed_attempts": [
+    {
+      "run_id": 41076130968,
+      "verdict": "FAIL",
+      "cause": "qualifier process return polluted by a Write-Output measurement; not a production source regression"
+    },
+    {
+      "run_id": 41078598856,
+      "verdict": "FAIL",
+      "cause": "qualifier original nested Wails temp fixture issue; read back as failure and not accepted"
+    },
+    {
+      "run_id": 41079352178,
+      "verdict": "FAIL",
+      "cause": "stopped-account/cold helper qualifier failure; not accepted, see immutable prior failure receipt"
+    }
+  ],
+  "limits": [
+    "This is scoped original installed native acceptance on one hosted Windows 2022 instance; not complete production security, long soak, real hardware or SLO certainty.",
+    "W82 scans are frozen to inspected Go vulnerability database and unchanged source; not all C/JS/installer supply-chain surfaces were independently audited.",
+    "No authentic owner's installed app/user profile was migrated, inventoried, altered or accepted.",
+    "No publisher identity, authenticode signing, distribution or source merge; main branch protection and required checks remain separately unverified at this receipt.",
+    "No real Coinbase cash/account opening/commission reconciliation or original owner financial posting.",
+    "No real broker order or LIVE authorization; code remains disarmed."
+  ],
+  "safe_scope": {
+    "owner_profile_touched": false,
+    "private_credential_exported": false,
+    "live_broker_access": false,
+    "broker_order_submitted": false,
+    "release_signed": false,
+    "deployed": false,
+    "source_merged": false
+  },
+  "evidence_urls": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41081618535",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/pull/54",
+    "https://github.com/spoonman136668-ai/ktrade/pull/224"
+  ],
+  "provenance": "This post-run receipt commit is not the workflow execution SHA and does not rerun qualification."
+}
