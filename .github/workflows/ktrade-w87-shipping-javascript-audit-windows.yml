@@ -28,6 +28,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: Clean frozen source before generated assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '9fe979ec4b5da128a174b777d658461fd492d46e' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'W87_INITIAL_CLEAN_SOURCE_REQUIRED'}
       - name: Locked public asset install with lifecycle scripts disabled
         shell: pwsh
         env:
@@ -58,5 +64,6 @@ jobs:
           if(Test-Path (Join-Path $src '.env')){throw 'W87_DOTENV_REFUSED'}
           & node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w87/Audit-Shipped-Dependencies.cjs') $src
           if($LASTEXITCODE -ne 0){throw 'W87_LOCKED_SHIPPING_JAVASCRIPT_AUDIT_FAILED'}
-          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W87_READ_ONLY_AUDIT_MUTATED_SOURCE'}
-          Write-Host '::notice::W87_READ_ONLY_CURRENT_LOCK_NO_INSTALL_NO_SCRIPTS_NO_OWNER_DATA_NO_LIVE=PASS'
+          $changes=@(& git -C $src status --porcelain)
+          if(@($changes|Where-Object {$_ -cnotin @('?? node_modules/','?? static/vendor/')}).Count -ne 0){throw 'W87_UNEXPECTED_TRACKED_INDEX_OR_UNTRACKED_CHANGE'}
+          Write-Host '::notice::W87_TRACKED_SOURCE_UNCHANGED_ONLY_EXPLICIT_GENERATED_ASSETS_NO_INSTALL_SCRIPTS_NO_OWNER_DATA_NO_LIVE=PASS'
