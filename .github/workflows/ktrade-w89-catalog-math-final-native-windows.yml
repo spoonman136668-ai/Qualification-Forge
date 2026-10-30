@@ -1,0 +1,241 @@
+name: KTRADE W89 exact catalog math full regression installed PAPER cold rollback
+on:
+  push:
+    branches: [qualification/ktrade-w89-catalog-math-final-native-20261030]
+    paths: [.github/workflows/ktrade-w89-catalog-math-final-native-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w89-catalog-math-final-native-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 85
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Previously Windows-qualified PR223 predecessor
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact W89 catalog correctness candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: e5032bdd9ea5d47476f32515c464e3368fe34ebe
+          fetch-depth: 10
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Source custody prior W82 security regression and original harness AST
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W83_HOSTED_WINDOWS_REQUIRED'}
+          foreach($pin in @(@('previous','b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'),@('candidate','e5032bdd9ea5d47476f32515c464e3368fe34ebe'),@('witness',$env:GITHUB_SHA))){
+            $p=Join-Path $env:GITHUB_WORKSPACE $pin[0]
+            if((& git -C $p rev-parse HEAD).Trim() -cne $pin[1] -or @(& git -C $p status --porcelain).Count -ne 0){throw 'W83_SHA_OR_CLEAN_CUSTODY_DRIFT'}
+          }
+          if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'candidate') rev-parse 'HEAD^{tree}').Trim() -cne '73fd7234ea9592cb9e08f59c4c964b362e83ec8f'){throw 'W83_TREE_DRIFT'}
+          foreach($dir in @('previous','candidate')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(Test-Path (Join-Path $p '.env')){throw 'W83_DOTENV_REFUSED'}
+            $cfg=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
+            if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'W83_TRACKED_CREDENTIALS_REFUSED'}
+            if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W83_LIVE_AUTHORITY_DRIFT'}
+          }
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41071548527' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne 'fa0a90b503a95b4422251c27a7d2ea19b4671a6e'){throw 'W83_W82_REPAIRED_CANDIDATE_NOT_ACCEPTED'}
+          $dir=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          foreach($file in Get-ChildItem $dir -Filter '*.ps1' -File){
+            $tokens=$null;$errs=$null
+            [void][Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$errs)
+            if($errs.Count -ne 0){throw ('W83_HARNESS_AST_FAILED_'+$file.Name)}
+          }
+          if(@(Get-ChildItem $dir -Filter '*.ps1' -File).Count -ne 4){throw 'W83_FOUR_HARNESSES_REQUIRED'}
+          if((& git hash-object (Join-Path $dir 'Original-W40-Paper.ps1')).Trim() -cne 'c69c3c05ff7f4ef933856b036bfa23fbf0a760f1'){throw 'W83_ORIGINAL_W40_FINANCIAL_ASSERTIONS_DRIFT'}
+
+          if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'candidate') rev-parse HEAD~9).Trim() -cne 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'){throw 'W89_EXACT_W82_BASE_REQUIRED'}
+          $allowed=@('.gitattributes','pkg/w89_catalog_math_test.go','scripts/stage_offline_vendor.cjs','scripts/vendor-licenses/fancy-canvas-2.1.0.LICENSE','templates/chart.tmpl','tests/rb3_w85_desktop_operator_shell.test.cjs','tests/rb3_w88_vendor_staging.test.cjs','tests/wails_w02_boot.test.cjs','tools/wails-pilot/frontend/boot.js','tools/wails-pilot/frontend/desktop_diagnostics.js','tools/wails-pilot/frontend/index.html','tools/wails-pilot/frontend/style.css','windows/Build-KTRADE-WailsPortable.ps1')
+          $changed=@(& git -C (Join-Path $env:GITHUB_WORKSPACE 'candidate') diff --name-only HEAD~9 HEAD)
+          if($changed.Count -ne 13 -or @($changed|Where-Object {$_ -cnotin $allowed}).Count -ne 0){throw 'W89_RUNTIME_REUSE_SOURCE_DELTA_REFUSED'}
+          $pins=@(
+            @('static/watchlist_manager.js','36b1eb163d245ce98510d2a2376c4612a0e4faf5'),
+            @('static/layout_manager.js','35b892974e73257393c0b5e523d564f519056d40'),
+            @('static/indicator_library.js','b1272eb9a6f54ec1e40b019788a1e0a202fd09ab'),
+            @('static/indicator_browser.js','278729c39feadea7b3ec0d51659c9f7ad9211ed0')
+          )
+          foreach($pin in $pins){foreach($root in @('previous','candidate')){
+            if((& git -C (Join-Path $env:GITHUB_WORKSPACE $root) rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'W89_ORIGINAL_BROWSER_READER_DRIFT'}
+          }}
+          Write-Host '::notice::W89_EXACT_PRESENTATION_PACKAGING_ONLY_DELTA_ORIGINAL_ENGINE_AND_MODULES_W82_REUSE=PASS'
+          Write-Host '::notice::W83_EXACT_SOURCES_W82_ACCEPTED_ORIGINAL_SCENARIO_AST_LIVE_DISABLED=PASS'
+      - name: Windows PowerShell installer core module boundary preflight
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $ps51=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+          $saved=$env:PSModulePath
+          try{
+            $env:PSModulePath=Join-Path (Split-Path -Parent $ps51) 'Modules'
+            & $ps51 -NoProfile -NonInteractive -Command 'Get-Command Get-FileHash -ErrorAction Stop|Out-Null'
+            if($LASTEXITCODE -ne 0){throw 'W83_NATIVE_PS51_FILE_HASH_UNAVAILABLE'}
+          }finally{$env:PSModulePath=$saved}
+          Write-Host '::notice::W83_PS7_PS51_SCOPED_CORE_MODULE_BOUNDARY=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Actual old catalog failure and exact fixed raw Pine v5 v6 numerical regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          $new=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $fixture=Join-Path $old 'pkg/w89_catalog_math_test.go'
+          if(Test-Path $fixture){throw 'W89_OLD_REGRESSION_FIXTURE_COLLISION'}
+          Copy-Item (Join-Path $new 'pkg/w89_catalog_math_test.go') $fixture
+          Push-Location $old
+          try{
+            $raw=@(& go test -json -mod=readonly -count=1 -timeout 8m -run '^TestW89WilliamsCatalogRollingHighLowIsNotRSI$' ./pkg)
+            $exit=$LASTEXITCODE
+            $events=@($raw|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+            if($exit -eq 0 -or @($events|Where-Object{$_.Action -ceq 'fail' -and $_.Test -ceq 'TestW89WilliamsCatalogRollingHighLowIsNotRSI'}).Count -ne 1 -or @($events|Where-Object{$_.Output -match 'rolling Williams.*got.*want'}).Count -eq 0){throw 'W89_ORIGINAL_WRONG_OSCILLATOR_FAILURE_NOT_REPRODUCED'}
+            Write-Host '::notice::W89_OLD_CATALOG_RSI_INSTEAD_OF_WILLIAMS_NUMERIC_FAILURE_REPRODUCED=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $fixture -Force
+          }
+          if(@(& git -C $old status --porcelain).Count -ne 0){throw 'W89_OLD_FIXTURE_NOT_REMOVED'}
+          Push-Location $new
+          try{
+            $raw=@(& go test -json -mod=readonly -count=1 -timeout 8m -run '^TestW89' ./pkg)
+            $exit=$LASTEXITCODE
+            $raw|ForEach-Object{Write-Host $_}
+            $events=@($raw|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+            if($exit -ne 0 -or @($events|Where-Object{$_.Action -in @('fail','skip')}).Count -ne 0){throw 'W89_RAW_CATALOG_NUMERIC_REGRESSION_FAILED'}
+            foreach($name in @('TestW89WilliamsCatalogRollingHighLowIsNotRSI','TestW89WilliamsCatalogFlatRangeIsUndefinedNotInvented')){
+              foreach($suffix in @('','/v5','/v6')){
+                if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq ($name+$suffix)}).Count -ne 1){throw 'W89_REQUIRED_RAW_COMPILER_CASE_MISSING'}
+              }
+            }
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W89_FINAL_ROOT_GO_TESTS_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W89_FINAL_ROOT_GO_VET_FAILED'}
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W89_FINAL_TAGGED_APP_TESTS_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W89_FINAL_TAGGED_APP_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W89_RAW_WILLIAMS_V5_V6_CORRECT_VALUES_FLAT_NA_FULL_ROOT_TAGGED_TEST_VET=PASS'
+      - name: Original nested Wails regression and vet on new embedded presentation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'candidate/tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W89_ORIGINAL_WAILS_TESTS_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W89_ORIGINAL_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W89_CURRENT_EMBEDDED_WAILS_ALL_ORIGINAL_TESTS_VET=PASS'
+      - name: Execute every original checked-in Node test with required coverage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          Push-Location $src
+          try{
+            $tests=@(Get-ChildItem -LiteralPath (Join-Path $src 'tests') -Filter '*.test.cjs' -File |
+               Sort-Object Name | ForEach-Object { 'tests/'+$_.Name })
+            if($tests.Count -ne 34){throw 'W89_NODE_TEST_FILE_COVERAGE_BELOW_FROZEN_MINIMUM'}
+            $required=@(
+             'tests/w17d9_market_context.test.cjs',
+             'tests/w21_market_readout_integrity.test.cjs',
+             'tests/w19_paper_failure_feedback.test.cjs',
+             'tests/rb3_w33a_operator_paper_state.test.cjs',
+             'tests/rb3_w39_paper_operator_accessibility.test.cjs',
+             'tests/rb3_w32b_pine_compile.test.cjs',
+             'tests/rb3_w32c_pine_renderer.test.cjs',
+             'tests/rb3_w32d_pine_pane.test.cjs',
+             'tests/w17d1a_original_chart_uia.test.cjs',
+             'tests/w17d1_chart_favorite_continuity.test.cjs',
+             'tests/w33c_p7_paper_valuation.test.cjs',
+             'tests/paper_tradeguard_reconciliation.test.cjs',
+             'tests/historical_pine_editor_chart_wiring.test.cjs',
+             'tests/wails_w02_boot.test.cjs'
+            )
+            foreach($name in $required){if($tests -cnotcontains $name){throw ('W89_REQUIRED_TEST_PATH_MISSING_'+$name)}}
+            Write-Host ('W89_ALL_ORIGINAL_NODE_TEST_FILES_DISCOVERED='+$tests.Count)
+            & node --version
+            if($LASTEXITCODE -ne 0){throw 'W89_NODE_NOT_AVAILABLE'}
+            # W28F is a CLI source-tree cross-version verifier (not a node:test
+            # case). It requires two distinct pinned absolute source roots.
+            $special='tests/rb3_w28f_original_browser_state.test.cjs'
+            if($tests -cnotcontains $special){throw 'W89_ORIGINAL_BROWSER_STATE_TEST_MISSING'}
+            $batch=@($tests|Where-Object {$_ -cne $special})
+            if($batch.Count -ne ($tests.Count-1)){throw 'W89_ORIGINAL_BROWSER_TEST_NOT_EXACTLY_ONCE'}
+            $oldRoot=Join-Path $env:GITHUB_WORKSPACE 'previous'
+            $newRoot=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+            & node $special $oldRoot $newRoot
+            if($LASTEXITCODE -ne 0){throw 'W89_W28F_ORIGINAL_TWO_SOURCE_BROWSER_COMPAT_FAILED'}
+            Write-Host '::notice::W89_W31_W76_ORIGINAL_BROWSER_STATE_TWO_ROOTS=PASS'
+            $tap=@(& node --test --test-reporter=tap @batch)
+            $testExit=$LASTEXITCODE
+            $tap|ForEach-Object { Write-Host $_ }
+            if($testExit -ne 0){throw 'W89_ORIGINAL_NODE_TEST_SUITE_FAILED'}
+            $summary=@($tap|Where-Object {$_ -match '^# tests (\d+)$'})
+            $pass=@($tap|Where-Object {$_ -match '^# pass (\d+)$'})
+            $failed=@($tap|Where-Object {$_ -match '^# fail 0$'})
+            $skipped=@($tap|Where-Object {$_ -match '^# skipped 0$'})
+            $cancelled=@($tap|Where-Object {$_ -match '^# cancelled 0$'})
+            if($summary.Count -ne 1 -or $pass.Count -ne 1 -or $failed.Count -ne 1 -or
+               $skipped.Count -ne 1 -or $cancelled.Count -ne 1){throw 'W89_NODE_TAP_SUMMARY_UNVERIFIED'}
+            $n=[int]([regex]::Match($summary[0],'\d+$').Value)
+            $ok=[int]([regex]::Match($pass[0],'\d+$').Value)
+            if($n -lt $batch.Count -or $ok -ne $n){throw 'W89_NODE_CASES_NOT_ALL_EXECUTED'}
+            Write-Host ('::notice::W89_ALL_ORIGINAL_OPERATOR_MARKET_PINE_SECURITY_NODE_CASES=PASS files='+$tests.Count+' cases='+$n)
+          }finally{Pop-Location}
+      - name: Real unsigned install upgrade native paper Stop cold and rollback
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          & (Join-Path $h 'Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') -WitnessScript (Join-Path $h 'Installed-Paper-Lifecycle.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1')
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'W83_REAL_INSTALLED_CURRENT_MARKET_PAPER_AND_ROLLBACK_FAILED'}
+          Write-Host '::notice::W83_REAL_INSTALLED_UPGRADE_FOUR_CURRENT_NATIVE_PAPER_FILLS_STOP_COLD_ACCOUNT_ROLLBACK_HISTORY_RETAINED=PASS'
+      - name: Source custody and no production authority final
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($dir in @('previous','candidate')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(@(& git -C $p status --porcelain --untracked-files=no).Count -ne 0){throw 'W83_TRACKED_SOURCE_CHANGED'}
+          }
+          Write-Host '::notice::W83_HOSTED_EPHEMERAL_SYNTHETIC_DATA_PUBLIC_CANDLES_ONLY_NO_OWNER_INSTALL_NO_REAL_ORDERS_NO_LIVE_NO_RELEASE'
