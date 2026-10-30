@@ -1,4 +1,4 @@
-name: KTRADE W85 operator shell final installed PAPER cold rollback acceptance
+name: KTRADE W85 operator shell installed PAPER cold window readiness rollback acceptance
 on:
   push:
     branches: [qualification/ktrade-w83b-installed-current-paper-20261030]
