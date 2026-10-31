@@ -1,0 +1,106 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W57",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "369bf3a364ffb3429c32fd8868c147c5225e7880",
+  "source_tree": "c52994c5d04f2fd71c8cf782e70de97c7fecf127",
+  "parent_sha": "a801cf9be65a5e4d0b9caf5d256a38d6b165da4b",
+  "parent_tree": "a1460dd745870b728f8546d571906c28f3aab0a8",
+  "parent_qualification": {
+    "pr": 203,
+    "run_id": 40953289556,
+    "receipt_commit": "4a0cb6570b3aa6815adce1f6ce1b4065065079e3"
+  },
+  "pr": 204,
+  "branch": "feature/rb3-w57-signed-account-variance-review-20261029",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 29,
+  "witness_sha": "f9ea96c8667baaa094d2cd19dafd12e1f2eba0a8",
+  "workflow_path": ".github/workflows/ktrade-w57-signed-account-variance-windows.yml",
+  "workflow_git_blob": "5c6be5c06ef26d12ccc5fa81c09b910e46f9ccb5",
+  "run_id": 40959264643,
+  "job_id": 123747426099,
+  "run_event": "push",
+  "run_attempt": 1,
+  "run_status": "completed",
+  "conclusion": "success",
+  "run_created_at": "2026-10-29T21:36:50Z",
+  "run_updated_at": "2026-10-29T21:46:20Z",
+  "environment": {
+    "os": "windows/amd64",
+    "runner_image": "windows-2022",
+    "image_version": "20261025.346.1",
+    "go_version": "1.25.0",
+    "node_version": "24.22.1",
+    "cgo_enabled": true,
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2,
+    "isolated_temp_tmp": true
+  },
+  "changed_paths": [
+    "pkg/advanced_order_account_variance.go",
+    "pkg/advanced_order_account_variance_test.go"
+  ],
+  "qualification_steps": {
+    "exact_source_parent_scope_live_disarm": "PASS",
+    "focused_W57_signed_account_tests": "PASS",
+    "affected_W41_through_W57_financial_risk_paper_guard_and_race": "PASS",
+    "full_tagged_app_root_nested_wails_test_and_vet": "PASS",
+    "offline_node_build_vendor": "PASS",
+    "original_unsigned_wails_and_go_production_pair_no_fixture": "PASS",
+    "disposable_artifacts_cleanup": "PASS"
+  },
+  "proofs": [
+    "two separate request-signed account GET observations bound to original account/portfolio identity, complete durable W56 BUY accounting and original held intent; mismatch, stale, changed owner/financial head and malformed account evidence refuse",
+    "no claim of commission asset denomination, opening account balance, atomic snapshot, posted accounting, spendable funds or release authorization",
+    "source ancestry and exact two-new-file scope checked; existing TradeGuard, W56 accounting and public source LIVE gate retained",
+    "24-place exact USDC observed available/venue-hold/total returned as review-only values; original reserved amount and durable fill head preserved",
+    "fresh W57 direct and negative tests, W41-W57 affected-interface and race tests, full tagged application/root/nested Wails tests and vet passed",
+    "unsigned original production pair built with fixture_mode none, live_armed false and release_candidate false; test package disposed without application start",
+    "qualification witness repair restored isolated TEMP/TMP for full test stage only; W18 candidate-origin guard and test source remained unchanged"
+  ],
+  "attempt_history": [
+    {
+      "run_id": 40956345753,
+      "conclusion": "failure",
+      "reason": "missing Go time import in newly added W57 negative test",
+      "witness_sha": "a026d306920b7e43cc5d3c479e070219797def1f"
+    },
+    {
+      "run_id": 40956741779,
+      "conclusion": "failure",
+      "reason": "full tagged W18 candidate-origin test failed on redirected path; omitted isolated TEMP/TMP in full-test stage",
+      "witness_sha": "fc0f90e8a44e1b777be6685c871f8452e8a2d89c"
+    },
+    {
+      "run_id": 40959264643,
+      "conclusion": "success",
+      "reason": "isolated TEMP/TMP restored; all required job stages completed",
+      "witness_sha": "f9ea96c8667baaa094d2cd19dafd12e1f2eba0a8"
+    }
+  ],
+  "source_live_disabled": true,
+  "opening_balance_verified": false,
+  "commission_currency_verified": false,
+  "snapshot_atomic": false,
+  "accounting_committed": false,
+  "release_authorized": false,
+  "live_order_authorized": false,
+  "cross_process_exclusivity_verified": false,
+  "venue_reservation_established": false,
+  "real_credentials_used": false,
+  "real_account_order_requests": 0,
+  "owner_data_touched": false,
+  "qualified_native_gui_runtime": false,
+  "source_merged": false,
+  "limitations": [
+    "acceptance limited to exact W57 source and Windows build/qualification, not a trading authorization or full product release",
+    "two signed balance snapshots are non-atomic and do not establish opening balance, venue commission currency or local spendable cash",
+    "original native/local risk holds remain intact; no posting, hold-release, owner recovery, permission to send orders or new live lease",
+    "native authenticated evidence covers BUY base-sized spot limit-GTC USDC; arithmetic for other sides is not native venue integration",
+    "test uses generated synthetic credentials and in-memory signed GET transport, not a genuine connected brokerage account",
+    "no new installed-user-data migration or native GUI runtime acceptance; package was unsigned and disposed",
+    "protected main and production deployment unchanged; PR #204 remains draft/unmerged"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "ktrade.qualification.shipping-js-generated-root-guard-failure.v1",
+  "run_id": 41144226413,
+  "job_id": 124365407664,
+  "witness": "299070f596b3091b63d0834f0d56eefe1b807ac9",
+  "source": "9fe979ec4b5da128a174b777d658461fd492d46e",
+  "tree": "ca6c13628f678093ede20831e206800ddbd2d1ec",
+  "verdict": "FAIL_OVERALL_PARTIAL_FINDINGS_RETAINED",
+  "actual": {
+    "windows_property_tests": "4/4 PASS",
+    "real_asset_manifest": "118 files all hashes correct, repeat byte-stable",
+    "shipped_advisories": [],
+    "root_licenses_and_pinned_upstream_fallback": "PASS",
+    "preserved_nonshipping_legacy_build_advisories": {
+      "high": 9,
+      "critical": 1
+    }
+  },
+  "failure": "Final qualifier rejected intentional untracked node_modules/static/vendor build outputs using full git status. Must accept only these two explicit generated directories and still reject any tracked/index mutation or other untracked path.",
+  "owner_data_touched": false,
+  "live_armed": false
+}

@@ -1,0 +1,77 @@
+{
+  "schema": "ktrade.pr234.source-owned-full-windows-ci-phases.v1",
+  "verdict": "PASS_ALL_EXACT_SOURCE_OWNED_CI_PHASES_NOT_NATIVE_LIFECYCLE_ACCEPTANCE",
+  "source_sha": "db79330ffee632b66c5e17b4a60d29c421febbab",
+  "source_tree": "4568f1fddd8494f0bdeafd09b642b580a0ff85eb",
+  "run_id": 41231463534,
+  "job_id": 124626377894,
+  "witness_sha": "2e52776c21e932af252183fd57ee082c18754675",
+  "workflow_overall_conclusion": "failure",
+  "failure_boundary": "Subsequent native settings harness dereferenced omitted-empty workspace inputs; no full native acceptance",
+  "current_api_race_vet": {
+    "roots": [
+      "TestPineInputSettingsPersistCASAndSourceIsolation",
+      "TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption",
+      "TestPineInputSettingsUnavailableRootIsReadOnly"
+    ],
+    "fail": 0,
+    "skip": 0
+  },
+  "complete_original_go_tagged_wails_tests_and_vet": "PASS",
+  "node": {
+    "files": 36,
+    "cases": 169,
+    "fail": 0,
+    "skip": 0,
+    "cancel": 0,
+    "original_two_root_browser": "PASS"
+  },
+  "assets": {
+    "real_vendor": 118,
+    "repeatable": true,
+    "licenses_and_notices": "PASS",
+    "shipping_js_affected": 0,
+    "legacy_nonshipping_advisories_unchanged": true
+  },
+  "build": {
+    "go": "1.26.10",
+    "unsigned_executables": 6,
+    "both_actual_main_pair_binary_scans": "PASS No vulnerabilities found",
+    "scanned_archive_sha256": "883543d309b8e86f941b6b632ed315ea907042640efc51e58fcb26fcb1a70fc6",
+    "same_archive_entered_native_attempt": true,
+    "native_accepted": false
+  },
+  "required_passed_step_names": [
+    "Set up job",
+    "Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+    "Qualified previous native source",
+    "Exact PR234 final source",
+    "Four sparse original baseline readers only",
+    "Actual source custody focused original failure proof and unchanged financial scenario",
+    "Run actions/setup-go@v5",
+    "Run actions/setup-node@v4",
+    "Current exact API race tests including no admitted storage root",
+    "Exact source-owned complete Go tagged app and Wails final regression",
+    "Exact source-owned complete Node and browser compatibility",
+    "Exact source-owned real assets licenses and shipping advisory audit",
+    "Exact source-owned unsigned six-binary package and actual binary scans",
+    "Final source custody no owner data or production authority",
+    "Post Four sparse original baseline readers only",
+    "Post Exact PR234 final source",
+    "Post Qualified previous native source",
+    "Post Run actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683",
+    "Complete job"
+  ],
+  "native_schema_failure_receipt_commit": "4486a7fa6c2a56bf7ce7317340e7f7ae429c3c1c",
+  "fixed_harness_blob": "e4202d462560e913b75d9680985c09e7da42d8af",
+  "private_build_only_witness": "d8318508498045f293858ca74f5c9c130b9d7b0b",
+  "exact_private_native_acceptance": "PENDING; every settings/financial assertion still required",
+  "original_compiler_blob": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+  "original_tradeguard_tree": "1f894b0a6f8115b8a9d3882fa16fdb289eba510a",
+  "original_ledger_tree": "9507b1f181b9a82ebbc4fa63f4bc05b27613e25e",
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

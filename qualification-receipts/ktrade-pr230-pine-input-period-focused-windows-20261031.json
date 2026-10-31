@@ -1,0 +1,40 @@
+{
+  "schema": "ktrade.pine-input-period-focused.windows.v1",
+  "verdict": "PASS_SCOPED_ORIGINAL_PINE_INPUT_PERIOD_BINDING",
+  "source_pr": 230,
+  "source_sha": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+  "source_tree": "894152b0c45b102584ce092b2aa964701ed40205",
+  "parent_qualified_source": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+  "changed_paths": [
+    "pkg/pine_compiler.go",
+    "pkg/pine_input_length_binding_test.go"
+  ],
+  "run_id": 41182194090,
+  "job_id": 124481699320,
+  "qualifier_execution_sha": "26f7f2c488fd3de1023d91789d0803fba7329a52",
+  "job_status": "completed",
+  "job_conclusion": "success",
+  "toolchain": "go1.26.10 Windows2022",
+  "verified_results": {
+    "old_source_real_input3_sma_silent14_numeric_failure_reproduced": true,
+    "named_defaults_and_overrides": 64,
+    "causal_prefix_cases": 2,
+    "evaluation_isolation_cases": 2,
+    "root_tests": 3,
+    "failed": 0,
+    "skipped": 0,
+    "original_full_pine_pkg_tests": "PASS",
+    "original_full_pine_pkg_vet": "PASS",
+    "caller_override_maps_unchanged": true,
+    "independent_sma_arithmetic": true
+  },
+  "limits": [
+    "Not yet full root/tagged/Wails final Windows integration",
+    "Not yet actual installed native candidate run",
+    "Catalog Supertrend stays fixed10; no UI custom-period claim",
+    "Original TradeGuard/financial/broker/LIVE guards unchanged",
+    "No source promotion, owner data, broker, signing, release or LIVE"
+  ],
+  "live_armed": false,
+  "release_authority": "none"
+}

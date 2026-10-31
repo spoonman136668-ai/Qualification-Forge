@@ -1,0 +1,100 @@
+{
+  "schema": "ktrade.qualification.shipping-js-licensed-assets.v1",
+  "verdict": "PASS_SCOPED",
+  "source": "9fe979ec4b5da128a174b777d658461fd492d46e",
+  "tree": "ca6c13628f678093ede20831e206800ddbd2d1ec",
+  "pr": 225,
+  "witness": "f92b783d67f7e9f7eac2cbd11d9a2201c69af715",
+  "run_id": 41144360935,
+  "job_id": 124365839130,
+  "status": "completed",
+  "conclusion": "success",
+  "windows_node_property_tests": {
+    "passes": 4,
+    "failures": 0,
+    "skips": 0
+  },
+  "actual_assets": {
+    "files": 118,
+    "manifest_sha256": "99bfcdd45a0ce47bce006f4130a384ca99f1e836a4e5f08fee3000cab7cc7bcb",
+    "repeated_staging_identical": true,
+    "all_payload_hashes_verified": true,
+    "self_included": false
+  },
+  "shipped_dependency_nodes": [
+    {
+      "name": "monaco-editor",
+      "version": "0.45.0"
+    },
+    {
+      "name": "lightweight-charts",
+      "version": "4.1.0"
+    },
+    {
+      "name": "fancy-canvas",
+      "version": "2.1.0"
+    }
+  ],
+  "known_affected_shipped_nodes": [],
+  "license_inventory": [
+    {
+      "package": "node_modules/monaco-editor",
+      "version": "0.45.0",
+      "licenses": [
+        {
+          "path": "package/LICENSE",
+          "bytes": 1098,
+          "sha256": "33e4ff1a06ef62ba21788ea162564ee8165269a24a9ce6ef301837447eab0ac6"
+        },
+        {
+          "path": "package/ThirdPartyNotices.txt",
+          "bytes": 63064,
+          "sha256": "790537262fc78a764e121e6b92b959bcd3f5c310b47d9d9b9e92e17fe0af5336"
+        }
+      ],
+      "root_notices_shipped": 2,
+      "upstream_fallback": null
+    },
+    {
+      "package": "node_modules/lightweight-charts",
+      "version": "4.1.0",
+      "licenses": [
+        {
+          "path": "package/LICENSE",
+          "bytes": 11347,
+          "sha256": "70c9d5382506dd184465425c08a99ad9bd6d9ac1313c252968ba0b585e5ef823"
+        }
+      ],
+      "root_notices_shipped": 1,
+      "upstream_fallback": null
+    },
+    {
+      "package": "node_modules/fancy-canvas",
+      "version": "2.1.0",
+      "licenses": [],
+      "root_notices_shipped": 0,
+      "upstream_fallback": {
+        "url": "https://raw.githubusercontent.com/tradingview/fancy-canvas/7ece7601f05b624496f485cee65789ad691427df/LICENSE",
+        "sha256": "52d2ba0c8f8f4532bd524358d679693ff3dd9e40c56fe0c0c63061ed0733aa18",
+        "shipped": true,
+        "reason": "published npm2.1.0 omits license"
+      }
+    }
+  ],
+  "nonshipping_legacy_build_audit": {
+    "high": 9,
+    "critical": 1,
+    "total": 10,
+    "disposition": "Preserved historical Electron and packaging graph; not shipped in native Go/Wails runtime. npm lifecycle scripts disabled in qualified native build. Not claimed fixed or universally safe."
+  },
+  "failed_prior_runs": [
+    41143707283,
+    41144031220,
+    41144226413
+  ],
+  "limits": [
+    "Public npm registry advisory snapshot, exact three-node shipped closure; not an exhaustive JS security audit.",
+    "Explicit generated node_modules/static/vendor directories allowed; all tracked/index and other untracked mutations refused.",
+    "No app execution, owner data, broker, signing, release or LIVE."
+  ]
+}

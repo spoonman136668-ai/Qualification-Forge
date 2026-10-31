@@ -1,0 +1,234 @@
+{
+  "schema": "ktrade.exact-private-artifact.windows-native.v1",
+  "verdict": "PASS_SCOPED_EXACT_EXISTING_PRIVATE_PR233_INSTALLER_REAL_RSI_NATIVE_PAPER_STOP_COLD_ROLLBACK",
+  "source_pr": 233,
+  "source_sha": "42bf2c698d15da43632540959f9a5eea3999158b",
+  "source_tree": "378603bf6eca76ba54ede3e1db4104cc838c9cc3",
+  "original_private_build_run": 41220187238,
+  "original_private_build_witness": "4c408d5c55d4c0bead919cc369b2acdfd2db6ec6",
+  "original_private_artifact": 13049084488,
+  "original_outer_sha256": "40eb7125876276f1601d3475b11e32d0d4db01a63bfb29cecaa3b094ab19bf75",
+  "actual_installed_inner_sha256": "bd0c84f507e7b4db238b324ec7676fbe45a09405ba7bc320f25189f5c9dbc3fe",
+  "run_id": 41220582791,
+  "job_id": 124594096308,
+  "qualifier_execution_sha": "af593f270e59878beb27fa0a86412d56a4380808",
+  "status": "completed",
+  "conclusion": "success",
+  "artifact_data_commit": "eb6b647314ef870c1bb7ff9e1d0cbfb481bd42c6",
+  "identity_blob": "023e01a290dd26f769edda9d014018cd415b29dc",
+  "transport_run": 41220500547,
+  "transport_witness": "5729c105a160c0dcf299975f9b9eba4dc99fa6b7",
+  "transport_receipt_commit": "f28ffc9ab875aa647a52fc4691516ce20b468341",
+  "transport_receipt_blob": "ce678ff5a3afd7a0859ba8a9f55ad9dd58d57248",
+  "independent_verification_commit": "a6abb2b0aaf4def0ab93f9277bfd35826cf5c077",
+  "independent_verification_blob": "02e8b966ca5a90495d66a905191cdc723389e720",
+  "original_full_source_and_scanned_hosted_archive_run": 41218814380,
+  "original_full_source_receipt_commit": "5c6a9bc5c34759412c8eeeda02145a26a6358d74",
+  "original_full_source_receipt_blob": "0c62450c08157dde5fe2fb28ae7b551926e8086c",
+  "native_harness_blob": "ac2edbb0db1ab6eef9c044778dfa92c2482069dd",
+  "build_harness_blob": "79af7ff20e942901582e525d3df16ba29ded0383",
+  "original_financial_harness_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "verified_results": {
+    "existing_private_contents_scope_exact_hash_custody": true,
+    "current_candidate_not_rebuilt_for_native": true,
+    "real_default_catalog_supertrend_and_williams_apply": true,
+    "four_current_paper_fills_fees_fifo_original_risk_dedup_stop": true,
+    "cold_no_rearm": true,
+    "rollback_retains_old_new_unknown_history": true,
+    "legacy_order_http423": true,
+    "actual_pane_captures": [
+      {
+        "top": 215,
+        "png_sha256": "a1edbea51c4ec5d6a4a6546da236669e5c93f3741983f1930ca64e8bc2c3b56c",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "retained_screenshot": false,
+        "phase": "BEFORE_SUPERTREND",
+        "height": 346,
+        "left": 46,
+        "width": 932
+      },
+      {
+        "top": 215,
+        "png_sha256": "fd6c772f5a388f178ce8d1e48112c3df4e4444c7a657ded2bca6894b097da464",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "retained_screenshot": false,
+        "phase": "AFTER_SUPERTREND",
+        "height": 346,
+        "left": 46,
+        "width": 932
+      }
+    ],
+    "actual_pane_difference": {
+      "before_sha256": "a1edbea51c4ec5d6a4a6546da236669e5c93f3741983f1930ca64e8bc2c3b56c",
+      "after_sha256": "fd6c772f5a388f178ce8d1e48112c3df4e4444c7a657ded2bca6894b097da464",
+      "changed_sample_count": 811,
+      "pixel_sample_count": 19635,
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle",
+      "identical_bounds": true
+    },
+    "actual_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 537903104,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "name": "ktrade.exe",
+          "pid": 1328,
+          "working_set_bytes": 33841152
+        },
+        {
+          "name": "ktrade-engine.exe",
+          "pid": 7880,
+          "working_set_bytes": 23564288
+        },
+        {
+          "name": "conhost.exe",
+          "pid": 5292,
+          "working_set_bytes": 18436096
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 3064,
+          "working_set_bytes": 100995072
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 816,
+          "working_set_bytes": 7987200
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 6316,
+          "working_set_bytes": 53809152
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 6056,
+          "working_set_bytes": 33148928
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 8040,
+          "working_set_bytes": 18911232
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 6116,
+          "working_set_bytes": 61095936
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 1480,
+          "working_set_bytes": 186114048
+        }
+      ]
+    },
+    "actual_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 576069632,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "name": "ktrade.exe",
+          "pid": 1328,
+          "working_set_bytes": 30576640
+        },
+        {
+          "name": "ktrade-engine.exe",
+          "pid": 7880,
+          "working_set_bytes": 25329664
+        },
+        {
+          "name": "conhost.exe",
+          "pid": 5292,
+          "working_set_bytes": 18436096
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 3064,
+          "working_set_bytes": 128954368
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 816,
+          "working_set_bytes": 7987200
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 6316,
+          "working_set_bytes": 55369728
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 6056,
+          "working_set_bytes": 33234944
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 8040,
+          "working_set_bytes": 18911232
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 6116,
+          "working_set_bytes": 61349888
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 1480,
+          "working_set_bytes": 195919872
+        }
+      ]
+    },
+    "actual_probe_coverage_and_sums_verified": true,
+    "real_rsi_divergence_physical_apply_exact_caption_and_disarmed_capabilities": true,
+    "exact_observed_rsi_plot_caption": "Pine: RSI",
+    "native_startup_measurements": [
+      {
+        "phase": "PREVIOUS",
+        "shell_engine_resident_bytes": 57319424,
+        "resident_budget_bytes": 1073741824,
+        "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+        "elapsed_ms": 11138.4881,
+        "startup_budget_ms": 120000
+      },
+      {
+        "phase": "UPDATED",
+        "shell_engine_resident_bytes": 57716736,
+        "resident_budget_bytes": 1073741824,
+        "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+        "elapsed_ms": 12799.9797,
+        "startup_budget_ms": 120000
+      },
+      {
+        "phase": "ROLLED_BACK",
+        "shell_engine_resident_bytes": 56594432,
+        "resident_budget_bytes": 1073741824,
+        "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+        "elapsed_ms": 2600.0931,
+        "startup_budget_ms": 120000
+      }
+    ]
+  },
+  "limits": [
+    "Bounded engineering acceptance for source42bf and private installerbd0c; not product COMPLETE or LIVE_READY_DISARMED",
+    "Regular strict confirmed price-pivot RSI divergence numerics and completed-candle prefixes independently qualified; no revised/live-unconfirmed candle stability or hidden-divergence parity claim",
+    "Observed pane difference is a Supertrend pane difference, not an independent RSI marker or numerical-to-pixel oracle; process working-set sums are not unique physical or peak RAM",
+    "Native default catalog Apply tested; native input-settings/persistence UI remains open",
+    "Actual warm UTC midnight/24h soak, target hardware/FPS/HiDPI, full original parity and competitive usability remain open",
+    "Owner installed-profile/cash/fee/USDC/v2-v3 custody, broader security, automatic CI enforcement, signing and release remain open",
+    "No owner installed data, real broker, kill clearing, source promotion, signing, release or LIVE"
+  ],
+  "public_binary_upload": false,
+  "new_credentials_or_permissions": false,
+  "app_executed_on_private_owner_worker": false,
+  "owner_data_accessed": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "product_complete": false,
+  "installer_git_blob": "d940d5cc359bdac0489c421a7b93728bf5a8532a",
+  "original_tradeguard_tree": "1f894b0a6f8115b8a9d3882fa16fdb289eba510a",
+  "original_ledger_reconcile_tree": "9507b1f181b9a82ebbc4fa63f4bc05b27613e25e"
+}

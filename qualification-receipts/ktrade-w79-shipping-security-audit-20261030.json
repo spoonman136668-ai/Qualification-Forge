@@ -1,0 +1,115 @@
+{
+  "schema": "ktrade.security.audit.receipt.v1",
+  "candidate_sha": "0acfae265370b677dfe6de1386de793fb20b2460",
+  "candidate_tree": "1059c3e77dfb882f652994d9262f0eb681d03cb5",
+  "executing_witness": "069a2fcf3ed6f3c25e632ab7222339db6afd0470",
+  "run_id": 41069014583,
+  "job_id": 124107873009,
+  "run_conclusion": "failure",
+  "go_version": "go1.26.10",
+  "scanner": "golang.org/x/vuln/cmd/govulncheck@v1.9.0",
+  "engine": {
+    "affected_vulnerability_ids": 24,
+    "database": "https://vuln.go.dev",
+    "database_modified": "2026-10-27T21:16:18Z",
+    "findings": [
+      {
+        "fixed_version": "v1.5.3",
+        "function": "Close",
+        "id": "GO-2026-6278",
+        "module": "github.com/gorilla/websocket",
+        "package": "github.com/gorilla/websocket",
+        "version": "v1.5.1"
+      },
+      {
+        "fixed_version": "v1.5.3",
+        "function": "Dial",
+        "id": "GO-2026-6278",
+        "module": "github.com/gorilla/websocket",
+        "package": "github.com/gorilla/websocket",
+        "version": "v1.5.1"
+      },
+      {
+        "fixed_version": "v1.5.3",
+        "function": "Read",
+        "id": "GO-2026-6278",
+        "module": "github.com/gorilla/websocket",
+        "package": "github.com/gorilla/websocket",
+        "version": "v1.5.1"
+      },
+      {
+        "fixed_version": "v1.5.3",
+        "function": "ReadMessage",
+        "id": "GO-2026-6278",
+        "module": "github.com/gorilla/websocket",
+        "package": "github.com/gorilla/websocket",
+        "version": "v1.5.1"
+      },
+      {
+        "fixed_version": "v1.5.3",
+        "function": "Upgrade",
+        "id": "GO-2026-6278",
+        "module": "github.com/gorilla/websocket",
+        "package": "github.com/gorilla/websocket",
+        "version": "v1.5.1"
+      },
+      {
+        "fixed_version": "v1.5.3",
+        "function": "Write",
+        "id": "GO-2026-6278",
+        "module": "github.com/gorilla/websocket",
+        "package": "github.com/gorilla/websocket",
+        "version": "v1.5.1"
+      },
+      {
+        "fixed_version": "v1.5.3",
+        "function": "WriteJSON",
+        "id": "GO-2026-6278",
+        "module": "github.com/gorilla/websocket",
+        "package": "github.com/gorilla/websocket",
+        "version": "v1.5.1"
+      }
+    ],
+    "go_version": "go1.26.10",
+    "reachable_symbol_findings": 7,
+    "scanner_version": "v1.9.0",
+    "schema": "ktrade.security.govulncheck.scope.v1",
+    "scope": "engine",
+    "zero_reachable_known_vulnerabilities": false
+  },
+  "wails": {
+    "affected_vulnerability_ids": 8,
+    "database": "https://vuln.go.dev",
+    "database_modified": "2026-10-27T21:16:18Z",
+    "findings": [
+      {
+        "fixed_version": "v0.62.0",
+        "function": "Parse",
+        "id": "GO-2026-6860",
+        "module": "golang.org/x/net",
+        "package": "golang.org/x/net/html",
+        "version": "v0.56.0"
+      },
+      {
+        "fixed_version": "v0.62.0",
+        "function": "Render",
+        "id": "GO-2026-6866",
+        "module": "golang.org/x/net",
+        "package": "golang.org/x/net/html",
+        "version": "v0.56.0"
+      }
+    ],
+    "go_version": "go1.26.10",
+    "reachable_symbol_findings": 2,
+    "scanner_version": "v1.9.0",
+    "schema": "ktrade.security.govulncheck.scope.v1",
+    "scope": "wails",
+    "zero_reachable_known_vulnerabilities": false
+  },
+  "verdict": "FAIL_REACHABLE_KNOWN_VULNERABILITIES_SOURCE_REPAIR_REQUIRED",
+  "original_go125_release_build": "unsupported_and_not_requalified_by_this_audit",
+  "owner_data_touched": false,
+  "broker_orders": false,
+  "live_armed": false,
+  "release_authority": false
+}

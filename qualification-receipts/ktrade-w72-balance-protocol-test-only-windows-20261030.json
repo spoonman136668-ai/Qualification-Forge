@@ -1,0 +1,44 @@
+{
+  "schema": "ktrade.qualification.test-only-reuse.v1",
+  "gate": "W72_BALANCE_PROTOCOL",
+  "source_pr": 219,
+  "source_sha": "125eba6fb6adee2df31d6f895be5297370c93135",
+  "source_tree": "2fd49033ca3b6acda2a7826d886f4405a681fba3",
+  "parent_source_sha": "d914d6d6f966b94422ab8a0582a0a4f39c6bda43",
+  "only_added_path": "pkg/advanced_order_v2_v3_balance_protocol_owner_windows_test.go",
+  "default_excluded_build_tag": "windows && ktrade_w72_owner_readonly",
+  "production_source_bytes_changed": false,
+  "foundation_full_source": "aee9f5007fbd963c8bbf42631d5089a1630ab477",
+  "foundation_full_run": 41025595146,
+  "foundation_full_receipt_commit": "1a694249ffa264db67ab27ccca7b6da01008c829",
+  "parent_test_only_run": 41027810979,
+  "qualification_pr": 44,
+  "run_id": 41029714116,
+  "job_id": 123976203728,
+  "witness_sha": "fca2b964624c9ce6b9b1f1dd72a0fcabd992d786",
+  "workflow_blob": "ab50b06e1aca4077a1e6ad1638ea4dbffbcfa862",
+  "conclusion": "success",
+  "completed_utc": "2026-10-30T08:58:12Z",
+  "passed_checks": [
+    "Exact source/tree/immediate parent, sole added excluded owner test, unchanged original LIVE lock",
+    "All differences since fully qualified production source are only the two excluded owner-test files",
+    "Three focused W72 test roots: 15 fresh signed GETs/no history, available/total/precision hypotheses, movement, malformed metadata/identity/cancellation/binding refusals, no private JSON output",
+    "Owner hook compilation and tagged pkg vet",
+    "Hosted synthetic memory-only responses; actual owner execution flag removed and real hook excluded"
+  ],
+  "actual_owner_protocol_observation": "not yet run; separate completed original-owner witness required",
+  "limits": [
+    "Observed metadata precision is not an API rounding contract; numerical matches are hypotheses only.",
+    "No tolerance replaces W71 equality and no financial or execution authority is granted.",
+    "Full unchanged production qualification is reused, not claimed freshly rerun at this test-only source."
+  ],
+  "authority": {
+    "history_complete": false,
+    "opening_cash": false,
+    "fee_currency": false,
+    "snapshot_atomic": false,
+    "posting": false,
+    "hold_release": false,
+    "live": false
+  }
+}

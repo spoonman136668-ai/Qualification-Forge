@@ -1,0 +1,128 @@
+name: KTRADE W79 shipping Windows security and supported toolchain audit
+on:
+  push:
+    branches: [qualification/ktrade-w79-shipping-security-audit-20261030]
+    paths: [.github/workflows/ktrade-w79-shipping-security-audit-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w79-shipping-security-audit-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      KTRADE_LIVE_TRADING: 'false'
+    steps:
+      - name: Exact independent W79 witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Exact accepted W77 Windows source regression foundation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 335ea22f8c6c842fdb28733084caf4123c2f8e9e
+          path: foundation
+          persist-credentials: false
+      - name: Exact original W76 candidate and one-test-only source ancestry
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0acfae265370b677dfe6de1386de793fb20b2460
+          fetch-depth: 2
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source, accepted W77 evidence and disconnected brokerage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W79_HOSTED_WINDOWS_REQUIRED'}
+          foreach($entry in @(
+            @('witness',$env:GITHUB_SHA),
+            @('foundation','335ea22f8c6c842fdb28733084caf4123c2f8e9e'),
+            @('product','0acfae265370b677dfe6de1386de793fb20b2460')
+          )){
+            $p=Join-Path $env:GITHUB_WORKSPACE $entry[0]
+            if((& git -C $p rev-parse HEAD).Trim() -cne $entry[1]){throw 'W79_GIT_SHA_DRIFT'}
+            if(@(& git -C $p status --porcelain).Count -ne 0){throw 'W79_DIRTY_CHECKOUT'}
+          }
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '1059c3e77dfb882f652994d9262f0eb681d03cb5'){throw 'W79_PRODUCT_TREE_DRIFT'}
+          if((& git -C $src rev-parse HEAD^).Trim() -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6'){throw 'W79_W73_PARENT_DRIFT'}
+          $diff=@(& git -C $src diff --name-only HEAD^ HEAD)
+          if($diff.Count -ne 1 -or $diff[0] -cne 'tests/paper_tradeguard_reconciliation.test.cjs'){throw 'W79_RUNTIME_SOURCE_CHANGED'}
+          $live=Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw
+          if($live -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W79_LIVE_NOT_DISARMED'}
+          if(Test-Path (Join-Path $src '.env')){throw 'W79_WORKSPACE_DOTENV_REFUSED'}
+          $p=Join-Path $env:GITHUB_WORKSPACE 'foundation/qualification-receipts/ktrade-w77-final-complete-windows-go-wails-build-20261030.json'
+          if((& git hash-object $p).Trim() -cne 'c4aae8ba85e4c66b375d26f40ccdbda343303b8a'){throw 'W79_W77_RECEIPT_BLOB_DRIFT'}
+          $w77=Get-Content $p -Raw|ConvertFrom-Json
+          if($w77.candidate_sha -cne '0acfae265370b677dfe6de1386de793fb20b2460' -or
+             $w77.candidate_tree -cne '1059c3e77dfb882f652994d9262f0eb681d03cb5' -or
+             $w77.verdict -cne 'PASS_SCOPED_FULL_WINDOWS_GO_WAILS_VET_AND_FIXTURE_FREE_BUILD' -or
+             $w77.run_id -ne 41057198253 -or $w77.run_conclusion -cne 'success'){throw 'W79_ORIGINAL_W77_ACCEPTANCE_DRIFT'}
+          Write-Host '::notice::W79_EXACT_RUNTIME_AND_W77_ACCEPTANCE_LIVE_DISARM=PASS'
+      - name: Supported Go security audit runtime
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Build pinned official scanner and nonsecret result reducer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:GOTOOLCHAIN='local'
+          if((& go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'W79_TOOLCHAIN_DRIFT'}
+          & go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          if($LASTEXITCODE -ne 0){throw 'W79_PINNED_SCANNER_BUILD_FAILED'}
+          $scan=Join-Path ((& go env GOPATH).Trim()) 'bin/govulncheck.exe'
+          if(!(Test-Path $scan)){throw 'W79_SCANNER_MISSING'}
+          $parse=Join-Path $env:RUNNER_TEMP 'w79-reduce.exe'
+          & go build -o $parse (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w79/main.go')
+          if($LASTEXITCODE -ne 0){throw 'W79_REDUCER_BUILD_FAILED'}
+      - name: Actual shipping Go engine and Wails reachable vulnerability analysis
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:GOTOOLCHAIN='local'
+          $scan=Join-Path ((& go env GOPATH).Trim()) 'bin/govulncheck.exe'
+          $parse=Join-Path $env:RUNNER_TEMP 'w79-reduce.exe'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $bad=$false
+          foreach($scope in @('engine','wails')){
+            $raw=Join-Path $env:RUNNER_TEMP ('w79-'+$scope+'-raw.json')
+            $summary=Join-Path $env:RUNNER_TEMP ('w79-'+$scope+'-summary.json')
+            $dir=$src
+            if($scope -ceq 'wails'){$dir=Join-Path $src 'tools/wails-pilot'}
+            Push-Location $dir
+            try{
+              if($scope -ceq 'engine'){& $scan -json -tags ktrade_full ./cmd/ktrade > $raw}
+              else{& $scan -json -tags desktop,production . > $raw}
+              $code=$LASTEXITCODE
+              if($code -ne 0 -and $code -ne 3){throw ('W79_SCANNER_EXECUTION_FAILED_'+$scope)}
+              & $parse $raw $scope $summary
+              if($LASTEXITCODE -ne 0){throw 'W79_INVALID_OR_MISSING_SCAN_OUTPUT'}
+              $result=Get-Content $summary -Raw|ConvertFrom-Json
+              if(!$result.zero_reachable_known_vulnerabilities){$bad=$true}
+            }finally{Pop-Location;Remove-Item $raw -Force -ErrorAction SilentlyContinue}
+          }
+          if($bad){throw 'W79_REACHABLE_KNOWN_VULNERABILITIES_REQUIRE_SOURCE_REPAIR'}
+          Write-Host '::notice::W79_SHIPPING_ENGINE_AND_WAILS_ZERO_KNOWN_REACHABLE_VULNERABILITIES=PASS'
+      - name: Source and owner isolation final
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '0acfae265370b677dfe6de1386de793fb20b2460'){throw 'W79_SOURCE_CHANGED'}
+          if(@(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'W79_TRACKED_SOURCE_MUTATED'}
+          Write-Host '::notice::W79_NO_OWNER_DATA_NO_BROKER_ORDERS_NO_LIVE_NO_RELEASE_NO_MERGE'

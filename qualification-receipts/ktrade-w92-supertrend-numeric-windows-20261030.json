@@ -1,0 +1,103 @@
+{
+  "schema": "ktrade.qualification.catalog.supertrend.numeric.v1",
+  "gate": "W92",
+  "verdict": "PASS_SCOPED_PINNED_WINDOWS_SUPERTREND_PINE_V5_V6_NUMERICAL",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 229,
+  "source_sha": "12dee92974b526bf2996f4d1eee3bef6d1badd78",
+  "source_tree": "440eed97a723046beb2915b2d660ca55c36906ad",
+  "qualified_parent_pr": 228,
+  "qualified_parent_sha": "365a7085ccd86c3f917206fe2569aba51f00d8d0",
+  "source_delta_paths": [
+    "templates/chart.tmpl",
+    "pkg/catalog_supertrend_numeric_test.go"
+  ],
+  "runtime_go_compiler_changed": false,
+  "trading_finance_guard_changed": false,
+  "live_disabled": true,
+  "catalog_supertrend_apply_disabled": true,
+  "catalog_rsi_divergence_apply_disabled": true,
+  "qualifier_pr": 60,
+  "qualifier_execution_sha": "a58ae38fd77ab47b3985945fb3f93d79ec4c38cc",
+  "qualifier_workflow_path": ".github/workflows/ktrade-catalog-supertrend-numeric-windows.yml",
+  "qualifier_workflow_blob": "55a263c94eadb234abefed4a1c4ef2450f191ca8",
+  "run_id": 41154205327,
+  "job_id": 124397300479,
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "last_run_updated_utc": "2026-10-31T01:15:30Z",
+  "runner": "GitHub-hosted Windows-2022",
+  "go_toolchain": "1.26.10",
+  "verified_results": {
+    "numeric_named_cases": 10,
+    "numeric_pass": 10,
+    "numeric_failed": 0,
+    "numeric_skipped": 0,
+    "versions": [
+      "v5",
+      "v6"
+    ],
+    "families": [
+      "rising",
+      "falling",
+      "reversals",
+      "flat",
+      "short"
+    ],
+    "reference": "Independent scalar SMA-seeded Wilder ATR trailing-band state reference; original tests retain 1e-9 tolerance, first-valid bar 9, three or more reversal assertions, and short-history NaN",
+    "original_williams_regression": "PASS",
+    "original_disabled_alias_node_regression": "PASS",
+    "original_go_pkg_vet": "PASS",
+    "source_custody_and_live_guard": "PASS",
+    "final_log_marker": "RAW_CATALOG_SUPERTREND_10_NUMERIC_VERSION_CASES_WILLIAMS_ORIGINAL_DISABLED_APPLY_GUARD=PASS"
+  },
+  "diagnostic_findings": {
+    "source_compiler_issue": "Original evalSMACall calls extractLengthFromArg; named Pine input length is not found in params and silently defaults to 14, inconsistent with 10-bar Supertrend contract.",
+    "solution": "Use immutable ten-bar literal in catalog SMA and fixed length variable. State recurrence and independent tests unchanged, no shared Pine compiler modification.",
+    "previous_failed_runs": [
+      {
+        "run_id": 41152280481,
+        "kind": "PINE_PARSER_FAIL",
+        "detail": "nested ternary rejected"
+      },
+      {
+        "run_id": 41152659219,
+        "kind": "QUALIFIER_SOURCE_CUSTODY_FAIL",
+        "detail": "shallow checkout prevented base compare"
+      },
+      {
+        "run_id": 41152713116,
+        "kind": "NUMERIC_FAIL",
+        "detail": "first valid bar9 remained NaN"
+      },
+      {
+        "run_id": 41153065775,
+        "kind": "PINE_V6_INTERFACE_AND_NUMERIC_FAIL",
+        "detail": "ta.tr(true) unsupported in strict v6; bar9 remained NaN"
+      },
+      {
+        "run_id": 41153505576,
+        "kind": "NUMERIC_FAIL",
+        "detail": "true-range values valid but ta.sma(barRange,length) seed NaN"
+      },
+      {
+        "run_id": 41153817082,
+        "kind": "NUMERIC_FAIL",
+        "detail": "ta.sma(ta.tr(),length) seed NaN due period-name resolution"
+      }
+    ]
+  },
+  "scope_limits": [
+    "Passed focused frozen production Pine numeric regression and existing Williams/Apply UI guards, not a full native Wails release regression or installed real user session.",
+    "ATR period is explicitly fixed to 10 to avoid unsound variable-length evaluation; claim no general adjustable ATR length qualification.",
+    "Supertrend remains unavailable in product UI pending native real chart, WebView2 and installed Windows integration acceptance.",
+    "Full original W82/W91/PR228 foundations are retained against exact unaffected runtime; no production release, signing, owner-data migration, account reconciliation, main-branch protection or live trading admission.",
+    "No owner credentials, broker calls, real orders, installed user profile, deployment, merge or release occurred."
+  ],
+  "urls": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41154205327",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/pull/60",
+    "https://github.com/spoonman136668-ai/ktrade/pull/229"
+  ],
+  "provenance": "Evidence-only receipt committed after original Windows job success; receipt-only commit is not original executing witness and does not rerun workflow."
+}

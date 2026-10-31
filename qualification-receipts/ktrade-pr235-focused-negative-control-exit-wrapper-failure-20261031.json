@@ -1,0 +1,22 @@
+{
+  "schema": "ktrade.pr235.focused-qualification-failure.v1",
+  "run_id": 41235148210,
+  "job_id": 124637226982,
+  "witness": "49ddc5d2673fc5e5424d46fe24c2f9480172bf95",
+  "source": "3901f737474f8fb5428dbb0d77a14fcb53d68d89",
+  "tree": "5e95405ba84864e914bf004c0b319f09d425ed92",
+  "overall_conclusion": "failure",
+  "package_roots_passed": 14,
+  "package_subtests_passed": 172,
+  "actual_original_omission_failures_reproduced": [
+    "TestPineOverlayTransportsOriginalConfirmedShapes/v5_period14",
+    "TestPineOverlayTransportsOriginalConfirmedShapes/v5_period3",
+    "TestPineOverlayTransportsOriginalConfirmedShapes/v6_period14",
+    "TestPineOverlayTransportsOriginalConfirmedShapes/v6_period3"
+  ],
+  "cause": "Negative control correctly returned1 and all four expected omissions were verified. Workflow PowerShell wrapper inherited LASTEXITCODE1; following current API/Node steps did not execute. Explicit reset only after four exact failures fixes harness; source remains unchanged.",
+  "actual_current_http_and_chart_acceptance": false,
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false
+}

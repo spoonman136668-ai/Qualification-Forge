@@ -1,0 +1,298 @@
+{
+  "schema": "ktrade.pr235.full-source-owned-windows-native.v1",
+  "verdict": "PASS_SCOPED_ORIGINAL_SHAPE_TRANSPORT_FULL_SOURCE_CI_SAME_SCANNED_ARCHIVE_AND_NATIVE_MARKER_SETTINGS_PAPER_COLD_ROLLBACK",
+  "source_sha": "3901f737474f8fb5428dbb0d77a14fcb53d68d89",
+  "source_tree": "5e95405ba84864e914bf004c0b319f09d425ed92",
+  "run_id": 41236208694,
+  "job_id": 124640421342,
+  "witness_sha": "bbd29c963e180a368279e57122fcedb0f2014579",
+  "status": "completed",
+  "conclusion": "success",
+  "focused_run": 41235630531,
+  "focused_receipt_commit": "20cb30ba46f90c05bd5f49e784b766b8d4faaf9d",
+  "focused_receipt_blob": "684abb38b783e077b476f76a2b84ea9751622ab2",
+  "source_owned_ci_workflow_blob": "b971da1a5721dc43839dc0e99b22df3ee4e2fa10",
+  "go_version": "go1.26.10",
+  "full_original_go_tagged_wails_tests_and_vet": "PASS",
+  "current_api_race_roots": 4,
+  "node": {
+    "files": 37,
+    "cases": 174,
+    "fail": 0,
+    "skip": 0,
+    "two_root_browser": "PASS"
+  },
+  "assets": {
+    "files": 180,
+    "vendor": 118,
+    "repeatable": true,
+    "licenses_and_notices": "PASS",
+    "shipping_js_known_affected_nodes": 0,
+    "nonshipping_legacy_advisories_unchanged": true
+  },
+  "unsigned_binaries": 6,
+  "actual_main_pair_binary_scans": "PASS No vulnerabilities found",
+  "actual_same_scanned_installer_sha256": "d87c73dc0488403fcbb927c1d28af1e371be5da25f8fd425742ac95134981e5a",
+  "native_harness_blob": "a7f85f312195e343588eb8008510235352560560",
+  "builder_blob": "08721e60c78b3f20179878f78a72f1248086d4df",
+  "original_financial_scenario_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "verified_native": {
+    "v5_v6_actual_physical_marker_colors_and_installed_go": [
+      {
+        "baseline_sha256": "922c947aa9484177fef2b072e28b2c71bc3df3268b2a40b6257e095e1c1bc030",
+        "marked_down_pixels": 3832,
+        "identical_bounds": true,
+        "physical_editor_compile_and_apply": true,
+        "marked_http": {
+          "actual_response_bar_price_and_style_checked": true,
+          "down": 30,
+          "candles": 300,
+          "up": 30,
+          "shapes": 60
+        },
+        "baseline_down_pixels": 0,
+        "marked_sha256": "55ba7dea2b0262b1ff1c3f077fda4be03fc9cfc5362c1c5c414560d7b8cd128b",
+        "marked_up_pixels": 3323,
+        "baseline_up_pixels": 0,
+        "baseline_http": {
+          "actual_response_bar_price_and_style_checked": true,
+          "down": 0,
+          "candles": 300,
+          "up": 0,
+          "shapes": 0
+        },
+        "scope": "bounded_synthetic_source_actual_Go_bar_price_style_and_both_native_marker_colors_not_full_RSI_pixel_oracle",
+        "version": 5
+      },
+      {
+        "baseline_sha256": "922c947aa9484177fef2b072e28b2c71bc3df3268b2a40b6257e095e1c1bc030",
+        "marked_down_pixels": 3832,
+        "identical_bounds": true,
+        "physical_editor_compile_and_apply": true,
+        "marked_http": {
+          "actual_response_bar_price_and_style_checked": true,
+          "down": 30,
+          "candles": 300,
+          "up": 30,
+          "shapes": 60
+        },
+        "baseline_down_pixels": 0,
+        "marked_sha256": "55ba7dea2b0262b1ff1c3f077fda4be03fc9cfc5362c1c5c414560d7b8cd128b",
+        "marked_up_pixels": 3323,
+        "baseline_up_pixels": 0,
+        "baseline_http": {
+          "actual_response_bar_price_and_style_checked": true,
+          "down": 0,
+          "candles": 300,
+          "up": 0,
+          "shapes": 0
+        },
+        "scope": "bounded_synthetic_source_actual_Go_bar_price_style_and_both_native_marker_colors_not_full_RSI_pixel_oracle",
+        "version": 6
+      }
+    ],
+    "warm_saved_inputs": [
+      {
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296",
+        "values": {
+          "input_1": 2.5,
+          "input_0": 3
+        },
+        "name": "Supertrend"
+      },
+      {
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914",
+        "values": {
+          "input_0": 3
+        },
+        "name": "RSI Divergence"
+      }
+    ],
+    "cold_restore_and_reset": [
+      {
+        "disk_and_original_go_verified": true,
+        "saved_revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296",
+        "explicit_reset_verified": true,
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "default_fields": {
+          "Multiplier": 3,
+          "ATR Period": 10
+        },
+        "name": "Supertrend",
+        "restored_values": {
+          "input_1": 2.5,
+          "input_0": 3
+        }
+      },
+      {
+        "disk_and_original_go_verified": true,
+        "saved_revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914",
+        "explicit_reset_verified": true,
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "default_fields": {
+          "RSI Period": 14
+        },
+        "name": "RSI Divergence",
+        "restored_values": {
+          "input_0": 3
+        }
+      }
+    ],
+    "supertrend_actual_pane_difference": {
+      "pixel_sample_count": 19635,
+      "after_sha256": "6bd364af7d99288b476064a76a6419dc93058f8376686ec4c464b55f1c36a8aa",
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle",
+      "changed_sample_count": 512,
+      "before_sha256": "628447dc17bbf496ce7b1e7cc04c0db7fc0920830a8d959c8faf83bfdec6b92b",
+      "identical_bounds": true
+    },
+    "actual_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 542756864,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "working_set_bytes": 33697792,
+          "name": "ktrade.exe",
+          "pid": 5504
+        },
+        {
+          "working_set_bytes": 23638016,
+          "name": "ktrade-engine.exe",
+          "pid": 7844
+        },
+        {
+          "working_set_bytes": 18505728,
+          "name": "conhost.exe",
+          "pid": 6128
+        },
+        {
+          "working_set_bytes": 109780992,
+          "name": "msedgewebview2.exe",
+          "pid": 6324
+        },
+        {
+          "working_set_bytes": 8048640,
+          "name": "msedgewebview2.exe",
+          "pid": 7928
+        },
+        {
+          "working_set_bytes": 53620736,
+          "name": "msedgewebview2.exe",
+          "pid": 2676
+        },
+        {
+          "working_set_bytes": 33370112,
+          "name": "msedgewebview2.exe",
+          "pid": 6252
+        },
+        {
+          "working_set_bytes": 18952192,
+          "name": "msedgewebview2.exe",
+          "pid": 2788
+        },
+        {
+          "working_set_bytes": 58896384,
+          "name": "msedgewebview2.exe",
+          "pid": 5500
+        },
+        {
+          "working_set_bytes": 184246272,
+          "name": "msedgewebview2.exe",
+          "pid": 5016
+        }
+      ]
+    },
+    "actual_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 574951424,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "working_set_bytes": 30416896,
+          "name": "ktrade.exe",
+          "pid": 5504
+        },
+        {
+          "working_set_bytes": 27811840,
+          "name": "ktrade-engine.exe",
+          "pid": 7844
+        },
+        {
+          "working_set_bytes": 18505728,
+          "name": "conhost.exe",
+          "pid": 6128
+        },
+        {
+          "working_set_bytes": 129527808,
+          "name": "msedgewebview2.exe",
+          "pid": 6324
+        },
+        {
+          "working_set_bytes": 8048640,
+          "name": "msedgewebview2.exe",
+          "pid": 7928
+        },
+        {
+          "working_set_bytes": 55533568,
+          "name": "msedgewebview2.exe",
+          "pid": 2676
+        },
+        {
+          "working_set_bytes": 33226752,
+          "name": "msedgewebview2.exe",
+          "pid": 6252
+        },
+        {
+          "working_set_bytes": 18952192,
+          "name": "msedgewebview2.exe",
+          "pid": 2788
+        },
+        {
+          "working_set_bytes": 59125760,
+          "name": "msedgewebview2.exe",
+          "pid": 5500
+        },
+        {
+          "working_set_bytes": 193802240,
+          "name": "msedgewebview2.exe",
+          "pid": 5016
+        }
+      ]
+    },
+    "process_sums_verified": true,
+    "required_actual_notices": [
+      "NATIVE_CI_FULL_ROOT_TAGGED_WAILS_TEST_VET=PASS",
+      "NATIVE_CI_ALL_NODE=PASS files=37 cases=174",
+      "NATIVE_CI_REPEATABLE_LICENSED_SHIPPING_ASSETS=PASS",
+      "NATIVE_CI_ORIGINAL_UNSIGNED_PACKAGE_ACTUAL_BINARY_SCANS_NO_APP_NO_INSTALL_NO_RELEASE=PASS",
+      "PINE_MARKER_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_BOTH_ARROW_COLOR_OBSERVATION=PASS",
+      "PINE_SETTINGS_NATIVE_PHYSICAL_NUMERIC_APPLY_SAVE_VALIDATION_AND_SOURCE_CUSTODY=PASS",
+      "PINE_SETTINGS_NATIVE_COLD_REOPEN_RESTORE_AND_EXPLICIT_DEFAULT_RESET=PASS",
+      "W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+      "W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS",
+      "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+      "W83_INSTALLED_CANDIDATE_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS"
+    ]
+  },
+  "limits": [
+    "Hosted fresh VM engineering acceptance, not product completion or production admission",
+    "Marker color observation uses bounded synthetic source; no independent full RSI marker-position/shape pixel oracle claim",
+    "Original numerical/confirmed-candle goldens remain separately verified; unsupported marker glyphs and absolute locations are explicitly refused",
+    "Original hline transport/rendering next; warm UTC midnight/24h soak, target hardware/FPS/HiDPI, owner profile/financial custody, broader security and source CI/release enforcement remain open",
+    "Previous installed upgrade/rollback baseline b03dd6, not PR234 installed-profile migration",
+    "Private review rebuild still requires its own exact-byte native run"
+  ],
+  "original_compiler_blob": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+  "original_guard_tree": "1f894b0a6f8115b8a9d3882fa16fdb289eba510a",
+  "original_ledger_tree": "9507b1f181b9a82ebbc4fa63f4bc05b27613e25e",
+  "production_admission": "HOLD",
+  "product_complete": false,
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

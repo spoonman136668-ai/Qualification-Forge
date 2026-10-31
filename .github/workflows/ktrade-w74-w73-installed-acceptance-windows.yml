@@ -1,0 +1,164 @@
+name: KTRADE W74 W73 source-pinned installed Wails/Pine/PAPER Windows acceptance
+on:
+  push:
+    branches: [qualification/ktrade-w74-w73-installed-acceptance-20261030]
+    paths: [.github/workflows/ktrade-w74-w73-installed-acceptance-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w74-w73-installed-acceptance-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact W74 witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout independent original W35B foundation
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 85948ad3188f15a8ea9d4c83481418cade29d278
+          path: foundation
+          persist-credentials: false
+      - name: Checkout original W37 installed Pine harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 7632f3814874341608da24b3e511249155169b8f
+          path: previous-witness
+          persist-credentials: false
+      - name: Checkout pinned original W31 installed baseline
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: e51e03c22f906704295a24138ac1ceba5d9ea0d4
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout pinned original W73 cumulative candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7dfec71777730f744e1749b8bd741fbd01f0d2f6
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact source and harness identity, read-only original disarm
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W74_EPHEMERAL_WINDOWS_REQUIRED'}
+          $root=$env:GITHUB_WORKSPACE
+          $pins=@(
+            @('witness',$env:GITHUB_SHA),
+            @('foundation','85948ad3188f15a8ea9d4c83481418cade29d278'),
+            @('previous-witness','7632f3814874341608da24b3e511249155169b8f'),
+            @('previous','e51e03c22f906704295a24138ac1ceba5d9ea0d4'),
+            @('candidate','7dfec71777730f744e1749b8bd741fbd01f0d2f6')
+          )
+          foreach($pair in $pins){
+            $p=Join-Path $root $pair[0]
+            if((& git -C $p rev-parse HEAD).Trim() -cne $pair[1]){throw ('W74_CHECKOUT_SHA_DRIFT_'+$pair[0])}
+            if(@(& git -C $p status --porcelain).Count -ne 0){throw ('W74_CHECKOUT_DIRTY_'+$pair[0])}
+          }
+          if((& git -C (Join-Path $root 'previous') rev-parse 'HEAD^{tree}').Trim() -cne '5526682f7efafe4cd328fbac77ebb97e58dc7b9e'){throw 'W74_W31_TREE_DRIFT'}
+          if((& git -C (Join-Path $root 'candidate') rev-parse 'HEAD^{tree}').Trim() -cne '666239a1893a17b8e7984d2b28fbd3b23c7c15cf'){throw 'W74_W73_TREE_DRIFT'}
+          $live=Get-Content -LiteralPath (Join-Path $root 'candidate/pkg/advanced_orders.go') -Raw
+          if($live -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W74_LIVE_NOT_DISARMED'}
+          $build=Join-Path $root 'foundation/qualification-harness/ktrade-w35b/Build-And-Qualify.ps1'
+          $native=Join-Path $root 'previous-witness/qualification-harness/ktrade-w37/Installed-Pine-Chart-Paper-Safety.ps1'
+          if((& git hash-object $build).Trim() -cne 'b95e3895cbadb38128484488c53c144bfcc6fbdb'){throw 'W74_W35B_BUILDER_BLOB_DRIFT'}
+          if((& git hash-object $native).Trim() -cne '91fb243b7030956ba50c5afa4f039ceaf1df9fa6'){throw 'W74_W37_INSTALLED_WITNESS_BLOB_DRIFT'}
+          Write-Host '::notice::W74_W31_W73_W35B_W37_EXACT_CUSTODY_AND_LIVE_DISABLED=PASS'
+      - name: Derive narrowly substituted installed witness in disposable runner only
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=$env:GITHUB_WORKSPACE
+          $old='0059d4b794552818b3f32798da7df27c75e21c5c'
+          $oldTree='9f1e559560ac14f4e6fc823dac9150e3a95f2c4d'
+          $target='7dfec71777730f744e1749b8bd741fbd01f0d2f6'
+          $targetTree='666239a1893a17b8e7984d2b28fbd3b23c7c15cf'
+          $buildSrc=Join-Path $root 'foundation/qualification-harness/ktrade-w35b/Build-And-Qualify.ps1'
+          $installSrc=Join-Path $root 'previous-witness/qualification-harness/ktrade-w37/Installed-Pine-Chart-Paper-Safety.ps1'
+          $builder=[IO.File]::ReadAllText($buildSrc)
+          $installed=[IO.File]::ReadAllText($installSrc)
+          if($builder.Split($old).Count -ne 2 -or $builder.Split($oldTree).Count -ne 2 -or $installed.Split($old).Count -ne 2){throw 'W74_NONUNIQUE_SOURCE_SUBSTITUTION_REFUSED'}
+          $builder=$builder.Replace($old,$target).Replace($oldTree,$targetTree)
+          $installed=$installed.Replace($old,$target)
+          if($builder.Contains($old) -or $builder.Contains($oldTree) -or $installed.Contains($old)){throw 'W74_OLD_SOURCE_REMAINS'}
+          $out=Join-Path $env:RUNNER_TEMP 'ktrade-w74-builder.ps1'
+          $witness=Join-Path $env:RUNNER_TEMP 'ktrade-w74-installed.ps1'
+          [IO.File]::WriteAllText($out,$builder,[Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllText($witness,$installed,[Text.UTF8Encoding]::new($false))
+          foreach($p in @($out,$witness)){
+            $t=$null;$errs=$null
+            [void][Management.Automation.Language.Parser]::ParseFile($p,[ref]$t,[ref]$errs)
+            if($errs.Count -ne 0){throw 'W74_DERIVED_POWERSHELL_AST_REFUSED'}
+          }
+          Write-Host '::notice::W74_PINNED_W35B_W37_REUSED_WITH_EXACT_TWO_SHA_ONE_TREE_SUBSTITUTION=PASS'
+      - name: Native Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Node 24 for locked original offline vendor and chart tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Build two original unsigned Windows bundles and test actual installed W31 W73 W31 lifecycle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $root=$env:GITHUB_WORKSPACE
+          & (Join-Path $env:RUNNER_TEMP 'ktrade-w74-builder.ps1') -PreviousCheckout (Join-Path $root 'previous') -CandidateCheckout (Join-Path $root 'candidate') -WitnessScript (Join-Path $env:RUNNER_TEMP 'ktrade-w74-installed.ps1')
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'W74_INSTALLED_LIFECYCLE_FAILED'}
+          Write-Host '::notice::W74_NATIVE_W31_W73_W31_INSTALL_UPGRADE_ROLLBACK_WEBVIEW2_PINE_HTTP423=PASS'
+      - name: Exact current W73 source original Go PAPER and Pine runtime
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'candidate')
+          try{
+            & go test -mod=readonly -tags ktrade_full -count=1 -timeout 18m -run '^(TestRB3WailsPairedPaperLifecycleStartFillStopColdReadOnly|TestRB3W32BOriginalEditorCompilerWorksWithoutMarketData)$' ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W74_CURRENT_SOURCE_NATIVE_PAPER_PINE_FAILED'}
+            # Fourth SELL regression belongs to internal/paperengine. Require its
+            # *named* test PASS, never count an empty package test as evidence.
+            $p10Test='TestW33CP10FourthSellPostSettlementPendingMustQuarantineWithoutRearm'
+            $p10Output=@(& go test -json -mod=readonly -tags ktrade_full -count=1 -timeout 18m -run ('^'+$p10Test+'$') ./internal/paperengine)
+            $p10Exit=$LASTEXITCODE
+            $p10Output|ForEach-Object { Write-Host $_ }
+            if($p10Exit -ne 0){throw 'W74_P10_FOURTH_SELL_QUARANTINE_TEST_FAILED'}
+            $p10Pass=@($p10Output|Where-Object {
+              try {
+                $evt=$_|ConvertFrom-Json -ErrorAction Stop
+                $evt.Action -ceq 'pass' -and
+                $evt.Package -ceq 'ktrade/internal/paperengine' -and
+                $evt.Test -ceq $p10Test
+              }catch{ $false }
+            })
+            if($p10Pass.Count -ne 1){throw 'W74_P10_FOURTH_SELL_NAMED_TEST_PASS_NOT_OBSERVED'}
+            Write-Host '::notice::W74_P10_FOURTH_SELL_ORIGINAL_PAPER_QUARANTINE_EXECUTED=PASS'
+            & node --test tests/rb3_w32a_original_chart_candles.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w32d_pine_pane.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W74_CURRENT_SOURCE_CHART_PINE_NODE_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W74_ORIGINAL_NATIVE_PAPER_PINE_CHART_REGRESSIONS=PASS'
+      - name: Fail-closed exact source, no owner or released data touched
+        if: always()
+        shell: pwsh
+        run: |
+          $candidate=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $head=(& git -C $candidate rev-parse HEAD).Trim()
+          if($head -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6'){throw 'W74_PRODUCT_SHA_DRIFT'}
+          Write-Host '::notice::W74_EPHEMERAL_ONLY_NO_PRODUCTION_INSTALL_NO_USER_DATA_NO_BROKER_NO_LIVE_NO_MERGE'
