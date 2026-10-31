@@ -241,7 +241,7 @@ jobs:
           $ErrorActionPreference='Stop'
           $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
-          & (Join-Path $h 'Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') -WitnessScript (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w93/Installed-Supertrend-Lifecycle.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1')
+          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w93/Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') -WitnessScript (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w93/Installed-Supertrend-Lifecycle.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1')
           if($LASTEXITCODE -ne 0 -or !$?){throw 'W83_REAL_INSTALLED_CURRENT_MARKET_PAPER_AND_ROLLBACK_FAILED'}
           Write-Host '::notice::W83_REAL_INSTALLED_UPGRADE_FOUR_CURRENT_NATIVE_PAPER_FILLS_STOP_COLD_ACCOUNT_ROLLBACK_HISTORY_RETAINED=PASS'
       - name: Source custody and no production authority final
