@@ -37,9 +37,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: e49072384d78e184185399825b2ad96e837342e1
+          ref: 2e81b8c4a170a5537e973d59de0de1713fd6c5d4
           path: product
-          fetch-depth: 2
+          fetch-depth: 3
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Exact four-path source custody and unchanged original compiler and guard
@@ -48,8 +48,8 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_HOSTED_WINDOWS_REQUIRED'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if((& git -C $src rev-parse HEAD).Trim() -cne 'e49072384d78e184185399825b2ad96e837342e1' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '67b32e76ec69974232bd44cf441d98da44a164a0' -or (& git -C $src rev-parse HEAD^).Trim() -cne '2773c8eb8e840a0eb0a6524820d394f5a35a925f'){throw 'EXACT_SOURCE_TREE_PARENT_REQUIRED'}
-          $delta=@(& git -C $src diff --name-only HEAD^ HEAD|Sort-Object)
+          if((& git -C $src rev-parse HEAD).Trim() -cne '2e81b8c4a170a5537e973d59de0de1713fd6c5d4' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'a90725bdd94f4b493601267a37ffee81c5c72e62' -or (& git -C $src rev-parse HEAD^).Trim() -cne 'e49072384d78e184185399825b2ad96e837342e1' -or (& git -C $src rev-parse HEAD^^).Trim() -cne '2773c8eb8e840a0eb0a6524820d394f5a35a925f'){throw 'EXACT_SOURCE_TREE_PARENT_REQUIRED'}
+          $delta=@(& git -C $src diff --name-only HEAD^^ HEAD|Sort-Object)
           $expected=@('pkg/catalog_supertrend_inputs_test.go','pkg/catalog_supertrend_numeric_test.go','templates/chart.tmpl','tests/rb3_w90_catalog_actions.test.cjs')|Sort-Object
           if(($delta -join '|') -cne ($expected -join '|')){throw 'EXACT_FOUR_PATH_DELTA_REQUIRED'}
           if((& git -C $src rev-parse 'HEAD:pkg/pine_compiler.go').Trim() -cne '2b0dfff2b5f19cb9a6c55bdea5584265e3280d35' -or (& git -C $src rev-parse 'HEAD:internal/originaltradeguard').Trim() -cne '1f894b0a6f8115b8a9d3882fa16fdb289eba510a' -or (& git -C $src rev-parse 'HEAD:internal/paperreconcile').Trim() -cne '9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'){throw 'ORIGINAL_COMPILER_GUARD_OR_LEDGER_CHANGED'}
@@ -82,6 +82,7 @@ jobs:
             $out=@(& go test -json -mod=readonly -count=1 -timeout 15m -run '^TestCatalogSupertrendInputPeriodsAndMultipliers$' ./pkg)
             $exit=$LASTEXITCODE
           }finally{Pop-Location}
+          $out|ForEach-Object{Write-Output $_}
           $events=@($out|Where-Object{$_.StartsWith('{')}|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
           if($exit -eq 0){throw 'OLD_FIXED_PERIOD_BUG_NOT_REPRODUCED'}
           foreach($name in @('TestCatalogSupertrendInputPeriodsAndMultipliers/v5/period3/factor3','TestCatalogSupertrendInputPeriodsAndMultipliers/v6/period3/factor3')){
