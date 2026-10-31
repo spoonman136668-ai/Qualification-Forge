@@ -1,0 +1,75 @@
+name: KTRADE raw catalog Supertrend numerical qualification
+on:
+  push:
+    branches: [qualification/ktrade-catalog-supertrend-numeric-20261030]
+    paths: [.github/workflows/ktrade-catalog-supertrend-numeric-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-catalog-supertrend-numeric-20261030
+  cancel-in-progress: false
+jobs:
+  numerical:
+    runs-on: windows-2022
+    timeout-minutes: 18
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 72e79877dfda4c7a10bd8c5852a2df1598183de8
+          fetch-depth: 2
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact source custody disarm and unavailable-catalog guard
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_QUALIFICATION_HOST_REQUIRED'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '72e79877dfda4c7a10bd8c5852a2df1598183de8' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'b8022582799277ce5cfa67cb72d802284869a9e2' -or (& git -C $src rev-parse HEAD^).Trim() -cne '365a7085ccd86c3f917206fe2569aba51f00d8d0' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'SOURCE_CUSTODY_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD)
+          if($delta.Count -ne 2 -or @($delta|Where-Object {$_ -cnotin @('templates/chart.tmpl','pkg/catalog_supertrend_numeric_test.go')}).Count -ne 0){throw 'EXACT_TWO_PATH_DELTA_REQUIRED'}
+          if(Test-Path (Join-Path $src '.env')){throw 'DOTENV_REFUSED'}
+          $cfg=Get-Content (Join-Path $src 'config.json') -Raw|ConvertFrom-Json
+          if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'TRACKED_CREDENTIALS_REFUSED'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          if((Get-Content (Join-Path $src 'templates/chart.tmpl') -Raw) -notmatch "const unavailableCatalogNames=new Set\(\['Supertrend','RSI Divergence'\]\)"){throw 'UNQUALIFIED_CATALOG_MUST_STAY_DISABLED'}
+          Write-Host '::notice::EXACT_SOURCE_ONLY_TWO_PATHS_UNQUALIFIED_INDICATOR_DISABLED_NO_OWNER_DATA_NO_BROKER=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original production Pine compiler independent numerical recurrence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          $raw=@(& go test -json -mod=readonly -count=1 -timeout 10m -run '^TestCatalogSupertrendRawPineNumericStateAndWarmup$|^TestW89' ./pkg)
+          $exit=$LASTEXITCODE
+          $raw|ForEach-Object{Write-Host $_}
+          $events=@($raw|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+          if($exit -ne 0 -or @($events|Where-Object{$_.Action -in @('fail','skip')}).Count -ne 0){throw 'REAL_PINE_NUMERICAL_QUALIFICATION_FAILED'}
+          foreach($version in @('v5','v6')){
+            foreach($case in @('rising','falling','reversals','flat','short')){
+              $name='TestCatalogSupertrendRawPineNumericStateAndWarmup/'+$version+'/'+$case
+              if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq $name}).Count -ne 1){throw 'REQUIRED_NUMERIC_CASE_MISSING'}
+            }
+          }
+          & node --test tests/rb3_w90_catalog_actions.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'ORIGINAL_DISABLED_ALIAS_UI_GUARD_REGRESSION'}
+          & go vet -mod=readonly ./pkg
+          if($LASTEXITCODE -ne 0){throw 'ORIGINAL_PKG_VET_FAILED'}
+          if(@(& git status --porcelain).Count -ne 0){throw 'FINAL_SOURCE_MUTATED'}
+          Write-Host '::notice::RAW_CATALOG_SUPERTREND_10_NUMERIC_VERSION_CASES_WILLIAMS_ORIGINAL_DISABLED_APPLY_GUARD=PASS'
