@@ -1,0 +1,194 @@
+{
+  "schema": "ktrade.exact-private-artifact.windows-native.v1",
+  "verdict": "PASS_SCOPED_EXACT_EXISTING_PRIVATE_INSTALLER_REAL_NATIVE_PAPER_STOP_COLD_ROLLBACK",
+  "source_pr": 230,
+  "source_sha": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+  "source_tree": "894152b0c45b102584ce092b2aa964701ed40205",
+  "original_private_build_run": 41183871207,
+  "original_private_artifact": 13035861531,
+  "original_outer_sha256": "0e2e7aac83d8266e4668c8d5df32690630acb7747c4c7602f69363eac77d5b4f",
+  "actual_installed_inner_sha256": "3cb5e7fea812d76bfa29747cf13b1d0a131d565f46e29e1d6a705eff81014f38",
+  "run_id": 41198796634,
+  "job_id": 124530287918,
+  "qualifier_execution_sha": "ffb68df0f539be2da7603023ab36d72be7117035",
+  "status": "completed",
+  "conclusion": "success",
+  "artifact_data_commit": "c8ad466659e8ec3ebe36f68fd5fbbbf63c420e45",
+  "transport_run": 41198694256,
+  "transport_receipt_commit": "bd6775b03d1caf6ddec5e67a307f490a061808ed",
+  "transport_receipt_blob": "aed02ac230143aa23ede041fead661dd68c41cbc",
+  "original_full_source_and_scanned_hosted_archive_run": 41182705117,
+  "native_harness_blob": "56c91297744f89abd65a575acea9321fb7677e8e",
+  "build_harness_blob": "db07ab70ccd867f50d6980af4641850e98af547e",
+  "original_financial_harness_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "verified_results": {
+    "existing_private_contents_scope_exact_hash_custody": true,
+    "current_candidate_not_rebuilt": true,
+    "real_supertrend_williams_apply": true,
+    "four_current_paper_fills_fees_fifo_original_risk_dedup_stop": true,
+    "cold_no_rearm": true,
+    "rollback_retains_old_new_unknown_history": true,
+    "legacy_order_http423": true,
+    "actual_pane_captures": [
+      {
+        "phase": "BEFORE_SUPERTREND",
+        "retained_screenshot": false,
+        "left": 46,
+        "png_sha256": "af4d84f32cc6f6d5a1330318c84d3fed410b898972d5a9aa6aebdae7e303d875",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "height": 346,
+        "top": 215,
+        "width": 932
+      },
+      {
+        "phase": "AFTER_SUPERTREND",
+        "retained_screenshot": false,
+        "left": 46,
+        "png_sha256": "8ac1b4768c1727e76fe8acef98cd99ec3e0ad6393e7140fb25533ee86e427e3d",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "height": 346,
+        "top": 215,
+        "width": 932
+      }
+    ],
+    "actual_pane_difference": {
+      "after_sha256": "8ac1b4768c1727e76fe8acef98cd99ec3e0ad6393e7140fb25533ee86e427e3d",
+      "before_sha256": "af4d84f32cc6f6d5a1330318c84d3fed410b898972d5a9aa6aebdae7e303d875",
+      "identical_bounds": true,
+      "pixel_sample_count": 19635,
+      "changed_sample_count": 652,
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle"
+    },
+    "actual_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 535633920,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "pid": 7276,
+          "working_set_bytes": 33521664,
+          "name": "ktrade.exe"
+        },
+        {
+          "pid": 5256,
+          "working_set_bytes": 23379968,
+          "name": "ktrade-engine.exe"
+        },
+        {
+          "pid": 892,
+          "working_set_bytes": 18436096,
+          "name": "conhost.exe"
+        },
+        {
+          "pid": 1572,
+          "working_set_bytes": 107614208,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 7332,
+          "working_set_bytes": 8048640,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 752,
+          "working_set_bytes": 52535296,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 6892,
+          "working_set_bytes": 33026048,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 2992,
+          "working_set_bytes": 18960384,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 2028,
+          "working_set_bytes": 58769408,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 768,
+          "working_set_bytes": 181342208,
+          "name": "msedgewebview2.exe"
+        }
+      ]
+    },
+    "actual_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 576524288,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "pid": 7276,
+          "working_set_bytes": 30248960,
+          "name": "ktrade.exe"
+        },
+        {
+          "pid": 5256,
+          "working_set_bytes": 28516352,
+          "name": "ktrade-engine.exe"
+        },
+        {
+          "pid": 892,
+          "working_set_bytes": 18436096,
+          "name": "conhost.exe"
+        },
+        {
+          "pid": 1572,
+          "working_set_bytes": 128917504,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 7332,
+          "working_set_bytes": 8048640,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 752,
+          "working_set_bytes": 56049664,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 6892,
+          "working_set_bytes": 33087488,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 2992,
+          "working_set_bytes": 18960384,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 2028,
+          "working_set_bytes": 58871808,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "pid": 768,
+          "working_set_bytes": 195387392,
+          "name": "msedgewebview2.exe"
+        }
+      ]
+    },
+    "actual_probe_coverage_and_sums_verified": true
+  },
+  "preserved_prior_http404_failure": 41184348560,
+  "limits": [
+    "Qualifies only PR230 and existing inner archive3cb5;does not certify newer PR231/232",
+    "Observed pane difference is not an independent numeric-to-pixel oracle;working-set sums are not unique physical or peak RAM",
+    "No target-hardware,FPS,HiDPI,actual midnight or24h soak acceptance",
+    "Private Actions permission was not widened;isolated artifact contents used the existing token",
+    "No owner financial/profile data,real broker,kill clearing,source promotion,signing or release"
+  ],
+  "public_private_binary_upload": false,
+  "new_credentials_or_permissions": false,
+  "owner_data_accessed": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "product_complete": false
+}

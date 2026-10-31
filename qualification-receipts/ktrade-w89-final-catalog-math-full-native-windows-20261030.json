@@ -1,0 +1,108 @@
+{
+  "schema": "ktrade.qualification.w89.catalog-math-full-native.v1",
+  "verdict": "PASS_SCOPED_FROZEN_FULL_WINDOWS_REGRESSION_AND_INSTALLED_CURRENT_PAPER",
+  "product_pr": 226,
+  "source_sha": "e5032bdd9ea5d47476f32515c464e3368fe34ebe",
+  "source_tree": "73fd7234ea9592cb9e08f59c4c964b362e83ec8f",
+  "qualifier_pr": 57,
+  "workflow": ".github/workflows/ktrade-w89-catalog-math-final-native-windows.yml",
+  "executing_witness": "7d250a012d0e99869b255a43393d922f11053b1f",
+  "executing_tree": "ed33df234e3c3011b3628bf703464e67fff67d66",
+  "run_id": 41145349869,
+  "job_id": 124369031758,
+  "status": "completed",
+  "conclusion": "success",
+  "go": "go1.26.10",
+  "regression": {
+    "old_wrong_RSI_instead_of_Williams": "Actual original PR223 raw catalog numerical failure reproduced and expected before testing new source",
+    "raw_current_Pine_no_prelude": {
+      "root_cases": 2,
+      "version_subcases": 4,
+      "passes": [
+        "TestW89WilliamsCatalogRollingHighLowIsNotRSI/v5",
+        "TestW89WilliamsCatalogRollingHighLowIsNotRSI/v6",
+        "TestW89WilliamsCatalogRollingHighLowIsNotRSI",
+        "TestW89WilliamsCatalogFlatRangeIsUndefinedNotInvented/v5",
+        "TestW89WilliamsCatalogFlatRangeIsUndefinedNotInvented/v6",
+        "TestW89WilliamsCatalogFlatRangeIsUndefinedNotInvented"
+      ]
+    },
+    "all_original_root_tests_vet": "PASS",
+    "tagged_full_app_tests_vet": "PASS",
+    "all_nested_Wails_tests_vet": "PASS",
+    "node": {
+      "files": 34,
+      "regular_passes": 156,
+      "failures": 0,
+      "skipped": 0,
+      "cancelled": 0,
+      "W28F": "Actual original two-root PASS"
+    }
+  },
+  "native": {
+    "source_owned_unsigned_installers": true,
+    "previous_source": "b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a",
+    "actual_WebView2_Pine_v5_v6_and_legacy_423": true,
+    "current_public_finalized_market_four_paper_fills": true,
+    "fees_FIFO_TradeGuard_PnL_dedup_Stop": true,
+    "cold_stopped_account_no_auto_rearm": true,
+    "rollback_preserves_old_new_unknown_history": true
+  },
+  "native_metrics": [
+    {
+      "startup_budget_ms": 120000,
+      "shell_engine_resident_bytes": 57036800,
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+      "elapsed_ms": 9751.8542,
+      "phase": "PREVIOUS",
+      "resident_budget_bytes": 1073741824
+    },
+    {
+      "startup_budget_ms": 120000,
+      "shell_engine_resident_bytes": 57229312,
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+      "elapsed_ms": 3463.4293,
+      "phase": "UPDATED",
+      "resident_budget_bytes": 1073741824
+    },
+    {
+      "startup_budget_ms": 120000,
+      "shell_engine_resident_bytes": 56418304,
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+      "elapsed_ms": 2633.457,
+      "phase": "ROLLED_BACK",
+      "resident_budget_bytes": 1073741824
+    }
+  ],
+  "limits": [
+    "The raw exact catalog Williams script passed independent numeric and flat-range checks. This run did not click Williams in the native catalog; its installed native scenario is the original Monaco/current-PAPER path.",
+    "Other historical catalog aliases remain unqualified; successor PR227 explicitly disables misleading Supertrend/RSI Divergence aliases and is separately pending Windows acceptance.",
+    "No performance/FPS/competitive-usability or extended production soak certification; native snapshots exclude WebView child processes.",
+    "No owner data, credentials/private broker calls or orders, source promotion/signing/release/LIVE."
+  ],
+  "authentic_markers": [
+    "89_EXACT_PRESENTATION_PACKAGING_ONLY_DELTA_ORIGINAL_ENGINE_AND_MODULES_W82_REUSE=PASS",
+    "83_EXACT_SOURCES_W82_ACCEPTED_ORIGINAL_SCENARIO_AST_LIVE_DISABLED=PASS",
+    "83_PS7_PS51_SCOPED_CORE_MODULE_BOUNDARY=PASS",
+    "89_OLD_CATALOG_RSI_INSTEAD_OF_WILLIAMS_NUMERIC_FAILURE_REPRODUCED=PASS",
+    "89_RAW_WILLIAMS_V5_V6_CORRECT_VALUES_FLAT_NA_FULL_ROOT_TAGGED_TEST_VET=PASS",
+    "89_CURRENT_EMBEDDED_WAILS_ALL_ORIGINAL_TESTS_VET=PASS",
+    "89_W31_W76_ORIGINAL_BROWSER_STATE_TWO_ROOTS=PASS",
+    "89_ALL_ORIGINAL_OPERATOR_MARKET_PINE_SECURITY_NODE_CASES=PASS files=34 cases=156",
+    "83_NATIVE_PREVIOUS_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+    "83_INSTALLED_CANDIDATE_ORIGINAL_CHART_AND_PINE_RENDERER=PASS",
+    "83_INSTALLED_CANDIDATE_REAL_GO_PINE_V5_V6_COMPILE_AND_REFUSAL=PASS",
+    "83_INSTALLED_CANDIDATE_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS",
+    "83_NATIVE_UPDATED_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+    "33C_P9_REAL_WAILS_TWO_CONSECUTIVE_PUBLIC_MARKET_ROUNDTRIPS=PASS",
+    "33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+    "33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS",
+    "83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS",
+    "83_NATIVE_ROLLED_BACK_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+    "83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+    "83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS",
+    "83_REAL_INSTALLED_UPGRADE_FOUR_CURRENT_NATIVE_PAPER_FILLS_STOP_COLD_ACCOUNT_ROLLBACK_HISTORY_RETAINED=PASS"
+  ],
+  "live_armed": false,
+  "release_authority": "none"
+}

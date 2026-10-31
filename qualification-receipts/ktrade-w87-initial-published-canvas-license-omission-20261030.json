@@ -1,0 +1,20 @@
+{
+  "schema": "ktrade.qualification.shipping-js-initial-failure.v1",
+  "source": "c368aaa37a72ec193d0af14f392432c4b6453c31",
+  "tree": "f424792ed406de053956cd763c3e2def938e7747",
+  "run_id": 41143707283,
+  "job_id": 124363745445,
+  "witness": "008bd0aff856aa491a23a326eba1534e38e9ed80",
+  "conclusion": "failure",
+  "actual": "Three Windows subprocess property tests passed; real npm assets failed OFFLINE_VENDOR_LICENSE_MISSING_fancy-canvas before advisory acceptance. Do not accept JS scan or final package from this run.",
+  "cause": "Published fancy-canvas2.1.0 omits its MIT LICENSE due files allowlist; source fallback required instead of weakening guard.",
+  "repair": {
+    "upstream_commit": "7ece7601f05b624496f485cee65789ad691427df",
+    "license_blob": "b12ed6dceb5310a7deb6b32bdf85c638458e52bd",
+    "license_sha256": "52d2ba0c8f8f4532bd524358d679693ff3dd9e40c56fe0c0c63061ed0733aa18",
+    "source": "cc9a0e2b90fae037a88246360ad93c5585aa8831",
+    "tree": "025de2698b3a20abe59338d8c1e0a247c5ae46ad"
+  },
+  "live_armed": false,
+  "owner_data_touched": false
+}

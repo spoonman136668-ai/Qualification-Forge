@@ -1,0 +1,111 @@
+{
+  "schema": "ktrade.qualification.original-race-soak.v1",
+  "gate": "W78",
+  "verdict": "PASS_SCOPED_WINDOWS_PAPER_RACE_AND_WAILS_REPEATED_ROLLBACK",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 49,
+  "workflow_path": ".github/workflows/ktrade-w78-original-paper-wails-race-soak-windows.yml",
+  "executing_witness_sha": "0db0a13f803103595c8e6dd40df9aff1ba6a77ba",
+  "workflow_blob_sha": "1d366658e569558d10a7efb2ecdc6c6205abd561",
+  "run_id": 41063369066,
+  "job_id": 124088417040,
+  "run_attempt": 1,
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "completed_utc": "2026-10-30T13:31:32Z",
+  "platform": "GitHub-hosted Windows-2022",
+  "go_toolchain": "1.25.0",
+  "go_race_enabled": true,
+  "source_repo": "spoonman136668-ai/ktrade",
+  "source_pr": 221,
+  "source_sha": "0acfae265370b677dfe6de1386de793fb20b2460",
+  "source_tree": "1059c3e77dfb882f652994d9262f0eb681d03cb5",
+  "runtime_parent": "7dfec71777730f744e1749b8bd741fbd01f0d2f6",
+  "only_changed_file": "tests/paper_tradeguard_reconciliation.test.cjs",
+  "runtime_source_unchanged": true,
+  "foundation": {
+    "gate": "W77",
+    "receipt_commit": "335ea22f8c6c842fdb28733084caf4123c2f8e9e",
+    "receipt_blob": "c4aae8ba85e4c66b375d26f40ccdbda343303b8a",
+    "accepted_run": 41057198253,
+    "source_sha": "0acfae265370b677dfe6de1386de793fb20b2460",
+    "scope": "Full Go/Wails test and vet, fixture-free Go/Wails signed-off as source build only"
+  },
+  "observed_named_test_positive_results": {
+    "papertrading": {
+      "package": "ktrade/internal/papertrading",
+      "selected_tests": 5,
+      "repetitions": 4,
+      "named_pass_events": 20,
+      "race": true,
+      "markers": "W78_ORIGINAL_RACE_REPEAT=PASS"
+    },
+    "papercustody": {
+      "package": "ktrade/internal/papercustody",
+      "selected_tests": 3,
+      "repetitions": 4,
+      "named_pass_events": 12,
+      "race": true,
+      "markers": "W78_ORIGINAL_RACE_REPEAT=PASS"
+    },
+    "paperengine": {
+      "package": "ktrade/internal/paperengine",
+      "selected_tests": 4,
+      "repetitions": 3,
+      "named_pass_events": 12,
+      "race": true,
+      "markers": "W78_ORIGINAL_RACE_REPEAT=PASS"
+    },
+    "wails_installer": {
+      "package": "ktrade-wails-pilot/backend",
+      "selected_tests": 7,
+      "repetitions": 3,
+      "named_pass_events": 21,
+      "race": false,
+      "markers": "W78_ORIGINAL_WAILS_ROLLBACK_LEASE_REPEAT=PASS"
+    }
+  },
+  "scope_notes": [
+    "44 original risk/cold restart/TradeGuard/cash/checkpoint/ledger/custody positive test executions under Go race; 21 original Wails update/rollback and process lease positives in repeated test runs.",
+    "Original W74 installed test and P10 fourth-SELL acceptance is retained by exact source identity, not replicated by W78.",
+    "All selected test names and repetition counts were enforced against Go JSON test-specific pass events. The final Windows Actions step and no-broker/no-user-profile LIVE-disarmed cleanup PASS."
+  ],
+  "prior_failures": [
+    {
+      "run": 41062547041,
+      "conclusion": "failure",
+      "classification": "QUALIFICATION_HARNESS_FLAG",
+      "cause": "PowerShell did not interpolate -count=$n native Go argument; no valid source regression verdict"
+    },
+    {
+      "run": 41062776791,
+      "conclusion": "failure",
+      "classification": "QUALIFICATION_HARNESS_EXPECTED_MODULE",
+      "cause": "PAPER 44 race test executions PASS; Wails Go tests exit zero but expected JSON package incorrectly specified ktrade/tools/wails-pilot/backend instead of actual module ktrade-wails-pilot/backend"
+    }
+  ],
+  "holds": {
+    "whole_product_release_accepted": false,
+    "production_security_accepted": false,
+    "performance_soak_SLO_accepted": false,
+    "main_branch_protected": false,
+    "owner_installed_state_qualified": false,
+    "signing_distributor_verified": false,
+    "financial_cash_fee_reconciled": false,
+    "live_trading_authorized": false,
+    "protected_main_merged": false
+  },
+  "privacy": {
+    "tested_ephemeral_synthetic_windows_only": true,
+    "owner_credentials_used": false,
+    "broker_calls": false,
+    "owner_profile_modified": false,
+    "real_orders_sent": false,
+    "live_disarmed": true
+  },
+  "evidence": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41063369066",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/pull/49"
+  ],
+  "provenance": "Evidence-only receipt committed after executing witness and job completed. This receipt-only commit is not the executing workflow SHA and does not rerun existing tests."
+}

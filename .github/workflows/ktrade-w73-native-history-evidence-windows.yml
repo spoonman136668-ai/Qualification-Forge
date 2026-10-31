@@ -1,0 +1,207 @@
+name: KTRADE W73 precision-explicit native transaction-history evidence Windows
+permissions:
+  contents: read
+  actions: read
+on:
+  push:
+    branches: [qualification/ktrade-w73-native-history-evidence-windows-20261030]
+    paths: [.github/workflows/ktrade-w73-native-history-evidence-windows.yml]
+concurrency:
+  group: ktrade-w73-financial-gap-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - name: Checkout exact witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact original W73 candidate with W72 ancestry
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7dfec71777730f744e1749b8bd741fbd01f0d2f6
+          path: current
+          fetch-depth: 32
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact W72 parent and four W73 paths and source LIVE disarm
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W73_NOT_HOSTED_WINDOWS'}
+          if((& git -C witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){throw 'W73_WITNESS_DRIFT'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6' -or
+            (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '666239a1893a17b8e7984d2b28fbd3b23c7c15cf'){throw 'W73_EXACT_SOURCE_TREE_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W73_DIRTY_SOURCE'}
+          $parent='125eba6fb6adee2df31d6f895be5297370c93135'
+          if((& git -C $src merge-base HEAD $parent).Trim() -cne $parent){throw 'W73_W61_ANCESTRY_DRIFT'}
+          $got=@(& git -C $src diff --name-only $parent HEAD|Sort-Object)
+          $expected=@('pkg/advanced_order_v2_cdp_readonly.go','pkg/advanced_order_v2_history_candidate_owner_windows_test.go','pkg/advanced_order_v2_history_candidate_readonly.go','pkg/advanced_order_v2_history_candidate_readonly_test.go'|Sort-Object)
+          if(Compare-Object $got $expected){throw 'W73_CHANGED_PRODUCT_SCOPE_DRIFT'}
+          $broker=Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw
+          if($broker -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W73_LIVE_SOURCE_NO_LONGER_LOCKED'}
+          $w56=(& git -C $src rev-parse 'HEAD:internal/brokerintent/fill_accounting.go').Trim()
+          $original=(& git -C $src rev-parse ($parent+':internal/brokerintent/fill_accounting.go')).Trim()
+          if($w56 -cne $original){throw 'W73_ORIGINAL_W60_FINANCIAL_PROJECTION_CHANGED'}
+          $w58gap=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_financial_gap.go').Trim()
+          $w58parent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_financial_gap.go')).Trim()
+          if($w58gap -cne $w58parent){throw 'W73_ORIGINAL_W60_FINANCIAL_GAP_REVIEW_CHANGED'}
+          $w59reads=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_four_read_evidence.go').Trim()
+          $w59parent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_four_read_evidence.go')).Trim()
+          if($w59reads -cne $w59parent){throw 'W73_ORIGINAL_W60_FOUR_SIGNED_READS_CHANGED'}
+          $w60history=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_cash_history_window.go').Trim()
+          $w60parent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_cash_history_window.go')).Trim()
+          if($w60history -cne $w60parent){throw 'W73_ORIGINAL_W60_UNVERIFIED_HISTORY_CHANGED'}
+          $w61wallet=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_v2_history_pages.go').Trim()
+          $w61parent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_v2_history_pages.go')).Trim()
+          if($w61wallet -cne $w61parent){throw 'W73_ORIGINAL_W61_V2_WALLET_PARSER_CHANGED'}
+          $w62collector=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_v2_collector_custody.go').Trim()
+          $w62parent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_v2_collector_custody.go')).Trim()
+          if($w62collector -cne $w62parent){throw 'W73_ORIGINAL_W62_DETACHED_COLLECTOR_CHANGED'}
+          $w63oauth=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_v2_oauth_readonly_collect.go').Trim()
+          $w63parent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_v2_oauth_readonly_collect.go')).Trim()
+          if($w63oauth -cne $w63parent){throw 'W73_ORIGINAL_W63_OAUTH_GET_COLLECTOR_CHANGED'}
+          $w64tls=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_v2_provider_tls.go').Trim()
+          $w64parent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_v2_provider_tls.go')).Trim()
+          if($w64tls -cne $w64parent){throw 'W73_ORIGINAL_W64_PROVIDER_TLS_CHANGED'}
+          $link=(& git -C $src rev-parse 'HEAD:pkg/advanced_order_wallet_portfolio_link_review.go').Trim()
+          $linkParent=(& git -C $src rev-parse ($parent+':pkg/advanced_order_wallet_portfolio_link_review.go')).Trim()
+          if($link -cne $linkParent){throw 'W73_W65_LINK_GUARDS_CHANGED'}
+          $cfgBlob=(& git -C $src rev-parse 'HEAD:config.json').Trim()
+          $cfgParent=(& git -C $src rev-parse ($parent+':config.json')).Trim()
+          if($cfgBlob -cne $cfgParent){throw 'W73_W67_SANITIZED_CONFIG_CHANGED'}
+          $sample=Get-Content (Join-Path $src 'config.json') -Raw|ConvertFrom-Json
+          if($sample.api_key.key_name -or $sample.api_key.key_secret -or $sample.account_id -or $sample.ngrok_authtoken){
+            throw 'W73_TRACKED_CONFIG_SECRETS_RETAINED'
+          }
+          $ignore=Get-Content (Join-Path $src '.gitignore') -Raw
+          if($ignore -notmatch '(?m)^\.env\r?$' -or $ignore -notmatch '(?m)^\*\*/\.env\r?$'){throw 'W73_ENV_IGNORE_MISSING'}
+          if(@(& git -C $src ls-files '.env' '*/.env').Count -gt 0){throw 'W73_ENV_TRACKED'}
+          $loader=Get-Content (Join-Path $src 'pkg/cdp_config.go') -Raw
+          if($loader -notmatch 'w66ReadLocalEnv' -or $loader -notmatch 'KTRADE_LIVE_TRADING' -or
+             $loader -notmatch 'NgrokAuthToken=""' -or
+             $loader -notmatch 'KTRADE broker account not independently mapped'){throw 'W73_LOADER_INCOMPLETE'}
+          $w67blob=(& git -C $src rev-parse 'HEAD:pkg/cdp_config_sanitized_test.go').Trim()
+          $w67parent=(& git -C $src rev-parse ($parent+':pkg/cdp_config_sanitized_test.go')).Trim()
+          if($w67blob -cne $w67parent){throw 'W73_W67_SANITIZED_CONFIG_TEST_CHANGED'}
+          $native=Get-Content (Join-Path $src 'pkg/advanced_order_v2_history_candidate_readonly.go') -Raw
+          if($native -notmatch 'w73ReadHistoryCandidate' -or
+             $native -notmatch 'w73CollectNativeOwnerHistoryCandidate' -or
+             $native -notmatch 'w71CDPGET' -or
+             $native -notmatch 'w64ProviderHTTPClient' -or
+             $native -match 'PlaceOrder\(|CancelOrder\(|MethodPost|\.Post\('){throw 'W73_NATIVE_READ_ONLY_SCOPE_INCOMPLETE'}
+          foreach($path in @('AGENTS.md','docs','cmd','static','templates','tests','tools','windows','internal','go.mod','go.sum','pkg/advanced_order_account_variance.go','pkg/advanced_order_account_variance_test.go','pkg/advanced_order_auth.go','pkg/advanced_order_auth_test.go','pkg/advanced_order_v2_cdp_readonly_test.go','pkg/advanced_order_v2_cdp_owner_windows_test.go','pkg/advanced_order_v2_v3_balance_protocol_owner_windows_test.go','pkg/advanced_order_v3_balance_readonly.go','pkg/advanced_order_v3_balance_readonly_test.go','pkg/advanced_order_v3_balance_owner_windows_test.go','pkg/advanced_order_v3_inventory_readonly.go','pkg/advanced_order_v3_inventory_readonly_test.go','pkg/advanced_order_v3_owner_first_use_windows_test.go','pkg/cdp_config.go')){
+            $now=(& git -C $src rev-parse ('HEAD:'+$path)).Trim()
+            $before=(& git -C $src rev-parse ($parent+':'+$path)).Trim()
+            if($LASTEXITCODE -ne 0 -or $now -cne $before){throw ('W73_ORIGINAL_OWNER_OR_PRIOR_ASSERTION_DRIFT_'+$path)}
+          }
+          Write-Host '::notice::W73_EXACT_PARENT_FOUR_PATHS_AND_LIVE_DISABLED=PASS'
+      - name: Native Go 1.25 for signed balance and original financial kernel
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: W73 candidate source history, prefix coverage, precision separation and refusal tests
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & gofmt -e pkg/advanced_order_v2_cdp_readonly.go pkg/advanced_order_v2_history_candidate_owner_windows_test.go pkg/advanced_order_v2_history_candidate_readonly.go pkg/advanced_order_v2_history_candidate_readonly_test.go | Out-Null
+            if($LASTEXITCODE -ne 0){throw 'W73_SOURCE_SYNTAX_FAILED'}
+            & go test -mod=readonly -count=1 -v -run '^TestW73' ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W73_MAPPING_REFUSAL_FOCUSED_FAILED'}
+            $ownerTest=Join-Path $env:RUNNER_TEMP 'w73-owner-compile-only.test.exe'
+            & go test -mod=readonly -c -tags ktrade_w73_owner_readonly -o $ownerTest ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W73_OWNER_HOOK_COMPILE_FAILED'}
+            Remove-Item -LiteralPath $ownerTest -Force
+          }finally{Pop-Location}
+          Write-Host '::notice::W73_NATIVE_CDP_V2_HISTORY_GETS_PRIVACY_AND_OWNER_HOOK_COMPILE=PASS'
+      - name: W41 through W73 financial, original risk, PAPER and venue guards
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -run '^Test(W41Advanced|W42Advanced|W43|W44|W45|W46|W47|W48|W49|W50|W51|W52|W53|W54|W55|W56|W57|W58|W59|W60|W61|W62|W63|W64|W65|W66|W67|W68|W69|W70|W71|W72|W73|HistoricalAdvancedOrderManager)' ./pkg ./internal/brokerintent ./internal/papertrading ./internal/brokerprecision
+            if($LASTEXITCODE -ne 0){throw 'W73_ORIGINAL_FUNDING_RISK_PAPER_REGRESSION'}
+            & go test -race -mod=readonly -count=1 -run '^TestW(43|53|54|55|56|57|58|59|60|61|62|63|64|65|66|67|68|69|70|71|72|73)' ./pkg ./internal/brokerintent ./internal/papertrading ./internal/brokerprecision
+            if($LASTEXITCODE -ne 0){throw 'W73_FINANCIAL_RACE_REGRESSION'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W73_ALL_AFFECTED_ORIGINAL_RISK_AND_FINANCIAL_RACE=PASS'
+      - name: Full original tagged app root and nested Wails tests and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try{
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W73_FULL_TAGGED_APP_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W73_FULL_TAGGED_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W73_FULL_ORIGINAL_ROOT_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W73_FULL_ORIGINAL_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current/tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W73_ORIGINAL_WAILS_TESTS_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W73_ORIGINAL_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W73_FULL_NATIVE_APP_ROOT_WAILS_TESTS_AND_VET=PASS'
+      - name: Node build-time offline vendor without changing product
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original source-bound unsigned Wails and Go production pair, no synthetic feed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          Remove-Item Env:KTRADE_W13_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          Push-Location $src
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W73_NPM_LOCKED_VENDOR_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W73_ORIGINAL_VENDOR_STAGE_FAILED'}
+          }finally{Pop-Location}
+          $package=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $package -ExpectedSourceSha '7dfec71777730f744e1749b8bd741fbd01f0d2f6'
+          if($LASTEXITCODE -ne 0){throw 'W73_ORIGINAL_UNSIGNED_PAIR_BUILD_FAILED'}
+          $manifest=Get-Content (Join-Path $package 'source-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.source_sha -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6' -or
+            $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or $manifest.release_candidate){throw 'W73_PRODUCTION_SOURCE_LIVE_DRIFT'}
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'w73-package.marker'),$package)
+          Write-Host '::notice::W73_ORIGINAL_NATIVE_WAILS_GO_NO_LIVE_NO_SYNTHETIC_PACKAGE=PASS'
+      - name: Fail closed, destroy isolated binaries and preserve exact refs
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $marker=Join-Path $env:RUNNER_TEMP 'w73-package.marker'
+          if(Test-Path -LiteralPath $marker){
+            $path=[IO.File]::ReadAllText($marker)
+            if([IO.Path]::GetDirectoryName($path) -cne $env:RUNNER_TEMP -or [IO.Path]::GetFileName($path) -notmatch '^ktrade-w03-package-[a-f0-9]{32}$'){throw 'W73_UNSAFE_CLEANUP_ROOT'}
+            Remove-Item -LiteralPath $path -Force -Recurse -ErrorAction Stop
+          }
+          if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'current') rev-parse HEAD).Trim() -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6'){throw 'W73_GIT_PRODUCT_MUTATION'}
+          Write-Host '::notice::W73_DISPOSABLE_NO_OWNER_DATA_NO_BROKER_POST_NO_LIVE_NO_MERGE'

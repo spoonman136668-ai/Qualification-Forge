@@ -1,0 +1,292 @@
+name: KTRADE W82 repaired Windows security full regression compiler performance and build
+on:
+  push:
+    branches: [qualification/ktrade-w82-repaired-final-windows-20261030]
+    paths: [.github/workflows/ktrade-w82-repaired-final-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w82-repaired-final-windows-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 85
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+    steps:
+      - name: Exact independent witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Exact repaired production source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          fetch-depth: 4
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Source custody and builder AST
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W82_EPHEMERAL_WINDOWS_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '989020f81a7c731acf3bfa830c06e7e929805bcd' -or
+             (& git -C $src rev-parse HEAD^^^).Trim() -cne '0acfae265370b677dfe6de1386de793fb20b2460'){throw 'W82_SOURCE_IDENTITY_DRIFT'}
+          $allowed=@('cmd/ktrade/w80_compile_performance_full_test.go','pkg/advanced_order_auth_test.go','go.mod','go.sum','tools/wails-pilot/go.mod','tools/wails-pilot/go.sum','windows/Build-KTRADE-WailsPortable.ps1','windows/Go-Toolchain.version')
+          $changed=@(& git -C $src diff --name-only HEAD^^^ HEAD)
+          if($changed.Count -ne 8 -or @($changed|Where-Object {$_ -cnotin $allowed}).Count -ne 0){throw 'W82_DELTA_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $src '.env'))){throw 'W82_SOURCE_ISOLATION_FAILED'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W82_LIVE_ARMED'}
+          $tokens=$null;$errs=$null
+          [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1'),[ref]$tokens,[ref]$errs)
+          if($errs.Count -ne 0){throw 'W82_BUILDER_AST_FAILED'}
+          Write-Host '::notice::W82_EXACT_EIGHT_PATH_CUSTODY_POWERSHELL_AST_LIVE_DISARM=PASS'
+      - name: Actual obsolete Go negative
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Refuse obsolete compiler before output
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          $out=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          $refused=$false
+          try{& (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $out -ExpectedSourceSha 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'}
+          catch{if($_.Exception.Message -like '*W80_EXACT_SUPPORTED_TOOLCHAIN_REQUIRED*'){$refused=$true}else{throw 'W82_UNEXPECTED_OLD_TOOLCHAIN_REFUSAL'}}
+          if(!$refused -or (Test-Path $out)){throw 'W82_OLD_TOOLCHAIN_NOT_REFUSED_BEFORE_OUTPUT'}
+          Write-Host '::notice::W82_ACTUAL_GO125_REFUSED_WITHOUT_PACKAGE_OUTPUT=PASS'
+      - name: Supported pinned compiler
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Build pinned official scanner and nonsecret result reducer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:GOTOOLCHAIN='local'
+          if((& go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'W82_TOOLCHAIN_DRIFT'}
+          & go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          if($LASTEXITCODE -ne 0){throw 'W82_PINNED_SCANNER_BUILD_FAILED'}
+          $scan=Join-Path ((& go env GOPATH).Trim()) 'bin/govulncheck.exe'
+          if(!(Test-Path $scan)){throw 'W82_SCANNER_MISSING'}
+          $parse=Join-Path $env:RUNNER_TEMP 'w82-reduce.exe'
+          & go build -o $parse (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w79/main.go')
+          if($LASTEXITCODE -ne 0){throw 'W82_REDUCER_BUILD_FAILED'}
+      - name: Actual shipping Go engine and Wails reachable vulnerability analysis
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:GOTOOLCHAIN='local'
+          $scan=Join-Path ((& go env GOPATH).Trim()) 'bin/govulncheck.exe'
+          $parse=Join-Path $env:RUNNER_TEMP 'w82-reduce.exe'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          $bad=$false
+          foreach($scope in @('engine','wails')){
+            $raw=Join-Path $env:RUNNER_TEMP ('w82-'+$scope+'-raw.json')
+            $summary=Join-Path $env:RUNNER_TEMP ('w82-'+$scope+'-summary.json')
+            $dir=$src
+            if($scope -ceq 'wails'){$dir=Join-Path $src 'tools/wails-pilot'}
+            Push-Location $dir
+            try{
+              if($scope -ceq 'engine'){& $scan -json -tags ktrade_full ./cmd/ktrade > $raw}
+              else{& $scan -json -tags desktop,production . > $raw}
+              $code=$LASTEXITCODE
+              if($code -ne 0 -and $code -ne 3){throw ('W82_SCANNER_EXECUTION_FAILED_'+$scope)}
+              & $parse $raw $scope $summary
+              if($LASTEXITCODE -ne 0){throw 'W82_INVALID_OR_MISSING_SCAN_OUTPUT'}
+              $result=Get-Content $summary -Raw|ConvertFrom-Json
+              if(!$result.zero_reachable_known_vulnerabilities){$bad=$true}
+            }finally{Pop-Location;Remove-Item $raw -Force -ErrorAction SilentlyContinue}
+          }
+          if($bad){throw 'W82_REACHABLE_KNOWN_VULNERABILITIES_REQUIRE_SOURCE_REPAIR'}
+          Write-Host '::notice::W82_SHIPPING_ENGINE_AND_WAILS_ZERO_KNOWN_REACHABLE_VULNERABILITIES=PASS'
+      - name: Full original final source Go Windows and nested Wails regression plus vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W82_FULL_ORIGINAL_KTRADE_TAGGED_APP_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W82_ORIGINAL_KTRADE_TAGGED_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W82_FULL_ORIGINAL_ROOT_GO_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W82_FULL_ORIGINAL_ROOT_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W82_FULL_WAILS_GO_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W82_FULL_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W82_FINAL_ORIGINAL_GO_TAGGED_ROOT_WAILS_ALL_TEST_VET=PASS'
+      - name: Original compiler prospective latency and memory budgets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'source')
+          try{
+            $raw=@(& go test -json -mod=readonly -count=1 -tags ktrade_full,ktrade_performance -run '^TestW80OriginalEditorCompileLatencyAndAllocationBudget$' -timeout 12m ./cmd/ktrade)
+            $code=$LASTEXITCODE
+            $events=@($raw|ForEach-Object {$_|ConvertFrom-Json -ErrorAction Stop})
+            foreach($event in $events){if($event.Output -like '*W80_COMPILE_MEASUREMENT=*'){Write-Host $event.Output.Trim()}}
+            if($code -ne 0){$raw|Select-Object -Last 30|ForEach-Object {Write-Host $_};throw 'W82_ORIGINAL_COMPILER_PERFORMANCE_FAILED'}
+            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'W82_PERFORMANCE_FAILURE_OR_SKIP'}
+            $root='TestW80OriginalEditorCompileLatencyAndAllocationBudget'
+            foreach($case in @('v5_32_assignments','v5_512_assignments','v6_32_assignments','v6_512_assignments')){
+              if(@($events|Where-Object {$_.Action -ceq 'pass' -and $_.Test -ceq ($root+'/'+$case)}).Count -ne 1){throw 'W82_PERFORMANCE_NAMED_CASE_MISSING'}
+            }
+            if(@($events|Where-Object {$_.Output -like '*W80_COMPILE_MEASUREMENT=*'}).Count -ne 4){throw 'W82_FOUR_PERFORMANCE_MEASUREMENTS_REQUIRED'}
+            Write-Host '::notice::W82_ORIGINAL_PINE_V5_V6_480_SAMPLES_LATENCY_ALLOCATION_BUDGET=PASS'
+          }finally{Pop-Location}
+      - name: Node 24 for locked, non-executing vendor setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Source-bound fixture-free production Windows Wails and Go package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          Remove-Item Env:KTRADE_W13_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          Push-Location $src
+          try {
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W82_NPM_OFFLINE_VENDOR_LOCK_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W82_ORIGINAL_OFFLINE_VENDOR_FAILED'}
+          }finally{Pop-Location}
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $root -ExpectedSourceSha 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'
+          if($LASTEXITCODE -ne 0){throw 'W82_ORIGINAL_PAIR_PRODUCTION_BUILD_FAILED'}
+          $manifest=Get-Content -LiteralPath (Join-Path $root 'source-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.schema -cne 'ktrade.wails.package-qualification.v1' -or
+             $manifest.source_sha -cne 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a' -or
+             $manifest.fixture_mode -cne 'none' -or $manifest.go_version -cne 'go1.26.10' -or $manifest.live_armed -or
+             $manifest.release_candidate -or
+             $manifest.desktop -cne 'Wails v2 / WebView2'){throw 'W82_WAILS_PAIR_MANIFEST_REJECTED'}
+          $script:package=$root
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'ktrade-w82-package.txt'),$root)
+          Write-Host '::notice::W82_FINAL_SOURCE_ORIGINAL_UNSIGNED_WAILS_GO_NO_FIXTURE_NO_LIVE_PAIR=PASS'
+      - name: Four original browser readers without historical config checkout
+        shell: pwsh
+        env:
+          KTRADE_FIXTURE_READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $old=Join-Path $env:RUNNER_TEMP 'w82-original-browser-fixture'
+          New-Item -ItemType Directory -Path (Join-Path $old 'static') -Force|Out-Null
+          $pins=@(
+            @('static/watchlist_manager.js','36b1eb163d245ce98510d2a2376c4612a0e4faf5'),
+            @('static/layout_manager.js','35b892974e73257393c0b5e523d564f519056d40'),
+            @('static/indicator_library.js','b1272eb9a6f54ec1e40b019788a1e0a202fd09ab'),
+            @('static/indicator_browser.js','278729c39feadea7b3ec0d51659c9f7ad9211ed0')
+          )
+          foreach($pair in $pins){
+            try{
+              $uri='https://api.github.com/repos/spoonman136668-ai/ktrade/git/blobs/'+$pair[1]
+              $blob=Invoke-RestMethod -Uri $uri -Headers @{Authorization=('Bearer '+$env:KTRADE_FIXTURE_READ_TOKEN);Accept='application/vnd.github+json';'X-GitHub-Api-Version'='2022-11-28'}
+              if($blob.sha -cne $pair[1] -or $blob.encoding -cne 'base64' -or $blob.size -gt 100000){throw 'invalid fixture metadata'}
+              $file=Join-Path $old $pair[0]
+              [IO.File]::WriteAllBytes($file,[Convert]::FromBase64String($blob.content))
+              if((& git hash-object $file).Trim() -cne $pair[1]){throw 'fixture bytes differ'}
+            }catch{throw 'W82_ORIGINAL_FOUR_READER_FIXTURE_FETCH_OR_HASH_FAILED'}
+          }
+          Write-Host '::notice::W82_W31_ORIGINAL_FOUR_BROWSER_READER_BLOBS_VERIFIED_NO_HISTORICAL_CONFIG_CHECKOUT=PASS'
+      - name: Execute every original checked-in Node test with required coverage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          Push-Location $src
+          try{
+            $tests=@(Get-ChildItem -LiteralPath (Join-Path $src 'tests') -Filter '*.test.cjs' -File |
+               Sort-Object Name | ForEach-Object { 'tests/'+$_.Name })
+            if($tests.Count -lt 25){throw 'W82_NODE_TEST_FILE_COVERAGE_BELOW_FROZEN_MINIMUM'}
+            $required=@(
+             'tests/w17d9_market_context.test.cjs',
+             'tests/w21_market_readout_integrity.test.cjs',
+             'tests/w19_paper_failure_feedback.test.cjs',
+             'tests/rb3_w33a_operator_paper_state.test.cjs',
+             'tests/rb3_w39_paper_operator_accessibility.test.cjs',
+             'tests/rb3_w32b_pine_compile.test.cjs',
+             'tests/rb3_w32c_pine_renderer.test.cjs',
+             'tests/rb3_w32d_pine_pane.test.cjs',
+             'tests/w17d1a_original_chart_uia.test.cjs',
+             'tests/w17d1_chart_favorite_continuity.test.cjs',
+             'tests/w33c_p7_paper_valuation.test.cjs',
+             'tests/paper_tradeguard_reconciliation.test.cjs',
+             'tests/historical_pine_editor_chart_wiring.test.cjs',
+             'tests/wails_w02_boot.test.cjs'
+            )
+            foreach($name in $required){if($tests -cnotcontains $name){throw ('W82_REQUIRED_TEST_PATH_MISSING_'+$name)}}
+            Write-Host ('W82_ALL_ORIGINAL_NODE_TEST_FILES_DISCOVERED='+$tests.Count)
+            & node --version
+            if($LASTEXITCODE -ne 0){throw 'W82_NODE_NOT_AVAILABLE'}
+            # W28F is a CLI source-tree cross-version verifier (not a node:test
+            # case). It requires two distinct pinned absolute source roots.
+            $special='tests/rb3_w28f_original_browser_state.test.cjs'
+            if($tests -cnotcontains $special){throw 'W82_ORIGINAL_BROWSER_STATE_TEST_MISSING'}
+            $batch=@($tests|Where-Object {$_ -cne $special})
+            if($batch.Count -ne ($tests.Count-1)){throw 'W82_ORIGINAL_BROWSER_TEST_NOT_EXACTLY_ONCE'}
+            $oldRoot=Join-Path $env:RUNNER_TEMP 'w82-original-browser-fixture'
+            $newRoot=Join-Path $env:GITHUB_WORKSPACE 'source'
+            & node $special $oldRoot $newRoot
+            if($LASTEXITCODE -ne 0){throw 'W82_W28F_ORIGINAL_TWO_SOURCE_BROWSER_COMPAT_FAILED'}
+            Write-Host '::notice::W82_W31_W76_ORIGINAL_BROWSER_STATE_TWO_ROOTS=PASS'
+            $tap=@(& node --test --test-reporter=tap @batch)
+            $testExit=$LASTEXITCODE
+            $tap|ForEach-Object { Write-Host $_ }
+            if($testExit -ne 0){throw 'W82_ORIGINAL_NODE_TEST_SUITE_FAILED'}
+            $summary=@($tap|Where-Object {$_ -match '^# tests (\d+)$'})
+            $pass=@($tap|Where-Object {$_ -match '^# pass (\d+)$'})
+            $failed=@($tap|Where-Object {$_ -match '^# fail 0$'})
+            $skipped=@($tap|Where-Object {$_ -match '^# skipped 0$'})
+            $cancelled=@($tap|Where-Object {$_ -match '^# cancelled 0$'})
+            if($summary.Count -ne 1 -or $pass.Count -ne 1 -or $failed.Count -ne 1 -or
+               $skipped.Count -ne 1 -or $cancelled.Count -ne 1){throw 'W82_NODE_TAP_SUMMARY_UNVERIFIED'}
+            $n=[int]([regex]::Match($summary[0],'\d+$').Value)
+            $ok=[int]([regex]::Match($pass[0],'\d+$').Value)
+            if($n -lt $batch.Count -or $ok -ne $n){throw 'W82_NODE_CASES_NOT_ALL_EXECUTED'}
+            Write-Host ('::notice::W82_ALL_ORIGINAL_OPERATOR_MARKET_PINE_SECURITY_NODE_CASES=PASS files='+$tests.Count+' cases='+$n)
+          }finally{Pop-Location}
+      - name: Fail closed and clean only ephemeral Windows package
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $path=Join-Path $env:RUNNER_TEMP 'ktrade-w82-package.txt'
+          if(Test-Path -LiteralPath $path){
+            $p=[IO.File]::ReadAllText($path)
+            if(([IO.Path]::GetDirectoryName($p)) -cne $env:RUNNER_TEMP -or
+               ([IO.Path]::GetFileName($p)) -notmatch '^ktrade-w03-package-[a-f0-9]{32}$'){throw 'W82_UNSAFE_CLEANUP_REFUSED'}
+            Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Stop
+          }
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'){throw 'W82_SOURCE_SHA_CHANGED'}
+          if(@(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'W82_TRACKED_SOURCE_MUTATED'}
+          Write-Host '::notice::W82_NO_OWNER_DATA_NO_CONNECTED_BROKER_NO_ORDER_NO_LIVE_NO_RELEASE_NO_MERGE'

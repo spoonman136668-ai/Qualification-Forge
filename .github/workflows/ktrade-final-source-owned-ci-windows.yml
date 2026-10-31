@@ -1,0 +1,146 @@
+name: KTRADE final exact source-owned CI on existing qualification Windows
+on:
+  push:
+    branches: [qualification/ktrade-final-source-owned-ci-20261030]
+    paths: [.github/workflows/ktrade-final-source-owned-ci-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-final-source-owned-ci-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 50
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      KTRADE_EXPECTED_SOURCE: '365a7085ccd86c3f917206fe2569aba51f00d8d0'
+      KTRADE_HEAD_REPOSITORY: spoonman136668-ai/ktrade
+      KTRADE_REPOSITORY_PRIVATE: 'true'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Frozen PR228 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 365a7085ccd86c3f917206fe2569aba51f00d8d0
+          path: product
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Four browser baseline files only no historical config checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58
+          path: browser-baseline
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /static/watchlist_manager.js
+            /static/layout_manager.js
+            /static/indicator_library.js
+            /static/indicator_browser.js
+      - name: Independent qualifier custody actual repository privacy and native-parent acceptance
+        shell: pwsh
+        env:
+          SOURCE_READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          PROOF_READ_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXTERNAL_CI_EXISTING_QUALIFICATION_HOST_REQUIRED'}
+          $repo=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/ktrade' -Headers @{Authorization=('Bearer '+$env:SOURCE_READ_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($repo.full_name -cne 'spoonman136668-ai/ktrade' -or $repo.private -ne $true){throw 'EXTERNAL_CI_ACTUAL_PRIVATE_SOURCE_REQUIRED'}
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41148417727' -Headers @{Authorization=('Bearer '+$env:PROOF_READ_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne 'e457784446ad6417f298f1c65ede2d87aa0c4d0d'){throw 'EXTERNAL_CI_EXACT_NATIVE_PARENT_ACCEPTANCE_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '365a7085ccd86c3f917206fe2569aba51f00d8d0' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '5b5c589762fb3798a453449e665a1672a5d6066a' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'EXTERNAL_CI_EXACT_CLEAN_SOURCE_REQUIRED'}
+          if((& git -C $src rev-parse HEAD^).Trim() -cne 'abc5335554d7b273f2eadf1c89948bcf26d76249'){throw 'EXTERNAL_CI_NATIVE_PARENT_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD)
+          if($delta.Count -ne 2 -or @($delta|Where-Object {$_ -cnotin @('.github/workflows/ktrade-native-windows.yml','scripts/audit_shipped_dependencies.cjs')}).Count -ne 0){throw 'EXTERNAL_CI_RUNTIME_DELTA_REFUSED'}
+          if((& git -C $src rev-parse 'HEAD:.github/workflows/ktrade-native-windows.yml').Trim() -cne 'b971da1a5721dc43839dc0e99b22df3ee4e2fa10'){throw 'EXTERNAL_CI_SOURCE_OWNED_WORKFLOW_BLOB_DRIFT'}
+          if(Test-Path (Join-Path $src '.env')){throw 'EXTERNAL_CI_DOTENV_REFUSED'}
+          $cfg=Get-Content (Join-Path $src 'config.json') -Raw|ConvertFrom-Json
+          if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'EXTERNAL_CI_TRACKED_CREDENTIALS_REFUSED'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'EXTERNAL_CI_LIVE_AUTHORITY_DRIFT'}
+          if((Get-Content (Join-Path $src 'windows/Go-Toolchain.version') -Raw).Trim() -cne 'go1.26.10'){throw 'EXTERNAL_CI_COMPILER_PIN_DRIFT'}
+          $baseline=Join-Path $env:GITHUB_WORKSPACE 'browser-baseline'
+          if(@(Get-ChildItem (Join-Path $baseline 'static') -File).Count -ne 4 -or (Test-Path (Join-Path $baseline 'config.json')) -or (Test-Path (Join-Path $baseline '.env'))){throw 'EXTERNAL_CI_FOUR_BASELINE_READERS_ONLY'}
+          Write-Host '::notice::EXTERNAL_CI_EXACT_NATIVE_PARENT_TWO_NONRUNTIME_FILES_SOURCE_WORKFLOW_PRIVATE_LIVE_FALSE=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Exact source-owned full Go tagged app Wails test and vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') go) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'pwsh'){throw 'SOURCE_OWNED_CI_EXTRACTION_FAILED'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Exact source-owned all Node and browser compatibility
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') node) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'pwsh'){throw 'SOURCE_OWNED_CI_EXTRACTION_FAILED'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Exact source-owned repeatability advisory and notices
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') assets) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'pwsh'){throw 'SOURCE_OWNED_CI_EXTRACTION_FAILED'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Exact source-owned unsigned installer and shipping binary scans
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:PSModulePath=Join-Path $PSHOME 'Modules'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') build) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'powershell'){throw 'SOURCE_OWNED_CI_EXTRACTION_FAILED'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Actual external scope final no billing or production authority
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '365a7085ccd86c3f917206fe2569aba51f00d8d0' -or @(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'EXTERNAL_CI_FINAL_TRACKED_SOURCE_DRIFT'}
+          Write-Host '::notice::EXTERNAL_CI_NOT_THE_BLOCKED_PRIVATE_ACTIONS_RUN_NO_BILLING_CHANGE_NO_PUBLIC_SOURCE_BINARY_ARTIFACT_NO_OWNER_DATA_NO_APP_NO_LIVE_NO_PROMOTION'
