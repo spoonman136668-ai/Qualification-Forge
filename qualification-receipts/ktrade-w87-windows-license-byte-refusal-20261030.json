@@ -1,0 +1,14 @@
+{
+  "schema": "ktrade.qualification.shipping-js-second-failure.v1",
+  "run_id": 41144031220,
+  "job_id": 124364784436,
+  "witness": "188f0243bd314a53d8a42dc030715b8e92ad096b",
+  "source": "cc9a0e2b90fae037a88246360ad93c5585aa8831",
+  "tree": "025de2698b3a20abe59338d8c1e0a247c5ae46ad",
+  "verdict": "FAIL",
+  "actual": "Windows Node tests 3/4 passed. Pinned offline license fallback status1, expected0; real asset stage and audit not accepted.",
+  "diagnosis": "Pinned LF license bytes subject to Windows Git text EOL conversion; add narrow .gitattributes -text rule and explicit qualifier file-hash preflight. Diagnosis must be verified by next actual run.",
+  "repair_source": "9fe979ec4b5da128a174b777d658461fd492d46e",
+  "live_armed": false,
+  "owner_data_touched": false
+}

@@ -1,0 +1,64 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W70",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 217,
+  "source_branch": "feature/rb3-w70-native-bound-balance-readonly-20261030",
+  "source_sha": "895e8ea91a30e318d0a087e62f634ef706559dfe",
+  "source_tree": "99c0f52c32a86817153ba3d480f20488a9846ca3",
+  "parent_source_sha": "e99b589e5837037c1648136d539d22997cf8bd50",
+  "parent_gate": "W69",
+  "parent_real_native_original_owner_run": 41020816896,
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 41,
+  "qualification_branch": "qualification/ktrade-w70-native-bound-balance-windows-20261030",
+  "witness_sha": "b59ed4ebe8d8ae09f71a35cfa6c75fbc5a320b4d",
+  "workflow_path": ".github/workflows/ktrade-w70-native-bound-balance-windows.yml",
+  "workflow_blob": "f31b9cf71a2e2ea4d3b41632a0482ed644331744",
+  "run_id": 41022887029,
+  "job_id": 123954096499,
+  "run_status": "completed",
+  "conclusion": "success",
+  "completed_utc": "2026-10-30T08:05:30Z",
+  "changed_paths": [
+    "pkg/advanced_order_account_variance.go",
+    "pkg/advanced_order_v3_balance_owner_windows_test.go",
+    "pkg/advanced_order_v3_balance_readonly.go",
+    "pkg/advanced_order_v3_balance_readonly_test.go"
+  ],
+  "qualified_checks": {
+    "exact_w69_source_parent_tree_and_four_paths": "PASS",
+    "original_live_disarm_preserved": "PASS",
+    "native_eight_signed_GETs_two_account_details_and_repeat_identity_discovery": "PASS",
+    "strict_current_account_id_and_usdc_asset_binding_and_antidrift": "PASS",
+    "private_owner_first_use_test_compiles_but_does_not_run_on_hosted_runner": "PASS",
+    "w41_w70_original_risk_financial_paper_and_race": "PASS",
+    "full_original_native_root_app_nested_wails_tests_and_vet": "PASS",
+    "unsigned_source_locked_native_go_wails_pair_no_synthetic_feed": "PASS",
+    "hosted_windows_isolated_artifact_cleanup": "PASS"
+  },
+  "qualifying_data_origin": "hosted Windows source/build regression with synthetic in-memory venue responses",
+  "owner_original_real_W70_evidence": {
+    "owner_CKB_runner_run": 41023876872,
+    "witness_sha": "d9faec5e5f4d42248c4fa0ef632bf35d1fa8e9db",
+    "original_owner_credentials_exported": false,
+    "status": "not recorded as PASSED in this source/build receipt; requires separate completed run readback"
+  },
+  "unproven_or_forbidden": {
+    "account_id_or_balance_values_logged": false,
+    "coinbase_app_v2_oauth_consent_proved": false,
+    "complete_cash_history_reconciled": false,
+    "opening_balance_verified": false,
+    "commission_currency_verified": false,
+    "atomic_balance_snapshot_established": false,
+    "financial_ledger_posted": false,
+    "held_funds_released": false,
+    "live_order_authorized": false
+  },
+  "limitations": [
+    "Current available/hold USDC observations are not settled cash, opening balance, transfer completeness or accounting authority.",
+    "The owner first-use W70 run is a distinct qualification; don't infer completion or success from this hosted receipt.",
+    "Original source/Witness PRs remain draft/unmerged. Source changes do not directly alter protected main.",
+    "Existing historical credential exposure must be separately remediated, including revocation/rotation, not just current tracked JSON sanitization."
+  ]
+}

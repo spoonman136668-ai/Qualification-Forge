@@ -1,0 +1,120 @@
+name: KTRADE UTC daily versus lifetime PAPER PnL original Windows qualification
+on:
+  push:
+    branches: [qualification/ktrade-paper-utc-baseline-20261031]
+    paths: [.github/workflows/ktrade-paper-utc-baseline-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-paper-utc-baseline-20261031
+  cancel-in-progress: false
+jobs:
+  affected:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+    steps:
+      - name: Unchanged qualified PR230 baseline
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9c12ea7eab02d34e0f2de35b9e45e9486145fa0e
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact UTC reconciliation source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2773c8eb8e840a0eb0a6524820d394f5a35a925f
+          path: candidate
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact five paths original TradeGuard and ledger byte identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_HOSTED_WINDOWS_QUALIFICATION_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '2773c8eb8e840a0eb0a6524820d394f5a35a925f' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '5eda35ca7a3edc7ed33272e3ffdc9b395cfa9dfb' -or (& git -C $src rev-parse HEAD^).Trim() -cne '9c12ea7eab02d34e0f2de35b9e45e9486145fa0e'){throw 'EXACT_CURRENT_SOURCE_REQUIRED'}
+          if((& git -C $old rev-parse HEAD).Trim() -cne '9c12ea7eab02d34e0f2de35b9e45e9486145fa0e' -or (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne '894152b0c45b102584ce092b2aa964701ed40205'){throw 'EXACT_ORIGINAL_BASELINE_REQUIRED'}
+          $allowed=@('internal/papercustody/original_risk_proof.go','internal/papercustody/utc_pnl_baseline_test.go','internal/paperengine/final_close_review.go','internal/paperengine/final_close_submit.go','internal/paperengine/utc_day_transition_test.go')|Sort-Object
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD|Sort-Object)
+          if(($allowed -join '|') -cne ($delta -join '|')){throw 'EXACT_FIVE_BRIDGE_AND_TEST_PATHS_REQUIRED'}
+          foreach($p in @($src,$old)){
+            if(@(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'CLEAN_CREDENTIAL_FREE_SOURCE_REQUIRED'}
+            if((& git -C $p rev-parse 'HEAD:internal/originaltradeguard').Trim() -cne '1f894b0a6f8115b8a9d3882fa16fdb289eba510a' -or (& git -C $p rev-parse 'HEAD:internal/paperreconcile').Trim() -cne '9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'){throw 'ORIGINAL_GUARD_OR_LEDGER_TREE_CHANGED'}
+            $cfg=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
+            if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'TRACKED_CREDENTIALS_REFUSED'}
+            if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          }
+          Write-Host '::notice::EXACT_UTC_BRIDGE_ONLY_ORIGINAL_GUARD_LEDGER_SCHEMA_AND_LIVE_DISABLED=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Reproduce old lifetime-binding and day-roll reentry failures
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $paths=@('internal/papercustody/utc_pnl_baseline_test.go','internal/paperengine/utc_day_transition_test.go')
+          foreach($path in $paths){
+            if(Test-Path (Join-Path $old $path)){throw 'BASELINE_FIXTURE_COLLISION'}
+            Copy-Item (Join-Path $src $path) (Join-Path $old $path)
+          }
+          Push-Location $old
+          try{
+            foreach($case in @(
+              @{pkg='./internal/papercustody';name='TestUTCBaselineRejectsRiskPnLUnrelatedToLedger';message='mismatched lifetime PnL was accepted when daily values agreed'},
+              @{pkg='./internal/paperengine';name='TestUTCOriginalDayRestoreAllowsSameOwnerReentryWithoutRearm';message='original day-roll reentry refused:'}
+            )){
+              $raw=@(& go test -json -mod=readonly -count=1 -timeout 10m -run ('^'+$case.name+'$') $case.pkg)
+              $exit=$LASTEXITCODE
+              $events=@($raw|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+              if($exit -eq 0 -or @($events|Where-Object{$_.Action -ceq 'fail' -and $_.Test -ceq $case.name}).Count -ne 1 -or @($events|Where-Object{$_.Output -and $_.Output.Contains($case.message)}).Count -ne 1){throw ('ORIGINAL_REAL_FAILURE_NOT_REPRODUCED_'+$case.name)}
+              Write-Host ('::notice::ORIGINAL_BASELINE_FAILURE_REPRODUCED='+$case.name)
+            }
+          }finally{
+            Pop-Location
+            foreach($path in $paths){Remove-Item -LiteralPath (Join-Path $old $path) -Force}
+          }
+          if(@(& git -C $old status --porcelain).Count -ne 0){throw 'BASELINE_FIXTURES_NOT_REMOVED'}
+      - name: Complete affected original custody and engine regression under race
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Set-Location (Join-Path $env:GITHUB_WORKSPACE 'candidate')
+          $raw=@(& go test -race -json -mod=readonly -count=1 -timeout 15m ./internal/papercustody ./internal/paperengine)
+          $exit=$LASTEXITCODE
+          $raw|ForEach-Object{Write-Host $_}
+          $events=@($raw|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+          if($exit -ne 0 -or @($events|Where-Object{$_.Action -in @('fail','skip')}).Count -ne 0){throw 'ORIGINAL_FULL_AFFECTED_RACE_REGRESSION_FAILED'}
+          foreach($root in @('TestUTCBaselineValidatesDailyAndLifetimeSeparatelyWithoutMutation','TestUTCBaselineRejectsRiskPnLUnrelatedToLedger','TestUTCBaselineRejectsMissingOrUnownedProductEvidence','TestUTCOriginalDayRestoreAllowsSameOwnerReentryWithoutRearm','TestUTCOriginalDayRestoreOpenPositionCloseStopAndCold','TestUTCOriginalDayRestoreNeverClearsExistingKill','TestW33CP9SameOwnerTwoOriginalRoundTripsStopAndCold','TestPinnedDonorRiskWitnessRejectsKillAndReservationMismatch')){
+            if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq $root}).Count -ne 1){throw ('REQUIRED_ORIGINAL_OR_NEW_ROOT_MISSING_'+$root)}
+          }
+          foreach($name in @('first_day','rolled_day','daily_loss_lifetime_zero','daily_gain_lifetime_loss')){
+            if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq ('TestUTCBaselineValidatesDailyAndLifetimeSeparatelyWithoutMutation/'+$name)}).Count -ne 1){throw 'ALL_FOUR_PNL_BASELINE_CASES_REQUIRED'}
+          }
+          foreach($name in @('missing_strategy','missing_baseline','unowned_product','wrong_daily')){
+            if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq ('TestUTCBaselineRejectsMissingOrUnownedProductEvidence/'+$name)}).Count -ne 1){throw 'ALL_FOUR_RISK_PROOF_REFUSALS_REQUIRED'}
+          }
+          foreach($pkg in @('ktrade/internal/papercustody','ktrade/internal/paperengine')){
+            if(@($events|Where-Object{$_.Action -ceq 'pass' -and !$_.Test -and $_.Package -ceq $pkg}).Count -ne 1){throw 'BOTH_COMPLETE_ORIGINAL_PACKAGES_REQUIRED'}
+          }
+          & go vet -mod=readonly ./internal/papercustody ./internal/paperengine
+          if($LASTEXITCODE -ne 0){throw 'AFFECTED_ORIGINAL_PACKAGE_VET_FAILED'}
+          if(@(& git status --porcelain).Count -ne 0){throw 'FINAL_SOURCE_MUTATED'}
+          Write-Host '::notice::ORIGINAL_GUARD_DAY_RESTORE_LIFETIME_BASELINE_RACE_ALL_AFFECTED_CASES_NO_KILL_RESET=PASS'

@@ -1,0 +1,12 @@
+{
+  "schema": "ktrade.qualification.w90-initial-qualifier-ref-failure.v1",
+  "run_id": 41147040735,
+  "job_id": 124374449272,
+  "witness": "c168fc451c10be4fd56933d0e6b20316510e86b9",
+  "source": "af5749e33e03d7a906ed37d9266529b42f0aee6f",
+  "tree": "a185c0b266d92b8b4a5aae9ef95ff8d1b607df6c",
+  "verdict": "FAIL_BEFORE_PRODUCT_TESTS",
+  "cause": "Qualifier ancestor replacement also rewrote git HEAD^{tree} into invalid HEAD~2{tree}. Restore exact Git tree expression; product source unchanged. No Go/Node/native test acceptance from this attempt.",
+  "owner_data_touched": false,
+  "live_armed": false
+}
