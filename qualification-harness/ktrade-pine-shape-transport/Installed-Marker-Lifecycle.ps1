@@ -408,10 +408,14 @@ function MarkerOriginalHTTP([string]$origin,[string]$source,[bool]$enabled){
  return @{candles=@($record.candles).Count;shapes=@($record.shapes).Count;up=$up;down=$down;actual_response_bar_price_and_style_checked=$true}
 }
 function MarkerNative([object]$shell,[string]$origin){
+ $node=FindUI $shell 'Price chart drawing surface' $false 20
+ $bounds=$node.Current.BoundingRectangle
+ $closedRect=[System.Drawing.Rectangle]::new([int][Math]::Ceiling($bounds.Left),[int][Math]::Ceiling($bounds.Top),[int][Math]::Floor($bounds.Width),[int][Math]::Floor($bounds.Height))
  foreach($version in @(5,6)){
   $baselineSource=MarkerSource $version $false
   MarkerPhysicalApply $shell $origin $baselineSource
   $baselineHTTP=MarkerOriginalHTTP $origin $baselineSource $false
+  W94BWaitOriginalChartBounds $shell $closedRect
   $baseline=MarkerCaptureChart $shell ('MARKER_BASELINE_V'+$version)
   $after=$null
   try{
