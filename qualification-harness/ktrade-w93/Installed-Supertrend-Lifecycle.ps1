@@ -216,6 +216,34 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
     $aliasNodes=$uiRoot.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
     Require ($aliasNodes.Count -eq 1 -and $aliasNodes[0].Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and !$aliasNodes[0].Current.IsEnabled) 'W90_UNQUALIFIED_ALIAS_NOT_VISIBLY_DISABLED_IN_NATIVE_UIA'
   }
+  # W93 first: real owned WebView2 overlay-plot Apply before Williams,
+  # preventing stale status from the earlier separate-pane plot.
+  $superSearch=FindUI $shell 'Search indicator catalog' $false 20
+  $superValue=$null
+  Require ($superSearch.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and
+    $superSearch.Current.IsEnabled -and
+    $superSearch.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$superValue)) 'W93_ORIGINAL_CATALOG_SEARCH_UNAVAILABLE'
+  ([System.Windows.Automation.ValuePattern]$superValue).SetValue('Supertrend')
+  $supertrend=FindUI $shell 'Apply Supertrend' $false 35
+  Require ($supertrend.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+   $supertrend.Current.IsEnabled) 'W93_ORIGINAL_SUPERTREND_BUTTON_NOT_ENABLED'
+  ClickUI $shell 'Apply Supertrend'
+  # Overlay=true plots render on the MAIN price chart. Their titles are
+  # intentionally excluded from the separate Pine pane caption. The real
+  # source request sets this success status only AFTER PinePlots.apply has
+  # allocated the original chart's series and finished without throwing.
+  # Open the actual browser editor via physical UI, not DOM injection.
+  ClickUI $shell 'Pine Editor'
+  $null=FindUI $shell 'Pine plots applied.' $false 45
+  ClickUI $shell 'Collapse'
+  $afterSuper=Invoke-RestMethod -Uri ($origin+'/api/operator/capabilities') -TimeoutSec 5
+  Require ($afterSuper.mode -ceq 'PAPER_STOPPED' -and $afterSuper.paper_orders_enabled -eq $false -and
+    $afterSuper.live_orders_enabled -eq $false -and $afterSuper.strategy_execution_enabled -eq $false) 'W93_SUPERTREND_APPLY_CHANGED_TRADING_AUTHORITY'
+  Write-Host '::notice::W93_REAL_INSTALLED_WEBVIEW2_SUPERTREND_ENABLED_PHYSICAL_APPLY_ORIGINAL_MAIN_CHART_RENDER_STATUS_NO_TRADING=PASS'
+  # W90 retained: original different, separate-pane Williams indicator must
+  # physically Apply and show its own Pine: Williams %R pane title.
+  ClickUI $shell 'Indicators'
+  ClickUI $shell 'Technicals'
   $search=FindUI $shell 'Search indicator catalog' $false 20
   Require ($search.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and $search.Current.IsEnabled) 'W90_REAL_CATALOG_SEARCH_NOT_ENABLED'
   $value=$null
@@ -226,24 +254,6 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   $catalogAfter=Invoke-RestMethod -Uri ($origin+'/api/operator/capabilities') -TimeoutSec 5
   Require ($catalogAfter.mode -ceq 'PAPER_STOPPED' -and $catalogAfter.paper_orders_enabled -eq $false -and $catalogAfter.live_orders_enabled -eq $false) 'W90_CATALOG_APPLY_CHANGED_TRADING_AUTHORITY'
   Write-Host '::notice::W90_NATIVE_CATALOG_DISABLED_ALIASES_EXPLICIT_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING=PASS'
-  # W93: real native WebView2 owned physical-pointer Apply; no DOM injection.
-  ClickUI $shell 'Indicators'
-  ClickUI $shell 'Technicals'
-  $superSearch=FindUI $shell 'Search indicator catalog' $false 20
-  $superValue=$null
-  Require ($superSearch.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$superValue)) 'W93_ORIGINAL_CATALOG_SEARCH_UNAVAILABLE'
-  ([System.Windows.Automation.ValuePattern]$superValue).SetValue('Supertrend')
-  # Filter first; offscreen unfiltered catalog entries are not UIA-visible.
-  $supertrend=FindUI $shell 'Apply Supertrend' $false 35
-  Require ($supertrend.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
-   $supertrend.Current.IsEnabled) 'W93_ORIGINAL_SUPERTREND_BUTTON_NOT_ENABLED'
-  ClickUI $shell 'Apply Supertrend'
-  $null=FindUI $shell 'Pine: Supertrend' $false 45
-  $afterSuper=Invoke-RestMethod -Uri ($origin+'/api/operator/capabilities') -TimeoutSec 5
-  Require ($afterSuper.mode -ceq 'PAPER_STOPPED' -and $afterSuper.paper_orders_enabled -eq $false -and
-    $afterSuper.live_orders_enabled -eq $false -and $afterSuper.strategy_execution_enabled -eq $false) 'W93_SUPERTREND_APPLY_CHANGED_TRADING_AUTHORITY'
-  Write-Host '::notice::W93_REAL_INSTALLED_WEBVIEW2_SUPERTREND_ENABLED_PHYSICAL_APPLY_ORIGINAL_GO_PINE_RENDERED_NO_TRADING=PASS'
-
 
   $refusedCode=0
   try{
