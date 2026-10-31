@@ -1,0 +1,139 @@
+name: KTRADE PR233 exact private engineering artifact native qualification
+on:
+  push:
+    branches: [qualification/ktrade-confirmed-rsi-divergence-20261031]
+    paths: [.github/workflows/ktrade-pr233-exact-private-artifact-native-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pr233-exact-private-artifact-native-20261031
+  cancel-in-progress: false
+jobs:
+  exact-private-native:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 42bf2c698d15da43632540959f9a5eea3999158b
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Read unchanged installer from exact isolated private artifact commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: eb6b647314ef870c1bb7ff9e1d0cbfb481bd42c6
+          path: private-artifact
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /qualification-artifacts/pr233-13049084488/
+      - name: Verify original installer hash and isolated data custody without rebuild
+        id: artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_HOSTED_QUALIFICATION_REQUIRED'}
+          $data=Join-Path $env:GITHUB_WORKSPACE 'private-artifact'
+          if((& git -C $data rev-parse HEAD).Trim() -cne 'eb6b647314ef870c1bb7ff9e1d0cbfb481bd42c6' -or (& git -C $data rev-parse HEAD^).Trim() -cne '42bf2c698d15da43632540959f9a5eea3999158b' -or @(& git -C $data status --porcelain).Count -ne 0){throw 'PRIVATE_ARTIFACT_DATA_COMMIT_OR_PARENT_DRIFT'}
+          $actual=@(& git -C $data diff --name-only HEAD^ HEAD|Sort-Object)
+          $allowed=@('qualification-artifacts/pr233-13049084488/.gitattributes','qualification-artifacts/pr233-13049084488/artifact-identity.json','qualification-artifacts/pr233-13049084488/installer.zip')|Sort-Object
+          if(($actual -join '|') -cne ($allowed -join '|')){throw 'PRIVATE_ARTIFACT_ONLY_THREE_DATA_PATHS_REQUIRED'}
+          $folder=Join-Path $data 'qualification-artifacts/pr233-13049084488'
+          if((& git -C $data rev-parse 'HEAD:qualification-artifacts/pr233-13049084488/artifact-identity.json').Trim() -cne '023e01a290dd26f769edda9d014018cd415b29dc'){throw 'PRIVATE_ARTIFACT_IDENTITY_BLOB_DRIFT'}
+          $id=Get-Content (Join-Path $folder 'artifact-identity.json') -Raw|ConvertFrom-Json
+          if($id.schema -cne 'ktrade.private.qualification-artifact-transport.v1' -or $id.source_sha -cne '42bf2c698d15da43632540959f9a5eea3999158b' -or $id.source_tree -cne '378603bf6eca76ba54ede3e1db4104cc838c9cc3' -or $id.original_private_run -ne 41220187238 -or $id.original_private_artifact -ne 13049084488 -or $id.original_private_witness -cne '4c408d5c55d4c0bead919cc369b2acdfd2db6ec6' -or $id.producer_transport_witness -cne '5729c105a160c0dcf299975f9b9eba4dc99fa6b7' -or $id.original_outer_sha256 -cne '40eb7125876276f1601d3475b11e32d0d4db01a63bfb29cecaa3b094ab19bf75' -or $id.installer_sha256 -cne 'bd0c84f507e7b4db238b324ec7676fbe45a09405ba7bc320f25189f5c9dbc3fe' -or $id.build_repeated -cne $false -or $id.app_executed -cne $false -or $id.owner_data_accessed -cne $false -or $id.live_armed -cne $false -or $id.release_authority -cne 'none'){throw 'ORIGINAL_PRIVATE_ARTIFACT_IDENTITY_OR_AUTHORITY_DRIFT'}
+          $inner=Join-Path $folder 'installer.zip'
+          if((Get-FileHash $inner -Algorithm SHA256).Hash.ToLowerInvariant() -cne 'bd0c84f507e7b4db238b324ec7676fbe45a09405ba7bc320f25189f5c9dbc3fe'){throw 'PRIVATE_ACTUAL_INSTALLER_HASH_DRIFT'}
+          $delivery=Join-Path $env:RUNNER_TEMP ('pr233-private-exact-'+[guid]::NewGuid().ToString('N'))
+          $null=New-Item -ItemType Directory $delivery
+          Copy-Item -LiteralPath $inner -Destination (Join-Path $delivery 'KTRADE-SetupBundle.zip')
+          if((Get-FileHash (Join-Path $delivery 'KTRADE-SetupBundle.zip') -Algorithm SHA256).Hash.ToLowerInvariant() -cne $id.installer_sha256){throw 'ORIGINAL_PRIVATE_INSTALLER_COPY_CHANGED'}
+          [IO.File]::AppendAllText($env:GITHUB_OUTPUT,('bundle_root='+$delivery+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          Write-Host '::notice::EXACT_PRIVATE_INSTALLER_EXISTING_CONTENTS_SCOPE_IDENTICAL_BYTES_NO_REBUILD_NO_PUBLIC_UPLOAD=PASS'
+      - name: Exact source and completed final full integration proof
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '42bf2c698d15da43632540959f9a5eea3999158b' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '378603bf6eca76ba54ede3e1db4104cc838c9cc3' -or @(& git -C $src status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $src '.env'))){throw 'EXACT_CLEAN_SOURCE_REQUIRED'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41218814380' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne '0289a36f6d61794488a4be139f1247c527fb6858'){throw 'ORIGINAL_FROZEN_FULL_FINAL_ACCEPTANCE_REQUIRED'}
+          $pins=@(
+            @('qualification-harness/ktrade-rsi-divergence/Installed-RSI-Lifecycle.ps1','ac2edbb0db1ab6eef9c044778dfa92c2482069dd'),
+            @('qualification-harness/ktrade-rsi-divergence/Build-And-Qualify.ps1','79af7ff20e942901582e525d3df16ba29ded0383'),
+            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
+          )
+          foreach($pin in $pins){
+            if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'witness') rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'EXACT_ORIGINAL_NATIVE_FINANCIAL_HARNESS_REQUIRED'}
+          }
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original exact private package real installed native lifecycle
+        shell: pwsh
+        env:
+          CANDIDATE_BUNDLE_ROOT: ${{ steps.artifact.outputs.bundle_root }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          $probeLog=Join-Path $env:RUNNER_TEMP 'pr233-exact-private-native-output.txt'
+          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-rsi-divergence/Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-rsi-divergence/Installed-RSI-Lifecycle.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1') -CandidateQualifiedBundleRoot $env:CANDIDATE_BUNDLE_ROOT -ExpectedCandidateArchiveSha256 'bd0c84f507e7b4db238b324ec7676fbe45a09405ba7bc320f25189f5c9dbc3fe' 2>&1 | Tee-Object -FilePath $probeLog
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'EXACT_PRIVATE_ARCHIVE_NATIVE_ACCEPTANCE_FAILED'}
+          # Actual execution coverage is mandatory. Defined-but-uncalled probes
+          # must never turn a green lifecycle run into visual/memory acceptance.
+          $observed=@(Get-Content -LiteralPath $probeLog)
+          function ProbeJson([string]$prefix,[int]$count){
+            $rows=@($observed|Where-Object {$_ -is [string] -and $_.StartsWith($prefix,[StringComparison]::Ordinal)})
+            if($rows.Count -ne $count){throw ('W94B_REQUIRED_ACTUAL_PROBE_OUTPUT_MISSING_'+$prefix)}
+            return @($rows|ForEach-Object {$_.Substring($prefix.Length)|ConvertFrom-Json -ErrorAction Stop})
+          }
+          $screens=@(ProbeJson 'W94B_PRICE_CHART_SCREEN_DIGEST=' 2)
+          if(@($screens|Where-Object {$_.phase -ceq 'BEFORE_SUPERTREND'}).Count -ne 1 -or @($screens|Where-Object {$_.phase -ceq 'AFTER_SUPERTREND'}).Count -ne 1){throw 'W94B_BOTH_REAL_SCREEN_PHASES_REQUIRED'}
+          $comparison=@(ProbeJson 'W94B_REAL_PRICE_PANE_COMPARISON=' 1)[0]
+          if(!$comparison.identical_bounds -or $comparison.pixel_sample_count -lt 500 -or $comparison.changed_sample_count -lt 15 -or $comparison.before_sha256 -ceq $comparison.after_sha256){throw 'W94B_ACTUAL_PANE_PIXEL_DELTA_REQUIRED'}
+          foreach($prefix in @('W94B_PROCESS_TREE_BEFORE=','W94B_PROCESS_TREE_AFTER=')){
+            $p=@(ProbeJson $prefix 1)[0]
+            if($p.webview2_count -lt 1 -or $p.process_count -ne @($p.members).Count -or $p.total_working_set_bytes -le 0){throw 'W94B_COMPLETE_REAL_PROCESS_MEASUREMENT_REQUIRED'}
+            $sum=[long]0;foreach($member in $p.members){$sum+=[long]$member.working_set_bytes}
+            if($sum -ne [long]$p.total_working_set_bytes){throw 'W94B_PROCESS_TOTAL_MISMATCH'}
+          }
+          if(@($observed|Where-Object {$_ -ceq '::notice::W94B_ACTIVE_PIXEL_AND_WEBVIEW_PROCESS_PROBES_EXECUTED=PASS'}).Count -ne 1){throw 'W94B_ACTUAL_PROBE_COMPLETION_REQUIRED'}
+          Write-Host '::notice::W94B_ACTUAL_OUTPUT_COVERAGE_ENFORCED_PANE_DIFFERENCE_AND_ALL_OBSERVED_DESCENDANT_MEMORY=PASS'
+          $lines=@(Get-Content $probeLog)
+          foreach($marker in @('::notice::RSI_REAL_INSTALLED_WEBVIEW2_CONFIRMED_DIVERGENCE_PHYSICAL_APPLY_RSI_PANE_NO_TRADING=PASS','::notice::W94B_ACTIVE_PIXEL_AND_WEBVIEW_PROCESS_PROBES_EXECUTED=PASS','::notice::W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS','::notice::W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS')){
+            if(@($lines|Where-Object{$_ -ceq $marker}).Count -ne 1){throw 'EXACT_PRIVATE_ARTIFACT_ACTUAL_NATIVE_OUTPUT_MISSING'}
+          }
+          Write-Host '::notice::EXACT_PRIVATE_ENGINEERING_INSTALLER_NATIVE_UI_PAPER_STOP_COLD_ROLLBACK_OBSERVED_PIXELS_PROCESSES=PASS'
