@@ -311,6 +311,7 @@ function SettingsValuesMatch([object]$actual,[hashtable]$expected){
  return $true
 }
 function SettingsWorkspace([string]$origin,[string]$source,[hashtable]$expected){
+ $lastDiagnostic=@{observed=$false}
  $until=(Get-Date).AddSeconds(35)
  do{
   try{
@@ -320,10 +321,12 @@ function SettingsWorkspace([string]$origin,[string]$source,[hashtable]$expected)
    $property=$record.workspace.PSObject.Properties['inputs']
    $actual=[pscustomobject]@{}
    if($null -ne $property){$actual=$property.Value}
+   $lastDiagnostic=@{observed=$true;success=$record.success;source_equal=($record.workspace.code -ceq $source.Trim());expected_keys=@($expected.Keys);actual_keys=@($actual.PSObject.Properties|ForEach-Object {$_.Name});inputs_property_present=($null -ne $property)}
    if($record.success -eq $true -and $record.workspace.code -ceq $source.Trim() -and (SettingsValuesMatch $actual $expected)){return}
   }catch{}
   Start-Sleep -Milliseconds 300
  }while((Get-Date) -lt $until)
+ Write-Host ('SETTINGS_WORKSPACE_OBSERVED_DIAGNOSTIC='+($lastDiagnostic|ConvertTo-Json -Compress -Depth 4))
  throw 'SETTINGS_ACTUAL_GO_OVERLAY_INPUT_BINDINGS_NOT_OBSERVED'
 }
 function SettingsDisarmed([string]$origin){
@@ -356,6 +359,7 @@ function SettingsWarm([object]$shell,[string]$origin){
   SettingsWorkspace $origin $source $case.values
   $saved=SettingsRead $origin $source
   Require ($saved.persistence -ceq 'saved' -and $saved.revision -cmatch '^[a-f0-9]{64}$' -and (SettingsValuesMatch $saved.values $case.values)) 'SETTINGS_PHYSICAL_SAVE_NOT_ACKNOWLEDGED_BY_ORIGINAL_GO'
+  Write-Host ('PINE_SETTINGS_ACTUAL_NATIVE_WARM_SAVE='+(@{name=$case.name;source_sha256=$saved.source_sha256;revision=$saved.revision;values=$case.values}|ConvertTo-Json -Compress -Depth 4))
   $script:settingsCases+=@{name=$case.name;source=$source;fields=$case.fields;defaults=$case.defaults;values=$case.values;source_sha256=$saved.source_sha256;revision=$saved.revision}
   ClickUI $shell 'Close indicator settings'
  }
