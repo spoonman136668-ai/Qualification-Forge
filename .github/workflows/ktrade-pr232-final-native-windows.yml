@@ -1,0 +1,204 @@
+name: KTRADE PR232 exact source full Windows integration and same scanned package native lifecycle
+on:
+  push:
+    branches: [qualification/ktrade-supertrend-atr-input-20261031]
+    paths: [.github/workflows/ktrade-pr232-final-native-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pr232-final-native-20261031
+  cancel-in-progress: false
+jobs:
+  final-native:
+    runs-on: windows-2022
+    timeout-minutes: 80
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      KTRADE_EXPECTED_SOURCE: '2e81b8c4a170a5537e973d59de0de1713fd6c5d4'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Qualified previous native source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact PR232 final source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2e81b8c4a170a5537e973d59de0de1713fd6c5d4
+          path: product
+          fetch-depth: 3
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Four sparse original baseline readers only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58
+          path: browser-baseline
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /static/watchlist_manager.js
+            /static/layout_manager.js
+            /static/indicator_library.js
+            /static/indicator_browser.js
+      - name: Actual source custody focused original failure proof and unchanged financial scenario
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_QUALIFICATION_HOST_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '2e81b8c4a170a5537e973d59de0de1713fd6c5d4' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'a90725bdd94f4b493601267a37ffee81c5c72e62' -or (& git -C $src rev-parse HEAD^).Trim() -cne 'e49072384d78e184185399825b2ad96e837342e1' -or (& git -C $src rev-parse HEAD^^).Trim() -cne '2773c8eb8e840a0eb0a6524820d394f5a35a925f'){throw 'EXACT_FINAL_SOURCE_REQUIRED'}
+          if((& git -C $src rev-parse 'HEAD:internal/originaltradeguard').Trim() -cne '1f894b0a6f8115b8a9d3882fa16fdb289eba510a' -or (& git -C $src rev-parse 'HEAD:internal/paperreconcile').Trim() -cne '9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'){throw 'ORIGINAL_GUARD_OR_LEDGER_TREE_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^^ HEAD)
+          if($delta.Count -ne 4 -or @($delta|Where-Object {$_ -cnotin @('pkg/catalog_supertrend_inputs_test.go','pkg/catalog_supertrend_numeric_test.go','templates/chart.tmpl','tests/rb3_w90_catalog_actions.test.cjs')}).Count -ne 0){throw 'EXACT_SUPERTREND_FOUR_PATH_DELTA_REQUIRED'}
+          foreach($dir in @('previous','product')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(@(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'EXACT_CLEAN_CREDENTIAL_FREE_SOURCE_REQUIRED'}
+            $cfg=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
+            if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'TRACKED_CREDENTIALS_REFUSED'}
+            if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          }
+          if((& git -C $src rev-parse 'HEAD:.github/workflows/ktrade-native-windows.yml').Trim() -cne 'b971da1a5721dc43839dc0e99b22df3ee4e2fa10'){throw 'SOURCE_OWNED_CI_WORKFLOW_DRIFT'}
+          $proof=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41199584395' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($proof.status -cne 'completed' -or $proof.conclusion -cne 'success' -or $proof.head_sha -cne '8d0c93301cfb55d632abe641e79052551688abff'){throw 'ACTUAL_RAW_SUPERTREND_INPUTS_NUMERICAL_CAUSALITY_RACE_NEGATIVE_CONTROLS_REQUIRED'}
+          $parent=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41198658283' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($parent.status -cne 'completed' -or $parent.conclusion -cne 'success' -or $parent.head_sha -cne '050e119d6f418c2273abdd5aed0d3438cc9b3e11'){throw 'ORIGINAL_UTC_PARENT_FULL_SOURCE_AND_ACTUAL_NATIVE_ACCEPTANCE_REQUIRED'}
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          $receipt=Join-Path $w 'qualification-receipts/ktrade-pr232-supertrend-input-period-focused-windows-20261031.json'
+          if((& git -C $w rev-parse 'HEAD:qualification-receipts/ktrade-pr232-supertrend-input-period-focused-windows-20261031.json').Trim() -cne 'cd1cc552a4c66987ed22b5cc13b78f168d1fb17d'){throw 'FOCUSED_RECEIPT_DRIFT'}
+          $r=Get-Content $receipt -Raw|ConvertFrom-Json
+          if($r.source_sha -cne '2e81b8c4a170a5537e973d59de0de1713fd6c5d4' -or $r.source_tree -cne 'a90725bdd94f4b493601267a37ffee81c5c72e62' -or $r.verdict -cne 'PASS_SCOPED_RAW_ORIGINAL_SUPERTREND_INPUT_NUMERICS_AND_CAUSALITY_RACE'){throw 'FOCUSED_SOURCE_NOT_ACCEPTED'}
+          $pins=@(
+            @('qualification-harness/ktrade-supertrend-input/Installed-Inputs-Lifecycle.ps1','7a12f6915c86f8c1a8fc4a68c6103808e13d35a1'),
+            @('qualification-harness/ktrade-supertrend-input/Build-And-Qualify.ps1','6000c8b81e74cec09aa4b090253c4922d8843dc5'),
+            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
+          )
+          foreach($pin in $pins){
+            if((& git -C $w rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'IMMUTABLE_NATIVE_OR_ORIGINAL_FINANCIAL_HARNESS_DRIFT'}
+            $tokens=$null;$errors=$null
+            [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $w $pin[0]),[ref]$tokens,[ref]$errors)
+            if($errors.Count -ne 0){throw 'NATIVE_HARNESS_AST_INVALID'}
+          }
+          Write-Host '::notice::EXACT_FINAL_PR232_SUPERTREND_INPUT_NUMERICS_ORIGINAL_FINANCIAL_SCENARIO_LIVE_FALSE=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Exact source-owned complete Go tagged app and Wails final regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') go) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'pwsh' -or $meta.script_sha256 -cne '7e2782e1049b8d8bd297ebccab761c67be95049c237bbb33b311865938b1e054'){throw 'SOURCE_OWNED_FINAL_CI_BODY_DRIFT'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_FINAL_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Exact source-owned complete Node and browser compatibility
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') node) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'pwsh' -or $meta.script_sha256 -cne '3ba16ab998f391a42c9879de1f1f94f071e526e819078200c5c4657472c7a6a7'){throw 'SOURCE_OWNED_FINAL_CI_BODY_DRIFT'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_FINAL_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Exact source-owned real assets licenses and shipping advisory audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') assets) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'pwsh' -or $meta.script_sha256 -cne '1b29ef7108a4a46b2b5384dab5334cca99a65403c5c43efe166f24d8a0e035ab'){throw 'SOURCE_OWNED_FINAL_CI_BODY_DRIFT'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_FINAL_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Exact source-owned unsigned six-binary package and actual binary scans
+        id: package
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:PSModulePath=Join-Path $PSHOME 'Modules'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') build) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'powershell' -or $meta.script_sha256 -cne '98eaa9753ac0addeea61d27ccc638868c255b0e47b359221b74da8a2ba8762be'){throw 'SOURCE_OWNED_FINAL_CI_BODY_DRIFT'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            . $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_FINAL_CI_EXECUTION_FAILED'}
+            if(!$root -or !(Test-Path (Join-Path $root 'KTRADE-SetupBundle.zip'))){throw 'EXACT_SOURCE_CI_PACKAGE_ROOT_MISSING'}
+            $hash=(Get-FileHash (Join-Path $root 'KTRADE-SetupBundle.zip') -Algorithm SHA256).Hash.ToLowerInvariant()
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT,('bundle_root='+$root+[Environment]::NewLine+'archive_sha256='+$hash+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          }finally{Pop-Location}
+      - name: Install and test the same original scanned current archive with native UI PAPER cold and rollback
+        shell: pwsh
+        env:
+          CANDIDATE_BUNDLE_ROOT: ${{ steps.package.outputs.bundle_root }}
+          CANDIDATE_ARCHIVE_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          $probeLog=Join-Path $env:RUNNER_TEMP 'pr232-native-output.txt'
+          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-supertrend-input/Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-supertrend-input/Installed-Inputs-Lifecycle.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1') -CandidateQualifiedBundleRoot $env:CANDIDATE_BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:CANDIDATE_ARCHIVE_SHA256 2>&1 | Tee-Object -FilePath $probeLog
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'ORIGINAL_SAME_ARCHIVE_NATIVE_LIFECYCLE_FAILED'}
+          # Actual execution coverage is mandatory. Defined-but-uncalled probes
+          # must never turn a green lifecycle run into visual/memory acceptance.
+          $observed=@(Get-Content -LiteralPath $probeLog)
+          function ProbeJson([string]$prefix,[int]$count){
+            $rows=@($observed|Where-Object {$_ -is [string] -and $_.StartsWith($prefix,[StringComparison]::Ordinal)})
+            if($rows.Count -ne $count){throw ('W94B_REQUIRED_ACTUAL_PROBE_OUTPUT_MISSING_'+$prefix)}
+            return @($rows|ForEach-Object {$_.Substring($prefix.Length)|ConvertFrom-Json -ErrorAction Stop})
+          }
+          $screens=@(ProbeJson 'W94B_PRICE_CHART_SCREEN_DIGEST=' 2)
+          if(@($screens|Where-Object {$_.phase -ceq 'BEFORE_SUPERTREND'}).Count -ne 1 -or @($screens|Where-Object {$_.phase -ceq 'AFTER_SUPERTREND'}).Count -ne 1){throw 'W94B_BOTH_REAL_SCREEN_PHASES_REQUIRED'}
+          $comparison=@(ProbeJson 'W94B_REAL_PRICE_PANE_COMPARISON=' 1)[0]
+          if(!$comparison.identical_bounds -or $comparison.pixel_sample_count -lt 500 -or $comparison.changed_sample_count -lt 15 -or $comparison.before_sha256 -ceq $comparison.after_sha256){throw 'W94B_ACTUAL_PANE_PIXEL_DELTA_REQUIRED'}
+          foreach($prefix in @('W94B_PROCESS_TREE_BEFORE=','W94B_PROCESS_TREE_AFTER=')){
+            $p=@(ProbeJson $prefix 1)[0]
+            if($p.webview2_count -lt 1 -or $p.process_count -ne @($p.members).Count -or $p.total_working_set_bytes -le 0){throw 'W94B_COMPLETE_REAL_PROCESS_MEASUREMENT_REQUIRED'}
+            $sum=[long]0;foreach($member in $p.members){$sum+=[long]$member.working_set_bytes}
+            if($sum -ne [long]$p.total_working_set_bytes){throw 'W94B_PROCESS_TOTAL_MISMATCH'}
+          }
+          if(@($observed|Where-Object {$_ -ceq '::notice::W94B_ACTIVE_PIXEL_AND_WEBVIEW_PROCESS_PROBES_EXECUTED=PASS'}).Count -ne 1){throw 'W94B_ACTUAL_PROBE_COMPLETION_REQUIRED'}
+          Write-Host '::notice::W94B_ACTUAL_OUTPUT_COVERAGE_ENFORCED_PANE_DIFFERENCE_AND_ALL_OBSERVED_DESCENDANT_MEMORY=PASS'
+          Write-Host '::notice::W83_REAL_INSTALLED_UPGRADE_FOUR_CURRENT_NATIVE_PAPER_FILLS_STOP_COLD_ACCOUNT_ROLLBACK_HISTORY_RETAINED=PASS'
+      - name: Final source custody no owner data or production authority
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($dir in @('previous','product')){
+            if(@(& git -C (Join-Path $env:GITHUB_WORKSPACE $dir) status --porcelain --untracked-files=no).Count -ne 0){throw 'FINAL_TRACKED_SOURCE_CHANGED'}
+          }
+          Write-Host '::notice::NO_OWNER_DATA_NO_REAL_BROKER_NO_SIGNING_NO_PROMOTION_NO_LIVE'
