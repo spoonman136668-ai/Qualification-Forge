@@ -1,0 +1,244 @@
+{
+  "schema": "ktrade.pr231.full-windows-native-integration.v1",
+  "verdict": "PASS_SCOPED_FROZEN_SOURCE_FULL_WINDOWS_TEST_VET_BUILD_AND_SAME_ARCHIVE_NATIVE_LIFECYCLE",
+  "source_pr": 231,
+  "source_sha": "2773c8eb8e840a0eb0a6524820d394f5a35a925f",
+  "source_tree": "5eda35ca7a3edc7ed33272e3ffdc9b395cfa9dfb",
+  "source_parent": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+  "changed_paths": [
+    "internal/papercustody/original_risk_proof.go",
+    "internal/paperengine/final_close_review.go",
+    "internal/paperengine/final_close_submit.go",
+    "internal/papercustody/utc_pnl_baseline_test.go",
+    "internal/paperengine/utc_day_transition_test.go"
+  ],
+  "run_id": 41198658283,
+  "job_id": 124529880602,
+  "qualifier_execution_sha": "050e119d6f418c2273abdd5aed0d3438cc9b3e11",
+  "job_status": "completed",
+  "job_conclusion": "success",
+  "go": "1.26.10",
+  "node": "24",
+  "source_owned_workflow_blob": "b971da1a5721dc43839dc0e99b22df3ee4e2fa10",
+  "actual_extracted_command_bodies": [
+    {
+      "kind": "go",
+      "shell": "pwsh",
+      "sha256": "7e2782e1049b8d8bd297ebccab761c67be95049c237bbb33b311865938b1e054"
+    },
+    {
+      "kind": "node",
+      "shell": "pwsh",
+      "sha256": "3ba16ab998f391a42c9879de1f1f94f071e526e819078200c5c4657472c7a6a7"
+    },
+    {
+      "kind": "assets",
+      "shell": "pwsh",
+      "sha256": "1b29ef7108a4a46b2b5384dab5334cca99a65403c5c43efe166f24d8a0e035ab"
+    },
+    {
+      "kind": "build",
+      "shell": "powershell",
+      "sha256": "98eaa9753ac0addeea61d27ccc638868c255b0e47b359221b74da8a2ba8762be"
+    }
+  ],
+  "verified_results": {
+    "full_original_go_root_tests_vet": "PASS",
+    "full_tagged_app_tests_vet": "PASS",
+    "nested_wails_tests_vet": "PASS",
+    "node_files": 35,
+    "node_cases": 158,
+    "node_fail": 0,
+    "node_skip": 0,
+    "node_cancel": 0,
+    "two_root_baseline_browser": "PASS four sparse original reader files only",
+    "real_vendor_hashes": 118,
+    "asset_staging_repeatable": true,
+    "upstream_notices_and_licenses": "PASS",
+    "shipping_js_affected": 0,
+    "nonshipping_legacy_audit_preserved": true,
+    "original_unsigned_executables": 6,
+    "actual_shipping_binary_scans": "PASS both actual binaries No vulnerabilities found",
+    "same_archive_built_scanned_and_installed_sha256": "e1c9b1e47caeb7451335419c6523e9ca9c658b36fcc0fc12ffa0d0d434b61f74",
+    "original_physical_supertrend_and_williams_apply": true,
+    "paper_four_fills_fees_fifo_risk_dedup_stop": true,
+    "cold_no_auto_rearm": true,
+    "old_new_unknown_history_retained_after_rollback": true,
+    "legacy_order_http423": true,
+    "pane_captures": [
+      {
+        "top": 215,
+        "height": 346,
+        "png_sha256": "566f431b03c93dd926c19fba260ddd1261e649a1666e3cf42e017786f98e7109",
+        "retained_screenshot": false,
+        "width": 932,
+        "phase": "BEFORE_SUPERTREND",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "left": 46
+      },
+      {
+        "top": 215,
+        "height": 346,
+        "png_sha256": "24b3a5af125803d841bc8d307f217f848000682e224ce6d95f3d8ea2659faae1",
+        "retained_screenshot": false,
+        "width": 932,
+        "phase": "AFTER_SUPERTREND",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "left": 46
+      }
+    ],
+    "pane_difference": {
+      "changed_sample_count": 315,
+      "before_sha256": "566f431b03c93dd926c19fba260ddd1261e649a1666e3cf42e017786f98e7109",
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle",
+      "pixel_sample_count": 19635,
+      "after_sha256": "24b3a5af125803d841bc8d307f217f848000682e224ce6d95f3d8ea2659faae1",
+      "identical_bounds": true
+    },
+    "observed_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 543899648,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "name": "ktrade.exe",
+          "pid": 4584,
+          "working_set_bytes": 33611776
+        },
+        {
+          "name": "ktrade-engine.exe",
+          "pid": 4796,
+          "working_set_bytes": 23949312
+        },
+        {
+          "name": "conhost.exe",
+          "pid": 6656,
+          "working_set_bytes": 18497536
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 7060,
+          "working_set_bytes": 107659264
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 1556,
+          "working_set_bytes": 8032256
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 1656,
+          "working_set_bytes": 53800960
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 2460,
+          "working_set_bytes": 33234944
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 4940,
+          "working_set_bytes": 18903040
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 7216,
+          "working_set_bytes": 61120512
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 4924,
+          "working_set_bytes": 185090048
+        }
+      ]
+    },
+    "observed_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 574164992,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "name": "ktrade.exe",
+          "pid": 4584,
+          "working_set_bytes": 30339072
+        },
+        {
+          "name": "ktrade-engine.exe",
+          "pid": 4796,
+          "working_set_bytes": 28127232
+        },
+        {
+          "name": "conhost.exe",
+          "pid": 6656,
+          "working_set_bytes": 18497536
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 7060,
+          "working_set_bytes": 126918656
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 1556,
+          "working_set_bytes": 8032256
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 1656,
+          "working_set_bytes": 55308288
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 2460,
+          "working_set_bytes": 33075200
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 4940,
+          "working_set_bytes": 18788352
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 7216,
+          "working_set_bytes": 61370368
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 4924,
+          "working_set_bytes": 193708032
+        }
+      ]
+    },
+    "actual_probe_coverage_and_sums_verified": true
+  },
+  "native_harness_blob": "173fae04e5c14c29cbbf4ede53b0e808ff0a7942",
+  "build_harness_blob": "3dd0ccce53f6cbb81cdf823786455d27a4dbf281",
+  "original_financial_harness_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "limits": [
+    "Engineering qualification only,not protected acceptance or product COMPLETE",
+    "Actual warm UTC midnight/24h soak remains unaccepted;focused tests use synthetic prior dates in test-owned TEMP with original Save/Restore",
+    "Original TradeGuard and ledger trees/schemas,kill policy and LIVE guard unchanged",
+    "No independent numeric-to-pixel oracle,FPS,target-hardware,HiDPI or long-session resource acceptance",
+    "Observed process working-set sums are not unique physical or peak memory",
+    "Source231 retains fixed10 Supertrend and unavailable RSI Divergence;newer PR232 qualification is separate",
+    "PR230 private installer3cb5 acceptance is separate;no private PR231 artifact created",
+    "No owner data/account credentials,realbroker,signing,release,promotion or LIVE"
+  ],
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none",
+  "product_complete": false,
+  "original_tradeguard_tree": "1f894b0a6f8115b8a9d3882fa16fdb289eba510a",
+  "original_ledger_reconcile_tree": "9507b1f181b9a82ebbc4fa63f4bc05b27613e25e",
+  "focused_original_utc_negative_controls_and_complete_affected_race": {
+    "run": 41197084611,
+    "receipt_commit": "6e80b72764998e3404b2a2df3478b468f46eea90",
+    "receipt_blob": "2913d123018dfd273058ff7c2fe4b750955533e1",
+    "roots": 39,
+    "subtests": 51,
+    "fail": 0,
+    "skip": 0
+  }
+}
