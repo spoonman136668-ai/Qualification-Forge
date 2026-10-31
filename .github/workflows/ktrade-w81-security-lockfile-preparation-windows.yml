@@ -1,0 +1,68 @@
+name: KTRADE W81 minimal security dependency lockfile preparation
+on:
+  push:
+    branches: [qualification/ktrade-w81-security-lockfile-preparation-20261030]
+    paths: [.github/workflows/ktrade-w81-security-lockfile-preparation-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w81-security-lockfile-preparation-20261030
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: d7d6c802be27f2a7ed338d1ac9d36df1138a12c9
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Prepare only minimal fixed dependency modules and Go checksum custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W81_HOSTED_WINDOWS_REQUIRED'}
+          if((& go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'W81_TOOLCHAIN_DRIFT'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'd7d6c802be27f2a7ed338d1ac9d36df1138a12c9' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'a2b0dbc2708227d92d8e3dab6b64c8b7b516da72'){throw 'W81_SOURCE_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $src '.env'))){throw 'W81_SOURCE_NOT_ISOLATED'}
+          foreach($dir in @($src,(Join-Path $src 'tools/wails-pilot'))){
+            Push-Location $dir
+            try{
+              if($dir -ceq $src){& go get github.com/gorilla/websocket@v1.5.3 golang.org/x/net@v0.62.0}
+              else{& go get golang.org/x/net@v0.62.0}
+              if($LASTEXITCODE -ne 0){throw 'W81_FIXED_VERSION_RESOLUTION_FAILED'}
+              & go mod tidy
+              if($LASTEXITCODE -ne 0){throw 'W81_TIDY_FAILED'}
+              & go mod verify
+              if($LASTEXITCODE -ne 0){throw 'W81_SUMDB_VERIFICATION_FAILED'}
+            }finally{Pop-Location}
+          }
+          $allowed=@('go.mod','go.sum','tools/wails-pilot/go.mod','tools/wails-pilot/go.sum')
+          $changed=@(& git -C $src diff --name-only)
+          if($changed.Count -ne 4){throw 'W81_EXPECTED_FOUR_MODULE_FILES'}
+          foreach($p in $changed){if($p -cnotin $allowed){throw 'W81_NON_MODULE_SOURCE_MUTATED'}}
+          foreach($p in $allowed){
+            $file=Join-Path $src $p
+            $content=[IO.File]::ReadAllText($file)
+            if($content.Length -gt 20000 -or $content -match 'PRIVATE KEY|Bearer |apiKey|password|token='){throw 'W81_NON_PUBLIC_MODULE_CONTENT_REFUSED'}
+            $row=[ordered]@{path=$p;git_blob=(& git hash-object $file).Trim();content=$content}
+            Write-Host ('W81_MODULE_FILE='+($row|ConvertTo-Json -Compress))
+          }
+          Write-Host '::notice::W81_MINIMAL_PUBLIC_LOCKFILES_GENERATED_SUMDB_VERIFIED=PASS'
+          Write-Host '::notice::W81_PREPARATION_ONLY_NOT_IMMUTABLE_CANDIDATE_ACCEPTANCE_NO_BROKER_NO_OWNER_DATA_NO_LIVE_NO_RELEASE'

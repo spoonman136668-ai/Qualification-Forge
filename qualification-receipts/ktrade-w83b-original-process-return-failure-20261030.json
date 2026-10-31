@@ -1,0 +1,18 @@
+{
+  "schema": "ktrade.qualification.failure.receipt.v1",
+  "run_id": 41076130968,
+  "job_id": 124132684348,
+  "witness": "c52a40a51f3f96fcb47ba040e8e086d2ae16e70f",
+  "candidate_sha": "b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a",
+  "conclusion": "failure",
+  "verdict": "FAIL_QUALIFIER_MEASUREMENT_POLLUTED_PROCESS_RETURN",
+  "ps51_core_module_preflight": "PASS",
+  "both_actual_unsigned_setup_builds": "PASS",
+  "previous_native_webview2_and_paper_stopped": "PASS",
+  "cause": "Added Write-Output measurement made StartInstalled return a string plus its process object; strict process custody then refused missing shell property.",
+  "fix": "Write-Host for observation, retain original typed process return and all source/custody checks.",
+  "native_current_market_paper": "NOT_RUN",
+  "source_runtime_changed": false,
+  "owner_data_touched": false,
+  "live_armed": false
+}

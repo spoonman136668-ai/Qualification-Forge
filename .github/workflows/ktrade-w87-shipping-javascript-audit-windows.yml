@@ -1,0 +1,69 @@
+name: KTRADE W87 locked shipping JavaScript advisory and license audit
+on:
+  push:
+    branches: [qualification/ktrade-w87-shipping-javascript-audit-20261030]
+    paths: [.github/workflows/ktrade-w87-shipping-javascript-audit-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w87-shipping-javascript-audit-20261030
+  cancel-in-progress: false
+jobs:
+  audit:
+    runs-on: windows-2022
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9fe979ec4b5da128a174b777d658461fd492d46e
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Clean frozen source before generated assets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '9fe979ec4b5da128a174b777d658461fd492d46e' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'W87_INITIAL_CLEAN_SOURCE_REQUIRED'}
+      - name: Locked public asset install with lifecycle scripts disabled
+        shell: pwsh
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+        run: |
+          $ErrorActionPreference='Stop'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & npm.cmd ci --ignore-scripts --no-audit --no-fund
+            if($LASTEXITCODE -ne 0){throw 'W87_LOCKED_ASSET_INSTALL_FAILED'}
+            if((Get-FileHash scripts/vendor-licenses/fancy-canvas-2.1.0.LICENSE -Algorithm SHA256).Hash.ToLowerInvariant() -cne '52d2ba0c8f8f4532bd524358d679693ff3dd9e40c56fe0c0c63061ed0733aa18'){throw 'W87_UPSTREAM_LICENSE_CHECKOUT_BYTES_DRIFT'}
+            & node --test tests/rb3_w88_vendor_staging.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W87_STAGING_REGRESSION_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W87_FIRST_REAL_ASSET_STAGE_FAILED'}
+            $first=(Get-FileHash static/vendor/assets-manifest.json -Algorithm SHA256).Hash
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0 -or (Get-FileHash static/vendor/assets-manifest.json -Algorithm SHA256).Hash -cne $first){throw 'W87_ACTUAL_ASSET_RESTAGE_NOT_IDENTICAL'}
+            & node -e "const fs=require('node:fs'),c=require('node:crypto');const m=JSON.parse(fs.readFileSync('static/vendor/assets-manifest.json'));if(m.files.some(f=>f.path==='assets-manifest.json'))throw Error('self inclusion');for(const f of m.files)if(c.createHash('sha256').update(fs.readFileSync('static/vendor/'+f.path)).digest('hex')!==f.sha256)throw Error('asset hash');console.log('W87_REAL_VENDOR_REPEATABLE_HASHED_ASSETS=PASS files='+m.files.length);"
+            if($LASTEXITCODE -ne 0){throw 'W87_ACTUAL_ASSET_HASH_INVALID'}
+          }finally{Pop-Location}
+      - name: Source identity and shipping-only graph audit without install scripts
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or (& git -C $src rev-parse HEAD).Trim() -cne '9fe979ec4b5da128a174b777d658461fd492d46e' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'ca6c13628f678093ede20831e206800ddbd2d1ec'){throw 'W87_SOURCE_OR_HOST_DRIFT'}
+          if(Test-Path (Join-Path $src '.env')){throw 'W87_DOTENV_REFUSED'}
+          & node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w87/Audit-Shipped-Dependencies.cjs') $src
+          if($LASTEXITCODE -ne 0){throw 'W87_LOCKED_SHIPPING_JAVASCRIPT_AUDIT_FAILED'}
+          $changes=@(& git -C $src status --porcelain)
+          if(@($changes|Where-Object {$_ -cnotin @('?? node_modules/','?? static/vendor/')}).Count -ne 0){throw 'W87_UNEXPECTED_TRACKED_INDEX_OR_UNTRACKED_CHANGE'}
+          Write-Host '::notice::W87_TRACKED_SOURCE_UNCHANGED_ONLY_EXPLICIT_GENERATED_ASSETS_NO_INSTALL_SCRIPTS_NO_OWNER_DATA_NO_LIVE=PASS'

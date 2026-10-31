@@ -1,0 +1,151 @@
+{
+  "schema": "ktrade.qualification.windows-repaired-final.v1",
+  "source_sha": "b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a",
+  "source_tree": "989020f81a7c731acf3bfa830c06e7e929805bcd",
+  "product_pr": 223,
+  "executing_witness": "fa0a90b503a95b4422251c27a7d2ea19b4671a6e",
+  "run_id": 41071548527,
+  "job_id": 124116719320,
+  "conclusion": "success",
+  "verdict": "PASS_SCOPED_SUPPORTED_TOOLCHAIN_SECURITY_FULL_GO_WAILS_NODE_COMPILE_BUDGET_AND_BUILD",
+  "go_version": "go1.26.10",
+  "obsolete_go125_refused_before_output": true,
+  "scans": {
+    "engine": {
+      "affected_vulnerability_ids": 2,
+      "database": "https://vuln.go.dev",
+      "database_modified": "2026-10-27T21:16:18Z",
+      "findings": [],
+      "go_version": "go1.26.10",
+      "reachable_symbol_findings": 0,
+      "scanner_version": "v1.9.0",
+      "schema": "ktrade.security.govulncheck.scope.v1",
+      "scope": "engine",
+      "zero_reachable_known_vulnerabilities": true
+    },
+    "wails": {
+      "affected_vulnerability_ids": 0,
+      "database": "https://vuln.go.dev",
+      "database_modified": "2026-10-27T21:16:18Z",
+      "findings": [],
+      "go_version": "go1.26.10",
+      "reachable_symbol_findings": 0,
+      "scanner_version": "v1.9.0",
+      "schema": "ktrade.security.govulncheck.scope.v1",
+      "scope": "wails",
+      "zero_reachable_known_vulnerabilities": true
+    }
+  },
+  "original_tagged_root_nested_wails_tests_and_vet": "PASS",
+  "node": {
+    "files": 32,
+    "normal_cases": 148,
+    "passed": 148,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0,
+    "original_four_reader_cross_version_fixture": "PASS_exact_blobs_without_historical_config_checkout"
+  },
+  "compiler": [
+    {
+      "allocated_bytes_per_compile": 184963,
+      "allocation_budget_bytes": 33554432,
+      "assignments": 32,
+      "go_version": "go1.26.10",
+      "gomaxprocs": 2,
+      "network_requests": 0,
+      "p50_ns": 0,
+      "p95_budget_ns": 250000000,
+      "p95_ns": 805400,
+      "p99_ns": 3103100,
+      "pine_version": "5",
+      "post_gc_heap_growth_budget_bytes": 16777216,
+      "post_gc_heap_growth_bytes": 2088,
+      "samples": 120,
+      "schema": "ktrade.performance.original-editor-compile.v1",
+      "scope": "original HTTP compile handler; hosted Windows; not UI paint or long soak",
+      "script_bytes": 905
+    },
+    {
+      "allocated_bytes_per_compile": 2973615,
+      "allocation_budget_bytes": 33554432,
+      "assignments": 512,
+      "go_version": "go1.26.10",
+      "gomaxprocs": 2,
+      "network_requests": 0,
+      "p50_ns": 0,
+      "p95_budget_ns": 2000000000,
+      "p95_ns": 10113000,
+      "p99_ns": 11092200,
+      "pine_version": "5",
+      "post_gc_heap_growth_budget_bytes": 16777216,
+      "post_gc_heap_growth_bytes": 25240,
+      "samples": 120,
+      "schema": "ktrade.performance.original-editor-compile.v1",
+      "scope": "original HTTP compile handler; hosted Windows; not UI paint or long soak",
+      "script_bytes": 13238
+    },
+    {
+      "allocated_bytes_per_compile": 477713,
+      "allocation_budget_bytes": 33554432,
+      "assignments": 32,
+      "go_version": "go1.26.10",
+      "gomaxprocs": 2,
+      "network_requests": 0,
+      "p50_ns": 0,
+      "p95_budget_ns": 250000000,
+      "p95_ns": 1024700,
+      "p99_ns": 9100600,
+      "pine_version": "6",
+      "post_gc_heap_growth_budget_bytes": 16777216,
+      "post_gc_heap_growth_bytes": 0,
+      "samples": 120,
+      "schema": "ktrade.performance.original-editor-compile.v1",
+      "scope": "original HTTP compile handler; hosted Windows; not UI paint or long soak",
+      "script_bytes": 905
+    },
+    {
+      "allocated_bytes_per_compile": 3363922,
+      "allocation_budget_bytes": 33554432,
+      "assignments": 512,
+      "go_version": "go1.26.10",
+      "gomaxprocs": 2,
+      "network_requests": 0,
+      "p50_ns": 1073400,
+      "p95_budget_ns": 2000000000,
+      "p95_ns": 10133200,
+      "p99_ns": 13125300,
+      "pine_version": "6",
+      "post_gc_heap_growth_budget_bytes": 16777216,
+      "post_gc_heap_growth_bytes": 0,
+      "samples": 120,
+      "schema": "ktrade.performance.original-editor-compile.v1",
+      "scope": "original HTTP compile handler; hosted Windows; not UI paint or long soak",
+      "script_bytes": 13238
+    }
+  ],
+  "unsigned_fixture_free_pair": {
+    "wails_sha256": "030126deb035524fa03d3710258e282304338073263c778ef376b3cc94b5c516",
+    "engine_sha256": "a456f9e6d6ddc79af4e710576ef5db0b09c993616d05d92b802ba9f5e0a71cb6",
+    "archive_sha256": "995923382ca2ea8db37bf03be7e7f567191f032ff2dbec1d8195f99cd6a597bf"
+  },
+  "prior_failures": [
+    {
+      "run": 41069014583,
+      "kind": "reachable known shipping vulnerabilities repaired with minimal dependencies"
+    },
+    {
+      "run": 41070311969,
+      "kind": "original auth test incompatible with supported crypto; repaired test-only with original nonce refusal and independent ES256 verification"
+    }
+  ],
+  "limits": [
+    "Static Go analysis is not an exhaustive security audit; engine reports two affected database entries with no reachable symbols, IDs not exported by reducer",
+    "Backend compile timings use hosted Windows clock, not UI rendering or target hardware; sub-millisecond samples may read zero",
+    "No final installed native PAPER on this rebuilt candidate yet",
+    "No long soak, publisher signing, source promotion, owner installation/data cutover, real-provider financial posting or LIVE acceptance"
+  ],
+  "live_armed": false,
+  "owner_data_touched": false,
+  "release_authority": false
+}
