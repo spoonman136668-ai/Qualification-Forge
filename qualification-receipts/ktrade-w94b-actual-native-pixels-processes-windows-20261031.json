@@ -1,0 +1,202 @@
+{
+  "schema": "ktrade.w94b.actual-native-observation.windows.v1",
+  "verdict": "PASS_SCOPED_ACTUAL_NATIVE_PANE_DIFFERENCE_AND_OBSERVED_PROCESS_MEMORY",
+  "source_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+  "source_tree": "a6076bc3c1e2bcae6b21c10a4ea810105a05bd7e",
+  "qualifier_pr": 63,
+  "run_id": 41182330610,
+  "job_id": 124482096064,
+  "qualifier_execution_sha": "c21083cd2c43f039216f527fa02d36d697020909",
+  "native_harness_blob": "84ba54cbd430e72c749d9d3eeeb9b15886cd0afe",
+  "job_status": "completed",
+  "job_conclusion": "success",
+  "verified_results": {
+    "screen_captures": [
+      {
+        "height": 346,
+        "phase": "BEFORE_SUPERTREND",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "left": 46,
+        "width": 932,
+        "retained_screenshot": false,
+        "png_sha256": "bcc9ca90a5702eaa475ad2b6cf2dceb8c1e64524d23c27cb5f4c5718e6d9012e",
+        "top": 215
+      },
+      {
+        "height": 346,
+        "phase": "AFTER_SUPERTREND",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "left": 46,
+        "width": 932,
+        "retained_screenshot": false,
+        "png_sha256": "6995ed132e666429d37184fae9abc40a175db23a552b07041468922ca40c6480",
+        "top": 215
+      }
+    ],
+    "pane_difference": {
+      "pixel_sample_count": 19635,
+      "after_sha256": "6995ed132e666429d37184fae9abc40a175db23a552b07041468922ca40c6480",
+      "before_sha256": "bcc9ca90a5702eaa475ad2b6cf2dceb8c1e64524d23c27cb5f4c5718e6d9012e",
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle",
+      "identical_bounds": true,
+      "changed_sample_count": 388
+    },
+    "observed_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 545005568,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "name": "ktrade.exe",
+          "working_set_bytes": 34500608,
+          "pid": 6428
+        },
+        {
+          "name": "ktrade-engine.exe",
+          "working_set_bytes": 23498752,
+          "pid": 6120
+        },
+        {
+          "name": "conhost.exe",
+          "working_set_bytes": 18448384,
+          "pid": 7436
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 107618304,
+          "pid": 1436
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 8028160,
+          "pid": 3724
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 55947264,
+          "pid": 1616
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 33189888,
+          "pid": 540
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 18911232,
+          "pid": 4756
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 61300736,
+          "pid": 2800
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 183562240,
+          "pid": 5704
+        }
+      ]
+    },
+    "observed_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 575967232,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "name": "ktrade.exe",
+          "working_set_bytes": 31182848,
+          "pid": 6428
+        },
+        {
+          "name": "ktrade-engine.exe",
+          "working_set_bytes": 26148864,
+          "pid": 6120
+        },
+        {
+          "name": "conhost.exe",
+          "working_set_bytes": 18448384,
+          "pid": 7436
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 128393216,
+          "pid": 1436
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 8028160,
+          "pid": 3724
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 55369728,
+          "pid": 1616
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 33251328,
+          "pid": 540
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 18911232,
+          "pid": 4756
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 61562880,
+          "pid": 2800
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 194670592,
+          "pid": 5704
+        }
+      ]
+    },
+    "parsed_runtime_output_coverage_enforced": true,
+    "working_set_sums_independently_verified": true,
+    "physical_original_supertrend_apply": true,
+    "original_williams_separate_pane": true,
+    "original_four_paper_fills_stop_cold_and_retained_rollback": true
+  },
+  "reused_foundation": {
+    "full_regression_run": 41157406050,
+    "executing_witness": "4a4cccae79904ebfe9eae0838799bcfbaeb23ea2",
+    "receipt_blob": "77539dc43016887b9c7cb2340d310cdc1e7e9cbc",
+    "same_source": true,
+    "full_go_node_not_repeated": true
+  },
+  "prior_attempts": [
+    {
+      "run": 41159688555,
+      "github_conclusion": "success",
+      "scope": "UNVERIFIED probes defined but never called",
+      "correction_receipt_commit": "9a9f98110c772aecb293a97715ddedae42de7970"
+    },
+    {
+      "run": 41181823325,
+      "conclusion": "failure",
+      "scope": "intermediate harness pin preflight; no new product verdict"
+    },
+    {
+      "run": 41181864978,
+      "conclusion": "failure",
+      "scope": "actual capture during original300ms editor close animation; exact geometry assertion correctly refused"
+    }
+  ],
+  "limits": [
+    "Pane difference does not independently attribute all changed pixels to the indicator or certify numeric-to-pixel parity",
+    "Single observed process working-set sums are not unique physical RAM,peak memory,leak/soak,CPU,GPU or target-machine performance",
+    "Screenshots hashed in memory only;no image artifact retained",
+    "No FPS,HiDPI,retail-hardware or production acceptance",
+    "PR230 changes Pine compiler separately and is not qualified by this unchanged-parent receipt"
+  ],
+  "owner_data_accessed": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "product_complete": false
+}
