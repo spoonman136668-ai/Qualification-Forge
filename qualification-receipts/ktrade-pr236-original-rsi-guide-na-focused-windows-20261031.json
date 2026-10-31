@@ -1,0 +1,79 @@
+{
+  "schema": "ktrade.pr236.original-rsi-hline-na-transport.focused-windows.v1",
+  "verdict": "PASS_ORIGINAL_RSI_GUIDE_TRANSPORT_AND_GO_NONFINITE_DRAWING_OMISSION_WITH_PRESERVED_NA_PLOTS",
+  "source_sha": "504b28f07a24882470b847ff014391104f78bd66",
+  "source_tree": "bc516c9c38128949cf19bbcb784a88e29dd08685",
+  "run_id": 41239409461,
+  "job_id": 124649946813,
+  "witness_sha": "8ca7fec99ec86a127c3eaeb59fb59dd7a0ee9a1a",
+  "status": "completed",
+  "conclusion": "success",
+  "original_omission_failures_reproduced": [
+    "TestPineOverlayTransportsOriginalRSIHorizontalGuides/v5_overlayfalse",
+    "TestPineOverlayTransportsOriginalRSIHorizontalGuides/v5_overlaytrue",
+    "TestPineOverlayTransportsOriginalRSIHorizontalGuides/v6_overlayfalse",
+    "TestPineOverlayTransportsOriginalRSIHorizontalGuides/v6_overlaytrue"
+  ],
+  "original_nonfinite_json_failures_reproduced": [
+    "TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots/v5_positive_infinity",
+    "TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots/v5_negative_infinity",
+    "TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots/v5_nan",
+    "TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots/v6_positive_infinity",
+    "TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots/v6_negative_infinity",
+    "TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots/v6_nan"
+  ],
+  "package_race": {
+    "roots": 14,
+    "subtests": 172,
+    "original_finalized_candle_prefixes": 846
+  },
+  "tagged_api_race": {
+    "roots": 6,
+    "marker_subtests": 4,
+    "hline_subtests": 4,
+    "nonfinite_subtests": 6,
+    "settings_roots": 3
+  },
+  "node": {
+    "cases": 39,
+    "fail": 0,
+    "skip": 0,
+    "actual_v5_v6_http_guides_marker_confirmations_and_nonfinite_NA_plots": true
+  },
+  "vet": [
+    "pkg",
+    "tagged cmd/ktrade"
+  ],
+  "original_guide_levels": [
+    70,
+    30,
+    50
+  ],
+  "original_guide_titles": [
+    "Overbought",
+    "Oversold",
+    "Middle"
+  ],
+  "native_drawing_manager_fix": {
+    "path": "pkg/pine_plotting_advanced.go",
+    "blob": "f5b52befb522a260289af0177dfd0c9eda1d4d6b",
+    "original_exp_overflow_and_sqrt_NaN_math_preserved": true,
+    "nonfinite_reference_plot_values_encode_as_null_not_zero": true,
+    "non_renderable_guides_omitted_in_original_go": true,
+    "valid_plots_and_applied_workspace_retained": true
+  },
+  "first_normal_only_focus": {
+    "source": "648006fdfcaf6e5d93334a5dbe2661f32929b352",
+    "run": 41237865303,
+    "receipt_commit": "f9ce4542276af6da324fb9d8a3e9867b982ec123",
+    "scope": "Normal guide/marker/settings qualification only; not this later nonfinite fix"
+  },
+  "original_compiler_blob": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+  "original_guard_and_ledger_unchanged": true,
+  "native_hline_visual_acceptance": false,
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}
