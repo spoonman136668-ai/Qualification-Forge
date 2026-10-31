@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 648006fdfcaf6e5d93334a5dbe2661f32929b352
+          ref: 504b28f07a24882470b847ff014391104f78bd66
           path: product
           fetch-depth: 10
           persist-credentials: false
@@ -43,12 +43,12 @@ jobs:
           $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_ISOLATED_QUALIFICATION_HOST_REQUIRED'}
           $p=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if((& git -C $p rev-parse HEAD).Trim() -cne '648006fdfcaf6e5d93334a5dbe2661f32929b352' -or (& git -C $p rev-parse 'HEAD^{tree}').Trim() -cne '2a1bd57575bce889126ff70f5e7bd7340b6c0b00' -or @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'EXACT_CLEAN_SOURCE_REQUIRED'}
+          if((& git -C $p rev-parse HEAD).Trim() -cne '504b28f07a24882470b847ff014391104f78bd66' -or (& git -C $p rev-parse 'HEAD^{tree}').Trim() -cne 'bc516c9c38128949cf19bbcb784a88e29dd08685' -or @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'EXACT_CLEAN_SOURCE_REQUIRED'}
           & git -C $p merge-base --is-ancestor 3901f737474f8fb5428dbb0d77a14fcb53d68d89 HEAD
           if($LASTEXITCODE -ne 0){throw 'QUALIFIED_PR235_BASE_REQUIRED'}
           $delta=@(& git -C $p diff --name-only 3901f737474f8fb5428dbb0d77a14fcb53d68d89 HEAD|Sort-Object)
-          $expected=@('cmd/ktrade/main_full.go','cmd/ktrade/pine_hline_transport_full_test.go','static/pine_plot_renderer.js','tests/rb3_pine_hline_transport.test.cjs')|Sort-Object
-          if(($delta -join '|') -cne ($expected -join '|')){throw 'EXACT_FOUR_PATH_ORIGINAL_HLINE_DELTA_REQUIRED'}
+          $expected=@('cmd/ktrade/main_full.go','cmd/ktrade/pine_hline_transport_full_test.go','pkg/pine_plotting_advanced.go','static/pine_plot_renderer.js','tests/rb3_pine_hline_transport.test.cjs')|Sort-Object
+          if(($delta -join '|') -cne ($expected -join '|')){throw 'EXACT_FIVE_PATH_ORIGINAL_HLINE_AND_NA_DRAWING_DELTA_REQUIRED'}
           foreach($pin in @(@('AGENTS.md','36d9059c70e06a52d5faf243dd67b5f3e9660e54'),@('pkg/pine_compiler.go','846f9f7f73d801fcb9d71b3da626143dade8e721'),@('internal/originaltradeguard','1f894b0a6f8115b8a9d3882fa16fdb289eba510a'),@('internal/paperreconcile','9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'))){
             if((& git -C $p rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'ORIGINAL_COMPILER_GUARD_LEDGER_OR_CONTRACT_DRIFT'}
           }
@@ -108,7 +108,34 @@ jobs:
           }finally{[IO.File]::WriteAllBytes($target,$current);Pop-Location}
           $global:LASTEXITCODE=0
           Write-Host '::notice::PR236_ORIGINAL_V5_V6_RSI_GUIDE_PANE_TRANSPORT_FAILURES_REPRODUCED=PASS'
-      - name: Actual Go RSI guide HTTP pane goldens retained markers and settings persistence
+      - name: Reproduce all six nonfinite guide JSON failures with original pre-fix source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $paths=@('cmd/ktrade/main_full.go','pkg/pine_plotting_advanced.go')
+          $saved=@{}
+          Push-Location $p
+          try{
+            foreach($path in $paths){
+              $target=Join-Path $p $path
+              $saved[$path]=[IO.File]::ReadAllBytes($target)
+              $old=(& git show ('648006fdfcaf6e5d93334a5dbe2661f32929b352:'+$path)) -join "`n"
+              if($LASTEXITCODE -ne 0){throw 'ORIGINAL_NONFINITE_TRANSPORT_SOURCE_REQUIRED'}
+              [IO.File]::WriteAllText($target,$old,[Text.UTF8Encoding]::new($false))
+            }
+            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots$' ./cmd/ktrade)
+            $exit=$LASTEXITCODE
+            foreach($line in $out){Write-Host $line}
+            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
+            $known=@($events|Where-Object {$_.Output -like '*NONFINITE_HLINE_RESPONSE_NOT_JSON*'})
+            $failed=@($events|Where-Object {$_.Action -ceq 'fail' -and $_.Test -like 'TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots/v*'})
+            if($exit -eq 0 -or $known.Count -ne 6 -or $failed.Count -ne 6){throw 'ALL_SIX_ORIGINAL_NONFINITE_JSON_FAILURES_REQUIRED'}
+          }finally{foreach($path in $saved.Keys){[IO.File]::WriteAllBytes((Join-Path $p $path),$saved[$path])};Pop-Location}
+          $global:LASTEXITCODE=0
+          Write-Host '::notice::PR236_ORIGINAL_V5_V6_POSITIVE_NEGATIVE_INFINITY_NAN_JSON_FAILURES_REPRODUCED=PASS'
+      - name: Actual Go RSI guides nonfinite NA transport retained markers and settings persistence
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -117,12 +144,13 @@ jobs:
           try{
             $env:KTRADE_PINE_MARKER_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-marker-http.json'
             $env:KTRADE_PINE_HLINE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-http.json'
-            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineInputSettings|^TestPineOverlayTransportsOriginalConfirmedShapes$|^TestPineOverlayTransportsOriginalRSIHorizontalGuides$' ./cmd/ktrade)
+            $env:KTRADE_PINE_HLINE_NONFINITE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-nonfinite-http.json'
+            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineInputSettings|^TestPineOverlayTransportsOriginalConfirmedShapes$|^TestPineOverlayTransportsOriginalRSIHorizontalGuides$|^TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots$' ./cmd/ktrade)
             $exit=$LASTEXITCODE
             foreach($line in $out){Write-Host $line}
             if($exit -ne 0){throw 'ACTUAL_ORIGINAL_SETTINGS_API_STORAGE_TEST_FAILED'}
             $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
-            foreach($root in @('TestPineInputSettingsPersistCASAndSourceIsolation','TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption','TestPineInputSettingsUnavailableRootIsReadOnly','TestPineOverlayTransportsOriginalConfirmedShapes','TestPineOverlayTransportsOriginalRSIHorizontalGuides')){
+            foreach($root in @('TestPineInputSettingsPersistCASAndSourceIsolation','TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption','TestPineInputSettingsUnavailableRootIsReadOnly','TestPineOverlayTransportsOriginalConfirmedShapes','TestPineOverlayTransportsOriginalRSIHorizontalGuides','TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots')){
               if(@($events|Where-Object {$_.Test -ceq $root -and $_.Action -ceq 'pass'}).Count -ne 1){throw 'SETTINGS_API_TEST_NOT_EXECUTED'}
             }
             if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'API_FAILURE_OR_SKIP'}
@@ -136,7 +164,8 @@ jobs:
           $ErrorActionPreference='Stop'
           $env:KTRADE_PINE_MARKER_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-marker-http.json'
           $env:KTRADE_PINE_HLINE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-http.json'
-          if(!(Test-Path -LiteralPath $env:KTRADE_PINE_MARKER_FIXTURE_FILE) -or !(Test-Path -LiteralPath $env:KTRADE_PINE_HLINE_FIXTURE_FILE)){throw 'BOTH_ACTUAL_GO_HTTP_FIXTURES_REQUIRED'}
+          $env:KTRADE_PINE_HLINE_NONFINITE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-nonfinite-http.json'
+          if(!(Test-Path -LiteralPath $env:KTRADE_PINE_MARKER_FIXTURE_FILE) -or !(Test-Path -LiteralPath $env:KTRADE_PINE_HLINE_FIXTURE_FILE) -or !(Test-Path -LiteralPath $env:KTRADE_PINE_HLINE_NONFINITE_FIXTURE_FILE)){throw 'ALL_THREE_ACTUAL_GO_HTTP_FIXTURES_REQUIRED'}
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
           try{
             & node --test tests/rb3_pine_hline_transport.test.cjs tests/rb3_pine_shape_transport.test.cjs tests/rb3_pine_input_settings.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w90_catalog_actions.test.cjs
