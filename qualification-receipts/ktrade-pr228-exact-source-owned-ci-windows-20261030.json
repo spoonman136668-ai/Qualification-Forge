@@ -1,0 +1,200 @@
+{
+  "schema": "ktrade.qualification.exact-source-owned-ci.v1",
+  "verdict": "PASS_SCOPED_EXTERNAL_EXECUTION_NOT_PRIVATE_HOSTED_ADMISSION",
+  "product_pr": 228,
+  "product_source": "365a7085ccd86c3f917206fe2569aba51f00d8d0",
+  "product_tree": "5b5c589762fb3798a453449e665a1672a5d6066a",
+  "source_ci_workflow_blob": "b971da1a5721dc43839dc0e99b22df3ee4e2fa10",
+  "qualifier_pr": 59,
+  "witness": "d85b3b739c62a77ffdd747632913ea346a16f82a",
+  "qualifier_tree": "c19da3c3b88b80e107b0f27a9f7c343e650d3efd",
+  "run_id": 41150440809,
+  "job_id": 124385444405,
+  "status": "completed",
+  "conclusion": "success",
+  "source_owned_command_bodies": [
+    {
+      "kind": "go",
+      "shell": "pwsh",
+      "script_sha256": "7e2782e1049b8d8bd297ebccab761c67be95049c237bbb33b311865938b1e054",
+      "lines": 19
+    },
+    {
+      "kind": "node",
+      "shell": "pwsh",
+      "script_sha256": "3ba16ab998f391a42c9879de1f1f94f071e526e819078200c5c4657472c7a6a7",
+      "lines": 17
+    },
+    {
+      "kind": "assets",
+      "shell": "pwsh",
+      "script_sha256": "1b29ef7108a4a46b2b5384dab5334cca99a65403c5c43efe166f24d8a0e035ab",
+      "lines": 13
+    },
+    {
+      "kind": "build",
+      "shell": "powershell",
+      "script_sha256": "98eaa9753ac0addeea61d27ccc638868c255b0e47b359221b74da8a2ba8762be",
+      "lines": 27
+    }
+  ],
+  "independent_extractor_verification": "All4 exact command bodies byte-identical against independent local YAML parser; unknown selector refuses",
+  "execution_scope": {
+    "full_root_tagged_Wails_Go_test_vet": "PASS",
+    "node": {
+      "files": 35,
+      "ordinary_passes": 158,
+      "failures": 0,
+      "skips": 0,
+      "cancelled": 0,
+      "original_two_root_browser_compatibility": "PASS main baseline four files only"
+    },
+    "real_vendor_manifest_hashes": 118,
+    "repeatable_assets": true,
+    "shipped_js_affected_advisory_nodes": 0,
+    "licenses_notices_and_exact_pinned_upstream_canvas": "PASS",
+    "source_owned_original_unsigned_installer": true,
+    "original_exes": 6,
+    "Go_version": "go1.26.10",
+    "authenticode": "all_NotSigned",
+    "actual_main_pair_binary_scans": "govulncheck1.9.0 both no vulnerabilities found",
+    "unsigned_installer_sha256": "9521f02732ecf323de3a7072ad5d7d9392b7055a9009ba15ef42e6c8c8be57f3"
+  },
+  "legacy_nonshipping_audit": {
+    "counts": {
+      "info": 0,
+      "low": 0,
+      "moderate": 13,
+      "high": 9,
+      "critical": 1,
+      "total": 23
+    },
+    "packages": [
+      {
+        "name": "@electron/asar",
+        "severity": "moderate"
+      },
+      {
+        "name": "@electron/universal",
+        "severity": "moderate"
+      },
+      {
+        "name": "app-builder-lib",
+        "severity": "high"
+      },
+      {
+        "name": "archiver",
+        "severity": "moderate"
+      },
+      {
+        "name": "archiver-utils",
+        "severity": "moderate"
+      },
+      {
+        "name": "builder-util",
+        "severity": "high"
+      },
+      {
+        "name": "builder-util-runtime",
+        "severity": "high"
+      },
+      {
+        "name": "config-file-ts",
+        "severity": "moderate"
+      },
+      {
+        "name": "dir-compare",
+        "severity": "moderate"
+      },
+      {
+        "name": "dmg-builder",
+        "severity": "high"
+      },
+      {
+        "name": "ejs",
+        "severity": "moderate"
+      },
+      {
+        "name": "electron",
+        "severity": "high"
+      },
+      {
+        "name": "electron-builder",
+        "severity": "high"
+      },
+      {
+        "name": "electron-builder-squirrel-windows",
+        "severity": "high"
+      },
+      {
+        "name": "electron-publish",
+        "severity": "high"
+      },
+      {
+        "name": "extract-zip",
+        "severity": "high"
+      },
+      {
+        "name": "filelist",
+        "severity": "moderate"
+      },
+      {
+        "name": "glob",
+        "severity": "moderate"
+      },
+      {
+        "name": "jake",
+        "severity": "moderate"
+      },
+      {
+        "name": "minimatch",
+        "severity": "moderate"
+      },
+      {
+        "name": "readdir-glob",
+        "severity": "moderate"
+      },
+      {
+        "name": "tar",
+        "severity": "critical"
+      },
+      {
+        "name": "zip-stream",
+        "severity": "moderate"
+      }
+    ],
+    "disposition": "Preserved nonshipped Electron/build graph, not repaired/declared safe; install lifecycle scripts disabled."
+  },
+  "native_runtime_basis": {
+    "source": "abc5335554d7b273f2eadf1c89948bcf26d76249",
+    "run_id": 41148417727,
+    "receipt_commit": "0c06d740abf11ee4f30fe2a18718774502631c37",
+    "delta_files": [
+      ".github/workflows/ktrade-native-windows.yml",
+      "scripts/audit_shipped_dependencies.cjs"
+    ],
+    "application_and_packaged_assets_unchanged": true
+  },
+  "automatic_private_ci": {
+    "run_id": 41149210661,
+    "status": "failed_before_runner_steps",
+    "reason": "GitHub billing admission",
+    "not_rewritten_or_waived": true
+  },
+  "truthful_context": "Original product-only ownership preflight is not executed under a fake GITHUB_REPOSITORY. A separate qualifier-context custody preflight verifies actual private source, exact clean Git pins/delta, baseline scope, live false and real prior native acceptance.",
+  "limits": [
+    "Separate explicit one-shot Forge qualification, not an automatic future-PR check or production release.",
+    "No source/binary artifacts uploaded to public repo, owner data, app/installer execution, brokerage/orders, billing/auth/runner registration changes, source promotion/signing/LIVE.",
+    "Native UI evidence is on exact runtime-identical parent; these are freshly built source-owned binary bytes, not the earlier native-tested binary pair."
+  ],
+  "authentic_markers": [
+    "EXTERNAL_CI_EXACT_NATIVE_PARENT_TWO_NONRUNTIME_FILES_SOURCE_WORKFLOW_PRIVATE_LIVE_FALSE=PASS",
+    "NATIVE_CI_FULL_ROOT_TAGGED_WAILS_TEST_VET=PASS",
+    "NATIVE_CI_ALL_NODE=PASS files=35 cases=158",
+    "NATIVE_CI_REPEATABLE_LICENSED_SHIPPING_ASSETS=PASS",
+    "NATIVE_CI_ORIGINAL_UNSIGNED_PACKAGE_ACTUAL_BINARY_SCANS_NO_APP_NO_INSTALL_NO_RELEASE=PASS",
+    "EXTERNAL_CI_NOT_THE_BLOCKED_PRIVATE_ACTIONS_RUN_NO_BILLING_CHANGE_NO_PUBLIC_SOURCE_BINARY_ARTIFACT_NO_OWNER_DATA_NO_APP_NO_LIVE_NO_PROMOTION"
+  ],
+  "release_authority": "none",
+  "live_armed": false
+}
