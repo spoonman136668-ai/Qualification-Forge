@@ -385,7 +385,9 @@ function MarkerPhysicalApply([object]$shell,[string]$origin,[string]$source){
  ClickUI $shell 'Collapse'
 }
 function MarkerOriginalHTTP([string]$origin,[string]$source,[bool]$enabled){
- $body=@{code=$source;symbol='BTC-USDC';timeframe='1m';limit=300}|ConvertTo-Json -Compress
+ $workspace=Invoke-RestMethod -Method Post -Uri ($origin+'/api/workspace/save') -Headers @{Origin=$origin} -ContentType 'application/json' -Body '{}' -TimeoutSec 10
+ Require ($workspace.success -eq $true -and $workspace.workspace.code -ceq $source.Trim()) 'MARKER_ACTUAL_NATIVE_SOURCE_NOT_APPLIED'
+ $body=@{code=$source;symbol=$workspace.workspace.symbol;timeframe=$workspace.workspace.timeframe;limit=300}|ConvertTo-Json -Compress
  $record=Invoke-RestMethod -Method Post -Uri ($origin+'/api/pine/overlay') -Headers @{Origin=$origin} -ContentType 'application/json' -Body $body -TimeoutSec 25
  Require ($record.success -eq $true -and @($record.candles).Count -ge 30) 'MARKER_ORIGINAL_INSTALLED_HTTP_REFUSED'
  $expected=0;$up=0;$down=0
