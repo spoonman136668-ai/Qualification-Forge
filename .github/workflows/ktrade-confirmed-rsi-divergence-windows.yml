@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 294e97e571dfc9e78ad841654bbcd0458c9b0fdd
+          ref: 42bf2c698d15da43632540959f9a5eea3999158b
           path: product
           fetch-depth: 20
           persist-credentials: false
@@ -48,13 +48,13 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_HOSTED_WINDOWS_REQUIRED'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '294e97e571dfc9e78ad841654bbcd0458c9b0fdd' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'b981f4d74af44a26aeba600ffd66dcdfcaf97ac6'){throw 'EXACT_294e97e571dfc9e78ad841654bbcd0458c9b0fdd_TREE_PARENT_REQUIRED'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '42bf2c698d15da43632540959f9a5eea3999158b' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '378603bf6eca76ba54ede3e1db4104cc838c9cc3'){throw 'EXACT_42bf2c698d15da43632540959f9a5eea3999158b_TREE_PARENT_REQUIRED'}
           & git -C $src merge-base --is-ancestor 2e81b8c4a170a5537e973d59de0de1713fd6c5d4 HEAD
           if($LASTEXITCODE -ne 0){throw 'QUALIFIED_RSI_BASE_ANCESTRY_REQUIRED'}
           $delta=@(& git -C $src diff --name-only 2e81b8c4a170a5537e973d59de0de1713fd6c5d4 HEAD|Sort-Object)
           $expected=@('pkg/catalog_rsi_divergence_test.go','pkg/pine_compiler.go','templates/chart.tmpl','tests/rb3_w90_catalog_actions.test.cjs')|Sort-Object
           if(($delta -join '|') -cne ($expected -join '|')){throw 'EXACT_RSI_FOUR_PATH_DELTA_REQUIRED'}
-          foreach($pin in @(@('pkg/pine_compiler.go','5d22eee7c941e8c89c755d434a0b06e375214789'),@('internal/originaltradeguard','1f894b0a6f8115b8a9d3882fa16fdb289eba510a'),@('internal/paperreconcile','9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'))){
+          foreach($pin in @(@('pkg/pine_compiler.go','846f9f7f73d801fcb9d71b3da626143dade8e721'),@('internal/originaltradeguard','1f894b0a6f8115b8a9d3882fa16fdb289eba510a'),@('internal/paperreconcile','9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'))){
             if((& git -C $src rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'ORIGINAL_PINE_GUARD_OR_LEDGER_CHANGED'}
           }
           foreach($dir in @('negative','product')){
@@ -113,6 +113,24 @@ jobs:
           }
           Write-Host '::notice::ORIGINAL_RSI_FUTURE_CANDLE_WARMUP_BACKFILL_V5_V6=REPRODUCED'
           $global:LASTEXITCODE=0
+      - name: Reproduce original ordinary-NA carry creating false events
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'negative')
+          try{
+            $out=@(& go test -json -mod=readonly -count=1 -timeout 15m -run '^TestPineOrdinarySeriesPreservesNA$' ./pkg)
+            $exit=$LASTEXITCODE
+          }finally{Pop-Location}
+          $out|ForEach-Object{Write-Output $_}
+          $events=@($out|Where-Object{$_.StartsWith('{')}|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+          if($exit -eq 0){throw 'ORIGINAL_ORDINARY_NA_CARRY_NOT_REPRODUCED'}
+          foreach($name in @('TestPineOrdinarySeriesPreservesNA/v5','TestPineOrdinarySeriesPreservesNA/v6')){
+            if(@($events|Where-Object{$_.Action -ceq 'fail' -and $_.Test -ceq $name}).Count -ne 1 -or @($events|Where-Object{$_.Action -ceq 'output' -and $_.Test -ceq $name -and $_.Output -match 'PINE_NA'}).Count -lt 1){throw 'ACTUAL_ORDINARY_NA_FAILURE_REQUIRED'}
+          }
+          Write-Host '::notice::ORIGINAL_PINE_ORDINARY_NA_CARRY_FALSE_EVENTS_V5_V6=REPRODUCED'
+          $global:LASTEXITCODE=0
       - name: Raw original Pine independent Wilder pivot goldens causality settings and existing numerical regression with race
         shell: pwsh
         run: |
@@ -120,13 +138,13 @@ jobs:
           $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
           try{
-            $out=@(& go test -race -json -mod=readonly -count=1 -timeout 20m -run 'TestPineRSIWilderWarmupIsCausal|TestCatalogRSIDivergence|TestCatalogSupertrend|TestPineInputLength' ./pkg)
+            $out=@(& go test -race -json -mod=readonly -count=1 -timeout 20m -run 'TestPineOrdinarySeriesPreservesNA|TestPineRSIWilderWarmupIsCausal|TestCatalogRSIDivergence|TestCatalogSupertrend|TestPineInputLength' ./pkg)
             $exit=$LASTEXITCODE
             $out|ForEach-Object{Write-Output $_}
             if($exit -ne 0){throw 'RAW_RSI_DIVERGENCE_OR_PRIOR_NUMERICS_FAILED'}
             $events=@($out|Where-Object{$_.StartsWith('{')}|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
             if(@($events|Where-Object{$_.Action -cin @('skip','fail')}).Count -ne 0){throw 'SKIPPED_OR_FAILED_ORIGINAL_PINE_CONTRACT'}
-            foreach($root in @('TestPineRSIWilderWarmupIsCausal','TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath','TestCatalogRSIDivergenceCausalPrefixesNeverBackpaint','TestCatalogRSIDivergenceRejectsOversoldOverboughtTiesAndWarmup','TestCatalogSupertrendInputPeriodsAndMultipliers','TestCatalogSupertrendChangedInputDefaultSeedsMatchingATR','TestCatalogSupertrendRawPineNumericStateAndWarmup','TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides','TestPineInputLengthCurrentBarIsCausalAndPrefixStable','TestPineInputLengthEvaluationsDoNotLeakResolvedDefaults')){
+            foreach($root in @('TestPineOrdinarySeriesPreservesNA','TestPineRSIWilderWarmupIsCausal','TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath','TestCatalogRSIDivergenceCausalPrefixesNeverBackpaint','TestCatalogRSIDivergenceRejectsOversoldOverboughtTiesAndWarmup','TestCatalogSupertrendInputPeriodsAndMultipliers','TestCatalogSupertrendChangedInputDefaultSeedsMatchingATR','TestCatalogSupertrendRawPineNumericStateAndWarmup','TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides','TestPineInputLengthCurrentBarIsCausalAndPrefixStable','TestPineInputLengthEvaluationsDoNotLeakResolvedDefaults')){
               if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq $root}).Count -ne 1){throw 'ACTUAL_ORIGINAL_ROOT_NOT_EXECUTED'}
             }
             & go vet -mod=readonly ./pkg
