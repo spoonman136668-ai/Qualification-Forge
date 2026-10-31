@@ -25,7 +25,7 @@ jobs:
         with:
           repository: spoonman136668-ai/ktrade
           ref: af81eb7d0f1442815e077d5a8f04e51c530ee967
-          fetch-depth: 2
+          fetch-depth: 3
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
