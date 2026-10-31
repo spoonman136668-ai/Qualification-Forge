@@ -98,7 +98,16 @@ jobs:
             $old=(& git show 'db79330ffee632b66c5e17b4a60d29c421febbab:cmd/ktrade/main_full.go') -join "`n"
             if($LASTEXITCODE -ne 0){throw 'QUALIFIED_PARENT_HANDLER_UNAVAILABLE'}
             [IO.File]::WriteAllText($target,$old,[Text.UTF8Encoding]::new($false))
-            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineOverlayTransportsOriginalConfirmedShapes
+            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineOverlayTransportsOriginalConfirmedShapes$' ./cmd/ktrade)
+            $exit=$LASTEXITCODE
+            foreach($line in $out){Write-Host $line}
+            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
+            $known=@($events|Where-Object {$_.Output -like '*ORIGINAL_CONFIRMED_SHAPE_TRANSPORT_MISSING*'})
+            $failed=@($events|Where-Object {$_.Action -ceq 'fail' -and $_.Test -like 'TestPineOverlayTransportsOriginalConfirmedShapes/v*'})
+            if($exit -eq 0 -or $known.Count -ne 4 -or $failed.Count -ne 4){throw 'ALL_FOUR_ORIGINAL_MISSING_TRANSPORT_FAILURES_REQUIRED'}
+          }finally{[IO.File]::WriteAllBytes($target,$current);Pop-Location}
+          Write-Host '::notice::PR235_ORIGINAL_V5_V6_DEFAULT_OVERRIDE_MARKER_TRANSPORT_FAILURES_REPRODUCED=PASS'
+      - name: Actual Go shape HTTP confirmation goldens and retained settings persistence
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -106,7 +115,7 @@ jobs:
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
           try{
             $env:KTRADE_PINE_MARKER_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-marker-http.json'
-            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineInputSettings|^TestPineOverlayTransportsOriginalConfirmedShapes
+            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineInputSettings|^TestPineOverlayTransportsOriginalConfirmedShapes$' ./cmd/ktrade)
             $exit=$LASTEXITCODE
             foreach($line in $out){Write-Host $line}
             if($exit -ne 0){throw 'ACTUAL_ORIGINAL_SETTINGS_API_STORAGE_TEST_FAILED'}
@@ -131,131 +140,6 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'ACTUAL_SETTINGS_OR_ORIGINAL_CHART_NODE_TEST_FAILED'}
           }finally{Pop-Location}
           Write-Host '::notice::PR235_ACTUAL_ORIGINAL_GO_HTTP_TO_CHART_CONFIRMED_MARKER_TIMES_STYLES_AND_PRIOR_CONTROLS=PASS'
-      - name: Final source and authority custody
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if(@(& git -C $p status --porcelain --untracked-files=no).Count -ne 0){throw 'TRACKED_SOURCE_CHANGED'}
-          Write-Host '::notice::NO_OWNER_DATA_NO_REAL_BROKER_NO_LIVE_NO_SIGNING_NO_PROMOTION'
- ./cmd/ktrade)
-            $exit=$LASTEXITCODE
-            foreach($line in $out){Write-Host $line}
-            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
-            $known=@($events|Where-Object {$_.Output -like '*ORIGINAL_CONFIRMED_SHAPE_TRANSPORT_MISSING*'})
-            $failed=@($events|Where-Object {$_.Action -ceq 'fail' -and $_.Test -like 'TestPineOverlayTransportsOriginalConfirmedShapes/v*'})
-            if($exit -eq 0 -or $known.Count -ne 4 -or $failed.Count -ne 4){throw 'ALL_FOUR_ORIGINAL_MISSING_TRANSPORT_FAILURES_REQUIRED'}
-          }finally{[IO.File]::WriteAllBytes($target,$current);Pop-Location}
-          Write-Host '::notice::PR235_ORIGINAL_V5_V6_DEFAULT_OVERRIDE_MARKER_TRANSPORT_FAILURES_REPRODUCED=PASS'
-      - name: Actual Go shape HTTP confirmation goldens and retained settings persistence
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
-          try{
-            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineInputSettings' ./cmd/ktrade)
-            $exit=$LASTEXITCODE
-            foreach($line in $out){Write-Host $line}
-            if($exit -ne 0){throw 'ACTUAL_ORIGINAL_SETTINGS_API_STORAGE_TEST_FAILED'}
-            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
-            foreach($root in @('TestPineInputSettingsPersistCASAndSourceIsolation','TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption')){
-              if(@($events|Where-Object {$_.Test -ceq $root -and $_.Action -ceq 'pass'}).Count -ne 1){throw 'SETTINGS_API_TEST_NOT_EXECUTED'}
-            }
-            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'API_FAILURE_OR_SKIP'}
-            & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade
-            if($LASTEXITCODE -ne 0){throw 'TAGGED_APP_VET_FAILED'}
-          }finally{Pop-Location}
-          Write-Host '::notice::PR235_ACTUAL_LOCAL_ORIGIN_SETTINGS_API_WINDOWS_REPEAT_REPLACE_COLD_READ_CAS_CORRUPTION_RESET=PASS'
-      - name: Actual settings controller original compile renderer and catalog actions
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
-          try{
-            & node --test tests/rb3_pine_input_settings.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w90_catalog_actions.test.cjs
-            if($LASTEXITCODE -ne 0){throw 'ACTUAL_SETTINGS_OR_ORIGINAL_CHART_NODE_TEST_FAILED'}
-          }finally{Pop-Location}
-          Write-Host '::notice::PR235_ACTUAL_CHART_SETTINGS_STALE_RESPONSE_TYPED_ACK_PERSISTENCE_CAS_AND_PRIOR_CONTROLS=PASS'
-      - name: Final source and authority custody
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if(@(& git -C $p status --porcelain --untracked-files=no).Count -ne 0){throw 'TRACKED_SOURCE_CHANGED'}
-          Write-Host '::notice::NO_OWNER_DATA_NO_REAL_BROKER_NO_LIVE_NO_SIGNING_NO_PROMOTION'
- ./cmd/ktrade)
-            $exit=$LASTEXITCODE
-            foreach($line in $out){Write-Host $line}
-            if($exit -ne 0){throw 'ACTUAL_ORIGINAL_SETTINGS_API_STORAGE_TEST_FAILED'}
-            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
-            foreach($root in @('TestPineInputSettingsPersistCASAndSourceIsolation','TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption')){
-              if(@($events|Where-Object {$_.Test -ceq $root -and $_.Action -ceq 'pass'}).Count -ne 1){throw 'SETTINGS_API_TEST_NOT_EXECUTED'}
-            }
-            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'API_FAILURE_OR_SKIP'}
-            & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade
-            if($LASTEXITCODE -ne 0){throw 'TAGGED_APP_VET_FAILED'}
-          }finally{Pop-Location}
-          Write-Host '::notice::PR235_ACTUAL_LOCAL_ORIGIN_SETTINGS_API_WINDOWS_REPEAT_REPLACE_COLD_READ_CAS_CORRUPTION_RESET=PASS'
-      - name: Actual settings controller original compile renderer and catalog actions
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
-          try{
-            & node --test tests/rb3_pine_input_settings.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w90_catalog_actions.test.cjs
-            if($LASTEXITCODE -ne 0){throw 'ACTUAL_SETTINGS_OR_ORIGINAL_CHART_NODE_TEST_FAILED'}
-          }finally{Pop-Location}
-          Write-Host '::notice::PR235_ACTUAL_CHART_SETTINGS_STALE_RESPONSE_TYPED_ACK_PERSISTENCE_CAS_AND_PRIOR_CONTROLS=PASS'
-      - name: Final source and authority custody
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if(@(& git -C $p status --porcelain --untracked-files=no).Count -ne 0){throw 'TRACKED_SOURCE_CHANGED'}
-          Write-Host '::notice::NO_OWNER_DATA_NO_REAL_BROKER_NO_LIVE_NO_SIGNING_NO_PROMOTION'
- ./cmd/ktrade)
-            $exit=$LASTEXITCODE
-            foreach($line in $out){Write-Host $line}
-            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
-            $known=@($events|Where-Object {$_.Output -like '*ORIGINAL_CONFIRMED_SHAPE_TRANSPORT_MISSING*'})
-            $failed=@($events|Where-Object {$_.Action -ceq 'fail' -and $_.Test -like 'TestPineOverlayTransportsOriginalConfirmedShapes/v*'})
-            if($exit -eq 0 -or $known.Count -ne 4 -or $failed.Count -ne 4){throw 'ALL_FOUR_ORIGINAL_MISSING_TRANSPORT_FAILURES_REQUIRED'}
-          }finally{[IO.File]::WriteAllBytes($target,$current);Pop-Location}
-          Write-Host '::notice::PR235_ORIGINAL_V5_V6_DEFAULT_OVERRIDE_MARKER_TRANSPORT_FAILURES_REPRODUCED=PASS'
-      - name: Actual Go shape HTTP confirmation goldens and retained settings persistence
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
-          try{
-            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineInputSettings' ./cmd/ktrade)
-            $exit=$LASTEXITCODE
-            foreach($line in $out){Write-Host $line}
-            if($exit -ne 0){throw 'ACTUAL_ORIGINAL_SETTINGS_API_STORAGE_TEST_FAILED'}
-            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
-            foreach($root in @('TestPineInputSettingsPersistCASAndSourceIsolation','TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption')){
-              if(@($events|Where-Object {$_.Test -ceq $root -and $_.Action -ceq 'pass'}).Count -ne 1){throw 'SETTINGS_API_TEST_NOT_EXECUTED'}
-            }
-            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'API_FAILURE_OR_SKIP'}
-            & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade
-            if($LASTEXITCODE -ne 0){throw 'TAGGED_APP_VET_FAILED'}
-          }finally{Pop-Location}
-          Write-Host '::notice::PR235_ACTUAL_LOCAL_ORIGIN_SETTINGS_API_WINDOWS_REPEAT_REPLACE_COLD_READ_CAS_CORRUPTION_RESET=PASS'
-      - name: Actual settings controller original compile renderer and catalog actions
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
-          try{
-            & node --test tests/rb3_pine_input_settings.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w90_catalog_actions.test.cjs
-            if($LASTEXITCODE -ne 0){throw 'ACTUAL_SETTINGS_OR_ORIGINAL_CHART_NODE_TEST_FAILED'}
-          }finally{Pop-Location}
-          Write-Host '::notice::PR235_ACTUAL_CHART_SETTINGS_STALE_RESPONSE_TYPED_ACK_PERSISTENCE_CAS_AND_PRIOR_CONTROLS=PASS'
       - name: Final source and authority custody
         if: always()
         shell: pwsh
