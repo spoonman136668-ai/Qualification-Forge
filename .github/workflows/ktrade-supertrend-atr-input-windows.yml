@@ -90,6 +90,9 @@ jobs:
           }
           foreach($event in $events){if($event.Test -match 'period3/factor3' -or ($event.Action -ceq 'fail' -and !$event.Test)){Write-Output ($event|ConvertTo-Json -Compress)}}
           Write-Host '::notice::ORIGINAL_PARENT_IGNORES_SUPERTREND_PERIOD_IN_BOTH_RAW_PINE_VERSIONS=REPRODUCED'
+          # The expected nonzero exit was fully proved above; consume it before
+          # the GitHub pwsh wrapper propagates native LASTEXITCODE at step exit.
+          $global:LASTEXITCODE=0
       - name: Current original raw Pine periods multipliers defaults prefix and evaluation isolation race regression
         shell: pwsh
         run: |
