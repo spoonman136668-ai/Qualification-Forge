@@ -373,7 +373,11 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   Require ($rsiApply.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
     $rsiApply.Current.IsEnabled) 'RSI_NATIVE_APPLY_NOT_ENABLED'
   ClickUI $shell 'Apply RSI Divergence'
-  $null=FindUI $shell 'Pine: RSI Divergence' $false 45
+  # The original pane renderer uses plot labels, not the indicator name.
+  # This script has one pane plot: plot(osc, "RSI", ...).
+  $rsiPane=FindUI $shell 'Pine: RSI' $false 45
+  Require ($rsiPane.Current.Name -ceq 'Pine: RSI') 'RSI_NATIVE_EXACT_PLOT_CAPTION_REQUIRED'
+  Write-Host ('RSI_NATIVE_PANE_CAPTION='+$rsiPane.Current.Name)
   $rsiAfter=Invoke-RestMethod -Uri ($origin+'/api/operator/capabilities') -TimeoutSec 5
   Require ($rsiAfter.mode -ceq 'PAPER_STOPPED' -and $rsiAfter.paper_orders_enabled -eq $false -and
     $rsiAfter.live_orders_enabled -eq $false -and $rsiAfter.strategy_execution_enabled -eq $false) 'RSI_NATIVE_APPLY_CHANGED_TRADING_AUTHORITY'
