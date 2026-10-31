@@ -1,0 +1,96 @@
+{
+  "schema": "ktrade.qualification.catalog.supertrend.native-windows.v1",
+  "gate": "W93",
+  "verdict": "PASS_SCOPED_PINNED_WINDOWS_NATIVE_SUPERTREND_APPLY_PAPER_ROLLBACK",
+  "product_release_verdict": "HOLD",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 229,
+  "source_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+  "source_tree": "a6076bc3c1e2bcae6b21c10a4ea810105a05bd7e",
+  "source_branch": "feature/rb3-catalog-supertrend-math-20261030",
+  "source_base_pr": 228,
+  "source_base_sha": "365a7085ccd86c3f917206fe2569aba51f00d8d0",
+  "source_delta_paths": [
+    "templates/chart.tmpl",
+    "pkg/catalog_supertrend_numeric_test.go",
+    "tests/rb3_w90_catalog_actions.test.cjs"
+  ],
+  "numerical_foundation": {
+    "gate": "W92",
+    "verdict": "PASS",
+    "source_sha": "12dee92974b526bf2996f4d1eee3bef6d1badd78",
+    "run_id": 41154205327,
+    "job_id": 124397300479,
+    "receipt_blob_sha": "767d0be06984b8859dd50401d604cfb4ca5f751e",
+    "numeric_pass": 10,
+    "numeric_cases": 10,
+    "atr_period": 10
+  },
+  "qualifier_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualifier_pr": 61,
+  "qualifier_execution_sha": "4a4cccae79904ebfe9eae0838799bcfbaeb23ea2",
+  "qualifier_workflow_path": ".github/workflows/ktrade-w93-native-supertrend-installed-windows.yml",
+  "qualifier_workflow_blob": "a346f4c6e5719df982ea2f7764156c8d072fe304",
+  "qualifier_native_harness_blob": "7706f450a230da2bf144387cc3e22343c68a5e10",
+  "qualifier_build_harness_blob": "da7555e19149b29fb9f393da616509c903015039",
+  "run_id": 41157406050,
+  "job_id": 124407126578,
+  "job_status": "completed",
+  "job_conclusion": "success",
+  "observed_last_job_log_utc": "2026-10-31T02:07:32Z",
+  "runner": "GitHub-hosted Windows Server 2022",
+  "go_toolchain": "1.26.10",
+  "node_toolchain": "24",
+  "verified_results": {
+    "exact_original_source_sha_and_tree": "PASS",
+    "prior_numeric_receipt_and_original_windows_foundations": "PASS",
+    "root_and_kttrade_full_tagged_go_test_vet": "PASS",
+    "original_nested_wails_go_test_vet": "PASS",
+    "original_node_test_files": 35,
+    "original_node_cases": 158,
+    "original_node_pass": 158,
+    "original_node_fail": 0,
+    "original_node_skipped": 0,
+    "previous_and_candidate_unsigned_native_installer_built": "PASS",
+    "original_webview2_native_update": "PASS",
+    "physical_uia_search_and_supertrend_apply": "PASS",
+    "original_pine_editor_status": "Pine plots applied.",
+    "supertrend_paper_stopped_live_disarmed": "PASS",
+    "physical_williams_r_apply_and_separate_pane_caption": "PASS",
+    "rsi_divergence_disabled_and_unknown_alias_guard": "PASS",
+    "legacy_order_refusal_http_423": "PASS",
+    "four_simulated_paper_fills_fifo_risk_fees_dedup_stop": "PASS",
+    "original_cold_restart_stopped_and_no_auto_rearm": "PASS",
+    "original_installed_rollback_preserves_history": "PASS",
+    "final_source_custody_no_owner_data": "PASS",
+    "success_log_markers": [
+      "W93_REAL_INSTALLED_WEBVIEW2_SUPERTREND_ENABLED_PHYSICAL_APPLY_ORIGINAL_MAIN_CHART_RENDER_STATUS_NO_TRADING=PASS",
+      "W90_NATIVE_CATALOG_DISABLED_ALIASES_EXPLICIT_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING=PASS",
+      "W83_REAL_INSTALLED_UPGRADE_FOUR_CURRENT_NATIVE_PAPER_FILLS_STOP_COLD_ACCOUNT_ROLLBACK_HISTORY_RETAINED=PASS"
+    ]
+  },
+  "explicit_scope_limits": [
+    "Supertrend Apply physically performed in original WebView2. Original Pine Editor application-status message indicates successful plot-application return; this does NOT independently establish pixel-perfect main-chart visual parity, scale alignment, or detailed Supertrend rendering correctness.",
+    "Fixed 10-bar ATR Supertrend numerics and bounded synthetic/public-candle hosted Windows scenarios only. No custom length generality or wide Pine-script parity accepted.",
+    "Full root/tagged Go and Wails tests/vet, 35 Node files 158 cases, native unsigned installer startup and rollback passed on ephemeral GitHub-hosted Windows; does not qualify owner retail-hardware performance, total WebView2 child memory, extended soak, broad security review or signed distribution.",
+    "Multi-UTC-day native live continuation and ledger/TradeGuard daily-risk reconciliation remain unqualified; same-day eight UTC fixture tests do not waive prior midnight failure.",
+    "No owner installed-profile inventory/migration, Coinbase opening-ledger reconciliation, real broker credentials, orders, trading, release, main-branch governance or production promotion.",
+    "KTRADE main remains a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58 at verification; PR229 and QF PR61 were open drafts. Receipt-only commit is not the executing witness.",
+    "No new CI run triggered by the evidence is presumed to pass; only original run #41157406050 and job #124407126578 are acceptance witnesses."
+  ],
+  "environment_notes": [
+    "Job observed Node.js 20 deprecation warning for earlier actions executed under Node.js 24; no test failure or waiver."
+  ],
+  "prior_w93_failed_run_ids": [
+    41155018249,
+    41155609060,
+    41156517926
+  ],
+  "provenance": "Readback-verified original completed job metadata and raw Windows job logs; a later receipt-only commit is nonexecuting, must not be called a new qualification.",
+  "evidence_urls": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41157406050",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/pull/61",
+    "https://github.com/spoonman136668-ai/ktrade/pull/229",
+    "https://github.com/spoonman136668-ai/ktrade/issues/184"
+  ]
+}
