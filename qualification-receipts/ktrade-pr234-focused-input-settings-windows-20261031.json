@@ -96,8 +96,8 @@
     "compiler_blob_unchanged": "846f9f7f73d801fcb9d71b3da626143dade8e721"
   },
   "reuse_boundary": {
-    "current_candidate": "58c8a53f30b804965b853284e3112d14d476ff88",
-    "current_tree": "8f236e9b9964d55e23c9f353a8d7a57e95b77e9d",
+    "current_candidate": "db79330ffee632b66c5e17b4a60d29c421febbab",
+    "current_tree": "4568f1fddd8494f0bdeafd09b642b580a0ff85eb",
     "verified_delta_after_focused": [
       {
         "path": "cmd/ktrade/pine_input_settings_full.go",
@@ -106,12 +106,24 @@
       {
         "path": "cmd/ktrade/pine_input_settings_full_test.go",
         "sha": "dd189fa3a8c8006447442220a6a0f3215f9ecd46"
+      },
+      {
+        "path": "templates/chart.tmpl",
+        "sha": "499140e4da5cf1297942eca86a54af16d3fbfa7e"
       }
     ],
     "identical_all_other_source": true,
     "current_api_read_only_root_change_requires_new_race_test": true,
     "new_required_test": "TestPineInputSettingsUnavailableRootIsReadOnly",
-    "current_full_and_native_not_yet_accepted": true
+    "current_full_and_native_not_yet_accepted": true,
+    "identical_package_runtime_modules_and_tests": true,
+    "current_template_requires_full_node_and_native": true,
+    "current_local_node_cases": 169,
+    "prior_current_api3_full_windows_pass": {
+      "run": 41229093076,
+      "source": "58c8a53f30b804965b853284e3112d14d476ff88",
+      "native_settings_acceptance": false
+    }
   },
   "limits": [
     "Numeric and boolean input editing; other input types retain script defaults/read-only controls",
