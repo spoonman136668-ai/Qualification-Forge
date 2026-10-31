@@ -37,9 +37,9 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: b8a1f2c6130369495ea5be2b4ad4561438edd2e7
+          ref: 294e97e571dfc9e78ad841654bbcd0458c9b0fdd
           path: product
-          fetch-depth: 4
+          fetch-depth: 20
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Exact causal RSI repair source and unchanged guard ledger and LIVE refusal
@@ -48,8 +48,10 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_HOSTED_WINDOWS_REQUIRED'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if((& git -C $src rev-parse HEAD).Trim() -cne 'b8a1f2c6130369495ea5be2b4ad4561438edd2e7' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '11e534ca34506823623591ed7d4d696c9c336747' -or (& git -C $src rev-parse HEAD^).Trim() -cne '770387b64de1654e2d7e1430f7d559865c71fa7e' -or (& git -C $src rev-parse HEAD^^^).Trim() -cne '2e81b8c4a170a5537e973d59de0de1713fd6c5d4'){throw 'EXACT_b8a1f2c6130369495ea5be2b4ad4561438edd2e7_TREE_PARENT_REQUIRED'}
-          $delta=@(& git -C $src diff --name-only HEAD^^^ HEAD|Sort-Object)
+          if((& git -C $src rev-parse HEAD).Trim() -cne '294e97e571dfc9e78ad841654bbcd0458c9b0fdd' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'b981f4d74af44a26aeba600ffd66dcdfcaf97ac6'){throw 'EXACT_294e97e571dfc9e78ad841654bbcd0458c9b0fdd_TREE_PARENT_REQUIRED'}
+          & git -C $src merge-base --is-ancestor 2e81b8c4a170a5537e973d59de0de1713fd6c5d4 HEAD
+          if($LASTEXITCODE -ne 0){throw 'QUALIFIED_RSI_BASE_ANCESTRY_REQUIRED'}
+          $delta=@(& git -C $src diff --name-only 2e81b8c4a170a5537e973d59de0de1713fd6c5d4 HEAD|Sort-Object)
           $expected=@('pkg/catalog_rsi_divergence_test.go','pkg/pine_compiler.go','templates/chart.tmpl','tests/rb3_w90_catalog_actions.test.cjs')|Sort-Object
           if(($delta -join '|') -cne ($expected -join '|')){throw 'EXACT_RSI_FOUR_PATH_DELTA_REQUIRED'}
           foreach($pin in @(@('pkg/pine_compiler.go','5d22eee7c941e8c89c755d434a0b06e375214789'),@('internal/originaltradeguard','1f894b0a6f8115b8a9d3882fa16fdb289eba510a'),@('internal/paperreconcile','9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'))){
