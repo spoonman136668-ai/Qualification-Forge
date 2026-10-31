@@ -1,7 +1,7 @@
 name: KTRADE W94B actual Windows Supertrend pane pixels and complete WebView2 process memory
 on:
   push:
-    branches: [qualification/ktrade-w94b-native-visual-resources-20261030]
+    branches: [qualification/ktrade-w94b-paused-edit-only-20261031]
     paths: [.github/workflows/ktrade-w94b-native-visual-resources-windows.yml, qualification-harness/ktrade-w94b/Installed-Supertrend-Visual-Resources.ps1]
 permissions:
   contents: read
