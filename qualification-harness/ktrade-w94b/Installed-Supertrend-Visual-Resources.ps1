@@ -161,6 +161,19 @@ function W94BProcessTree([object]$shell){
  }
  return [pscustomobject]@{scope='shell,engine,and_all_current_descendants_including_WebView2';total_working_set_bytes=$bytes;process_count=$members.Count;webview2_count=$web.Count;members=$observed}
 }
+function W94BWaitOriginalChartBounds([object]$shell,[System.Drawing.Rectangle]$expected){
+ $deadline=[DateTime]::UtcNow.AddSeconds(10)
+ $stable=0
+ do{
+  $node=FindUI $shell 'Price chart drawing surface' $false 2
+  $r=$node.Current.BoundingRectangle
+  $actual=[System.Drawing.Rectangle]::new([int][Math]::Ceiling($r.Left),[int][Math]::Ceiling($r.Top),[int][Math]::Floor($r.Width),[int][Math]::Floor($r.Height))
+  if($actual.Equals($expected)){$stable++}else{$stable=0}
+  if($stable -ge 3){return}
+  Start-Sleep -Milliseconds 150
+ }while([DateTime]::UtcNow -lt $deadline)
+ throw 'W94B_ORIGINAL_CHART_BOUNDS_DID_NOT_RETURN_AFTER_EDITOR_ANIMATION'
+}
 function W94BCaptureChart([object]$shell,[string]$phase){
  $node=FindUI $shell 'Price chart drawing surface' $false 20
  $r=$node.Current.BoundingRectangle
@@ -319,6 +332,9 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   Write-Host '::notice::W93_REAL_INSTALLED_WEBVIEW2_SUPERTREND_ENABLED_PHYSICAL_APPLY_ORIGINAL_MAIN_CHART_RENDER_STATUS_NO_TRADING=PASS'
   $w94After=$null
   try{
+   # Original UI closePinePanel schedules resize after its 300ms CSS transition.
+   # Wait for the SAME original bounds; never weaken comparison or resize via JS.
+   W94BWaitOriginalChartBounds $shell $w94Before.rect
    $w94After=W94BCaptureChart $shell 'AFTER_SUPERTREND'
    W94BCompareChartFrames $w94Before $w94After
    $w94AfterProcesses=W94BProcessTree $shell
