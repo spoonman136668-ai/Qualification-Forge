@@ -31,7 +31,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 87bd515d67925c3f35d7bd186508f2229f2b2071
+          ref: 5acb8d637d0add7b508089c82909591328ca840b
           path: product
           fetch-depth: 10
           persist-credentials: false
@@ -43,7 +43,7 @@ jobs:
           $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_ISOLATED_QUALIFICATION_HOST_REQUIRED'}
           $p=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if((& git -C $p rev-parse HEAD).Trim() -cne '87bd515d67925c3f35d7bd186508f2229f2b2071' -or (& git -C $p rev-parse 'HEAD^{tree}').Trim() -cne '52497c34087b9cfc9f3508993b65f31311e08f78' -or @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'EXACT_CLEAN_SOURCE_REQUIRED'}
+          if((& git -C $p rev-parse HEAD).Trim() -cne '5acb8d637d0add7b508089c82909591328ca840b' -or (& git -C $p rev-parse 'HEAD^{tree}').Trim() -cne '6aa129141fa51c89cf698a587ebffefdc6186b00' -or @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'EXACT_CLEAN_SOURCE_REQUIRED'}
           & git -C $p merge-base --is-ancestor 42bf2c698d15da43632540959f9a5eea3999158b HEAD
           if($LASTEXITCODE -ne 0){throw 'QUALIFIED_PR233_BASE_REQUIRED'}
           $delta=@(& git -C $p diff --name-only 42bf2c698d15da43632540959f9a5eea3999158b HEAD|Sort-Object)
@@ -78,7 +78,7 @@ jobs:
             if($exit -ne 0){throw 'ORIGINAL_TYPED_INPUT_OR_PRIOR_CAUSAL_GOLDENS_FAILED'}
             $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
             if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'FOCUSED_FAILURE_OR_SKIP'}
-            foreach($root in @('TestPineInputOverridesV2OriginalEvaluation','TestPineInputOverridesV2UnsupportedAndExactIntegers','TestPineOrdinarySeriesPreservesNA','TestPineRSIWilderWarmupIsCausal','TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath','TestCatalogRSIDivergenceCausalPrefixesNeverBackpaint','TestCatalogRSIDivergenceRejectsOversoldOverboughtTiesAndWarmup','TestCatalogSupertrendInputPeriodsAndMultipliers','TestCatalogSupertrendChangedInputDefaultSeedsMatchingATR','TestCatalogSupertrendRawPineNumericStateAndWarmup','TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides','TestPineInputLengthCurrentBarIsCausalAndPrefixStable','TestPineInputLengthEvaluationsDoNotLeakResolvedDefaults')){
+            foreach($root in @('TestPineInputOverridesV2OriginalEvaluation','TestPineInputOverridesV2UnsupportedAndExactIntegers','TestPineInputOverridesV2ExistingV6FloatBoundsRefusal','TestPineOrdinarySeriesPreservesNA','TestPineRSIWilderWarmupIsCausal','TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath','TestCatalogRSIDivergenceCausalPrefixesNeverBackpaint','TestCatalogRSIDivergenceRejectsOversoldOverboughtTiesAndWarmup','TestCatalogSupertrendInputPeriodsAndMultipliers','TestCatalogSupertrendChangedInputDefaultSeedsMatchingATR','TestCatalogSupertrendRawPineNumericStateAndWarmup','TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides','TestPineInputLengthCurrentBarIsCausalAndPrefixStable','TestPineInputLengthEvaluationsDoNotLeakResolvedDefaults')){
               if(@($events|Where-Object {$_.Test -ceq $root -and $_.Action -ceq 'pass'}).Count -ne 1){throw ('REQUIRED_ORIGINAL_TEST_NOT_EXECUTED_'+$root)}
             }
             & go vet -mod=readonly ./pkg
