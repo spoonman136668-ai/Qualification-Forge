@@ -11,7 +11,7 @@ param(
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $OldSHA='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'
-$NewSHA='58c8a53f30b804965b853284e3112d14d476ff88'
+$NewSHA='db79330ffee632b66c5e17b4a60d29c421febbab'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 function Hash([string]$f){return (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant()}
 function Ordinary([string]$f,[bool]$dir){
@@ -114,6 +114,19 @@ function FindUI([object]$shell,[string]$label,[bool]$isButton,[int]$seconds=35){
   }
   Start-Sleep -Milliseconds 350
  }while((Get-Date) -lt $until)
+ if($label -ceq 'Indicator settings'){
+  try{
+   $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+   $condition=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,$label)
+   $targets=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
+   $rows=@()
+   foreach($target in $targets){
+    $r=$target.Current.BoundingRectangle
+    $rows+=@{name=$target.Current.Name;type=$target.Current.ControlType.ProgrammaticName;enabled=$target.Current.IsEnabled;offscreen=$target.Current.IsOffscreen;left=$r.Left;top=$r.Top;width=$r.Width;height=$r.Height}
+   }
+   Write-Host ('SETTINGS_NATIVE_BUTTON_DIAGNOSTIC='+(@{count=$targets.Count;controls=$rows}|ConvertTo-Json -Compress -Depth 5))
+  }catch{}
+ }
  throw ('W83_NATIVE_UI_NOT_OBSERVED_'+$label)
 }
 function ClickUI([object]$shell,[string]$label){
