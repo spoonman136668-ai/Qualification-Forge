@@ -1,0 +1,38 @@
+{
+  "schema": "ktrade.pr234.native-settings-first-failure.v1",
+  "source_sha": "58c8a53f30b804965b853284e3112d14d476ff88",
+  "source_tree": "8f236e9b9964d55e23c9f353a8d7a57e95b77e9d",
+  "run": 41229093076,
+  "job": 124619309206,
+  "witness": "18c7de711d0f1bd7739ee1d211542dddc6d07d80",
+  "verdict": "FAIL_NEW_SETTINGS_CONTROL_NOT_OBSERVED_NO_SETTINGS_OR_FINANCIAL_LIFECYCLE_ACCEPTANCE",
+  "scanned_installer_sha256": "d03aa978980f0045b5caa75ece4f6474b5ecf51a675825217a307bce6641264d",
+  "completed_checks": {
+    "current_api_race_roots": 3,
+    "current_api_vet": "PASS",
+    "full_original_go_tagged_wails_tests_and_vet": "PASS",
+    "node_files": 36,
+    "node_cases": 169,
+    "node_fail": 0,
+    "node_skip": 0,
+    "assets_licenses_and_real_vendor118": "PASS",
+    "six_unsigned_binaries_and_both_actual_binary_scans": "PASS",
+    "original_native_chart_compile_supertrend_williams_rsi_default_apply": "PASS",
+    "actually_executed_pane_process_probes": "PASS"
+  },
+  "failed_assertion": "W83_NATIVE_UI_NOT_OBSERVED_Indicator settings",
+  "not_reached": [
+    "Native settings save/invalid fraction proof",
+    "Native settings cold disk restoration/reset",
+    "Current candidate original four PAPER fills/Stop/cold/rollback"
+  ],
+  "repair": {
+    "source": "db79330ffee632b66c5e17b4a60d29c421febbab",
+    "tree": "4568f1fddd8494f0bdeafd09b642b580a0ff85eb",
+    "path": "templates/chart.tmpl",
+    "behavior": "Reorder existing settings button next to visible Indicators control; no new duplicate button, Go or financial-source change",
+    "all_current_local_node169": "PASS",
+    "native_failure_diagnostic": "Exact owned-window settings names/enabled/offscreen/bounds only"
+  },
+  "production_admission": "HOLD"
+}
