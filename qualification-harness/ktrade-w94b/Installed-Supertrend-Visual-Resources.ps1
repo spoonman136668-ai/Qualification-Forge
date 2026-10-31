@@ -277,6 +277,11 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   $negative=Invoke-RestMethod -Method Post -Uri ($origin+'/api/pine/compile') -Headers $headers -ContentType 'application/json' -Body $invalid -TimeoutSec 20
   Require ($negative.success -eq $false -and ![string]::IsNullOrWhiteSpace($negative.error)) 'W83_MALFORMED_PINE_ACCEPTED'
   Write-Host '::notice::W83_INSTALLED_CANDIDATE_REAL_GO_PINE_V5_V6_COMPILE_AND_REFUSAL=PASS'
+  # W94B probes must execute in the original candidate lifecycle, before
+  # opening any catalog dialog so the baseline contains only the actual chart.
+  $w94Before=W94BCaptureChart $shell 'BEFORE_SUPERTREND'
+  $w94BeforeProcesses=W94BProcessTree $shell
+  Write-Host ('W94B_PROCESS_TREE_BEFORE='+($w94BeforeProcesses|ConvertTo-Json -Depth 5 -Compress))
   # Genuine owned WebView2 UIA and physical-pointer catalog interaction.
   # Inspect disabled aliases; never inject DOM code or issue a trading command.
   ClickUI $shell 'Indicators'
@@ -312,6 +317,17 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   Require ($afterSuper.mode -ceq 'PAPER_STOPPED' -and $afterSuper.paper_orders_enabled -eq $false -and
     $afterSuper.live_orders_enabled -eq $false -and $afterSuper.strategy_execution_enabled -eq $false) 'W93_SUPERTREND_APPLY_CHANGED_TRADING_AUTHORITY'
   Write-Host '::notice::W93_REAL_INSTALLED_WEBVIEW2_SUPERTREND_ENABLED_PHYSICAL_APPLY_ORIGINAL_MAIN_CHART_RENDER_STATUS_NO_TRADING=PASS'
+  $w94After=$null
+  try{
+   $w94After=W94BCaptureChart $shell 'AFTER_SUPERTREND'
+   W94BCompareChartFrames $w94Before $w94After
+   $w94AfterProcesses=W94BProcessTree $shell
+   Write-Host ('W94B_PROCESS_TREE_AFTER='+($w94AfterProcesses|ConvertTo-Json -Depth 5 -Compress))
+   Write-Host '::notice::W94B_ACTIVE_PIXEL_AND_WEBVIEW_PROCESS_PROBES_EXECUTED=PASS'
+  }finally{
+   if($null -ne $w94After){$w94After.bitmap.Dispose()}
+   $w94Before.bitmap.Dispose()
+  }
   # W90 retained: original different, separate-pane Williams indicator must
   # physically Apply and show its own Pine: Williams %R pane title.
   ClickUI $shell 'Indicators'
