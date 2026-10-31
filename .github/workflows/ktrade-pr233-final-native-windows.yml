@@ -92,7 +92,7 @@ jobs:
           $r=Get-Content $receipt -Raw|ConvertFrom-Json
           if($r.source_sha -cne '42bf2c698d15da43632540959f9a5eea3999158b' -or $r.source_tree -cne '378603bf6eca76ba54ede3e1db4104cc838c9cc3' -or $r.verdict -cne 'PASS_SCOPED_ORIGINAL_PINE_CONFIRMED_REGULAR_RSI_DIVERGENCE_NUMERICS_AND_CAUSALITY_RACE'){throw 'FOCUSED_SOURCE_NOT_ACCEPTED'}
           $pins=@(
-            @('qualification-harness/ktrade-rsi-divergence/Installed-RSI-Lifecycle.ps1','404ab9311b226b736bf4c51efb1c8921457ddffc'),
+            @('qualification-harness/ktrade-rsi-divergence/Installed-RSI-Lifecycle.ps1','ac2edbb0db1ab6eef9c044778dfa92c2482069dd'),
             @('qualification-harness/ktrade-rsi-divergence/Build-And-Qualify.ps1','79af7ff20e942901582e525d3df16ba29ded0383'),
             @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
           )
