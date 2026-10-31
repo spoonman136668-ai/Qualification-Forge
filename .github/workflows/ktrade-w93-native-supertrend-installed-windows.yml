@@ -2,7 +2,7 @@ name: KTRADE W93 native Supertrend explicit Apply and installed PAPER cold rollb
 on:
   push:
     branches: [qualification/ktrade-w93-native-supertrend-installed-20261030]
-    paths: [.github/workflows/ktrade-w93-native-supertrend-installed-windows.yml]
+    paths: [.github/workflows/ktrade-w93-native-supertrend-installed-windows.yml, qualification-harness/ktrade-w93/Installed-Supertrend-Lifecycle.ps1, qualification-harness/ktrade-w93/Build-And-Qualify.ps1]
 permissions:
   contents: read
   actions: read
