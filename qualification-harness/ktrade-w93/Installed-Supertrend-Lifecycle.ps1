@@ -229,13 +229,14 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   # W93: real native WebView2 owned physical-pointer Apply; no DOM injection.
   ClickUI $shell 'Indicators'
   ClickUI $shell 'Technicals'
-  $supertrend=FindUI $shell 'Apply Supertrend' $false 35
-  Require ($supertrend.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
-   $supertrend.Current.IsEnabled) 'W93_ORIGINAL_SUPERTREND_BUTTON_NOT_ENABLED'
   $superSearch=FindUI $shell 'Search indicator catalog' $false 20
   $superValue=$null
   Require ($superSearch.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$superValue)) 'W93_ORIGINAL_CATALOG_SEARCH_UNAVAILABLE'
   ([System.Windows.Automation.ValuePattern]$superValue).SetValue('Supertrend')
+  # Filter first; offscreen unfiltered catalog entries are not UIA-visible.
+  $supertrend=FindUI $shell 'Apply Supertrend' $false 35
+  Require ($supertrend.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+   $supertrend.Current.IsEnabled) 'W93_ORIGINAL_SUPERTREND_BUTTON_NOT_ENABLED'
   ClickUI $shell 'Apply Supertrend'
   $null=FindUI $shell 'Pine: Supertrend' $false 45
   $afterSuper=Invoke-RestMethod -Uri ($origin+'/api/operator/capabilities') -TimeoutSec 5
