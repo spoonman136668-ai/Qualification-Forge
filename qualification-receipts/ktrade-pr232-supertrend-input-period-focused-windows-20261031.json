@@ -1,0 +1,83 @@
+{
+  "schema": "ktrade.supertrend-input.focused-windows.v1",
+  "verdict": "PASS_SCOPED_RAW_ORIGINAL_SUPERTREND_INPUT_NUMERICS_AND_CAUSALITY_RACE",
+  "source_pr": 232,
+  "source_sha": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4",
+  "source_tree": "a90725bdd94f4b493601267a37ffee81c5c72e62",
+  "qualified_base_source": "2773c8eb8e840a0eb0a6524820d394f5a35a925f",
+  "direct_parent": "e49072384d78e184185399825b2ad96e837342e1",
+  "changed_paths": [
+    "templates/chart.tmpl",
+    "pkg/catalog_supertrend_numeric_test.go",
+    "pkg/catalog_supertrend_inputs_test.go",
+    "tests/rb3_w90_catalog_actions.test.cjs"
+  ],
+  "run_id": 41199584395,
+  "job_id": 124532550056,
+  "qualifier_execution_sha": "8d0c93301cfb55d632abe641e79052551688abff",
+  "status": "completed",
+  "conclusion": "success",
+  "go": "1.26.10 Windows2022",
+  "unchanged_original_compiler_blob": "2b0dfff2b5f19cb9a6c55bdea5584265e3280d35",
+  "unchanged_original_tradeguard_tree": "1f894b0a6f8115b8a9d3882fa16fdb289eba510a",
+  "unchanged_original_ledger_tree": "9507b1f181b9a82ebbc4fa63f4bc05b27613e25e",
+  "actual_results": {
+    "parent_ignored_period3_v5_v6_reproduced": "bar2 actualNaN versus independent139.9",
+    "parent_production_source_unchanged": true,
+    "original_pine_race_roots_passed": 6,
+    "original_pine_race_subtests_passed": 106,
+    "new_roots": 2,
+    "new_leaf_scenarios": 28,
+    "new_input_combinations": 24,
+    "new_edited_default_cases": 4,
+    "original_fixed10_catalog_numeric_cases": 10,
+    "original_named_input_cases": 68,
+    "candidate_fail": 0,
+    "candidate_skip": 0,
+    "periods": [
+      1,
+      3,
+      10,
+      21
+    ],
+    "multipliers": [
+      1,
+      3,
+      4.5
+    ],
+    "settings_not_mutated": true,
+    "reused_compiled_evaluation_state_isolated": true,
+    "prefix_causality": true,
+    "original_pkg_vet": "PASS",
+    "node_catalog_action_tests": 2,
+    "node_fail": 0,
+    "node_skip": 0,
+    "frozen_source_clean": true
+  },
+  "prior_attempts": [
+    {
+      "run": 41199111985,
+      "source": "e49072384d78e184185399825b2ad96e837342e1",
+      "result": "FAIL_BEFORE_VERIFIED_NEGATIVE_CONTROLS",
+      "repair": "Generalized test oracle period int requires float64 casts;no production behavior changed"
+    },
+    {
+      "run": 41199322502,
+      "source": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4",
+      "witness": "bd520f430cdf695165ee9f753873fac94cfd7302",
+      "result": "BOTH_PARENT_NEGATIVES_REPRODUCED_BUT_STEP_FAILED_PROPAGATING_EXPECTED_NATIVE_EXIT",
+      "repair": "Consume LASTEXITCODE only after both mandatory original failure assertions and actual proof marker;no source change"
+    }
+  ],
+  "limits": [
+    "Only two production catalog lines changed;original compiler/guard/ledger unchanged",
+    "28 new leaf scenarios,not52;initial draft count corrected to actual execution6roots106subtests including prior regressions",
+    "Compile/evaluation parameter maps and edited Pine defaults are tested;no native period-settings control or persistence UI acceptance is claimed",
+    "Full frozen candidate Windows/native acceptance remains pending",
+    "Not an independent numeric-to-pixel oracle,actual midnight/24h soak or full Pine parity acceptance",
+    "No owner data,realbroker,LIVE,signing,source promotion,release or deployment"
+  ],
+  "live_armed": false,
+  "release_authority": "none",
+  "product_complete": false
+}
