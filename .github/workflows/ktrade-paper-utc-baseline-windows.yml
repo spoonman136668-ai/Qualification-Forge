@@ -66,6 +66,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
           $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
           $paths=@('internal/papercustody/utc_pnl_baseline_test.go','internal/paperengine/utc_day_transition_test.go')
@@ -94,6 +95,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           Set-Location (Join-Path $env:GITHUB_WORKSPACE 'candidate')
           $raw=@(& go test -race -json -mod=readonly -count=1 -timeout 15m ./internal/papercustody ./internal/paperengine)
           $exit=$LASTEXITCODE
