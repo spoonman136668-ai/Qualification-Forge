@@ -1,7 +1,7 @@
 name: KTRADE W94B actual Windows Supertrend pane pixels and complete WebView2 process memory
 on:
   push:
-    branches: [qualification/ktrade-w94b-paused-edit-only-20261031]
+    branches: [qualification/ktrade-w94b-native-visual-resources-20261030]
     paths: [.github/workflows/ktrade-w94b-native-visual-resources-windows.yml, qualification-harness/ktrade-w94b/Installed-Supertrend-Visual-Resources.ps1]
 permissions:
   contents: read
@@ -92,7 +92,7 @@ jobs:
              $w94A.source_sha -cne 'cea559a5abc0136d1ca0dff16c313f8dac0477f2'){throw 'W94B_W94A_SOURCE_GATE_DRIFT'}
           $w94AProof=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41159034883' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
           if($w94AProof.status -cne 'completed' -or $w94AProof.conclusion -cne 'success' -or $w94AProof.head_sha -cne '04b6ca4aa5186ffe8bb99b731416e07cfa55111d'){throw 'W94B_W94A_RAW_RUN_NOT_ACCEPTED'}
-          if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'witness') rev-parse 'HEAD:qualification-harness/ktrade-w94b/Installed-Supertrend-Visual-Resources.ps1').Trim() -cne '5e3556622757eb70318a908f51ef588f0d4eb99f'){throw 'W94B_EXACT_NATIVE_VISUAL_HARNESS_DRIFT'}
+          if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'witness') rev-parse 'HEAD:qualification-harness/ktrade-w94b/Installed-Supertrend-Visual-Resources.ps1').Trim() -cne '84ba54cbd430e72c749d9d3eeeb9b15886cd0afe'){throw 'W94B_EXACT_NATIVE_VISUAL_HARNESS_DRIFT'}
           $w93Proof=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41157406050' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
           if($w93Proof.status -cne 'completed' -or $w93Proof.conclusion -cne 'success' -or $w93Proof.head_sha -cne '4a4cccae79904ebfe9eae0838799bcfbaeb23ea2'){throw 'W94B_EXACT_W93_FULL_REGRESSION_NOT_ACCEPTED'}
           $w93Receipt=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-receipts/ktrade-w93-supertrend-native-windows-20261030.json'
