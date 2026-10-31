@@ -274,6 +274,19 @@ function SettingsCatalogApply([object]$shell,[string]$name){
  Require ($search.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$value)) 'SETTINGS_NATIVE_CATALOG_SEARCH_UNAVAILABLE'
  ([System.Windows.Automation.ValuePattern]$value).SetValue($name)
  ClickUI $shell ('Apply '+$name)
+ # Wait for the real catalog to close after its asynchronous Go Apply.
+ # An already-enabled settings button may otherwise be covered by that modal.
+ $until=(Get-Date).AddSeconds(35);$closed=$false
+ do{
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $condition=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,('Apply '+$name))
+  $buttons=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
+  $visible=0
+  foreach($button in $buttons){try{if(!$button.Current.IsOffscreen){$visible++}}catch{}}
+  if($visible -eq 0){$closed=$true;break}
+  Start-Sleep -Milliseconds 200
+ }while((Get-Date) -lt $until)
+ Require $closed 'SETTINGS_CATALOG_ASYNC_APPLY_DID_NOT_CLOSE'
  ClickUI $shell 'Indicator settings'
 }
 function SettingsCatalogCode([string]$origin,[string]$name){
@@ -302,7 +315,12 @@ function SettingsWorkspace([string]$origin,[string]$source,[hashtable]$expected)
  do{
   try{
    $record=Invoke-RestMethod -Method Post -Uri ($origin+'/api/workspace/save') -Headers @{Origin=$origin} -ContentType 'application/json' -Body '{}' -TimeoutSec 10
-   if($record.success -eq $true -and $record.workspace.code -ceq $source.Trim() -and (SettingsValuesMatch $record.workspace.inputs $expected)){return}
+   # workspaceSnapshot uses inputs,omitempty: an absent field means the
+   # unchanged script defaults, not a failed request or an invented value.
+   $property=$record.workspace.PSObject.Properties['inputs']
+   $actual=[pscustomobject]@{}
+   if($null -ne $property){$actual=$property.Value}
+   if($record.success -eq $true -and $record.workspace.code -ceq $source.Trim() -and (SettingsValuesMatch $actual $expected)){return}
   }catch{}
   Start-Sleep -Milliseconds 300
  }while((Get-Date) -lt $until)
