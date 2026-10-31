@@ -1,0 +1,153 @@
+name: KTRADE original RSI horizontal guide HTTP and native pane transport Windows
+on:
+  push:
+    branches: [qualification/ktrade-original-pine-hline-transport-20261031]
+    paths: [.github/workflows/ktrade-original-pine-hline-transport-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-original-pine-hline-transport-20261031
+  cancel-in-progress: false
+jobs:
+  focused:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 648006fdfcaf6e5d93334a5dbe2661f32929b352
+          path: product
+          fetch-depth: 10
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact source qualified parent and unchanged financial/compiler custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_ISOLATED_QUALIFICATION_HOST_REQUIRED'}
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $p rev-parse HEAD).Trim() -cne '648006fdfcaf6e5d93334a5dbe2661f32929b352' -or (& git -C $p rev-parse 'HEAD^{tree}').Trim() -cne '2a1bd57575bce889126ff70f5e7bd7340b6c0b00' -or @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'EXACT_CLEAN_SOURCE_REQUIRED'}
+          & git -C $p merge-base --is-ancestor 3901f737474f8fb5428dbb0d77a14fcb53d68d89 HEAD
+          if($LASTEXITCODE -ne 0){throw 'QUALIFIED_PR235_BASE_REQUIRED'}
+          $delta=@(& git -C $p diff --name-only 3901f737474f8fb5428dbb0d77a14fcb53d68d89 HEAD|Sort-Object)
+          $expected=@('cmd/ktrade/main_full.go','cmd/ktrade/pine_hline_transport_full_test.go','static/pine_plot_renderer.js','tests/rb3_pine_hline_transport.test.cjs')|Sort-Object
+          if(($delta -join '|') -cne ($expected -join '|')){throw 'EXACT_FOUR_PATH_ORIGINAL_HLINE_DELTA_REQUIRED'}
+          foreach($pin in @(@('AGENTS.md','36d9059c70e06a52d5faf243dd67b5f3e9660e54'),@('pkg/pine_compiler.go','846f9f7f73d801fcb9d71b3da626143dade8e721'),@('internal/originaltradeguard','1f894b0a6f8115b8a9d3882fa16fdb289eba510a'),@('internal/paperreconcile','9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'))){
+            if((& git -C $p rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'ORIGINAL_COMPILER_GUARD_LEDGER_OR_CONTRACT_DRIFT'}
+          }
+          if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          $cfg=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
+          if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'TRACKED_CREDENTIALS_REFUSED'}
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41236208694' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne 'bbd29c963e180a368279e57122fcedb0f2014579'){throw 'QUALIFIED_EXACT_PR235_FULL_NATIVE_PARENT_REQUIRED'}
+          Write-Host '::notice::PR236_EXACT_SOURCE_ORIGINAL_GO_METADATA_RUNTIME_GUARD_AND_LEDGER_CUSTODY=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original Go typed bindings numerical evaluation and prior causal goldens under race
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            $out=@(& go test -race -json -mod=readonly -count=1 -timeout 20m -run 'TestPineInputOverridesV2|TestPineOrdinarySeriesPreservesNA|TestPineRSIWilderWarmupIsCausal|TestCatalogRSIDivergence|TestCatalogSupertrend|TestPineInputLength' ./pkg)
+            $exit=$LASTEXITCODE
+            foreach($line in $out){Write-Host $line}
+            if($exit -ne 0){throw 'ORIGINAL_TYPED_INPUT_OR_PRIOR_CAUSAL_GOLDENS_FAILED'}
+            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
+            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'FOCUSED_FAILURE_OR_SKIP'}
+            foreach($root in @('TestPineInputOverridesV2OriginalEvaluation','TestPineInputOverridesV2UnsupportedAndExactIntegers','TestPineInputOverridesV2ExistingV6FloatBoundsRefusal','TestPineOrdinarySeriesPreservesNA','TestPineRSIWilderWarmupIsCausal','TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath','TestCatalogRSIDivergenceCausalPrefixesNeverBackpaint','TestCatalogRSIDivergenceRejectsOversoldOverboughtTiesAndWarmup','TestCatalogSupertrendInputPeriodsAndMultipliers','TestCatalogSupertrendChangedInputDefaultSeedsMatchingATR','TestCatalogSupertrendRawPineNumericStateAndWarmup','TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides','TestPineInputLengthCurrentBarIsCausalAndPrefixStable','TestPineInputLengthEvaluationsDoNotLeakResolvedDefaults')){
+              if(@($events|Where-Object {$_.Test -ceq $root -and $_.Action -ceq 'pass'}).Count -ne 1){throw ('REQUIRED_ORIGINAL_TEST_NOT_EXECUTED_'+$root)}
+            }
+            & go vet -mod=readonly ./pkg
+            if($LASTEXITCODE -ne 0){throw 'PKG_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::PR236_ORIGINAL_GO_TYPED_INPUT_NUMERICS_AND_ALL_PRIOR_CAUSAL_GOLDENS_RACE=PASS'
+      - name: Reproduce original omitted horizontal guide HTTP defect in all four original cases
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $target=Join-Path $p 'cmd/ktrade/main_full.go'
+          $current=[IO.File]::ReadAllBytes($target)
+          Push-Location $p
+          try{
+            $old=(& git show '3901f737474f8fb5428dbb0d77a14fcb53d68d89:cmd/ktrade/main_full.go') -join "`n"
+            if($LASTEXITCODE -ne 0){throw 'QUALIFIED_PARENT_HANDLER_UNAVAILABLE'}
+            [IO.File]::WriteAllText($target,$old,[Text.UTF8Encoding]::new($false))
+            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineOverlayTransportsOriginalRSIHorizontalGuides$' ./cmd/ktrade)
+            $exit=$LASTEXITCODE
+            foreach($line in $out){Write-Host $line}
+            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
+            $known=@($events|Where-Object {$_.Output -like '*ORIGINAL_RSI_HORIZONTAL_GUIDE_TRANSPORT_MISSING*'})
+            $failed=@($events|Where-Object {$_.Action -ceq 'fail' -and $_.Test -like 'TestPineOverlayTransportsOriginalRSIHorizontalGuides/v*'})
+            if($exit -eq 0 -or $known.Count -ne 4 -or $failed.Count -ne 4){throw 'ALL_FOUR_ORIGINAL_MISSING_TRANSPORT_FAILURES_REQUIRED'}
+          }finally{[IO.File]::WriteAllBytes($target,$current);Pop-Location}
+          $global:LASTEXITCODE=0
+          Write-Host '::notice::PR236_ORIGINAL_V5_V6_RSI_GUIDE_PANE_TRANSPORT_FAILURES_REPRODUCED=PASS'
+      - name: Actual Go RSI guide HTTP pane goldens retained markers and settings persistence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            $env:KTRADE_PINE_MARKER_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-marker-http.json'
+            $env:KTRADE_PINE_HLINE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-http.json'
+            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 15m -run '^TestPineInputSettings|^TestPineOverlayTransportsOriginalConfirmedShapes$|^TestPineOverlayTransportsOriginalRSIHorizontalGuides$' ./cmd/ktrade)
+            $exit=$LASTEXITCODE
+            foreach($line in $out){Write-Host $line}
+            if($exit -ne 0){throw 'ACTUAL_ORIGINAL_SETTINGS_API_STORAGE_TEST_FAILED'}
+            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
+            foreach($root in @('TestPineInputSettingsPersistCASAndSourceIsolation','TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption','TestPineInputSettingsUnavailableRootIsReadOnly','TestPineOverlayTransportsOriginalConfirmedShapes','TestPineOverlayTransportsOriginalRSIHorizontalGuides')){
+              if(@($events|Where-Object {$_.Test -ceq $root -and $_.Action -ceq 'pass'}).Count -ne 1){throw 'SETTINGS_API_TEST_NOT_EXECUTED'}
+            }
+            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'API_FAILURE_OR_SKIP'}
+            & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'TAGGED_APP_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::PR236_ACTUAL_LOCAL_ORIGIN_SETTINGS_API_WINDOWS_REPEAT_REPLACE_COLD_READ_CAS_CORRUPTION_RESET=PASS'
+      - name: Actual HTTP response through original chart marker method plus prior controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:KTRADE_PINE_MARKER_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-marker-http.json'
+          $env:KTRADE_PINE_HLINE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-http.json'
+          if(!(Test-Path -LiteralPath $env:KTRADE_PINE_MARKER_FIXTURE_FILE) -or !(Test-Path -LiteralPath $env:KTRADE_PINE_HLINE_FIXTURE_FILE)){throw 'BOTH_ACTUAL_GO_HTTP_FIXTURES_REQUIRED'}
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & node --test tests/rb3_pine_hline_transport.test.cjs tests/rb3_pine_shape_transport.test.cjs tests/rb3_pine_input_settings.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w90_catalog_actions.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'ACTUAL_SETTINGS_OR_ORIGINAL_CHART_NODE_TEST_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::PR236_ACTUAL_ORIGINAL_GO_HTTP_RSI_GUIDES_PANE_LEVELS_AND_RETAINED_MARKERS_CONTROLS=PASS'
+      - name: Final source and authority custody
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if(@(& git -C $p status --porcelain --untracked-files=no).Count -ne 0){throw 'TRACKED_SOURCE_CHANGED'}
+          Write-Host '::notice::NO_OWNER_DATA_NO_REAL_BROKER_NO_LIVE_NO_SIGNING_NO_PROMOTION'
