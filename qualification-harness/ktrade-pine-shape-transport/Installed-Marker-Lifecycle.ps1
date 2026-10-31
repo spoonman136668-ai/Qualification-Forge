@@ -363,7 +363,7 @@ function MarkerColorCounts([System.Drawing.Bitmap]$bitmap){
  for($y=0;$y -lt $bitmap.Height;$y++){
   for($x=0;$x -lt $bitmap.Width;$x++){
    $pixel=$bitmap.GetPixel($x,$y)
-   if($pixel.R -ge 240 -and $pixel.G -le 20 -and $pixel.B -ge 240){$up++}
+   if($pixel.R -le 20 -and $pixel.G -ge 240 -and $pixel.B -ge 240){$up++}
    if($pixel.R -ge 240 -and $pixel.G -ge 240 -and $pixel.B -le 20){$down++}
   }
  }
@@ -372,7 +372,7 @@ function MarkerColorCounts([System.Drawing.Bitmap]$bitmap){
 function MarkerSource([int]$version,[bool]$enabled){
  $up='false';$down='false'
  if($enabled){$up='bar_index % 10 == 0';$down='bar_index % 10 == 5'}
- return ('//@version='+$version+"`n"+'indicator("Native original shape transport",overlay=true)'+"`n"+'plot(close,"Reference",color=color.white)'+"`n"+'plotshape('+$up+',style=shape.triangleup,location=location.belowbar,color=color.fuchsia,text="Up confirmed")'+"`n"+'plotshape('+$down+',style=shape.triangledown,location=location.abovebar,color=color.yellow,text="Down confirmed")')
+ return ('//@version='+$version+"`n"+'indicator("Native original shape transport",overlay=true)'+"`n"+'plot(close,"Reference",color=color.white)'+"`n"+'plotshape('+$up+',style=shape.triangleup,location=location.belowbar,color=color.aqua,text="Up confirmed")'+"`n"+'plotshape('+$down+',style=shape.triangledown,location=location.abovebar,color=color.yellow,text="Down confirmed")')
 }
 function MarkerPhysicalApply([object]$shell,[string]$origin,[string]$source){
  ClickUI $shell 'Pine Editor'
@@ -398,10 +398,10 @@ function MarkerOriginalHTTP([string]$origin,[string]$source,[bool]$enabled){
   Require ($bar -ge 0 -and $bar -lt @($record.candles).Count) 'MARKER_HTTP_BAR_OUT_OF_RESPONSE'
   $candle=$record.candles[$bar]
   if($bar%10 -eq 0){
-   Require ($shape.style -ceq 'triangleup' -and $shape.location -ceq 'belowbar' -and $shape.text -ceq 'Up confirmed' -and [Math]::Abs([double]$shape.price-[double]$candle.low) -lt 0.00000001) 'MARKER_HTTP_UP_PRESENTATION_LOST'
+   Require ($shape.style -ceq 'triangleup' -and $shape.location -ceq 'belowbar' -and $shape.text -ceq 'Up confirmed' -and $shape.color -ceq '#00FFFF' -and [Math]::Abs([double]$shape.price-[double]$candle.low) -lt 0.00000001) 'MARKER_HTTP_UP_PRESENTATION_LOST'
    $up++
   }elseif($bar%10 -eq 5){
-   Require ($shape.style -ceq 'triangledown' -and $shape.location -ceq 'abovebar' -and $shape.text -ceq 'Down confirmed' -and [Math]::Abs([double]$shape.price-[double]$candle.high) -lt 0.00000001) 'MARKER_HTTP_DOWN_PRESENTATION_LOST'
+   Require ($shape.style -ceq 'triangledown' -and $shape.location -ceq 'abovebar' -and $shape.text -ceq 'Down confirmed' -and $shape.color -ceq '#FFFF00' -and [Math]::Abs([double]$shape.price-[double]$candle.high) -lt 0.00000001) 'MARKER_HTTP_DOWN_PRESENTATION_LOST'
    $down++
   }else{throw 'MARKER_HTTP_CONFIRMATION_BAR_MISMATCH'}
  }
