@@ -106,6 +106,7 @@ jobs:
             $failed=@($events|Where-Object {$_.Action -ceq 'fail' -and $_.Test -like 'TestPineOverlayTransportsOriginalConfirmedShapes/v*'})
             if($exit -eq 0 -or $known.Count -ne 4 -or $failed.Count -ne 4){throw 'ALL_FOUR_ORIGINAL_MISSING_TRANSPORT_FAILURES_REQUIRED'}
           }finally{[IO.File]::WriteAllBytes($target,$current);Pop-Location}
+          $global:LASTEXITCODE=0
           Write-Host '::notice::PR235_ORIGINAL_V5_V6_DEFAULT_OVERRIDE_MARKER_TRANSPORT_FAILURES_REPRODUCED=PASS'
       - name: Actual Go shape HTTP confirmation goldens and retained settings persistence
         shell: pwsh
