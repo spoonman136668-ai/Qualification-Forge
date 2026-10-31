@@ -11,7 +11,7 @@ param(
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $OldSHA='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'
-$NewSHA='e5032bdd9ea5d47476f32515c464e3368fe34ebe'
+$NewSHA='abc5335554d7b273f2eadf1c89948bcf26d76249'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 function Hash([string]$f){return (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant()}
 function Ordinary([string]$f,[bool]$dir){
@@ -205,6 +205,28 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   $negative=Invoke-RestMethod -Method Post -Uri ($origin+'/api/pine/compile') -Headers $headers -ContentType 'application/json' -Body $invalid -TimeoutSec 20
   Require ($negative.success -eq $false -and ![string]::IsNullOrWhiteSpace($negative.error)) 'W83_MALFORMED_PINE_ACCEPTED'
   Write-Host '::notice::W83_INSTALLED_CANDIDATE_REAL_GO_PINE_V5_V6_COMPILE_AND_REFUSAL=PASS'
+  # Genuine owned WebView2 UIA and physical-pointer catalog interaction.
+  # Inspect disabled aliases; never inject DOM code or issue a trading command.
+  ClickUI $shell 'Indicators'
+  ClickUI $shell 'Technicals'
+  $null=FindUI $shell 'Apply Relative Strength Index' $true 35
+  $uiRoot=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  foreach($label in @('Apply Supertrend','Apply RSI Divergence')){
+    $condition=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,$label)
+    $aliasNodes=$uiRoot.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
+    Require ($aliasNodes.Count -eq 1 -and $aliasNodes[0].Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and !$aliasNodes[0].Current.IsEnabled) 'W90_UNQUALIFIED_ALIAS_NOT_VISIBLY_DISABLED_IN_NATIVE_UIA'
+  }
+  $search=FindUI $shell 'Search indicator catalog' $false 20
+  Require ($search.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and $search.Current.IsEnabled) 'W90_REAL_CATALOG_SEARCH_NOT_ENABLED'
+  $value=$null
+  Require ($search.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$value)) 'W90_NATIVE_SEARCH_VALUE_PATTERN_UNAVAILABLE'
+  ([System.Windows.Automation.ValuePattern]$value).SetValue('Williams %R')
+  ClickUI $shell 'Apply Williams %R'
+  $null=FindUI $shell 'Pine: Williams %R' $false 45
+  $catalogAfter=Invoke-RestMethod -Uri ($origin+'/api/operator/capabilities') -TimeoutSec 5
+  Require ($catalogAfter.mode -ceq 'PAPER_STOPPED' -and $catalogAfter.paper_orders_enabled -eq $false -and $catalogAfter.live_orders_enabled -eq $false) 'W90_CATALOG_APPLY_CHANGED_TRADING_AUTHORITY'
+  Write-Host '::notice::W90_NATIVE_CATALOG_DISABLED_ALIASES_EXPLICIT_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING=PASS'
+
   $refusedCode=0
   try{
    $null=Invoke-WebRequest -UseBasicParsing -Method Post -Uri ($origin+'/api/orders/place') -Headers $headers -ContentType 'application/json' -Body '{"product_id":"BTC-USDC","side":"buy"}' -TimeoutSec 12 -ErrorAction Stop
