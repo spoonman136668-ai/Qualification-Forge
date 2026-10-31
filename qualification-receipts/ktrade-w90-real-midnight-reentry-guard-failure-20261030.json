@@ -1,0 +1,31 @@
+{
+  "schema": "ktrade.qualification.w90-midnight-tagged-test-failure.v1",
+  "run_id": 41147160221,
+  "job_id": 124374830110,
+  "witness": "e2389826188099d3fbf95c4f9daef085eea6f9c1",
+  "source": "af5749e33e03d7a906ed37d9266529b42f0aee6f",
+  "tree": "a185c0b266d92b8b4a5aae9ef95ff8d1b607df6c",
+  "verdict": "FAIL_NOT_ACCEPTED",
+  "actual": {
+    "raw_Williams_v5_v6": "PASS",
+    "full_root_Go_tests_vet": "PASS",
+    "tagged_full_app": "FAIL TestW33CP9NativeSavedPineReentryNeedsOriginalWorkerWriterAndSingleCheckpoint",
+    "Node_Wails_native": "NOT_RUN"
+  },
+  "evidence": {
+    "failure_at_utc": "2026-10-31T00:00:04Z",
+    "duration_s": 39.47,
+    "error": "original full-close ledger or post-fill risk unverified",
+    "source_explanation": "Original TradeGuard Snapshot rolls daily PnL at UTC midnight; closed-view admission still requires the matching cumulative settled proof. The same-day fixture waited into the next UTC day. No guard or accounting changes are made to force acceptance."
+  },
+  "repair": {
+    "source": "abc5335554d7b273f2eadf1c89948bcf26d76249",
+    "tree": "21ccbb5e5b1ce78428ee01e228c8a2c3fadb5863",
+    "scope": "Only same-day integration-test clock planning and eight deterministic UTC boundary cases; preserve real finality/clock, all worker/writer/financial/checkpoint/no-duplicate assertions."
+  },
+  "limits": [
+    "Cross-UTC-day continuation is not certified by this test repair; current fail-closed boundary remains a product limit requiring review."
+  ],
+  "live_armed": false,
+  "owner_data_touched": false
+}
