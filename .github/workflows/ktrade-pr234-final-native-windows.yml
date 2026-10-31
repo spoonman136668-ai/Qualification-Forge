@@ -22,7 +22,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: '58c8a53f30b804965b853284e3112d14d476ff88'
+      KTRADE_EXPECTED_SOURCE: 'db79330ffee632b66c5e17b4a60d29c421febbab'
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 58c8a53f30b804965b853284e3112d14d476ff88
+          ref: db79330ffee632b66c5e17b4a60d29c421febbab
           path: product
           fetch-depth: 20
           persist-credentials: false
@@ -67,7 +67,7 @@ jobs:
           $ErrorActionPreference='Stop'
           if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_QUALIFICATION_HOST_REQUIRED'}
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '58c8a53f30b804965b853284e3112d14d476ff88' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '8f236e9b9964d55e23c9f353a8d7a57e95b77e9d'){throw 'EXACT_FINAL_SOURCE_REQUIRED'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'db79330ffee632b66c5e17b4a60d29c421febbab' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '4568f1fddd8494f0bdeafd09b642b580a0ff85eb'){throw 'EXACT_FINAL_SOURCE_REQUIRED'}
           & git -C $src merge-base --is-ancestor 42bf2c698d15da43632540959f9a5eea3999158b HEAD
           if($LASTEXITCODE -ne 0){throw 'EXACT_QUALIFIED_PR232_BASE_REQUIRED'}
           if((& git -C $src rev-parse 'HEAD:internal/originaltradeguard').Trim() -cne '1f894b0a6f8115b8a9d3882fa16fdb289eba510a' -or (& git -C $src rev-parse 'HEAD:internal/paperreconcile').Trim() -cne '9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'){throw 'ORIGINAL_GUARD_OR_LEDGER_TREE_DRIFT'}
@@ -88,19 +88,19 @@ jobs:
           if($parent.status -cne 'completed' -or $parent.conclusion -cne 'success' -or $parent.head_sha -cne '0289a36f6d61794488a4be139f1247c527fb6858'){throw 'QUALIFIED_PR232_PARENT_FULL_SOURCE_AND_ACTUAL_NATIVE_ACCEPTANCE_REQUIRED'}
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
           $receipt=Join-Path $w 'qualification-receipts/ktrade-pr234-focused-input-settings-windows-20261031.json'
-          if((& git -C $w rev-parse 'HEAD:qualification-receipts/ktrade-pr234-focused-input-settings-windows-20261031.json').Trim() -cne '00ee18668220026d1ae787e0b80b7bfea62998eb'){throw 'FOCUSED_RECEIPT_DRIFT'}
+          if((& git -C $w rev-parse 'HEAD:qualification-receipts/ktrade-pr234-focused-input-settings-windows-20261031.json').Trim() -cne 'c9bf6e2788314e8dce2963d8d7bcd11544bf2530'){throw 'FOCUSED_RECEIPT_DRIFT'}
           $r=Get-Content $receipt -Raw|ConvertFrom-Json
-          if($r.source_sha -cne '5acb8d637d0add7b508089c82909591328ca840b' -or $r.verdict -cne 'PASS_SCOPED_FOCUSED_ORIGINAL_TYPED_INPUT_NUMERICS_AND_API_STORAGE_ON_5ACB' -or $r.reuse_boundary.current_candidate -cne '58c8a53f30b804965b853284e3112d14d476ff88'){throw 'FOCUSED_SCOPED_REUSE_NOT_ACCEPTED'}
+          if($r.source_sha -cne '5acb8d637d0add7b508089c82909591328ca840b' -or $r.verdict -cne 'PASS_SCOPED_FOCUSED_ORIGINAL_TYPED_INPUT_NUMERICS_AND_API_STORAGE_ON_5ACB' -or $r.reuse_boundary.current_candidate -cne 'db79330ffee632b66c5e17b4a60d29c421febbab'){throw 'FOCUSED_SCOPED_REUSE_NOT_ACCEPTED'}
           & git -C $src merge-base --is-ancestor 5acb8d637d0add7b508089c82909591328ca840b HEAD
           if($LASTEXITCODE -ne 0){throw 'FOCUSED_SOURCE_ANCESTRY_REQUIRED'}
           $changed=@(& git -C $src diff --name-only 5acb8d637d0add7b508089c82909591328ca840b HEAD|Sort-Object)
-          $allowed=@('cmd/ktrade/pine_input_settings_full.go','cmd/ktrade/pine_input_settings_full_test.go')|Sort-Object
-          if(($changed -join '|') -cne ($allowed -join '|') -or (& git -C $src rev-parse 'HEAD:pkg').Trim() -cne (& git -C $src rev-parse '5acb8d637d0add7b508089c82909591328ca840b:pkg').Trim()){throw 'IDENTICAL_PKG_AND_NODE_SCOPE_REQUIRED_FOR_FOCUSED_REUSE'}
+          $allowed=@('cmd/ktrade/pine_input_settings_full.go','cmd/ktrade/pine_input_settings_full_test.go','templates/chart.tmpl')|Sort-Object
+          if(($changed -join '|') -cne ($allowed -join '|') -or (& git -C $src rev-parse 'HEAD:pkg').Trim() -cne (& git -C $src rev-parse '5acb8d637d0add7b508089c82909591328ca840b:pkg').Trim()){throw 'IDENTICAL_PKG_RUNTIME_MODULES_AND_TESTS_REQUIRED_FOR_FOCUSED_REUSE'}
           # Current API race tests below must cover both modified files and the
           # added no-storage-root path before any candidate-wide acceptance.
           $pins=@(
-            @('qualification-harness/ktrade-pine-input-settings/Installed-Settings-Lifecycle.ps1','444fbb8c6cc2fd6468dca7e6e5e2c1b9bb987b94'),
-            @('qualification-harness/ktrade-pine-input-settings/Build-And-Qualify.ps1','3b1f394c8b74f320262c016bb8f121c6754e7675'),
+            @('qualification-harness/ktrade-pine-input-settings/Installed-Settings-Lifecycle.ps1','5f0d119fa4d7bc6749ce78c1e0253a02d1a147af'),
+            @('qualification-harness/ktrade-pine-input-settings/Build-And-Qualify.ps1','904bc3b46afe70e8ec8ea0f75b0743d75c316776'),
             @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
           )
           foreach($pin in $pins){
@@ -109,7 +109,7 @@ jobs:
             [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $w $pin[0]),[ref]$tokens,[ref]$errors)
             if($errors.Count -ne 0){throw 'NATIVE_HARNESS_AST_INVALID'}
           }
-          Write-Host '::notice::EXACT_FINAL_PR234_RSI_DIVERGENCE_NUMERICS_ORIGINAL_FINANCIAL_SCENARIO_LIVE_FALSE=PASS'
+          Write-Host '::notice::PR234_EXACT_INPUT_SETTINGS_ORIGINAL_COMPILER_FINANCIAL_CUSTODY_LIVE_FALSE=PASS'
       - uses: actions/setup-go@v5
         with:
           go-version: '1.26.10'
