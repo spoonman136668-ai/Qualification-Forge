@@ -1,0 +1,116 @@
+{
+  "schema": "ktrade.qualification.w91.final-catalog-native.v1",
+  "verdict": "PASS_SCOPED_FINAL_WINDOWS_SOURCE_AND_NATIVE_PAPER",
+  "product_pr": 227,
+  "source_sha": "abc5335554d7b273f2eadf1c89948bcf26d76249",
+  "source_tree": "21ccbb5e5b1ce78428ee01e228c8a2c3fadb5863",
+  "qualifier_pr": 58,
+  "executing_witness": "e457784446ad6417f298f1c65ede2d87aa0c4d0d",
+  "run_id": 41148417727,
+  "job_id": 124378875447,
+  "status": "completed",
+  "conclusion": "success",
+  "Go": "go1.26.10",
+  "raw_numeric_and_clock_cases": [
+    "TestW89WilliamsCatalogRollingHighLowIsNotRSI/v5",
+    "TestW89WilliamsCatalogRollingHighLowIsNotRSI/v6",
+    "TestW89WilliamsCatalogRollingHighLowIsNotRSI",
+    "TestW89WilliamsCatalogFlatRangeIsUndefinedNotInvented/v5",
+    "TestW89WilliamsCatalogFlatRangeIsUndefinedNotInvented/v6",
+    "TestW89WilliamsCatalogFlatRangeIsUndefinedNotInvented",
+    "TestW91NativeReentryFixturePlansOneUTCDayWithoutSkippingGuards/2026-10-30T23:58:49Z",
+    "TestW91NativeReentryFixturePlansOneUTCDayWithoutSkippingGuards/2026-10-30T23:58:51Z",
+    "TestW91NativeReentryFixturePlansOneUTCDayWithoutSkippingGuards/2026-10-30T23:59:00Z",
+    "TestW91NativeReentryFixturePlansOneUTCDayWithoutSkippingGuards/2026-10-30T23:59:25Z",
+    "TestW91NativeReentryFixturePlansOneUTCDayWithoutSkippingGuards/2026-10-30T23:59:59Z",
+    "TestW91NativeReentryFixturePlansOneUTCDayWithoutSkippingGuards/2026-10-31T00:00:02Z",
+    "TestW91NativeReentryFixturePlansOneUTCDayWithoutSkippingGuards/2026-10-31T00:00:30Z",
+    "TestW91NativeReentryFixturePlansOneUTCDayWithoutSkippingGuards/2026-10-30T19:59:25-04:00",
+    "TestW91NativeReentryFixturePlansOneUTCDayWithoutSkippingGuards"
+  ],
+  "full_root_tagged_Wails_test_vet": "PASS",
+  "node": {
+    "files": 35,
+    "regular_passes": 158,
+    "failures": 0,
+    "skips": 0,
+    "cancelled": 0,
+    "W28F_two_root": "PASS"
+  },
+  "actual_native": {
+    "owned_selected_shortcut_WebView2": true,
+    "physical_Indicators_Technicals": true,
+    "Supertrend_RSI_Divergence_disabled_in_Windows_UIA": true,
+    "real_accessible_catalog_search": true,
+    "physical_Williams_apply_original_Go_rendered_caption": true,
+    "catalog_remains_PAPER_STOPPED_LIVE_false": true,
+    "current_public_finalized_candle_fills": 4,
+    "original_fees_FIFO_TradeGuard_PnL_dedup_Stop": true,
+    "cold_history_without_rearm": true,
+    "installed_update_rollback_old_new_history_retained": true,
+    "legacy_order_http_status": 423
+  },
+  "metrics": [
+    {
+      "elapsed_ms": 11436.5928,
+      "shell_engine_resident_bytes": 57024512,
+      "startup_budget_ms": 120000,
+      "phase": "PREVIOUS",
+      "resident_budget_bytes": 1073741824,
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded"
+    },
+    {
+      "elapsed_ms": 5974.6341,
+      "shell_engine_resident_bytes": 56414208,
+      "startup_budget_ms": 120000,
+      "phase": "UPDATED",
+      "resident_budget_bytes": 1073741824,
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded"
+    },
+    {
+      "elapsed_ms": 2781.6076,
+      "shell_engine_resident_bytes": 56487936,
+      "startup_budget_ms": 120000,
+      "phase": "ROLLED_BACK",
+      "resident_budget_bytes": 1073741824,
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded"
+    }
+  ],
+  "authentic_markers": [
+    "W90_EXACT_PRESENTATION_PACKAGING_ONLY_DELTA_ORIGINAL_ENGINE_AND_MODULES_W82_REUSE=PASS",
+    "W83_EXACT_SOURCES_W82_ACCEPTED_ORIGINAL_SCENARIO_AST_LIVE_DISABLED=PASS",
+    "W83_PS7_PS51_SCOPED_CORE_MODULE_BOUNDARY=PASS",
+    "W91_EIGHT_UTC_TEST_WINDOW_CASES_REAL_GUARDS_UNCHANGED=PASS",
+    "W90_FINAL_CURRENT_RAW_WILLIAMS_V5_V6_FULL_ROOT_TAGGED_TEST_VET=PASS",
+    "W90_CURRENT_EMBEDDED_WAILS_ALL_ORIGINAL_TESTS_VET=PASS",
+    "W90_W31_W76_ORIGINAL_BROWSER_STATE_TWO_ROOTS=PASS",
+    "W90_ALL_ORIGINAL_OPERATOR_MARKET_PINE_SECURITY_NODE_CASES=PASS files=35 cases=158",
+    "W83_NATIVE_PREVIOUS_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+    "W83_INSTALLED_CANDIDATE_ORIGINAL_CHART_AND_PINE_RENDERER=PASS",
+    "W83_INSTALLED_CANDIDATE_REAL_GO_PINE_V5_V6_COMPILE_AND_REFUSAL=PASS",
+    "W90_NATIVE_CATALOG_DISABLED_ALIASES_EXPLICIT_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING=PASS",
+    "W83_INSTALLED_CANDIDATE_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS",
+    "W83_NATIVE_UPDATED_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+    "W33C_P9_REAL_WAILS_TWO_CONSECUTIVE_PUBLIC_MARKET_ROUNDTRIPS=PASS",
+    "W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+    "W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS",
+    "W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS",
+    "W83_NATIVE_ROLLED_BACK_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+    "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+    "W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS",
+    "W83_REAL_INSTALLED_UPGRADE_FOUR_CURRENT_NATIVE_PAPER_FILLS_STOP_COLD_ACCOUNT_ROLLBACK_HISTORY_RETAINED=PASS"
+  ],
+  "prior_failed_runs": [
+    41147040735,
+    41147160221
+  ],
+  "limits": [
+    "The fixture repair preserves all original risk/financial/finality guards and certifies same-day continuity only. Cross-UTC-day continuation remains unqualified/fail closed.",
+    "Supertrend and RSI Divergence are explicitly unavailable; their actual mathematics is not implemented by this change. Historical names/favorites/source retained.",
+    "Hosted Windows startup/resident snapshots exclude WebView children; not long soak, target hardware/FPS or competitive-usability acceptance.",
+    "Source-parent runtime may be reused for PR228 only after proving the exact two CI/audit-script-only files differ.",
+    "No owner profile/data/credentials, private broker/orders, signing/promotion/release or LIVE."
+  ],
+  "live_armed": false,
+  "release_authority": "none"
+}
