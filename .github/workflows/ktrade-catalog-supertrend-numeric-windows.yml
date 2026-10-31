@@ -24,7 +24,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 72e79877dfda4c7a10bd8c5852a2df1598183de8
+          ref: af81eb7d0f1442815e077d5a8f04e51c530ee967
           fetch-depth: 2
           path: product
           persist-credentials: false
@@ -35,8 +35,8 @@ jobs:
           $ErrorActionPreference='Stop'
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
           if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_QUALIFICATION_HOST_REQUIRED'}
-          if((& git -C $src rev-parse HEAD).Trim() -cne '72e79877dfda4c7a10bd8c5852a2df1598183de8' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'b8022582799277ce5cfa67cb72d802284869a9e2' -or (& git -C $src rev-parse HEAD^).Trim() -cne '365a7085ccd86c3f917206fe2569aba51f00d8d0' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'SOURCE_CUSTODY_DRIFT'}
-          $delta=@(& git -C $src diff --name-only HEAD^ HEAD)
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'af81eb7d0f1442815e077d5a8f04e51c530ee967' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'e832fba405d507a6a8855929b51e1b1a5b426d55' -or (& git -C $src rev-parse HEAD^).Trim() -cne '72e79877dfda4c7a10bd8c5852a2df1598183de8' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'SOURCE_CUSTODY_DRIFT'}
+          $delta=@(& git -C $src diff --name-only 365a7085ccd86c3f917206fe2569aba51f00d8d0 HEAD)
           if($delta.Count -ne 2 -or @($delta|Where-Object {$_ -cnotin @('templates/chart.tmpl','pkg/catalog_supertrend_numeric_test.go')}).Count -ne 0){throw 'EXACT_TWO_PATH_DELTA_REQUIRED'}
           if(Test-Path (Join-Path $src '.env')){throw 'DOTENV_REFUSED'}
           $cfg=Get-Content (Join-Path $src 'config.json') -Raw|ConvertFrom-Json
