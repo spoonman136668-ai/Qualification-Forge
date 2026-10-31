@@ -32,7 +32,7 @@ def inspect(raw, expected_hash, expected_source):
     prefix=next(iter(roots))+"/KTRADE-WailsPortable/"
     require(all(n.startswith(prefix) for n in names), "PAYLOAD_TOPOLOGY_MISMATCH")
     files={n[len(prefix):]:payload.read(n) for n in names if not n.endswith("/")}
-    require(".env" not in files and not any(n.startswith("data/") and not n.endswith("-proof.json") for n in files), "NONFRESH_PROFILE_OR_CREDENTIALS_REFUSED")
+    require(not any(PurePosixPath(n).name.lower() in {".env","config.json","id_rsa","cdp_api_key.json"} for n in files) and not any(n.startswith("data/") and not n.endswith("-proof.json") for n in files), "NONFRESH_PROFILE_OR_CREDENTIALS_REFUSED")
     shell=sha(files["ktrade.exe"]); engine=sha(files["ktrade-engine.exe"])
     for path,schema in [("wails-paper-package-proof.json","ktrade.wails.paper-package.v1"),("data/wails-paper-fresh-data-proof.json","ktrade.wails.fresh-data.v1")]:
         proof=json.loads(files[path])
@@ -44,7 +44,14 @@ def inspect(raw, expected_hash, expected_source):
     digest=sha("\n".join(sorted(n+"|"+str(len(b))+"|"+sha(b) for n,b in assets.items())).encode())
     proof=json.loads(files["release-candidate-proof.json"])
     require(proof["schema"]=="ktrade.fresh-release-candidate.v2" and proof["source_sha"]==expected_source and proof["wails_exe_sha256"]==shell and proof["engine_exe_sha256"]==engine and proof["live_armed"] is False and proof["release_authority"]=="none" and proof["installed_data"]=="fresh-only" and proof["asset_files"]==len(assets) and proof["asset_digest_sha256"]==digest, "RELEASE_PAIR_OR_ASSET_PROOF_MISMATCH")
-    require(len(assets)==180 and sum(n.startswith("static/vendor/") for n in assets)==118, "EXPECTED_180_ASSETS_118_VENDOR_MISMATCH")
+    vendor=json.loads(files["static/vendor/assets-manifest.json"])
+    require(vendor["schema"]=="ktrade.offline-vendor.v1" and len(vendor["files"])==118, "EXPECTED_118_VENDOR_MANIFEST_ROWS")
+    listed={row["path"] for row in vendor["files"]}
+    actual={n[len("static/vendor/"):] for n in assets if n.startswith("static/vendor/")}
+    require(len(listed)==118 and "assets-manifest.json" not in listed and actual==listed|{"assets-manifest.json"}, "EXACT_VENDOR_FILE_SET_MISMATCH")
+    for row in vendor["files"]:
+        require(sha(files["static/vendor/"+row["path"]])==row["sha256"], "VENDOR_CONTENT_HASH_MISMATCH")
+    require(len(assets)==180, "EXPECTED_180_ASSETS_MISMATCH")
     return assets, {"installer_sha256":sha(raw),"asset_files":len(assets),"vendor_files":118,"asset_digest_sha256":digest,"wails_sha256":shell,"engine_sha256":engine,"installer_components":7,"zip_layers_crc_and_safe_paths_verified":2}
 def main():
     p=argparse.ArgumentParser();p.add_argument("--installer",required=True);p.add_argument("--expected-hash",required=True);p.add_argument("--source",required=True);p.add_argument("--source-tree",required=True);p.add_argument("--checkout",required=True);p.add_argument("--previous-installer",required=True)
