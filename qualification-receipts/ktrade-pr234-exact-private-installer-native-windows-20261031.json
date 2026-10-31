@@ -1,0 +1,272 @@
+{
+  "schema": "ktrade.exact-private-artifact.windows-native.v1",
+  "verdict": "PASS_SCOPED_EXACT_PRIVATE_PR234_NATIVE_TYPED_INPUT_SAVE_COLD_RESTORE_RESET_AND_ORIGINAL_PAPER_STOP_COLD_ROLLBACK",
+  "source_pr": 234,
+  "source_sha": "db79330ffee632b66c5e17b4a60d29c421febbab",
+  "source_tree": "4568f1fddd8494f0bdeafd09b642b580a0ff85eb",
+  "qualified_parent_pr": 233,
+  "original_private_build_run": 41233240360,
+  "original_private_build_witness": "d8318508498045f293858ca74f5c9c130b9d7b0b",
+  "original_private_artifact": 13054781753,
+  "original_outer_sha256": "eac90ba33e93cc4fd28f57550afaedaede40ae868784765cad0311eb51a15519",
+  "actual_installed_inner_sha256": "ea94b3e5399d62af92e8efa7a66bc352cb9b4d1851bde7695070a4715a445f1d",
+  "run_id": 41233845912,
+  "job_id": 124633364372,
+  "qualifier_execution_sha": "354702b0e5d4faf203bd33afac8e987d6091e8be",
+  "status": "completed",
+  "conclusion": "success",
+  "artifact_data_commit": "3a857f0c91b06d9ebeba054a8679070d0a12a465",
+  "identity_blob": "934647ca31d3003a99d18f443c312820944d7b1d",
+  "installer_git_blob": "006e8988208705d4dab950a9a115d35c484843ab",
+  "transport_run": 41233627863,
+  "transport_witness": "ca3f9f7c40bc7a8aaf188a2bcd03c98de030b160",
+  "transport_receipt_commit": "1ee327a83efd0eeb16814f711fb2871bd74b5905",
+  "transport_receipt_blob": "5e3afb9ea885c6acd85e2af541ae4a611a33b1dd",
+  "independent_verification_commit": "4f2cd1d38428437a642f2c3c524a86da4f607f73",
+  "independent_verification_blob": "a6f10993ad0aae7ec6d5948b6f90af92b0bf6002",
+  "source_ci_phases_run": 41231463534,
+  "source_ci_overall_conclusion": "failure",
+  "source_ci_failure_boundary": "Earlier native harness dereferenced omitted-empty workspace inputs; preserved, not converted to success. All exact source-owned CI phases passed; current receipt independently accepts exact private package native lifecycle.",
+  "source_ci_phases_receipt_commit": "a003a31ce8910bd849e02d6f3e065cec942aab69",
+  "source_ci_phases_receipt_blob": "ffe185c42fbd2bc0d333849d64cc246591370f5e",
+  "native_harness_blob": "eccb12caf8689d882ab37183d74b1113f317260d",
+  "build_harness_blob": "904bc3b46afe70e8ec8ea0f75b0743d75c316776",
+  "original_financial_harness_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "verified_results": {
+    "current_candidate_not_rebuilt_for_native": true,
+    "current_package_unsigned": true,
+    "typed_fractional_integer_refusal_before_persistence": true,
+    "actual_native_warm_saves": [
+      {
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "values": {
+          "input_1": 2.5,
+          "input_0": 3
+        },
+        "revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296",
+        "name": "Supertrend"
+      },
+      {
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "values": {
+          "input_0": 3
+        },
+        "revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914",
+        "name": "RSI Divergence"
+      }
+    ],
+    "actual_native_cold_restores_and_explicit_resets": [
+      {
+        "saved_revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296",
+        "default_fields": {
+          "ATR Period": 10,
+          "Multiplier": 3
+        },
+        "explicit_reset_verified": true,
+        "restored_values": {
+          "input_1": 2.5,
+          "input_0": 3
+        },
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "disk_and_original_go_verified": true,
+        "name": "Supertrend"
+      },
+      {
+        "saved_revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914",
+        "default_fields": {
+          "RSI Period": 14
+        },
+        "explicit_reset_verified": true,
+        "restored_values": {
+          "input_0": 3
+        },
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "disk_and_original_go_verified": true,
+        "name": "RSI Divergence"
+      }
+    ],
+    "actual_pane_captures": [
+      {
+        "png_sha256": "e02bd56cbc7ab1a0814b17a64b55b365d31e280ef6036693e48a6c2e7fc323ef",
+        "width": 932,
+        "top": 215,
+        "phase": "BEFORE_SUPERTREND",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "left": 46,
+        "retained_screenshot": false,
+        "height": 346
+      },
+      {
+        "png_sha256": "de627a4c6095d50fed9d02f77dc5c03787a4a53294cf3e8be3208e2a80e9c274",
+        "width": 932,
+        "top": 215,
+        "phase": "AFTER_SUPERTREND",
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "left": 46,
+        "retained_screenshot": false,
+        "height": 346
+      }
+    ],
+    "actual_pane_difference": {
+      "changed_sample_count": 280,
+      "after_sha256": "de627a4c6095d50fed9d02f77dc5c03787a4a53294cf3e8be3208e2a80e9c274",
+      "identical_bounds": true,
+      "pixel_sample_count": 19635,
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle",
+      "before_sha256": "e02bd56cbc7ab1a0814b17a64b55b365d31e280ef6036693e48a6c2e7fc323ef"
+    },
+    "actual_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 538759168,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "working_set_bytes": 33792000,
+          "pid": 3884,
+          "name": "ktrade.exe"
+        },
+        {
+          "working_set_bytes": 23662592,
+          "pid": 5332,
+          "name": "ktrade-engine.exe"
+        },
+        {
+          "working_set_bytes": 18452480,
+          "pid": 6036,
+          "name": "conhost.exe"
+        },
+        {
+          "working_set_bytes": 102952960,
+          "pid": 5416,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 8028160,
+          "pid": 1840,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 55975936,
+          "pid": 4568,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 31789056,
+          "pid": 4280,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 18915328,
+          "pid": 8136,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 61128704,
+          "pid": 2548,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 184061952,
+          "pid": 7728,
+          "name": "msedgewebview2.exe"
+        }
+      ]
+    },
+    "actual_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 577388544,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "working_set_bytes": 30494720,
+          "pid": 3884,
+          "name": "ktrade.exe"
+        },
+        {
+          "working_set_bytes": 27328512,
+          "pid": 5332,
+          "name": "ktrade-engine.exe"
+        },
+        {
+          "working_set_bytes": 18452480,
+          "pid": 6036,
+          "name": "conhost.exe"
+        },
+        {
+          "working_set_bytes": 130482176,
+          "pid": 5416,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 8028160,
+          "pid": 1840,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 55517184,
+          "pid": 4568,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 31891456,
+          "pid": 4280,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 18915328,
+          "pid": 8136,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 62365696,
+          "pid": 2548,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 193912832,
+          "pid": 7728,
+          "name": "msedgewebview2.exe"
+        }
+      ]
+    },
+    "actual_process_sums_verified": true,
+    "required_actual_notices": [
+      "PINE_SETTINGS_NATIVE_PHYSICAL_NUMERIC_APPLY_SAVE_VALIDATION_AND_SOURCE_CUSTODY=PASS",
+      "PINE_SETTINGS_NATIVE_COLD_REOPEN_RESTORE_AND_EXPLICIT_DEFAULT_RESET=PASS",
+      "W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+      "W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS",
+      "W83_INSTALLED_CANDIDATE_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS",
+      "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+      "W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS",
+      "EXACT_PRIVATE_ENGINEERING_INSTALLER_NATIVE_UI_PAPER_STOP_COLD_ROLLBACK_OBSERVED_PIXELS_PROCESSES=PASS"
+    ],
+    "previous_installed_source": "b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a",
+    "original_compiler_tradeguard_ledger_unchanged": true
+  },
+  "preserved_failed_runs": [
+    41225599565,
+    41229093076,
+    41231463534,
+    41232990514,
+    41233035398
+  ],
+  "limits": [
+    "Scoped engineering acceptance, not product completion or production admission",
+    "Previous installed upgrade/rollback baseline is b03dd6, not PR233 installed profile migration",
+    "Only numeric and boolean overrides admitted; unsupported types read-only; original v6 float bounds unsupported",
+    "Native checks cover Supertrend and RSI values, save, fresh-process restoration and explicit Reset; not full keyboard/accessibility or preferences migration/export",
+    "Pane difference is Supertrend only, not an independent RSI-marker pixel oracle; working-set totals are not unique or peak physical RAM",
+    "Original marker transport/parity, warm UTC midnight/24h soak, target hardware/FPS/HiDPI, owner financial custody and broader security remain open",
+    "Source CI enforcement, protected promotion, signing/publisher trust and release remain open"
+  ],
+  "public_binary_upload": false,
+  "new_credentials_or_permissions": false,
+  "app_executed_on_private_owner_worker": false,
+  "owner_data_accessed": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "product_complete": false,
+  "production_admission": "HOLD"
+}
