@@ -75,7 +75,7 @@ jobs:
           $env:KTRADE_PINE_LABEL_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-label-http.json'
           Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
           try{
-            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 18m -run '^TestPineInputSettings|^TestPineOverlayTransportsOriginalConfirmedShapes$|^TestPineOverlayTransportsOriginalRSIHorizontalGuides$|^TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots$|^TestPineGuideOnlyOverlayPreservesOriginalLevelsWithoutInventingPlots$|^TestPineLabelResponsePreservesOriginalBarCoordinates ./cmd/ktrade)
+            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 18m -run '^TestPineInputSettings|^TestPineOverlayTransportsOriginalConfirmedShapes$|^TestPineOverlayTransportsOriginalRSIHorizontalGuides$|^TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots$|^TestPineGuideOnlyOverlayPreservesOriginalLevelsWithoutInventingPlots$|^TestPineLabelResponsePreservesOriginalBarCoordinates$' ./cmd/ktrade)
             $exit=$LASTEXITCODE
             foreach($line in $out){Write-Host $line}
             if($exit -ne 0){throw 'ACTUAL_ORIGINAL_GO_GUIDE_ONLY_OR_PRIOR_API_FAILED'}
@@ -86,7 +86,7 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'CURRENT_TAGGED_APP_VET_FAILED'}
           }finally{Pop-Location}
           Write-Host '::notice::PR238_ACTUAL_ORIGINAL_GO_V5_V6_GUIDE_ONLY_AND_ALL_PRIOR_API_RACE_VET=PASS'
-      - name: Actual original Go label fixtures with foreign-history and partial-mutation defects reproduced
+      - name: Actual Go label fixtures with original foreign-history and partial-mutation defects reproduced
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -119,58 +119,6 @@ jobs:
               if($LASTEXITCODE -ne 0){throw 'ACTUAL_PARENT_CAPTION_DEFECT_NOT_REPRODUCED'}
             }finally{[IO.File]::WriteAllBytes($target,$current)}
             & node --test tests/rb3_pine_label_response_affinity.test.cjs tests/rb3_pine_hline_transport.test.cjs tests/rb3_pine_shape_transport.test.cjs tests/rb3_pine_input_settings.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w90_catalog_actions.test.cjs
-            if($LASTEXITCODE -ne 0){throw 'CURRENT_ACTUAL_GUIDE_ONLY_CAPTION_OR_PRIOR_PRESENTATION_FAILED'}
-          }finally{Pop-Location}
-          Write-Host '::notice::PR238_REAL_CHART_LABEL_RESPONSE_AFFINITY_AND_PRIOR_CONTROLS=PASS'
-      - name: Final source and authority custody
-        if: always()
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          if(@(& git -C (Join-Path $env:GITHUB_WORKSPACE 'product') status --porcelain --untracked-files=no).Count -ne 0){throw 'TRACKED_SOURCE_CHANGED'}
-          Write-Host '::notice::NO_OWNER_DATA_NO_REAL_BROKER_NO_LIVE_NO_SIGNING_NO_PROMOTION'
- ./cmd/ktrade)
-            $exit=$LASTEXITCODE
-            foreach($line in $out){Write-Host $line}
-            if($exit -ne 0){throw 'ACTUAL_ORIGINAL_GO_GUIDE_ONLY_OR_PRIOR_API_FAILED'}
-            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
-            foreach($root in @('TestPineInputSettingsPersistCASAndSourceIsolation','TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption','TestPineInputSettingsUnavailableRootIsReadOnly','TestPineOverlayTransportsOriginalConfirmedShapes','TestPineOverlayTransportsOriginalRSIHorizontalGuides','TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots','TestPineGuideOnlyOverlayPreservesOriginalLevelsWithoutInventingPlots','TestPineLabelResponsePreservesOriginalBarCoordinates')){if(@($events|Where-Object {$_.Test -ceq $root -and $_.Action -ceq 'pass'}).Count -ne 1){throw 'REQUIRED_ACTUAL_API_ROOT_NOT_EXECUTED'}}
-            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'CURRENT_API_FAILURE_OR_SKIP'}
-            & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade
-            if($LASTEXITCODE -ne 0){throw 'CURRENT_TAGGED_APP_VET_FAILED'}
-          }finally{Pop-Location}
-          Write-Host '::notice::PR238_ACTUAL_ORIGINAL_GO_V5_V6_GUIDE_ONLY_AND_ALL_PRIOR_API_RACE_VET=PASS'
-      - name: Actual original Go label fixtures with foreign-history and partial-mutation defects reproduced
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $env:KTRADE_PINE_MARKER_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-marker-http.json'
-          $env:KTRADE_PINE_HLINE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-http.json'
-          $env:KTRADE_PINE_HLINE_NONFINITE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-nonfinite-http.json'
-          $env:KTRADE_PINE_GUIDE_ONLY_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-guide-only-http.json'
-          $env:KTRADE_PINE_LABEL_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-label-http.json'
-          foreach($file in @($env:KTRADE_PINE_MARKER_FIXTURE_FILE,$env:KTRADE_PINE_HLINE_FIXTURE_FILE,$env:KTRADE_PINE_HLINE_NONFINITE_FIXTURE_FILE,$env:KTRADE_PINE_GUIDE_ONLY_FIXTURE_FILE,$env:KTRADE_PINE_LABEL_FIXTURE_FILE)){if(!(Test-Path -LiteralPath $file)){throw 'ALL_ACTUAL_ORIGINAL_HTTP_FIXTURES_REQUIRED'}}
-          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
-          $target=Join-Path $p 'static/pine_plot_renderer.js'
-          $current=[IO.File]::ReadAllBytes($target)
-          Push-Location $p
-          try{
-            try{
-              $old=(& git show '56b9036f48e4783d846b7e00d650d7d4b96dd7fc:static/pine_plot_renderer.js') -join "`n"
-              if($LASTEXITCODE -ne 0){throw 'EXACT_ORIGINAL_PARENT_RENDERER_REQUIRED'}
-              [IO.File]::WriteAllText($target,$old,[Text.UTF8Encoding]::new($false))
-              $proof=@'
-          const fs=require('node:fs'),vm=require('node:vm'),render=require('./static/pine_plot_renderer.js');
-          const html=fs.readFileSync('templates/chart.tmpl','utf8'),a=html.indexOf('setPinePaneCaption(titles){'),b=html.indexOf('\nhlineMessage(',a);
-          const fn=html.slice(a,b).trim().replace(/,$/,'').replace(/^setPinePaneCaption/,'function');
-          const cases=JSON.parse(fs.readFileSync(process.env.KTRADE_PINE_GUIDE_ONLY_FIXTURE_FILE,'utf8'));if(cases.length!==2)throw Error('Both original HTTP cases required');
-          for(const c of cases){let caption='';const setter=vm.runInNewContext('('+fn+')',{document:{getElementById:()=>({set textContent(v){caption=v;}})}});const chart={addLineSeries(){return{setData(){},createPriceLine(){}}},removeSeries(){}};const app={s:{pchart:chart,_indicatorSeries:[]},setPinePaneCaption:t=>setter(t)};render.apply(app,c.response);if(caption!=='No Pine plots applied.')throw Error('Original empty-caption defect not reproduced');}
-          console.log('PR238_ORIGINAL_ACTUAL_V5_V6_GUIDE_ONLY_HTTP_EMPTY_CAPTION_DEFECT_REPRODUCED=PASS');
-          '@
-              & node -e $proof
-              if($LASTEXITCODE -ne 0){throw 'ACTUAL_PARENT_CAPTION_DEFECT_NOT_REPRODUCED'}
-            }finally{[IO.File]::WriteAllBytes($target,$current)}
-            & node --test tests/rb3_pine_hline_transport.test.cjs tests/rb3_pine_shape_transport.test.cjs tests/rb3_pine_input_settings.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w90_catalog_actions.test.cjs
             if($LASTEXITCODE -ne 0){throw 'CURRENT_ACTUAL_GUIDE_ONLY_CAPTION_OR_PRIOR_PRESENTATION_FAILED'}
           }finally{Pop-Location}
           Write-Host '::notice::PR238_REAL_CHART_LABEL_RESPONSE_AFFINITY_AND_PRIOR_CONTROLS=PASS'
