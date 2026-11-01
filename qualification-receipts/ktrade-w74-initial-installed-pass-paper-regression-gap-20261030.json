@@ -1,0 +1,61 @@
+{
+  "schema": "ktrade.qualification.installed-receipt.v1",
+  "gate": "W74_INITIAL",
+  "verdict": "INSTALLED_LIFECYCLE_PASS_WITH_FOCUSED_P10_COVERAGE_GAP_NOT_FULL_W74_ACCEPTANCE",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 220,
+  "source_sha": "7dfec71777730f744e1749b8bd741fbd01f0d2f6",
+  "source_tree": "666239a1893a17b8e7984d2b28fbd3b23c7c15cf",
+  "previous_installed_source": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+  "previous_tree": "5526682f7efafe4cd328fbac77ebb97e58dc7b9e",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 46,
+  "witness_sha": "80833fc13e321e70cfb0f010da6e02541cc1a46d",
+  "workflow_blob": "df90ecef7bdd531bfee608ffdd71449911a1beed",
+  "workflow_path": ".github/workflows/ktrade-w74-w73-installed-acceptance-windows.yml",
+  "run_id": 41045956578,
+  "job_id": 124029982358,
+  "event": "push",
+  "status": "completed",
+  "conclusion": "success",
+  "run_completed_utc": "2026-10-30T11:13:34Z",
+  "worker": "GitHub-hosted windows-2022, ephemeral test environment",
+  "observed_passes": [
+    "Five immutable witness/source checkout identities and clean Git tree, original LIVE false",
+    "Exact reuse of original W35B and W37 harness blobs",
+    "Nine installer/launch/update/rollback/lease foundation file blobs unchanged between W31 and W73",
+    "Native unsigned W31 and W73 Windows setup bundles built",
+    "Installed real W31 -> W73 -> W31 update and rollback on Windows, WebView2 UI and original process owner/lease, PAPER_STOPPED",
+    "Installed original Go chart/Pine renderer served, Pine v5/v6 compile and malformed-input rejection",
+    "Installed legacy order endpoint rejects with HTTP423 and does not rearm",
+    "Installed data continuity and rollback tamper refusal",
+    "Original Go cmd/ktrade focused tests succeeded, source Node chart/Pine tests succeeded"
+  ],
+  "coverage_gap": {
+    "test": "TestW33CP10FourthSellPostSettlementPendingMustQuarantineWithoutRearm",
+    "defined_at": "internal/paperengine/w33c_p10_fourth_sell_pending_test.go",
+    "defined_package": "ktrade/internal/paperengine",
+    "w74_test_invocation_package": "ktrade/cmd/ktrade",
+    "actually_executed_in_this_run": false,
+    "next_required": "Run exact source tagged focused test in ./internal/paperengine and explicitly assert test-specific PASS via Go JSON or verbose output; preserve original W74 installed PASS as reusable immutable evidence."
+  },
+  "authority": {
+    "full_w74_pass": false,
+    "full_521_commit_release_accepted": false,
+    "original_owner_W73_history_included": false,
+    "live_order_authorized": false,
+    "financial_reconciliation_complete": false,
+    "owner_data_migrated": false,
+    "signed_release": false,
+    "protected_main_merged": false
+  },
+  "evidence": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41045956578",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/pull/46#issuecomment-6521340009"
+  ],
+  "limits": [
+    "Do not misreport completed-success workflow as running the P10 quarantine test; that test was omitted by package target.",
+    "This is installed-product test evidence on generated isolated data, not deployment or financial-authority acceptance.",
+    "Receipt commit is evidence-only after the completed qualification witness and does not retroactively change its SHA."
+  ]
+}

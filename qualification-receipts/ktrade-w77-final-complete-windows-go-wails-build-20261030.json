@@ -1,0 +1,75 @@
+{
+  "schema": "ktrade.qualification.final-go-wails-build.v1",
+  "gate": "W77",
+  "verdict": "PASS_SCOPED_FULL_WINDOWS_GO_WAILS_VET_AND_FIXTURE_FREE_BUILD",
+  "qualification_repo": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 48,
+  "qualification_workflow": ".github/workflows/ktrade-w77-complete-windows-go-wails-build.yml",
+  "immutable_executing_witness_sha": "53f4bd97963d7c2cab5f5921e0d2e545dc7ad252",
+  "workflow_blob": "598c891db751c4bfdae41d1ee493a8db5b5989ea",
+  "run_id": 41057198253,
+  "job_id": 124067604801,
+  "run_attempt": 1,
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "last_updated_utc": "2026-10-30T12:47:25Z",
+  "runner": "GitHub-hosted Windows-2022",
+  "candidate_repo": "spoonman136668-ai/ktrade",
+  "candidate_pr": 221,
+  "candidate_sha": "0acfae265370b677dfe6de1386de793fb20b2460",
+  "candidate_tree": "1059c3e77dfb882f652994d9262f0eb681d03cb5",
+  "parent_sha": "7dfec71777730f744e1749b8bd741fbd01f0d2f6",
+  "changed_only": "tests/paper_tradeguard_reconciliation.test.cjs",
+  "all_production_runtime_sources_unchanged": true,
+  "foundation_reused": [
+    {
+      "gate": "W74",
+      "source_sha": "7dfec71777730f744e1749b8bd741fbd01f0d2f6",
+      "run_id": 41048262607,
+      "receipt_blob": "71ace41011b02341592d45dc2db343ca481e4f12",
+      "scope": "installed Windows W31->W73->W31; WebView2, Pine, PAPER 4th SELL"
+    },
+    {
+      "gate": "W75",
+      "source_sha": "0acfae265370b677dfe6de1386de793fb20b2460",
+      "run_id": 41056714705,
+      "receipt_blob": "e023979d36d8e74d5c847fd6f38791d9eefcf81e",
+      "scope": "148/148 original Node tests, cross-version two-root browser-state, original PAPER guard"
+    }
+  ],
+  "passed_steps": [
+    "Exactly pinned Git source SHA/tree, original parent, one-test-only product diff and LIVE brokerage disarm",
+    "Original W74/W75 accepted immutable receipt SHA, source and verdict",
+    "Complete original Go tagged ktrade_full app test and vet",
+    "Full Go root ./... test and vet",
+    "Nested tools/wails-pilot ./... test and vet",
+    "Locked clean npm ci and original offline frontend vendor stage",
+    "Fixture-free original Wails v2/WebView2 exe and Go engine Windows build",
+    "Source-manifest fixture_mode=none, live_armed=false, release_candidate=false",
+    "Disposable package cleanup, source checkout unchanged, original owner files and broker untouched"
+  ],
+  "artifacts_from_original_action_log": {
+    "offline_vendor_manifest_sha256": "fde283ccded613786f1c0df6479b22d0505e1aae23615e622878644e46b0292a",
+    "wails_exe_sha256": "7ae8ec823a4ab17bc0955484f311866987949a4d8e2ff6bf186f826535471ef9",
+    "go_engine_sha256": "93d4af8f01b82d1e6b3f81c25734a564781f5c9232fbaddb68de9795587944e0",
+    "package_zip_sha256": "a435240ba5b3cbb92180c33c6c2613e2940dad34e5d35cb63336af04df5550f6"
+  },
+  "scope_exclusions": {
+    "production_release_accepted": false,
+    "signed_distribution": false,
+    "owner_data_custody_or_install": false,
+    "financial_ledger_reconciled": false,
+    "real_broker_access": false,
+    "LIVE_authorized": false,
+    "protected_main_merge": false,
+    "main_branch_protected": false,
+    "full_product_soak_performance_benchmark_accepted": false,
+    "independent_prod_security_release_acceptance": false
+  },
+  "evidence_urls": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41057198253",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/pull/48",
+    "https://github.com/spoonman136668-ai/ktrade/pull/221"
+  ],
+  "provenance": "Post-run receipt-only commit. Source witness is immutable 53f4bd97963d7c2cab5f5921e0d2e545dc7ad252, not the receipt commit. No rerun or release authority is implied."
+}

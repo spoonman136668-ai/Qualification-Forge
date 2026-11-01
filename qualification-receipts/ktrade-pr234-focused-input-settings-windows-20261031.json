@@ -1,0 +1,134 @@
+{
+  "schema": "ktrade.pr234.focused-input-settings-windows.v1",
+  "verdict": "PASS_SCOPED_FOCUSED_ORIGINAL_TYPED_INPUT_NUMERICS_AND_API_STORAGE_ON_5ACB",
+  "source_sha": "5acb8d637d0add7b508089c82909591328ca840b",
+  "source_tree": "6aa129141fa51c89cf698a587ebffefdc6186b00",
+  "run_id": 41225972238,
+  "job_id": 124610076999,
+  "witness_sha": "590858d0519dc6e400aaf6f75449c4a22c9044c6",
+  "status": "completed",
+  "conclusion": "success",
+  "pkg_roots": 14,
+  "pkg_subtests": 172,
+  "tagged_api_roots": 2,
+  "fail": 0,
+  "skip": 0,
+  "race": true,
+  "vet": [
+    "pkg",
+    "tagged cmd/ktrade"
+  ],
+  "node_cases": 24,
+  "node_new_cases": 11,
+  "previous_pkg_cases": 142,
+  "completed_candle_prefix_evaluations_retained": 846,
+  "actual_tests": [
+    {
+      "package": "ktrade/pkg",
+      "test": "TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestCatalogRSIDivergenceCausalPrefixesNeverBackpaint"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestCatalogRSIDivergenceRejectsOversoldOverboughtTiesAndWarmup"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestPineRSIWilderWarmupIsCausal"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestPineOrdinarySeriesPreservesNA"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestCatalogSupertrendInputPeriodsAndMultipliers"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestCatalogSupertrendChangedInputDefaultSeedsMatchingATR"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestCatalogSupertrendRawPineNumericStateAndWarmup"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestPineInputLengthCurrentBarIsCausalAndPrefixStable"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestPineInputLengthEvaluationsDoNotLeakResolvedDefaults"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestPineInputOverridesV2OriginalEvaluation"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestPineInputOverridesV2UnsupportedAndExactIntegers"
+    },
+    {
+      "package": "ktrade/pkg",
+      "test": "TestPineInputOverridesV2ExistingV6FloatBoundsRefusal"
+    },
+    {
+      "package": "ktrade/cmd/ktrade",
+      "test": "TestPineInputSettingsPersistCASAndSourceIsolation"
+    },
+    {
+      "package": "ktrade/cmd/ktrade",
+      "test": "TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption"
+    }
+  ],
+  "original_v6_float_bounds": {
+    "supported": false,
+    "explicit_refusal_test_passed": true,
+    "first_failed_run": 41225599565,
+    "numerical_expected_200_unchanged": true,
+    "compiler_blob_unchanged": "846f9f7f73d801fcb9d71b3da626143dade8e721"
+  },
+  "reuse_boundary": {
+    "current_candidate": "db79330ffee632b66c5e17b4a60d29c421febbab",
+    "current_tree": "4568f1fddd8494f0bdeafd09b642b580a0ff85eb",
+    "verified_delta_after_focused": [
+      {
+        "path": "cmd/ktrade/pine_input_settings_full.go",
+        "sha": "af7e0741d2683e999fd683316df626e8a7c94e42"
+      },
+      {
+        "path": "cmd/ktrade/pine_input_settings_full_test.go",
+        "sha": "dd189fa3a8c8006447442220a6a0f3215f9ecd46"
+      },
+      {
+        "path": "templates/chart.tmpl",
+        "sha": "499140e4da5cf1297942eca86a54af16d3fbfa7e"
+      }
+    ],
+    "identical_all_other_source": true,
+    "current_api_read_only_root_change_requires_new_race_test": true,
+    "new_required_test": "TestPineInputSettingsUnavailableRootIsReadOnly",
+    "current_full_and_native_not_yet_accepted": true,
+    "identical_package_runtime_modules_and_tests": true,
+    "current_template_requires_full_node_and_native": true,
+    "current_local_node_cases": 169,
+    "prior_current_api3_full_windows_pass": {
+      "run": 41229093076,
+      "source": "58c8a53f30b804965b853284e3112d14d476ff88",
+      "native_settings_acceptance": false
+    }
+  },
+  "limits": [
+    "Numeric and boolean input editing; other input types retain script defaults/read-only controls",
+    "Original v6 float min/max arguments remain unsupported; no compiler conformance extension",
+    "No native dialog, cold settings or exact private-package acceptance for PR234 until actually observed",
+    "No owner data, real broker/LIVE, signing, promotion or release"
+  ]
+}

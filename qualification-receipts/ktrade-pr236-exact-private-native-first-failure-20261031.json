@@ -1,0 +1,35 @@
+{
+  "schema": "ktrade.pr236.exact-private-native-failed.v1",
+  "verdict": "FAIL_NOT_ACCEPTED",
+  "run_id": 41256172827,
+  "job_id": 124699691402,
+  "witness_sha": "61dbaba1663d1db62783108d4b9e468f518f9cf1",
+  "source_sha": "504b28f07a24882470b847ff014391104f78bd66",
+  "installer_sha256": "88883361b778b35c837b8d2078de88b4845937e07ef822060662f6d8e9b91fa5",
+  "observed": {
+    "private_hash_and_independent_asset_verifier": "PASS",
+    "native_numeric_settings_warm": "PASS",
+    "native_markers_v5_v6": "PASS",
+    "guide_v5_baseline_rectangle": {
+      "left": 46,
+      "top": 555,
+      "width": 932,
+      "height": 146
+    },
+    "guide_v5_applied_rectangle": {
+      "left": 46,
+      "top": 555,
+      "width": 835,
+      "height": 146
+    },
+    "guide_result": "NOT_ACCEPTED: unequal rectangles; no guide completion record",
+    "child_error_transport": "PowerShell CLIXML parser errors obscured final child diagnostic"
+  },
+  "interpretation": "Geometry timing is suspect; no product or guide-row pass is inferred. Preserve installer and rerun after witness waits for original bounds. Plain-text child output must expose any remaining failure.",
+  "accepted": false,
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

@@ -1,0 +1,78 @@
+{
+  "schema": "ktrade.qualification.installed-receipt.v1",
+  "gate": "W74_FINAL",
+  "verdict": "PASS_SCOPED_INSTALLED_W31_TO_W73_TO_W31_AND_P10_QUARANTINE",
+  "scope": "Actual synthetic-only Windows installed KTRADE W31->W73->W31 lifecycle, Go/Pine/chart and independent fourth-SELL quarantine, not production release",
+  "candidate_repo": "spoonman136668-ai/ktrade",
+  "candidate_pr": 220,
+  "candidate_sha": "7dfec71777730f744e1749b8bd741fbd01f0d2f6",
+  "candidate_tree": "666239a1893a17b8e7984d2b28fbd3b23c7c15cf",
+  "previous_baseline_sha": "e51e03c22f906704295a24138ac1ceba5d9ea0d4",
+  "previous_baseline_tree": "5526682f7efafe4cd328fbac77ebb97e58dc7b9e",
+  "qualification_repo": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 46,
+  "workflow_path": ".github/workflows/ktrade-w74-w73-installed-acceptance-windows.yml",
+  "exact_workflow_witness_sha": "3d55dab1c52c1bbf296cbc279601fd4748c7f245",
+  "workflow_git_blob": "199443a84a1992be241cc733e70526656fc2269b",
+  "runner": "github-hosted windows-2022",
+  "go_version": "1.25.0",
+  "node_version": "24",
+  "run_id": 41048262607,
+  "run_attempt": 1,
+  "job_id": 124037643995,
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "completed_utc": "2026-10-30T11:34:13Z",
+  "authenticated_evidence": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41048262607",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/pull/46"
+  ],
+  "passed_checks": [
+    "All exact witness/foundation/source checkout SHA and tree tests clean, LIVE authorization hard-coded false",
+    "Original W35B installer foundation and W37 Pine/chart runtime witness reused with source-pin-only substitution; 9/9 installer/launch/rollback files byte-identical",
+    "Two actual unsigned source-built Windows W31 and W73 setup bundles",
+    "Real installed W31 -> W73 update -> W31 rollback, native Wails/WebView2 operator UI, source/lease/process custody, PAPER_STOPPED, retained Pine/strategies/unknown files, tampered rollback refused",
+    "Installed original chart/Pine renderer, v5/v6 compile success, malformed Pine refusal, legacy POST order endpoint HTTP423 and not rearmed",
+    "W73 original native Go PAPER and editor regression and original chart/Pine Node tests",
+    "Original W33C-P10 fourth-SELL pending custody fail-closed test actually executed in ktrade/internal/paperengine and passed",
+    "Completed source-custody no owner installation or broker traffic, no live/release guard"
+  ],
+  "named_test": {
+    "name": "TestW33CP10FourthSellPostSettlementPendingMustQuarantineWithoutRearm",
+    "package": "ktrade/internal/paperengine",
+    "go_json_events": [
+      "run",
+      "pass"
+    ],
+    "actual_pass": true,
+    "elapsed_seconds": 36.41,
+    "source_path": "internal/paperengine/w33c_p10_fourth_sell_pending_test.go",
+    "test_output_marker": "W33C_P10_FOURTH_SELL_COMMITTED_WITH_PENDING_CUSTODY=PASS",
+    "static_test_properties": "Original fourth PAPER SELL filled, pending checkpoint quarantined without auto-rearm; original writer retained; no real broker"
+  },
+  "prior_attempts": [
+    {
+      "run_id": 41045956578,
+      "conclusion": "success",
+      "limit": "Original installed lifecycle PASS but fourth-SELL test skipped due incorrect Go package target"
+    },
+    {
+      "run_id": 41048122677,
+      "conclusion": "failure",
+      "cause": "Malformed workflow text during first attempt to patch test coverage; no product regression established"
+    }
+  ],
+  "limitations": {
+    "full_521_commit_product_release_accepted": false,
+    "original_ledger_complete_financial_reconciliation": false,
+    "opening_cash_verified": false,
+    "commission_currency_verified": false,
+    "release_signing": false,
+    "main_branch_protected": false,
+    "installed_owner_data_migrated": false,
+    "live_trading_authorized": false,
+    "owner_w73_signed_provider_first_use_separate": true,
+    "no_broker_orders_or_live_access": true
+  },
+  "provenance_notice": "Receipt committed after the completed immutable witness run. This receipt-only update does not become the workflow execution SHA and is not a rerun."
+}

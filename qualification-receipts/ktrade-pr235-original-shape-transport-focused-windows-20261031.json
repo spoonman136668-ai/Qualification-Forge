@@ -1,0 +1,74 @@
+{
+  "schema": "ktrade.pr235.original-shape-transport.focused-windows.v1",
+  "verdict": "PASS_ORIGINAL_V5_V6_HTTP_TO_CHART_FROZEN_CONFIRMED_MARKERS_AND_RETAINED_SETTINGS",
+  "source_sha": "3901f737474f8fb5428dbb0d77a14fcb53d68d89",
+  "source_tree": "5e95405ba84864e914bf004c0b319f09d425ed92",
+  "run_id": 41235630531,
+  "job_id": 124638699781,
+  "witness_sha": "2bdeef45ccd9725ae834c2b5f0dcf043d316fe1d",
+  "status": "completed",
+  "conclusion": "success",
+  "original_parent_defect_reproduced": {
+    "handler_source": "db79330ffee632b66c5e17b4a60d29c421febbab",
+    "four_exact_expected_missing_shape_failures": [
+      "TestPineOverlayTransportsOriginalConfirmedShapes/v5_period14",
+      "TestPineOverlayTransportsOriginalConfirmedShapes/v5_period3",
+      "TestPineOverlayTransportsOriginalConfirmedShapes/v6_period14",
+      "TestPineOverlayTransportsOriginalConfirmedShapes/v6_period3"
+    ],
+    "exit1_expected_and_explicitly_cleared_only_after_verification": true
+  },
+  "actual_current_http_golden_cases": [
+    "TestPineOverlayTransportsOriginalConfirmedShapes/v5_period14",
+    "TestPineOverlayTransportsOriginalConfirmedShapes/v5_period3",
+    "TestPineOverlayTransportsOriginalConfirmedShapes/v6_period14",
+    "TestPineOverlayTransportsOriginalConfirmedShapes/v6_period3"
+  ],
+  "package_race": {
+    "roots": 14,
+    "subtests": 172,
+    "previous_finalized_candle_prefixes_retained": 846,
+    "fail": 0,
+    "skip": 0
+  },
+  "tagged_api_race": {
+    "roots": 4,
+    "new_marker_subtests": 4,
+    "retained_settings_roots": 3,
+    "fail": 0,
+    "skip": 0
+  },
+  "vet": [
+    "original pkg",
+    "original tagged cmd/ktrade"
+  ],
+  "node": {
+    "cases": 30,
+    "fail": 0,
+    "skip": 0,
+    "actual_go_http_fixture_through_original_chart_method": true,
+    "shape_and_confirmation_times_against_response_candles": true
+  },
+  "frozen_bars": {
+    "default14": [
+      39,
+      77,
+      81,
+      138,
+      163
+    ],
+    "override3": [
+      77,
+      127,
+      138,
+      163
+    ]
+  },
+  "prior_harness_failure_receipt": "d72c85dd92eb965dc38e41207b7674b15401fd74",
+  "native_marker_visual_acceptance": false,
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

@@ -1,0 +1,40 @@
+{
+  "schema": "ktrade.w94b.execution-coverage-correction.v1",
+  "source_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+  "source_tree": "a6076bc3c1e2bcae6b21c10a4ea810105a05bd7e",
+  "original_run": {
+    "id": 41159688555,
+    "job": 124414256746,
+    "executing_witness": "e1bd174b3de8767d45ac15c18202c85c51e8eed0",
+    "github_status": "completed",
+    "github_conclusion": "success",
+    "scope_verdict": "W94B_VISUAL_AND_MEMORY_UNVERIFIED",
+    "reason": "Screenshot, comparison and process-tree helper functions were defined but never called in StartInstalled.",
+    "native_harness_blob": "74fda62b2bf3200bd1a37084e61cec363b3d48ca",
+    "required_runtime_output_counts": {
+      "screen_digest": 0,
+      "pane_comparison": 0,
+      "before_process_tree": 0,
+      "after_process_tree": 0
+    },
+    "original_native_lifecycle": "Raw log retains original Supertrend Apply and four PAPER fills/cold/rollback success, but this is not new visual/resource evidence."
+  },
+  "repair": {
+    "native_harness_blob": "5e3556622757eb70318a908f51ef588f0d4eb99f",
+    "executing_witness": "2dad38664b7d701d8b13167a24736dbcf6cc714d",
+    "run_id": 41181864978,
+    "changes": [
+      "Actually capture before and after physical original Supertrend Apply",
+      "Actually compare chart frames",
+      "Actually enumerate both observed full descendant process trees including WebView2",
+      "Enforce parsed required runtime outputs, phase counts and working-set sums after original child lifecycle",
+      "Reuse exact immutable W93 full regression on unchanged source; do not rerun completed Go/Node tests"
+    ],
+    "verdict": "IN_PROGRESS_NO_PASS_CLAIM"
+  },
+  "product_changed": false,
+  "main_unchanged": true,
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

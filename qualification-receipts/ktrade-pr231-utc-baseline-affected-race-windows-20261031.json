@@ -1,0 +1,57 @@
+{
+  "schema": "ktrade.utc-baseline.affected-windows-race.v1",
+  "verdict": "PASS_SCOPED_ORIGINAL_DONOR_UTC_BASELINE_AND_ALL_AFFECTED_WINDOWS_RACE",
+  "source_pr": 231,
+  "source_sha": "2773c8eb8e840a0eb0a6524820d394f5a35a925f",
+  "source_tree": "5eda35ca7a3edc7ed33272e3ffdc9b395cfa9dfb",
+  "parent_source": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+  "run_id": 41197084611,
+  "job_id": 124525334967,
+  "qualifier_execution_sha": "60581ec715f127462048ec0ee77ca9f8015ca734",
+  "job_status": "completed",
+  "job_conclusion": "success",
+  "toolchain": "go1.26.10 Windows2022",
+  "environment": "TEMP and TMP process-scoped to original source-owned RUNNER_TEMP",
+  "unchanged_original_tradeguard_tree": "1f894b0a6f8115b8a9d3882fa16fdb289eba510a",
+  "unchanged_original_ledger_reconcile_tree": "9507b1f181b9a82ebbc4fa63f4bc05b27613e25e",
+  "verified_results": {
+    "original_lifetime_binding_acceptance_bug_reproduced": true,
+    "original_day_roll_reentry_refusal_reproduced": true,
+    "complete_affected_packages": [
+      "ktrade/internal/papercustody",
+      "ktrade/internal/paperengine"
+    ],
+    "race_detector": true,
+    "root_tests_passed": 39,
+    "subtests_passed": 51,
+    "new_utc_roots_passed": 6,
+    "new_utc_subcases_passed": 8,
+    "fail": 0,
+    "skip": 0,
+    "original_same_owner_four_fill_fees_fifo_stop_cold": "PASS",
+    "original_kill_and_reservation_refusals": "PASS",
+    "same_owner_reentry_after_original_day_restore": "PASS",
+    "open_position_close_daily3_95_lifetime8_1": "PASS",
+    "no_duplicate_entry_or_sell": "PASS",
+    "original_kill_retained": "PASS",
+    "no_cold_rearm": "PASS",
+    "forged_or_unowned_pnl_proofs_refused": "PASS",
+    "review_readonly": "PASS",
+    "affected_packages_vet": "PASS"
+  },
+  "prior_attempt": {
+    "run": 41196329940,
+    "conclusion": "failure",
+    "new_utc_results": "all6 roots/8subcases passed",
+    "reason": "Two original W28H physical path identity tests failed under default Windows user TEMP;qualifier now matches established RUNNER_TEMP. Guard/checks/product source unchanged,failures not waived."
+  },
+  "limits": [
+    "Synthetic prior dates only in test-owned TEMP checkpoints;unmodified original Save/Restore calculates the UTC rollover",
+    "No system-clock change or actual warm midnight/24h soak acceptance",
+    "Not yet mandatory full candidate root/tagged/Wails/Node/build/native acceptance",
+    "No original TradeGuard or ledger source/schema,kill policy,risk limits,owner data,broker or LIVE changes"
+  ],
+  "live_armed": false,
+  "release_authority": "none",
+  "product_complete": false
+}

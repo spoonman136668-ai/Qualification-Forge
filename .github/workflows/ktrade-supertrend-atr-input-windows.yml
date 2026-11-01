@@ -1,0 +1,119 @@
+name: KTRADE original Supertrend ATR input numerical and causality qualification
+on:
+  push:
+    branches: [qualification/ktrade-supertrend-atr-input-20261031]
+    paths: [.github/workflows/ktrade-supertrend-atr-input-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-supertrend-atr-input-20261031
+  cancel-in-progress: false
+jobs:
+  original-pine-inputs:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOTOOLCHAIN: 'local'
+      CGO_ENABLED: '1'
+      KTRADE_LIVE_TRADING: 'false'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2773c8eb8e840a0eb0a6524820d394f5a35a925f
+          path: negative
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2e81b8c4a170a5537e973d59de0de1713fd6c5d4
+          path: product
+          fetch-depth: 3
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact four-path source custody and unchanged original compiler and guard
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_HOSTED_WINDOWS_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '2e81b8c4a170a5537e973d59de0de1713fd6c5d4' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'a90725bdd94f4b493601267a37ffee81c5c72e62' -or (& git -C $src rev-parse HEAD^).Trim() -cne 'e49072384d78e184185399825b2ad96e837342e1' -or (& git -C $src rev-parse HEAD^^).Trim() -cne '2773c8eb8e840a0eb0a6524820d394f5a35a925f'){throw 'EXACT_SOURCE_TREE_PARENT_REQUIRED'}
+          $delta=@(& git -C $src diff --name-only HEAD^^ HEAD|Sort-Object)
+          $expected=@('pkg/catalog_supertrend_inputs_test.go','pkg/catalog_supertrend_numeric_test.go','templates/chart.tmpl','tests/rb3_w90_catalog_actions.test.cjs')|Sort-Object
+          if(($delta -join '|') -cne ($expected -join '|')){throw 'EXACT_FOUR_PATH_DELTA_REQUIRED'}
+          if((& git -C $src rev-parse 'HEAD:pkg/pine_compiler.go').Trim() -cne '2b0dfff2b5f19cb9a6c55bdea5584265e3280d35' -or (& git -C $src rev-parse 'HEAD:internal/originaltradeguard').Trim() -cne '1f894b0a6f8115b8a9d3882fa16fdb289eba510a' -or (& git -C $src rev-parse 'HEAD:internal/paperreconcile').Trim() -cne '9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'){throw 'ORIGINAL_COMPILER_GUARD_OR_LEDGER_CHANGED'}
+          foreach($dir in @('negative','product')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(@(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'CLEAN_CREDENTIAL_FREE_SOURCE_REQUIRED'}
+            if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_CHANGED'}
+          }
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41197084611' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne '60581ec715f127462048ec0ee77ca9f8015ca734'){throw 'ORIGINAL_UTC_AFFECTED_RACE_FOUNDATION_REQUIRED'}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Reproduce unchanged parent ignoring requested Supertrend ATR periods
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $parent=Join-Path $env:GITHUB_WORKSPACE 'negative'
+          foreach($test in @('catalog_supertrend_inputs_test.go','catalog_supertrend_numeric_test.go')){
+            Copy-Item (Join-Path $src ('pkg/'+$test)) (Join-Path $parent ('pkg/'+$test))
+          }
+          Push-Location $parent
+          try{
+            $out=@(& go test -json -mod=readonly -count=1 -timeout 15m -run '^TestCatalogSupertrendInputPeriodsAndMultipliers$' ./pkg)
+            $exit=$LASTEXITCODE
+          }finally{Pop-Location}
+          $out|ForEach-Object{Write-Output $_}
+          $events=@($out|Where-Object{$_.StartsWith('{')}|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+          if($exit -eq 0){throw 'OLD_FIXED_PERIOD_BUG_NOT_REPRODUCED'}
+          foreach($name in @('TestCatalogSupertrendInputPeriodsAndMultipliers/v5/period3/factor3','TestCatalogSupertrendInputPeriodsAndMultipliers/v6/period3/factor3')){
+            if(@($events|Where-Object{$_.Action -ceq 'fail' -and $_.Test -ceq $name}).Count -ne 1){throw 'BOTH_ORIGINAL_V5_V6_FIXED_PERIOD_FAILURES_REQUIRED'}
+          }
+          foreach($event in $events){if($event.Test -match 'period3/factor3' -or ($event.Action -ceq 'fail' -and !$event.Test)){Write-Output ($event|ConvertTo-Json -Compress)}}
+          Write-Host '::notice::ORIGINAL_PARENT_IGNORES_SUPERTREND_PERIOD_IN_BOTH_RAW_PINE_VERSIONS=REPRODUCED'
+          # The expected nonzero exit was fully proved above; consume it before
+          # the GitHub pwsh wrapper propagates native LASTEXITCODE at step exit.
+          $global:LASTEXITCODE=0
+      - name: Current original raw Pine periods multipliers defaults prefix and evaluation isolation race regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            $out=@(& go test -race -json -mod=readonly -count=1 -timeout 15m -run 'TestCatalogSupertrend|TestPineInputLength' ./pkg)
+            $exit=$LASTEXITCODE
+            $out|ForEach-Object{Write-Output $_}
+            if($exit -ne 0){throw 'RAW_ORIGINAL_PINE_INPUT_NUMERICAL_REGRESSION_FAILED'}
+            $events=@($out|Where-Object{$_.StartsWith('{')}|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+            if(@($events|Where-Object{$_.Action -cin @('skip','fail')}).Count -ne 0){throw 'SKIPPED_OR_FAILED_ORIGINAL_PINE_CONTRACT'}
+            foreach($root in @('TestCatalogSupertrendInputPeriodsAndMultipliers','TestCatalogSupertrendChangedInputDefaultSeedsMatchingATR','TestCatalogSupertrendRawPineNumericStateAndWarmup','TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides','TestPineInputLengthCurrentBarIsCausalAndPrefixStable','TestPineInputLengthEvaluationsDoNotLeakResolvedDefaults')){
+              if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq $root}).Count -ne 1){throw 'ACTUAL_ORIGINAL_CONTRACT_ROOT_NOT_EXECUTED'}
+            }
+            & go vet -mod=readonly ./pkg
+            if($LASTEXITCODE -ne 0){throw 'ORIGINAL_PINE_PKG_VET_FAILED'}
+            & node --test tests/rb3_w90_catalog_actions.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'ORIGINAL_CATALOG_ACTIONS_FAILED'}
+            if(@(& git status --porcelain).Count -ne 0){throw 'FROZEN_PRODUCT_SOURCE_MUTATED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::RAW_V5_V6_SUPERTREND_CONFIGURED_PERIODS_AND_MULTIPLIERS_ORIGINAL_NUMERICS_PREFIX_SETTINGS_ISOLATION_RACE=PASS'
+          Write-Host '::notice::NO_OWNER_DATA_NO_BROKER_NO_PROMOTION_NO_LIVE'

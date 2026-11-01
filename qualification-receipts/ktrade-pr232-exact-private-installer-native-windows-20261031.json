@@ -1,0 +1,202 @@
+{
+  "schema": "ktrade.exact-private-artifact.windows-native.v1",
+  "verdict": "PASS_SCOPED_EXACT_EXISTING_PRIVATE_PR232_INSTALLER_REAL_NATIVE_PAPER_STOP_COLD_ROLLBACK",
+  "source_pr": 232,
+  "source_sha": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4",
+  "source_tree": "a90725bdd94f4b493601267a37ffee81c5c72e62",
+  "original_private_build_run": 41203544723,
+  "original_private_build_witness": "7562d82105525f05d47479781aabdab5b1e32150",
+  "original_private_artifact": 13044085658,
+  "original_outer_sha256": "007865019166d298608c861a671786c2c2744cda7a060b9a552e8c240e3ee9a7",
+  "actual_installed_inner_sha256": "6e51fd7632220b7a1f9c3dba9eb520e79cc8586dc211156ae9789c21e36cbb09",
+  "run_id": 41204142081,
+  "job_id": 124545675214,
+  "qualifier_execution_sha": "6f1034672388f7852687d8ecdce308cc4038dc6e",
+  "status": "completed",
+  "conclusion": "success",
+  "artifact_data_commit": "a6b7ee00c6b987259c36cd378e8e2011dc0f7627",
+  "identity_blob": "da2534494666c8055e0ff7935b821f751b40e906",
+  "transport_run": 41203997373,
+  "transport_witness": "745db29ee4498c96def6247e9e0d2b0c4f015a38",
+  "transport_receipt_commit": "30747c431da332c8168c5d61432e6612812aff1d",
+  "transport_receipt_blob": "963c811133f81d67c391afe47ad4fa51677af4a5",
+  "independent_verification_commit": "d4ad3e8154a1cf332cf423be445814d35a1f0bb3",
+  "independent_verification_blob": "87b413d5b2322fb53d06f9504cf33200526b9ad1",
+  "original_full_source_and_scanned_hosted_archive_run": 41200092971,
+  "original_full_source_receipt_commit": "9b676158c39079e2fa8fb997410318ffddfd636f",
+  "original_full_source_receipt_blob": "b7f4321920022b024a08f1129f3c132e05f79f20",
+  "native_harness_blob": "7a12f6915c86f8c1a8fc4a68c6103808e13d35a1",
+  "build_harness_blob": "6000c8b81e74cec09aa4b090253c4922d8843dc5",
+  "original_financial_harness_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "verified_results": {
+    "existing_private_contents_scope_exact_hash_custody": true,
+    "current_candidate_not_rebuilt_for_native": true,
+    "real_default_catalog_supertrend_and_williams_apply": true,
+    "four_current_paper_fills_fees_fifo_original_risk_dedup_stop": true,
+    "cold_no_rearm": true,
+    "rollback_retains_old_new_unknown_history": true,
+    "legacy_order_http423": true,
+    "actual_pane_captures": [
+      {
+        "png_sha256": "af4d84f32cc6f6d5a1330318c84d3fed410b898972d5a9aa6aebdae7e303d875",
+        "height": 346,
+        "retained_screenshot": false,
+        "width": 932,
+        "left": 46,
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "top": 215,
+        "phase": "BEFORE_SUPERTREND"
+      },
+      {
+        "png_sha256": "32b6e48452c73f93a34e371a637b1af291cfd708646d9685425353d00e81f3b0",
+        "height": 346,
+        "retained_screenshot": false,
+        "width": 932,
+        "left": 46,
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "top": 215,
+        "phase": "AFTER_SUPERTREND"
+      }
+    ],
+    "actual_pane_difference": {
+      "after_sha256": "32b6e48452c73f93a34e371a637b1af291cfd708646d9685425353d00e81f3b0",
+      "pixel_sample_count": 19635,
+      "changed_sample_count": 866,
+      "before_sha256": "af4d84f32cc6f6d5a1330318c84d3fed410b898972d5a9aa6aebdae7e303d875",
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle",
+      "identical_bounds": true
+    },
+    "actual_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 535060480,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "pid": 6840,
+          "name": "ktrade.exe",
+          "working_set_bytes": 32825344
+        },
+        {
+          "pid": 5012,
+          "name": "ktrade-engine.exe",
+          "working_set_bytes": 23687168
+        },
+        {
+          "pid": 2784,
+          "name": "conhost.exe",
+          "working_set_bytes": 18432000
+        },
+        {
+          "pid": 6140,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 107511808
+        },
+        {
+          "pid": 1096,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 7979008
+        },
+        {
+          "pid": 7852,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 54718464
+        },
+        {
+          "pid": 5172,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 32907264
+        },
+        {
+          "pid": 3228,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 18862080
+        },
+        {
+          "pid": 6172,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 58687488
+        },
+        {
+          "pid": 5684,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 179449856
+        }
+      ]
+    },
+    "actual_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 568872960,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "pid": 6840,
+          "name": "ktrade.exe",
+          "working_set_bytes": 29560832
+        },
+        {
+          "pid": 5012,
+          "name": "ktrade-engine.exe",
+          "working_set_bytes": 28848128
+        },
+        {
+          "pid": 2784,
+          "name": "conhost.exe",
+          "working_set_bytes": 18432000
+        },
+        {
+          "pid": 6140,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 128143360
+        },
+        {
+          "pid": 1096,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 7979008
+        },
+        {
+          "pid": 7852,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 54202368
+        },
+        {
+          "pid": 5172,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 32968704
+        },
+        {
+          "pid": 3228,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 18862080
+        },
+        {
+          "pid": 6172,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 58855424
+        },
+        {
+          "pid": 5684,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 191021056
+        }
+      ]
+    },
+    "actual_probe_coverage_and_sums_verified": true
+  },
+  "limits": [
+    "Bounded engineering acceptance for exact source2e81 and private installer6e51;not product COMPLETE or LIVE_READY_DISARMED",
+    "Observed pane difference is not an independent numerical visual oracle;working-set sums are not unique physical or peak RAM",
+    "Native default catalog Apply is tested;raw parameter maps and edited defaults are numerically qualified separately,not a native input-settings/persistence UI",
+    "Actual warm UTC midnight/24h soak,target hardware,FPS,HiDPI and full original feature parity remain unaccepted",
+    "Owner profile/cash/fee/USDC/v2-v3 financial custody,broader security and release enforcement/signing remain open",
+    "No owner installed data,real broker,kill clearing,source promotion,signing or release"
+  ],
+  "public_binary_upload": false,
+  "new_credentials_or_permissions": false,
+  "app_executed_on_private_owner_worker": false,
+  "owner_data_accessed": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "product_complete": false
+}

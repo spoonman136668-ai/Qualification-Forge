@@ -1,0 +1,84 @@
+{
+  "schema": "ktrade.qualification.supported-runtime-risk-faults.v1",
+  "gate": "W86",
+  "verdict": "PASS_SCOPED_BOUNDED_ORIGINAL_RACE_AND_MOCK_FAULTS",
+  "product": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 224,
+    "sha": "7ddea43a58e433de38244215b256d76988f5e9f6",
+    "tree": "5dc9bfce99e5f97fa3c434542509763ee8f29294"
+  },
+  "qualifier": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "pr": 55,
+    "workflow": ".github/workflows/ktrade-w86-supported-runtime-risk-faults-windows.yml",
+    "witness_sha": "bd3b6b0c7c40ccfd2c26dc29044907cfb09555eb",
+    "tree": "7ae0cc3817822b9b8ba6b0f59320a1e1ba5544ac",
+    "run_id": 41143001402,
+    "job_id": 124361473083,
+    "status": "completed",
+    "conclusion": "success",
+    "go_version": "go1.26.10",
+    "host": "GitHub-hosted Windows 2022"
+  },
+  "prerequisite": {
+    "installed_native_run": 41081618535,
+    "witness": "3be8f108a37ab6f091a53b6c79f73e2967d5d736",
+    "receipt_commit": "c4c66fb811f71ce6b1290387511eab8f303b3612"
+  },
+  "tests": {
+    "paper_race": [
+      {
+        "package": "ktrade/internal/papertrading",
+        "named_cases": 5,
+        "repetitions": 4
+      },
+      {
+        "package": "ktrade/internal/papercustody",
+        "named_cases": 3,
+        "repetitions": 4
+      },
+      {
+        "package": "ktrade/internal/paperengine",
+        "named_cases": 4,
+        "repetitions": 3
+      }
+    ],
+    "paper_named_passes": 44,
+    "wails_rollback_lease": {
+      "named_cases": 7,
+      "repetitions": 3,
+      "passes": 21,
+      "race": false
+    },
+    "mock_broker_auth_custody_history": {
+      "discovered_named_roots": 122,
+      "passed_named_roots": 122,
+      "repetitions": 1,
+      "race": true,
+      "selection": "^TestW(4[1-9]|5[0-9]|6[0-9]|7[0-3]|82)",
+      "required_named_roots_verified": true
+    },
+    "skips": 0,
+    "failures": 0
+  },
+  "authentic_markers": [
+    "W86_EXACT_CURRENT_SOURCE_NATIVE_W85_ACCEPTED_LIVE_DISABLED=PASS",
+    "W86_ORIGINAL_RACE_REPEAT=PASS package=ktrade/internal/papertrading cases=5 repetitions=4",
+    "W86_ORIGINAL_RACE_REPEAT=PASS package=ktrade/internal/papercustody cases=3 repetitions=4",
+    "W86_ORIGINAL_RACE_REPEAT=PASS package=ktrade/internal/paperengine cases=4 repetitions=3",
+    "W86_ORIGINAL_WAILS_ROLLBACK_LEASE_REPEAT=PASS cases=7 repetitions=3",
+    "W86_ALL_ORIGINAL_MOCK_BROKER_CUSTODY_AUTH_HISTORY_ROOTS_RACE=PASS roots=122",
+    "W86_CURRENT_SUPPORTED_RUNTIME_ORIGINAL_TESTS_NO_REAL_KEYS_NO_OWNER_DATA_NO_BROKER_ORDERS_NO_LIVE_NO_RELEASE"
+  ],
+  "limits": [
+    "Bounded repeated original tests and localhost mocks; not 24-hour soak, live provider acceptance, or competitive product usability certification.",
+    "No real credentials, tagged owner-native/provider hooks, owner data, broker orders, LIVE, signing, promotion or release.",
+    "Wails repeated rollback/lease tests do not use -race; original PAPER and mock broker scopes do.",
+    "Success on PR224 source may be reused for later source only after proving byte-identical affected runtime paths."
+  ],
+  "live_armed": false,
+  "owner_data_touched": false,
+  "release_authority": "none",
+  "receipt_is_execution_sha": false
+}

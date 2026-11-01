@@ -1,0 +1,111 @@
+name: KTRADE Pine input period binding actual compiler regression
+on:
+  push:
+    branches: [qualification/ktrade-pine-input-period-binding-20261031]
+    paths: [.github/workflows/ktrade-pine-input-period-binding-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-pine-input-period-binding-20261031
+  cancel-in-progress: false
+jobs:
+  focused:
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+    steps:
+      - name: Original immutable qualified source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: cea559a5abc0136d1ca0dff16c313f8dac0477f2
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact two-file period binding candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9c12ea7eab02d34e0f2de35b9e45e9486145fa0e
+          fetch-depth: 2
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact source custody and unchanged risk broker UI boundary
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_QUALIFICATION_HOST_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '9c12ea7eab02d34e0f2de35b9e45e9486145fa0e' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '894152b0c45b102584ce092b2aa964701ed40205' -or (& git -C $src rev-parse HEAD^).Trim() -cne 'cea559a5abc0136d1ca0dff16c313f8dac0477f2'){throw 'CANDIDATE_SOURCE_CUSTODY_DRIFT'}
+          if((& git -C $old rev-parse HEAD).Trim() -cne 'cea559a5abc0136d1ca0dff16c313f8dac0477f2' -or (& git -C $old rev-parse 'HEAD^{tree}').Trim() -cne 'a6076bc3c1e2bcae6b21c10a4ea810105a05bd7e'){throw 'ORIGINAL_SOURCE_CUSTODY_DRIFT'}
+          $delta=@(& git -C $src diff --name-only HEAD^ HEAD)
+          if($delta.Count -ne 2 -or @($delta|Where-Object {$_ -cnotin @('pkg/pine_compiler.go','pkg/pine_input_length_binding_test.go')}).Count -ne 0){throw 'EXACT_TWO_SOURCE_PATHS_REQUIRED'}
+          foreach($p in @($src,$old)){
+            if(@(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'CLEAN_CREDENTIAL_FREE_SOURCE_REQUIRED'}
+            $cfg=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
+            if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'TRACKED_CREDENTIALS_REFUSED'}
+            if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          }
+          Write-Host '::notice::EXACT_PINE_ONLY_TWO_FILE_DELTA_RISK_FINANCE_BROKER_UI_UNCHANGED=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Reproduce actual original wrong default period before repairing it
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          $fixture=Join-Path $old 'pkg/pine_input_length_binding_test.go'
+          if(Test-Path $fixture){throw 'ORIGINAL_TEST_FIXTURE_COLLISION'}
+          Copy-Item (Join-Path $src 'pkg/pine_input_length_binding_test.go') $fixture
+          Push-Location $old
+          try{
+            $raw=@(& go test -json -mod=readonly -count=1 -timeout 10m -run '^TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides$/^v5$/^sma$/^default3$' ./pkg)
+            $exit=$LASTEXITCODE
+            $events=@($raw|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+            $name='TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides/v5/sma/default3'
+            if($exit -eq 0 -or @($events|Where-Object{$_.Action -ceq 'fail' -and $_.Test -ceq $name}).Count -ne 1 -or @($events|Where-Object{$_.Output -match 'bar2 input period got NaN want'}).Count -ne 1){throw 'ORIGINAL_REAL_INPUT_DEFAULT_BUG_NOT_REPRODUCED'}
+            Write-Host '::notice::ORIGINAL_RAW_V5_INPUT3_SMA_SILENT14_WARMUP_NUMERIC_FAILURE_REPRODUCED=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $fixture -Force
+          }
+          if(@(& git -C $old status --porcelain).Count -ne 0){throw 'ORIGINAL_FIXTURE_NOT_REMOVED'}
+      - name: Raw v5 v6 input binding numerical causal override and isolation coverage
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-Location (Join-Path $env:GITHUB_WORKSPACE 'candidate')
+          $raw=@(& go test -json -mod=readonly -count=1 -timeout 12m -run '^TestPineInputLength' ./pkg)
+          $exit=$LASTEXITCODE
+          $raw|ForEach-Object{Write-Host $_}
+          $events=@($raw|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+          if($exit -ne 0 -or @($events|Where-Object{$_.Action -in @('fail','skip')}).Count -ne 0){throw 'ACTUAL_PINE_INPUT_LENGTH_REGRESSION_FAILED'}
+          foreach($v in @('v5','v6')){
+            foreach($fn in @('sma','ema','rsi','highest','lowest','stdev','wma','atr')){
+              foreach($case in @('default3','default10','default21','override')){
+                $name='TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides/'+$v+'/'+$fn+'/'+$case
+                if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq $name}).Count -ne 1){throw ('REQUIRED_RAW_BINDING_CASE_MISSING_'+$name)}
+              }
+            }
+            foreach($root in @('TestPineInputLengthCurrentBarIsCausalAndPrefixStable','TestPineInputLengthEvaluationsDoNotLeakResolvedDefaults')){
+              if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq ($root+'/'+$v)}).Count -ne 1){throw 'REQUIRED_CAUSAL_OR_ISOLATION_CASE_MISSING'}
+            }
+          }
+          & go test -mod=readonly -count=1 ./pkg
+          if($LASTEXITCODE -ne 0){throw 'FULL_ORIGINAL_PINE_PKG_REGRESSION_FAILED'}
+          & go vet -mod=readonly ./pkg
+          if($LASTEXITCODE -ne 0){throw 'ORIGINAL_PINE_PKG_VET_FAILED'}
+          if(@(& git status --porcelain).Count -ne 0){throw 'FINAL_SOURCE_MUTATED'}
+          Write-Host '::notice::ACTUAL_ORIGINAL_PINE_68_BINDING_CAUSAL_ISOLATION_CASES_AND_FULL_PKG_REGRESSION=PASS'

@@ -1,0 +1,157 @@
+name: KTRADE confirmed regular RSI divergence original Pine numerical qualification
+on:
+  push:
+    branches: [qualification/ktrade-confirmed-rsi-divergence-20261031]
+    paths: [.github/workflows/ktrade-confirmed-rsi-divergence-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-confirmed-rsi-divergence-20261031
+  cancel-in-progress: false
+jobs:
+  original-rsi:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      GOTOOLCHAIN: 'local'
+      CGO_ENABLED: '1'
+      KTRADE_LIVE_TRADING: 'false'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 2e81b8c4a170a5537e973d59de0de1713fd6c5d4
+          path: negative
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 42bf2c698d15da43632540959f9a5eea3999158b
+          path: product
+          fetch-depth: 20
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact causal RSI repair source and unchanged guard ledger and LIVE refusal
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_HOSTED_WINDOWS_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '42bf2c698d15da43632540959f9a5eea3999158b' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '378603bf6eca76ba54ede3e1db4104cc838c9cc3'){throw 'EXACT_42bf2c698d15da43632540959f9a5eea3999158b_TREE_PARENT_REQUIRED'}
+          & git -C $src merge-base --is-ancestor 2e81b8c4a170a5537e973d59de0de1713fd6c5d4 HEAD
+          if($LASTEXITCODE -ne 0){throw 'QUALIFIED_RSI_BASE_ANCESTRY_REQUIRED'}
+          $delta=@(& git -C $src diff --name-only 2e81b8c4a170a5537e973d59de0de1713fd6c5d4 HEAD|Sort-Object)
+          $expected=@('pkg/catalog_rsi_divergence_test.go','pkg/pine_compiler.go','templates/chart.tmpl','tests/rb3_w90_catalog_actions.test.cjs')|Sort-Object
+          if(($delta -join '|') -cne ($expected -join '|')){throw 'EXACT_RSI_FOUR_PATH_DELTA_REQUIRED'}
+          foreach($pin in @(@('pkg/pine_compiler.go','846f9f7f73d801fcb9d71b3da626143dade8e721'),@('internal/originaltradeguard','1f894b0a6f8115b8a9d3882fa16fdb289eba510a'),@('internal/paperreconcile','9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'))){
+            if((& git -C $src rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'ORIGINAL_PINE_GUARD_OR_LEDGER_CHANGED'}
+          }
+          foreach($dir in @('negative','product')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(@(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'CLEAN_CREDENTIAL_FREE_SOURCE_REQUIRED'}
+            $cfg=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
+            if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'TRACKED_CREDENTIALS_REFUSED'}
+            if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_CHANGED'}
+          }
+          foreach($proof in @(@{id=41200092971;sha='74e856191dc170bf4c00b5829dd509caa4967207'},@{id=41204142081;sha='6f1034672388f7852687d8ecdce308cc4038dc6e'})){
+            $run=Invoke-RestMethod -Uri ('https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/'+$proof.id) -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+            if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne $proof.sha){throw 'EXACT_QUALIFIED_PARENT_REQUIRED'}
+          }
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Reproduce original oversold overbought alias as not divergence
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Copy-Item (Join-Path $env:GITHUB_WORKSPACE 'product/pkg/catalog_rsi_divergence_test.go') (Join-Path $env:GITHUB_WORKSPACE 'negative/pkg/catalog_rsi_divergence_test.go')
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'negative')
+          try{
+            $out=@(& go test -json -mod=readonly -count=1 -timeout 15m -run '^TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath$' ./pkg)
+            $exit=$LASTEXITCODE
+          }finally{Pop-Location}
+          $out|ForEach-Object{Write-Output $_}
+          $events=@($out|Where-Object{$_.StartsWith('{')}|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+          if($exit -eq 0){throw 'ORIGINAL_FALSE_DIVERGENCE_NOT_REPRODUCED'}
+          foreach($name in @('TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath/v5/default14','TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath/v6/default14')){
+            if(@($events|Where-Object{$_.Action -ceq 'fail' -and $_.Test -ceq $name}).Count -ne 1){throw 'BOTH_ORIGINAL_PINE_ALIAS_FAILURES_REQUIRED'}
+            if(@($events|Where-Object{$_.Action -ceq 'output' -and $_.Test -ceq $name -and $_.Output -match 'non-divergence marker|confirmed divergence markers got'}).Count -lt 1){throw 'ACTUAL_MATH_FAILURE_NOT_BUILD_FAILURE_REQUIRED'}
+          }
+          Write-Host '::notice::ORIGINAL_RSI_OVERSOLD_OVERBOUGHT_ALIAS_NOT_DIVERGENCE_V5_V6=REPRODUCED'
+          $global:LASTEXITCODE=0
+      - name: Reproduce original RSI future-candle warmup backfill directly
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'negative')
+          try{
+            $out=@(& go test -json -mod=readonly -count=1 -timeout 15m -run '^TestPineRSIWilderWarmupIsCausal$' ./pkg)
+            $exit=$LASTEXITCODE
+          }finally{Pop-Location}
+          $out|ForEach-Object{Write-Output $_}
+          $events=@($out|Where-Object{$_.StartsWith('{')}|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+          if($exit -eq 0){throw 'ORIGINAL_RSI_FUTURE_BACKFILL_NOT_REPRODUCED'}
+          foreach($name in @('TestPineRSIWilderWarmupIsCausal/v5/period3','TestPineRSIWilderWarmupIsCausal/v5/period14','TestPineRSIWilderWarmupIsCausal/v6/period3','TestPineRSIWilderWarmupIsCausal/v6/period14')){
+            if(@($events|Where-Object{$_.Action -ceq 'fail' -and $_.Test -ceq $name}).Count -ne 1 -or @($events|Where-Object{$_.Action -ceq 'output' -and $_.Test -ceq $name -and $_.Output -match 'RSI warmup'}).Count -lt 1){throw 'ACTUAL_RSI_WARMUP_MATH_FAILURE_REQUIRED'}
+          }
+          Write-Host '::notice::ORIGINAL_RSI_FUTURE_CANDLE_WARMUP_BACKFILL_V5_V6=REPRODUCED'
+          $global:LASTEXITCODE=0
+      - name: Reproduce original ordinary-NA carry creating false events
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'negative')
+          try{
+            $out=@(& go test -json -mod=readonly -count=1 -timeout 15m -run '^TestPineOrdinarySeriesPreservesNA$' ./pkg)
+            $exit=$LASTEXITCODE
+          }finally{Pop-Location}
+          $out|ForEach-Object{Write-Output $_}
+          $events=@($out|Where-Object{$_.StartsWith('{')}|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+          if($exit -eq 0){throw 'ORIGINAL_ORDINARY_NA_CARRY_NOT_REPRODUCED'}
+          foreach($name in @('TestPineOrdinarySeriesPreservesNA/v5','TestPineOrdinarySeriesPreservesNA/v6')){
+            if(@($events|Where-Object{$_.Action -ceq 'fail' -and $_.Test -ceq $name}).Count -ne 1 -or @($events|Where-Object{$_.Action -ceq 'output' -and $_.Test -ceq $name -and $_.Output -match 'PINE_NA'}).Count -lt 1){throw 'ACTUAL_ORDINARY_NA_FAILURE_REQUIRED'}
+          }
+          Write-Host '::notice::ORIGINAL_PINE_ORDINARY_NA_CARRY_FALSE_EVENTS_V5_V6=REPRODUCED'
+          $global:LASTEXITCODE=0
+      - name: Raw original Pine independent Wilder pivot goldens causality settings and existing numerical regression with race
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            $out=@(& go test -race -json -mod=readonly -count=1 -timeout 20m -run 'TestPineOrdinarySeriesPreservesNA|TestPineRSIWilderWarmupIsCausal|TestCatalogRSIDivergence|TestCatalogSupertrend|TestPineInputLength' ./pkg)
+            $exit=$LASTEXITCODE
+            $out|ForEach-Object{Write-Output $_}
+            if($exit -ne 0){throw 'RAW_RSI_DIVERGENCE_OR_PRIOR_NUMERICS_FAILED'}
+            $events=@($out|Where-Object{$_.StartsWith('{')}|ForEach-Object{$_|ConvertFrom-Json -ErrorAction Stop})
+            if(@($events|Where-Object{$_.Action -cin @('skip','fail')}).Count -ne 0){throw 'SKIPPED_OR_FAILED_ORIGINAL_PINE_CONTRACT'}
+            foreach($root in @('TestPineOrdinarySeriesPreservesNA','TestPineRSIWilderWarmupIsCausal','TestCatalogRSIDivergenceGoldenMarkersAndOriginalMath','TestCatalogRSIDivergenceCausalPrefixesNeverBackpaint','TestCatalogRSIDivergenceRejectsOversoldOverboughtTiesAndWarmup','TestCatalogSupertrendInputPeriodsAndMultipliers','TestCatalogSupertrendChangedInputDefaultSeedsMatchingATR','TestCatalogSupertrendRawPineNumericStateAndWarmup','TestPineInputLengthNamedDefaultsMatchLiteralAndKeepOverrides','TestPineInputLengthCurrentBarIsCausalAndPrefixStable','TestPineInputLengthEvaluationsDoNotLeakResolvedDefaults')){
+              if(@($events|Where-Object{$_.Action -ceq 'pass' -and $_.Test -ceq $root}).Count -ne 1){throw 'ACTUAL_ORIGINAL_ROOT_NOT_EXECUTED'}
+            }
+            & go vet -mod=readonly ./pkg
+            if($LASTEXITCODE -ne 0){throw 'ORIGINAL_PINE_PKG_VET_FAILED'}
+            & node --test tests/rb3_w90_catalog_actions.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'ORIGINAL_CATALOG_ACTIONS_FAILED'}
+            if(@(& git status --porcelain).Count -ne 0){throw 'FROZEN_PRODUCT_SOURCE_MUTATED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::RAW_V5_V6_CONFIRMED_REGULAR_RSI_DIVERGENCE_INDEPENDENT_NUMERICS_PREFIX_NO_FALSE_MARKERS_SETTINGS_ISOLATION_RACE=PASS'
+          Write-Host '::notice::NO_OWNER_DATA_NO_BROKER_NO_PROMOTION_NO_LIVE'

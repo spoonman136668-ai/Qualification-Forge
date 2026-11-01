@@ -1,0 +1,73 @@
+name: KTRADE W71 test-only owner observer qualification with exact production reuse
+on:
+  push:
+    branches: [qualification/ktrade-w71-owner-probe-windows-20261030]
+    paths: [.github/workflows/ktrade-w71-owner-probe-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w71-owner-probe-source-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: d914d6d6f966b94422ab8a0582a0a4f39c6bda43
+          path: current
+          fetch-depth: 2
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Prove only the excluded owner test changed from fully qualified W71
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W71_PROBE_NOT_HOSTED_WINDOWS'}
+          if((& git -C witness rev-parse HEAD).Trim() -cne $env:GITHUB_SHA){throw 'W71_PROBE_WITNESS_DRIFT'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'current'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'd914d6d6f966b94422ab8a0582a0a4f39c6bda43' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'c01cb291b2fc9bec73c2dcbd7a17b378055b0c7d' -or
+             (& git -C $src rev-parse 'HEAD^').Trim() -cne 'aee9f5007fbd963c8bbf42631d5089a1630ab477'){throw 'W71_PROBE_SOURCE_TREE_PARENT_DRIFT'}
+          if(@(& git -C $src status --porcelain).Count -ne 0){throw 'W71_PROBE_DIRTY_SOURCE'}
+          $changed=@(& git -C $src diff --name-only HEAD^ HEAD)
+          if($changed.Count -ne 1 -or $changed[0] -cne 'pkg/advanced_order_v2_cdp_owner_windows_test.go'){throw 'W71_PROBE_PRODUCTION_SOURCE_CHANGED'}
+          $test=Get-Content (Join-Path $src $changed[0]) -Raw
+          if($test -notmatch '^//go:build windows && ktrade_w71_owner_readonly' -or $test -match 'func init\('){throw 'W71_PROBE_DEFAULT_BUILD_ACTIVATION'}
+          $broker=Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw
+          if($broker -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W71_PROBE_LIVE_SOURCE_DRIFT'}
+          $receiptPath='qualification-receipts/ktrade-w71-native-cdp-v2-history-windows-20261030.json'
+          if((& git -C witness rev-parse ('HEAD:'+$receiptPath)).Trim() -cne 'e87b455fb8ee9b61982cb3f2642e1ca7967a149d'){throw 'W71_PROBE_FOUNDATION_RECEIPT_DRIFT'}
+          $receipt=Get-Content (Join-Path (Join-Path $env:GITHUB_WORKSPACE 'witness') $receiptPath) -Raw|ConvertFrom-Json
+          if($receipt.source_sha -cne 'aee9f5007fbd963c8bbf42631d5089a1630ab477' -or $receipt.run_id -ne 41025595146 -or $receipt.conclusion -cne 'success'){throw 'W71_PROBE_FULL_FOUNDATION_UNQUALIFIED'}
+          Write-Host '::notice::W71_PROBE_EXACT_TEST_ONLY_DELTA_PRODUCTION_AND_FULL_QUALIFICATION_REUSE=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Compile owner hooks and exercise only synthetic observer preservation and privacy
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Remove-Item Env:KTRADE_W71_OWNER_READONLY -ErrorAction SilentlyContinue
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'current')
+          try {
+            & go test -mod=readonly -count=1 -v -tags ktrade_w71_owner_readonly -run '^TestW71OwnerObserver' ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W71_PROBE_OBSERVER_SYNTHETIC_TEST_FAILED'}
+            & go vet -mod=readonly -tags ktrade_w71_owner_readonly ./pkg
+            if($LASTEXITCODE -ne 0){throw 'W71_PROBE_TAGGED_VET_FAILED'}
+          } finally { Pop-Location }
+          Write-Host '::notice::W71_PROBE_OWNER_HOOK_COMPILE_BODY_PRESERVATION_PRIVATE_JSON_AND_TAGGED_VET=PASS'
+          Write-Host '::notice::W71_PROBE_HOSTED_SYNTHETIC_ONLY_NO_OWNER_KEYS_NO_PROVIDER_CALL_NO_LIVE=PASS'

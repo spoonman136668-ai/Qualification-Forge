@@ -1,0 +1,76 @@
+{
+  "schema": "ktrade.pr236.original-rsi-hline-transport.focused-windows.v1",
+  "verdict": "PASS_ORIGINAL_RSI_HLINES_HTTP_TO_PANE_RENDERER_WITH_RETAINED_MARKER_AND_SETTINGS_GOLDENS",
+  "source_sha": "648006fdfcaf6e5d93334a5dbe2661f32929b352",
+  "source_tree": "2a1bd57575bce889126ff70f5e7bd7340b6c0b00",
+  "run_id": 41237865303,
+  "job_id": 124645330618,
+  "witness_sha": "d1c199d2dc6b7037ccb33e35951d3ddf0886298d",
+  "status": "completed",
+  "conclusion": "success",
+  "source_parent": "3901f737474f8fb5428dbb0d77a14fcb53d68d89",
+  "parent_full_source_native_run": 41236208694,
+  "parent_full_source_native_receipt": "00f4cc749886d2cd8ab9d9d6a15e856aefc7f932",
+  "original_omission_failures_reproduced": [
+    "TestPineOverlayTransportsOriginalRSIHorizontalGuides/v5_overlayfalse",
+    "TestPineOverlayTransportsOriginalRSIHorizontalGuides/v5_overlaytrue",
+    "TestPineOverlayTransportsOriginalRSIHorizontalGuides/v6_overlayfalse",
+    "TestPineOverlayTransportsOriginalRSIHorizontalGuides/v6_overlaytrue"
+  ],
+  "package_race": {
+    "roots": 14,
+    "subtests": 172,
+    "original_prefix_evaluations": 846
+  },
+  "tagged_api_race": {
+    "roots": 5,
+    "marker_subtests": 4,
+    "hline_subtests": 4,
+    "settings_roots": 3
+  },
+  "vet": [
+    "pkg",
+    "tagged cmd/ktrade"
+  ],
+  "node": {
+    "cases": 38,
+    "fail": 0,
+    "skip": 0,
+    "actual_v5_v6_go_http_to_original_guide_renderer": true,
+    "actual_v5_v6_go_http_marker_goldens_retained": true
+  },
+  "original_rsi_hlines": [
+    {
+      "price": 70,
+      "title": "Overbought"
+    },
+    {
+      "price": 30,
+      "title": "Oversold"
+    },
+    {
+      "price": 50,
+      "title": "Middle"
+    }
+  ],
+  "original_default_guide_color": "gray",
+  "original_default_style": "dashed",
+  "original_default_width": 1,
+  "guide_panes_tested": [
+    "original separate indicator pane",
+    "original overlay price pane"
+  ],
+  "local_all_node": {
+    "cases": 181,
+    "fail": 0,
+    "skip": 0,
+    "original_two_root_browser": "PASS"
+  },
+  "original_compiler_guard_ledger_unchanged": true,
+  "native_guide_visual_acceptance": false,
+  "production_admission": "HOLD",
+  "product_complete": false,
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "ktrade.pr234.native-workspace-schema-failure.v1",
+  "source_sha": "db79330ffee632b66c5e17b4a60d29c421febbab",
+  "source_tree": "4568f1fddd8494f0bdeafd09b642b580a0ff85eb",
+  "run": 41231463534,
+  "job": 124626377894,
+  "witness": "2e52776c21e932af252183fd57ee082c18754675",
+  "verdict": "FAIL_HARNESS_EMPTY_WORKSPACE_INPUTS_SCHEMA_NATIVE_LIFECYCLE_NOT_ACCEPTED",
+  "scanned_archive_sha256": "883543d309b8e86f941b6b632ed315ea907042640efc51e58fcb26fcb1a70fc6",
+  "completed_checks": [
+    "Current3APIroots race/vet",
+    "Complete original Go/tagged/Wails tests/vet",
+    "Node36files169cases0fail/skip",
+    "Assets/licenses/vendor118",
+    "Six unsigned executables and both actual binary scans",
+    "Native original chart/compile/Supertrend/Williams/RSI/default pane/probes",
+    "Settings dialog reached after toolbar repair"
+  ],
+  "failure": "SETTINGS_ACTUAL_GO_OVERLAY_INPUT_BINDINGS_NOT_OBSERVED",
+  "schema_evidence": "workspaceSnapshot.Inputs has json:\"inputs,omitempty\"; defaults legitimately omit the empty map. Under StrictMode the harness dereferenced the missing property and retried until timeout.",
+  "narrow_fix": "Normalize only absent inputs to the empty map; retain exact source equality, input count and numerical values for nonempty settings. Wait for actual asynchronous catalog closure.",
+  "product_source_changed_for_schema_fix": false,
+  "new_native_harness_blob": "e4202d462560e913b75d9680985c09e7da42d8af",
+  "acceptance_pending": [
+    "Native positive save and actual disk source values",
+    "Cold input restore/reset",
+    "Current candidate original PAPER/Stop/cold/rollback"
+  ],
+  "next": "Private build-only candidate after verified current source-owned CI phases; exact unchanged private installer must pass all native probes before source/package acceptance.",
+  "production_admission": "HOLD"
+}
