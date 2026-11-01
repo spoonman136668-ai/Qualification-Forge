@@ -1,0 +1,52 @@
+{
+  "schema": "ktrade.pr237.guide-only-caption.focused-windows.v1",
+  "verdict": "PASS_ACTUAL_ORIGINAL_V5_V6_GUIDE_ONLY_HTTP_REAL_CHART_CAPTION_AND_CLEAR",
+  "source_sha": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc",
+  "source_tree": "6f956e8eb095b577de8e4a79f3327a70097dc986",
+  "run_id": 41255809478,
+  "job_id": 124698604883,
+  "witness_sha": "4d5d5c05de54e9240bee770ae67334104ebcab99",
+  "status": "completed",
+  "conclusion": "success",
+  "qualified_parent_source": "504b28f07a24882470b847ff014391104f78bd66",
+  "qualified_parent_full_source_native_run": 41254118077,
+  "qualified_parent_full_source_native_receipt_commit": "9aae9f2df7ca0204969dd98d29f8997a44a69567",
+  "qualified_parent_full_source_native_receipt_blob": "82d0958fa6897286529fff7c2a0f976c00523b07",
+  "content_reuse": {
+    "original_pkg_tree_identical_to_qualified_parent": true,
+    "original_compiler": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+    "drawing_manager": "f5b52befb522a260289af0177dfd0c9eda1d4d6b",
+    "only_runtime_changes": "presentation renderer; added test-only Go file; changed Node tests",
+    "original_pkg_race_qualification": "Parent's14roots172subtests+full regression retained, not falsely claimed rerun here"
+  },
+  "current_tagged_api_race": {
+    "roots": 7,
+    "subtests": 16,
+    "guide_only_version_cases": [
+      5,
+      6
+    ],
+    "old_guide_marker_nonfinite_settings_cases_retained": true,
+    "fail": 0,
+    "skip": 0
+  },
+  "vet": [
+    "current tagged cmd/ktrade"
+  ],
+  "node": {
+    "cases": 40,
+    "fail": 0,
+    "skip": 0,
+    "actual_go_http_fixtures": true,
+    "actual_original_chart_caption_method": true,
+    "clear_caption_retained": true,
+    "prior_original_empty_caption_reproduced_for_both_versions": true
+  },
+  "expected_guide_only_caption": "Pine: Overbought, Oversold, Middle",
+  "native_guide_only_caption_acceptance": false,
+  "production_admission": "HOLD",
+  "product_complete": false,
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}
