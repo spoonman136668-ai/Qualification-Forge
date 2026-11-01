@@ -1,0 +1,402 @@
+{
+  "schema": "ktrade.exact-private-artifact.windows-native.v1",
+  "verdict": "PASS_SCOPED_EXACT_PRIVATE_PR236_ORIGINAL_RSI_GUIDES_NA_NATIVE_MARKERS_SETTINGS_PAPER_STOP_COLD_ROLLBACK",
+  "source_pr": 236,
+  "source_sha": "504b28f07a24882470b847ff014391104f78bd66",
+  "source_tree": "bc516c9c38128949cf19bbcb784a88e29dd08685",
+  "original_private_build_run": 41255531568,
+  "original_private_build_witness": "62f7c25e59919f65e5ddd1d4c21be8352a3d7a62",
+  "original_private_artifact": 13063006422,
+  "original_outer_sha256": "b5911536699210f42dc22a0e6fe7ce469f0584a70df4aab2e6660b619cbe211e",
+  "actual_installed_inner_sha256": "88883361b778b35c837b8d2078de88b4845937e07ef822060662f6d8e9b91fa5",
+  "run_id": 41256814500,
+  "job_id": 124701620327,
+  "qualifier_execution_sha": "64565b811ccc1b865ae306e5babc2dcafb7111db",
+  "status": "completed",
+  "conclusion": "success",
+  "artifact_data_commit": "558ab74ffa41338b01543baa0fb0a99471eb68e0",
+  "identity_blob": "ca0891b5afa374e4e610b2b732d75af6e1c78d71",
+  "installer_git_blob": "76cf9ab92ca61c18682f91d7973167002b2d40a8",
+  "transport_run": 41255900877,
+  "transport_witness": "3c9c42633e70cbb1d17db2b42242b2d04afe84ce",
+  "transport_receipt_commit": "d07aa9b803b939eee55de481564425e39f4f776c",
+  "transport_receipt_blob": "85da0e8da50d748f7c73f01b78c5f5383de0095d",
+  "independent_three_zip_local_verification_commit": "cb3446c50c9b9c796e57d902f394fb71a3942da1",
+  "independent_three_zip_local_verification_blob": "7f00e45df0c1ad6b5126b40fc89518d7bd167108",
+  "full_original_source_native_run": 41254118077,
+  "full_source_native_receipt_commit": "9aae9f2df7ca0204969dd98d29f8997a44a69567",
+  "full_source_native_receipt_blob": "82d0958fa6897286529fff7c2a0f976c00523b07",
+  "focused_windows_run": 41239409461,
+  "focused_receipt_commit": "2990e459e7c60037f75829854872fac863d7e0c3",
+  "native_harness_blob": "bebb636b42795b53d1241ee787938d55649153f6",
+  "build_harness_blob": "41eb02bc69eb4558928d0b6b50831dad7c98b0ae",
+  "hosted_independent_verifier_blob": "b7b92384abd87ca6eecfd38b200d39192a3358c0",
+  "original_financial_scenario_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "verified_results": {
+    "original_package_not_rebuilt_for_native": true,
+    "hosted_independent_archive_verification": {
+      "installer_sha256": "88883361b778b35c837b8d2078de88b4845937e07ef822060662f6d8e9b91fa5",
+      "asset_files": 180,
+      "vendor_files": 118,
+      "asset_digest_sha256": "abb9426d4b15340b8f17958a0d5e5bc5c060f26e415ef2d3bf7a59663f70e666",
+      "wails_sha256": "52a36f605edca03844c2c143f090b715d59f359426abb3a746120e2c42853ed8",
+      "engine_sha256": "47e69648d2d3fa92e168b9483f1a81f21cb58a3bb72e00b3fd3238b18c416018",
+      "installer_components": 7,
+      "zip_layers_crc_and_safe_paths_verified": 2,
+      "source_sha": "504b28f07a24882470b847ff014391104f78bd66",
+      "source_tree": "bc516c9c38128949cf19bbcb784a88e29dd08685",
+      "delta_vs_qualified_pr235": {
+        "added": [],
+        "removed": [],
+        "changed": [
+          "static/pine_plot_renderer.js"
+        ],
+        "all_other_179_assets_byte_identical": true,
+        "changed_files_normalized_match_pinned_source": true
+      },
+      "owner_data_accessed": false,
+      "app_executed": false,
+      "live_armed": false,
+      "outer_archive_verification": "GitHub original artifact digest and transport metadata; outer ZIP bytes not independently inspected in this hosted verification"
+    },
+    "v5_v6_original_rsi_guides_native_presence_and_removal": [
+      {
+        "removed_rows": [],
+        "baseline_rows": [],
+        "physical_editor_compile_apply_and_remove": true,
+        "scope": "original_Go_RSI_levels_and_native_horizontal_gray_row_presence_removal_not_independent_numeric_to_pixel_position_oracle",
+        "version": 5,
+        "applied_rows": [
+          {
+            "first_row": 58,
+            "last_row": 58,
+            "max_samples": 218,
+            "threshold": 167
+          },
+          {
+            "first_row": 77,
+            "last_row": 77,
+            "max_samples": 235,
+            "threshold": 167
+          },
+          {
+            "first_row": 96,
+            "last_row": 96,
+            "max_samples": 228,
+            "threshold": 167
+          }
+        ],
+        "baseline_sha256": "c1f42f322592f04e49331c0882bb4dfb5f0c6575a5419a3c3a705c9175485a29",
+        "removed_sha256": "c1f42f322592f04e49331c0882bb4dfb5f0c6575a5419a3c3a705c9175485a29",
+        "identical_bounds": true,
+        "actual_original_go_levels": [
+          70,
+          30,
+          50
+        ],
+        "applied_sha256": "e66214f2fe55bc4bdd9e710cfe9e9352e0a929ce8438b441e22a87141bcadc71"
+      },
+      {
+        "removed_rows": [],
+        "baseline_rows": [],
+        "physical_editor_compile_apply_and_remove": true,
+        "scope": "original_Go_RSI_levels_and_native_horizontal_gray_row_presence_removal_not_independent_numeric_to_pixel_position_oracle",
+        "version": 6,
+        "applied_rows": [
+          {
+            "first_row": 58,
+            "last_row": 58,
+            "max_samples": 219,
+            "threshold": 167
+          },
+          {
+            "first_row": 77,
+            "last_row": 77,
+            "max_samples": 236,
+            "threshold": 167
+          },
+          {
+            "first_row": 96,
+            "last_row": 96,
+            "max_samples": 228,
+            "threshold": 167
+          }
+        ],
+        "baseline_sha256": "c1f42f322592f04e49331c0882bb4dfb5f0c6575a5419a3c3a705c9175485a29",
+        "removed_sha256": "c1f42f322592f04e49331c0882bb4dfb5f0c6575a5419a3c3a705c9175485a29",
+        "identical_bounds": true,
+        "actual_original_go_levels": [
+          70,
+          30,
+          50
+        ],
+        "applied_sha256": "da9283679914f23ae2f2fe79864a41e090689d99270cddae045c2d17017cb4ee"
+      }
+    ],
+    "v5_v6_actual_native_marker_colors_and_original_go": [
+      {
+        "marked_sha256": "4d6e0708404c5d7a3297d5b3b85304c3a2a4d57caf5bb7f2a14fd7f5e624d700",
+        "marked_http": {
+          "candles": 300,
+          "actual_response_bar_price_and_style_checked": true,
+          "up": 30,
+          "down": 30,
+          "shapes": 60
+        },
+        "physical_editor_compile_and_apply": true,
+        "identical_bounds": true,
+        "scope": "bounded_synthetic_source_actual_Go_bar_price_style_and_both_native_marker_colors_not_full_RSI_pixel_oracle",
+        "version": 5,
+        "marked_up_pixels": 3120,
+        "baseline_down_pixels": 0,
+        "marked_down_pixels": 3645,
+        "baseline_http": {
+          "candles": 300,
+          "actual_response_bar_price_and_style_checked": true,
+          "up": 0,
+          "down": 0,
+          "shapes": 0
+        },
+        "baseline_up_pixels": 0,
+        "baseline_sha256": "e0cc22ff1f4dcb97f7e2250fbbeb46dc66f64bc14e74f9d5639ccde47612a1ad"
+      },
+      {
+        "marked_sha256": "7d509222dd78270aa58df4788f0ad1f883b4cfef7d0ed8a35c1c115556b15edc",
+        "marked_http": {
+          "candles": 300,
+          "actual_response_bar_price_and_style_checked": true,
+          "up": 30,
+          "down": 30,
+          "shapes": 60
+        },
+        "physical_editor_compile_and_apply": true,
+        "identical_bounds": true,
+        "scope": "bounded_synthetic_source_actual_Go_bar_price_style_and_both_native_marker_colors_not_full_RSI_pixel_oracle",
+        "version": 6,
+        "marked_up_pixels": 3197,
+        "baseline_down_pixels": 0,
+        "marked_down_pixels": 3588,
+        "baseline_http": {
+          "candles": 300,
+          "actual_response_bar_price_and_style_checked": true,
+          "up": 0,
+          "down": 0,
+          "shapes": 0
+        },
+        "baseline_up_pixels": 0,
+        "baseline_sha256": "e0cc22ff1f4dcb97f7e2250fbbeb46dc66f64bc14e74f9d5639ccde47612a1ad"
+      }
+    ],
+    "actual_warm_saved_inputs": [
+      {
+        "values": {
+          "input_1": 2.5,
+          "input_0": 3
+        },
+        "name": "Supertrend",
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296"
+      },
+      {
+        "values": {
+          "input_0": 3
+        },
+        "name": "RSI Divergence",
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914"
+      }
+    ],
+    "actual_cold_restored_and_explicitly_reset_inputs": [
+      {
+        "name": "Supertrend",
+        "disk_and_original_go_verified": true,
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "explicit_reset_verified": true,
+        "default_fields": {
+          "Multiplier": 3,
+          "ATR Period": 10
+        },
+        "saved_revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296",
+        "restored_values": {
+          "input_1": 2.5,
+          "input_0": 3
+        }
+      },
+      {
+        "name": "RSI Divergence",
+        "disk_and_original_go_verified": true,
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "explicit_reset_verified": true,
+        "default_fields": {
+          "RSI Period": 14
+        },
+        "saved_revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914",
+        "restored_values": {
+          "input_0": 3
+        }
+      }
+    ],
+    "supertrend_actual_pane_difference": {
+      "after_sha256": "22ee9e63bcee3b57b9e52b9bfefb7df8d05ae64f4dad4d600534854246d0f773",
+      "identical_bounds": true,
+      "pixel_sample_count": 19635,
+      "before_sha256": "966b373205219029846d2e87fc2826ad67e0b93f6c3187831cc8b086e58415f5",
+      "changed_sample_count": 551,
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle"
+    },
+    "actual_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 546332672,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "pid": 4380,
+          "name": "ktrade.exe",
+          "working_set_bytes": 33648640
+        },
+        {
+          "pid": 1228,
+          "name": "ktrade-engine.exe",
+          "working_set_bytes": 23994368
+        },
+        {
+          "pid": 5968,
+          "name": "conhost.exe",
+          "working_set_bytes": 18440192
+        },
+        {
+          "pid": 2460,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 107319296
+        },
+        {
+          "pid": 7588,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 7950336
+        },
+        {
+          "pid": 1276,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 56627200
+        },
+        {
+          "pid": 7656,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 33189888
+        },
+        {
+          "pid": 2800,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 18866176
+        },
+        {
+          "pid": 2280,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 58822656
+        },
+        {
+          "pid": 6120,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 187473920
+        }
+      ]
+    },
+    "actual_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 573394944,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "pid": 4380,
+          "name": "ktrade.exe",
+          "working_set_bytes": 30347264
+        },
+        {
+          "pid": 1228,
+          "name": "ktrade-engine.exe",
+          "working_set_bytes": 25894912
+        },
+        {
+          "pid": 5968,
+          "name": "conhost.exe",
+          "working_set_bytes": 18440192
+        },
+        {
+          "pid": 2460,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 128507904
+        },
+        {
+          "pid": 7588,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 7950336
+        },
+        {
+          "pid": 1276,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 55410688
+        },
+        {
+          "pid": 7656,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 33251328
+        },
+        {
+          "pid": 2800,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 18866176
+        },
+        {
+          "pid": 2280,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 59097088
+        },
+        {
+          "pid": 6120,
+          "name": "msedgewebview2.exe",
+          "working_set_bytes": 195629056
+        }
+      ]
+    },
+    "required_actual_notices": [
+      "PINE_HLINE_NATIVE_ORIGINAL_V5_V6_RSI_THREE_LEVELS_PHYSICAL_GUIDE_ROWS_AND_REMOVAL=PASS",
+      "PINE_MARKER_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_BOTH_ARROW_COLOR_OBSERVATION=PASS",
+      "PINE_SETTINGS_NATIVE_PHYSICAL_NUMERIC_APPLY_SAVE_VALIDATION_AND_SOURCE_CUSTODY=PASS",
+      "PINE_SETTINGS_NATIVE_COLD_REOPEN_RESTORE_AND_EXPLICIT_DEFAULT_RESET=PASS",
+      "W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+      "W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS",
+      "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+      "W83_INSTALLED_CANDIDATE_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS",
+      "W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS",
+      "EXACT_PRIVATE_ENGINEERING_INSTALLER_NATIVE_UI_PAPER_STOP_COLD_ROLLBACK_OBSERVED_PIXELS_PROCESSES=PASS"
+    ]
+  },
+  "limits": [
+    "Bounded engineering qualification, not product COMPLETE or production admission",
+    "Original Go guide levels and native row presence/removal verified; no independent numeric-to-pixel position oracle",
+    "Native markers use bounded synthetic original Go source; no full RSI marker-position/glyph oracle",
+    "Guide-only pane caption is separate PR237; warm UTC midnight/24h soak, target hardware/FPS/HiDPI, owner profile/financial custody, broader security and CI/release enforcement remain open",
+    "Installed upgrade/rollback baseline b03dd6, not latest qualified installed-profile migration",
+    "Process working sets are observed sums, not unique or peak physical RAM"
+  ],
+  "original_compiler_blob": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+  "original_guard_tree": "1f894b0a6f8115b8a9d3882fa16fdb289eba510a",
+  "original_ledger_tree": "9507b1f181b9a82ebbc4fa63f4bc05b27613e25e",
+  "new_credentials_or_permissions": false,
+  "public_binary_upload": false,
+  "app_executed_on_private_owner_worker": false,
+  "owner_data_accessed": false,
+  "live_armed": false,
+  "release_authority": "none",
+  "production_admission": "HOLD",
+  "product_complete": false,
+  "rejected_first_attempt": {
+    "run": 41256172827,
+    "witness": "61dbaba1663d1db62783108d4b9e468f518f9cf1",
+    "receipt_commit": "34da72cfa01fbc8796891e5f055a9aace50dee00",
+    "not_accepted": true,
+    "repair": "qualification-only original closed-editor bounds wait and plain-text child error transport; same candidate bytes"
+  }
+}
