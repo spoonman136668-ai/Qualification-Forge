@@ -109,8 +109,8 @@ jobs:
           $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41254118077' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
           if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne 'ab6f73989777d51350e8c0906992bd117501b65f'){throw 'EXACT_FULL_SOURCE_AND_NATIVE_ACCEPTANCE_REQUIRED'}
           $pins=@(
-            @('qualification-harness/ktrade-pine-hline-transport/Installed-HLine-Lifecycle.ps1','dcca1e51c9facd7c0f539f3b4ea627c95c1ee568'),
-            @('qualification-harness/ktrade-pine-hline-transport/Build-And-Qualify.ps1','e24c48c889198f3a603344deaeaa52f73365507d'),
+            @('qualification-harness/ktrade-pine-hline-transport/Installed-HLine-Lifecycle.ps1','bebb636b42795b53d1241ee787938d55649153f6'),
+            @('qualification-harness/ktrade-pine-hline-transport/Build-And-Qualify.ps1','41eb02bc69eb4558928d0b6b50831dad7c98b0ae'),
             @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
           )
           foreach($pin in $pins){
