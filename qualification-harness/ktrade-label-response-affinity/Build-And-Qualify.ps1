@@ -95,6 +95,28 @@ foreach($entry in $expected){
  } finally { Pop-Location }
 }
 $gateRoot=Join-Path $env:RUNNER_TEMP ('W83-qualified-'+[guid]::NewGuid().ToString('N'))
-& $ps51 -NoProfile -OutputFormat Text -ExecutionPolicy Bypass -File $WitnessScript -PreviousBundle $packages['PREVIOUS'] -CandidateBundle $packages['CANDIDATE'] -QualificationRoot $gateRoot -NativeInputsPath $NativeInputsPath -PaperScenarioPath $PaperScenarioPath
-Require ($LASTEXITCODE -eq 0) 'W83_NATIVE_CROSS_VERSION_ACCEPTANCE_FAILED'
+# Native redirection avoids PowerShell's implicit CLIXML stderr decoding.
+# Preserve the actual child exit code and both streams, including the first exception.
+$childInfo=[Diagnostics.ProcessStartInfo]::new()
+$childInfo.FileName=$ps51
+$childInfo.UseShellExecute=$false
+$childInfo.RedirectStandardOutput=$true
+$childInfo.RedirectStandardError=$true
+$childInfo.Environment['NO_COLOR']='1'
+$childInfo.Environment['TERM']='dumb'
+foreach($arg in @('-NoProfile','-NonInteractive','-OutputFormat','Text','-ExecutionPolicy','Bypass','-File',$WitnessScript,'-PreviousBundle',$packages['PREVIOUS'],'-CandidateBundle',$packages['CANDIDATE'],'-QualificationRoot',$gateRoot,'-NativeInputsPath',$NativeInputsPath,'-PaperScenarioPath',$PaperScenarioPath)){
+ [void]$childInfo.ArgumentList.Add($arg)
+}
+$child=[Diagnostics.Process]::new()
+$child.StartInfo=$childInfo
+try{
+ Require ($child.Start()) 'W83_NATIVE_CHILD_START_FAILED'
+ $stdout=$child.StandardOutput.ReadToEndAsync()
+ $stderr=$child.StandardError.ReadToEndAsync()
+ $child.WaitForExit()
+ foreach($line in ($stdout.GetAwaiter().GetResult() -split "\r?\n")){if($line){Write-Host $line}}
+ foreach($line in ($stderr.GetAwaiter().GetResult() -split "\r?\n")){if($line){Write-Host ('W83_NATIVE_CHILD_STDERR='+$line)}}
+ Write-Host ('W83_NATIVE_CHILD_EXIT_CODE='+$child.ExitCode)
+ Require ($child.ExitCode -eq 0) 'W83_NATIVE_CROSS_VERSION_ACCEPTANCE_FAILED'
+}finally{$child.Dispose()}
 Write-Output 'W83_FINAL_BOUNDARY_SUCCESS; no signing, release, LIVE, or owner-data access authorized'
