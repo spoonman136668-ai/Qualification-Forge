@@ -1,0 +1,27 @@
+{
+  "schema": "ktrade.pr238.full-source-failed.v1",
+  "verdict": "FAIL_NOT_ACCEPTED",
+  "source_sha": "86df16b0b13046b47909edd709d978484459de3d",
+  "source_tree": "60c83a503f65e8c6a5405f1851d887bd2728ccd2",
+  "run_id": 41258552772,
+  "job_id": 124706814682,
+  "witness_sha": "c5df7c6126a056cb2a1d68de12c5a4458c95c829",
+  "failed_step": "Exact source-owned complete Node and browser compatibility",
+  "original_checks_failed": [
+    "W17D2 parent-to-iframe nonce and empty target",
+    "W17D4 state before first candles and visible timeframe buttons",
+    "W17D5 pane geometry before chart creation",
+    "W17D6 toolbar price lines and accessible editor"
+  ],
+  "actual_fault": "Initial template upload incorrectly used a truncated exec stdout read. The committed file contained tool truncation text and omitted original chart state initialization.",
+  "local_checks_scope": "Local184 and focused44 tested different scopes: local full file passed; remote focused chart method tail passed but did not exercise omitted middle section. Neither qualifies the corrupted whole chart.",
+  "correction_source": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+  "correction_tree": "84b3318a15488ec943dbb39c60ab4a37f0624e1e",
+  "correction_chart_blob": "f73fae79e1bc9942e7877ac0a554ed873cb6a413",
+  "correction": "Reconstruct complete template from immutable parent content, apply label change in memory, readback exact equality and match local tested Git blob. Rerun all four frozen original source CI commands; do not weaken or filter four failures.",
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}
