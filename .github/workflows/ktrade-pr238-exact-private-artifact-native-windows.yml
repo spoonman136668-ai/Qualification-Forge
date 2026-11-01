@@ -114,7 +114,7 @@ jobs:
           if((& git -C $w rev-parse 'HEAD:qualification-receipts/ktrade-pr238-complete-chart-full-source-windows-20261031.json').Trim() -cne 'c124ce8c9dfab0ab04df75fb9b8535e256feb7a3'){throw 'EXACT_CURRENT_FULL_REGRESSION_RECEIPT_REQUIRED'}
           if((& git -C $src rev-parse 'HEAD:templates/chart.tmpl').Trim() -cne 'f73fae79e1bc9942e7877ac0a554ed873cb6a413'){throw 'COMPLETE_CHART_BLOB_REQUIRED'}
           $pins=@(
-            @('qualification-harness/ktrade-label-response-affinity/Installed-Label-Lifecycle.ps1','3f0fa595c5b79db9e879fbaefb94f91dac4b492f'),
+            @('qualification-harness/ktrade-label-response-affinity/Installed-Label-Lifecycle.ps1','e6832167e8fa0e22a8d21ab6bffe67b2ad685f55'),
             @('qualification-harness/ktrade-label-response-affinity/Build-And-Qualify.ps1','b87f624d26f171ce57b2b45acfe4e67075bf3828'),
             @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
           )
@@ -146,6 +146,13 @@ jobs:
             $rows=@($observed|Where-Object {$_ -is [string] -and $_.StartsWith($prefix,[StringComparison]::Ordinal)})
             if($rows.Count -ne $count){throw ('W94B_REQUIRED_ACTUAL_PROBE_OUTPUT_MISSING_'+$prefix)}
             return @($rows|ForEach-Object {$_.Substring($prefix.Length)|ConvertFrom-Json -ErrorAction Stop})
+          }
+          $ready=@(ProbeJson 'W83_NATIVE_READY_MEASUREMENT=' 3)
+          $functional=@(ProbeJson 'W83_NATIVE_FUNCTIONAL_PROBES_MEASUREMENT=' 3)
+          foreach($phase in @('PREVIOUS','UPDATED','ROLLED_BACK')){
+            $r=@($ready|Where-Object {$_.phase -ceq $phase})
+            $f=@($functional|Where-Object {$_.phase -ceq $phase})
+            if($r.Count -ne 1 -or $f.Count -ne 1 -or $r[0].elapsed_ms -le 0 -or $r[0].elapsed_ms -gt 120000 -or $r[0].startup_budget_ms -ne 120000 -or $r[0].shell_engine_resident_bytes -le 0 -or $r[0].shell_engine_resident_bytes -gt 1073741824 -or $r[0].resident_budget_bytes -ne 1073741824 -or $f[0].elapsed_ms -lt 0){throw 'ALL_THREE_REAL_STARTUP_AND_FULL_FUNCTIONAL_TIMINGS_REQUIRED'}
           }
           $screens=@(ProbeJson 'W94B_PRICE_CHART_SCREEN_DIGEST=' 2)
           if(@($screens|Where-Object {$_.phase -ceq 'BEFORE_SUPERTREND'}).Count -ne 1 -or @($screens|Where-Object {$_.phase -ceq 'AFTER_SUPERTREND'}).Count -ne 1){throw 'W94B_BOTH_REAL_SCREEN_PHASES_REQUIRED'}
