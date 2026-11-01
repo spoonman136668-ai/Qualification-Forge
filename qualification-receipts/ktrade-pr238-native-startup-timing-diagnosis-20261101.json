@@ -1,0 +1,26 @@
+{
+  "schema": "ktrade.pr238.native-startup-timing-diagnosis.v1",
+  "verdict": "FAIL_ORIGINAL_ATTEMPT_NOT_ACCEPTED",
+  "run_id": 41292206827,
+  "job_id": 124805576859,
+  "witness_sha": "e69ca53ea2029d3cbf2e58c82751808840b60147",
+  "source_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+  "installer_sha256": "a34be54981d1029e58cf7bea938d5b61f595607298ee5010a4754d004751db4c",
+  "child_exit_code": 1,
+  "root_error": "W83_NATIVE_STARTUP_EXCEEDED_PROSPECTIVE_120S_BUDGET",
+  "original_measurements": {
+    "previous_ms": 9784.0384,
+    "updated_ms": 135231.4435,
+    "updated_shell_engine_bytes": 52776960
+  },
+  "diagnosis": "Original reported metric declares selected-shortcut to verified WebView2 and safe-capability startup; stopwatch actually spans all subsequent added indicator/input/label exercises. Threshold exceeded by aggregate scenario, not measured standalone startup.",
+  "correction": "Stop original startup stopwatch at verified real UI/engine/loopback/disarmed-capability boundary before functional probes; retain120s limit and1GiB limits; record complete functional probes separately under unchanged35min workflow; preserve all probe calls and assertions.",
+  "accepted": false,
+  "full_native_pending": true,
+  "production_admission": "HOLD",
+  "source_changed": false,
+  "installer_rebuilt": false,
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}
