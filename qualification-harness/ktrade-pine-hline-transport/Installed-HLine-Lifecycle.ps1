@@ -472,16 +472,21 @@ function GuidePane([object]$shell){
  }while([DateTime]::UtcNow -lt $until)
  throw 'HLINE_EXACT_VISIBLE_OWNED_PINE_PANE_NOT_FOUND'
 }
-function GuideWaitStable([object]$shell){
- $until=[DateTime]::UtcNow.AddSeconds(10);$last=$null;$stable=0
+function GuideWaitStable([object]$shell,[object]$expected=$null,[object]$closedChart=$null){
+ # A briefly stationary intermediate resize is not the closed editor geometry.
+ # Keep the original rectangle as the comparison contract; never crop/rebase it.
+ $until=[DateTime]::UtcNow.AddSeconds(20);$last=$null;$stable=0;$actual=$null
  do{
   $node=GuidePane $shell;$r=$node.Current.BoundingRectangle
   $actual=[System.Drawing.Rectangle]::new([int][Math]::Ceiling($r.Left),[int][Math]::Ceiling($r.Top),[int][Math]::Floor($r.Width),[int][Math]::Floor($r.Height))
-  if($null -ne $last -and $actual.Equals($last)){$stable++}else{$stable=0}
-  if($stable -ge 3){return $actual}
+  $matches=($null -eq $expected -or $actual.Equals($expected))
+  if($null -ne $closedChart){$matches=$matches -and $actual.Left -eq $closedChart.Left -and $actual.Width -eq $closedChart.Width}
+  if($matches -and $null -ne $last -and $actual.Equals($last)){$stable++}else{$stable=0}
+  if($stable -ge 7){return $actual}
   $last=$actual;Start-Sleep -Milliseconds 150
  }while([DateTime]::UtcNow -lt $until)
- throw 'HLINE_PINE_PANE_GEOMETRY_DID_NOT_SETTLE'
+ Write-Host ('HLINE_PANE_GEOMETRY_TIMEOUT='+(@{actual=[string]$actual;expected=[string]$expected;closed_chart=[string]$closedChart;stable_observations=$stable}|ConvertTo-Json -Compress))
+ throw 'HLINE_PINE_PANE_DID_NOT_RETURN_TO_ORIGINAL_CLOSED_EDITOR_GEOMETRY'
 }
 function GuideGrayRows([System.Drawing.Bitmap]$bitmap){
  $threshold=[Math]::Max(40,[int][Math]::Floor($bitmap.Width*0.18));$rows=@();$last=$null
@@ -515,6 +520,9 @@ function GuideOriginalHTTP([string]$origin,[string]$source,[bool]$expectedGuides
  return $levels
 }
 function GuideNative([object]$shell,[string]$origin){
+ $closedNode=FindUI $shell 'Price chart drawing surface' $false 20
+ $r=$closedNode.Current.BoundingRectangle
+ $closedChart=[System.Drawing.Rectangle]::new([int][Math]::Ceiling($r.Left),[int][Math]::Ceiling($r.Top),[int][Math]::Floor($r.Width),[int][Math]::Floor($r.Height))
  $catalog=SettingsCatalogCode $origin 'RSI Divergence'
  Require ([regex]::Matches($catalog,'(?m)^hline\(').Count -eq 3) 'HLINE_EXACT_ORIGINAL_RSI_SOURCE_REQUIRED'
  foreach($version in @(5,6)){
@@ -523,20 +531,23 @@ function GuideNative([object]$shell,[string]$origin){
   MarkerPhysicalApply $shell $origin $baselineSource
   $null=FindUI $shell 'Pine: RSI' $false 20
   $null=GuideOriginalHTTP $origin $baselineSource $false
-  $null=GuideWaitStable $shell
+  W94BWaitOriginalChartBounds $shell $closedChart
+  $null=GuideWaitStable $shell $null $closedChart
   $baseline=GuideCapturePane $shell ('HLINE_BASELINE_V'+$version);$after=$null;$removed=$null
   try{
    $beforeRows=@(GuideGrayRows $baseline.bitmap)
    Require ($beforeRows.Count -eq 0) 'HLINE_BASELINE_HAS_UNEXPECTED_GRAY_HORIZONTAL_ROWS'
    MarkerPhysicalApply $shell $origin $source
    $levels=@(GuideOriginalHTTP $origin $source $true)
-   $null=GuideWaitStable $shell
+   W94BWaitOriginalChartBounds $shell $closedChart
+   $null=GuideWaitStable $shell $baseline.rect $closedChart
    $after=GuideCapturePane $shell ('HLINE_APPLIED_V'+$version)
    $afterRows=@(GuideGrayRows $after.bitmap)
    Require ($after.rect.Equals($baseline.rect) -and $afterRows.Count -eq 3 -and $after.digest -cne $baseline.digest) 'HLINE_THREE_ACTUAL_NATIVE_GRAY_GUIDES_NOT_OBSERVED'
    MarkerPhysicalApply $shell $origin $baselineSource
    $null=GuideOriginalHTTP $origin $baselineSource $false
-   $null=GuideWaitStable $shell
+   W94BWaitOriginalChartBounds $shell $closedChart
+   $null=GuideWaitStable $shell $baseline.rect $closedChart
    $removed=GuideCapturePane $shell ('HLINE_REMOVED_V'+$version)
    $removedRows=@(GuideGrayRows $removed.bitmap)
    Require ($removed.rect.Equals($baseline.rect) -and $removedRows.Count -eq 0) 'HLINE_NATIVE_REAPPLY_DID_NOT_REMOVE_GUIDES'
