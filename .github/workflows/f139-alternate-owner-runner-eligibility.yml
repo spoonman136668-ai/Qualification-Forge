@@ -10,11 +10,11 @@ concurrency:
 jobs:
   alternate-owner-access:
     if: github.actor == 'spoonman136668-ai'
-    runs-on: windows-2022
+    runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 3
     steps:
       - name: Read only original machine, elevation, task and profile eligibility
-        shell: pwsh
+        shell: powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File {0}
         run: |
           $ErrorActionPreference='Stop'
           if($env:GITHUB_EVENT_NAME -cne 'push' -or
