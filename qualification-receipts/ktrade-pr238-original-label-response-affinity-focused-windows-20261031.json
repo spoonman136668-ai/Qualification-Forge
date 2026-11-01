@@ -1,0 +1,64 @@
+{
+  "schema": "ktrade.original-pine-label-response-affinity.focused-windows.v1",
+  "verdict": "PASS_SCOPED_ORIGINAL_V5_V6_LABEL_RESPONSE_BINDING_AND_PRE_MUTATION_VALIDATION",
+  "source_sha": "86df16b0b13046b47909edd709d978484459de3d",
+  "source_tree": "60c83a503f65e8c6a5405f1851d887bd2728ccd2",
+  "run_id": 41257447767,
+  "job_id": 124703518007,
+  "witness_sha": "7ab03745d6493ddaa58901d0cecdcdd43f63e6bb",
+  "status": "completed",
+  "conclusion": "success",
+  "changed_paths": [
+    "templates/chart.tmpl",
+    "tests/rb3_pine_label_response_affinity.test.cjs",
+    "cmd/ktrade/pine_label_response_affinity_full_test.go"
+  ],
+  "parent_source": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc",
+  "runtime_go_changed": false,
+  "identical_pkg_evidence_reused": {
+    "run": 41254118077,
+    "witness": "ab6f73989777d51350e8c0906992bd117501b65f",
+    "receipt_blob": "82d0958fa6897286529fff7c2a0f976c00523b07",
+    "fresh_pkg_suite_rerun": false
+  },
+  "original_compiler_blob": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+  "original_drawing_manager_blob": "717d6bb5737430679d361dda82eafacbe1bb6591",
+  "original_guard_tree": "1f894b0a6f8115b8a9d3882fa16fdb289eba510a",
+  "original_ledger_tree": "9507b1f181b9a82ebbc4fa63f4bc05b27613e25e",
+  "original_defects_reproduced_on_actual_go_http": "Both versions resolved labels against deliberately foreign live history; malformed label presentation raised only after plot mutation. Original parent chart restored in finally.",
+  "current_api": {
+    "roots": 8,
+    "subtests": 18,
+    "race": true,
+    "vet": true,
+    "fail": 0,
+    "skip": 0,
+    "original_http_fixture_files": 5
+  },
+  "node": {
+    "cases": 44,
+    "pass": 44,
+    "fail": 0,
+    "skip": 0,
+    "actual_chart_method_executed": true,
+    "actual_go_v5_v6_label_fixture_executed": true
+  },
+  "local_node_cases": 184,
+  "local_parent_counterfactual": "All three new cases fail on parent chart and pass on current source",
+  "initial_workflow_serialization": {
+    "witness": "ed6bdb3760cba0319398b972d64db0eabb23c177",
+    "accepted": false,
+    "classification": "invalid YAML from replacement-token expansion, no source test acceptance; repaired with literal Python replacements and parsed before dispatch"
+  },
+  "limits": [
+    "Source-focused qualification only; full final source-owned/native and exact private candidate pending",
+    "Label candle binding and mutation ordering only; existing glyph/absolute-price/pane fidelity not newly qualified",
+    "Future-bar and bar-time label coordinates explicitly unsupported in this response-bound renderer",
+    "Parent PR237 full source/native qualification is still running"
+  ],
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}
