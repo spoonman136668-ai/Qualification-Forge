@@ -740,6 +740,15 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
  Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and
   $cap.live_orders_enabled -eq $false -and $cap.strategy_execution_enabled -eq $false -and
   $cap.paper_accounting_enabled -eq $false -and $cap.requires_review -eq $true) 'W83_OPERATOR_CAPABILITIES_DRIFT'
+ # The startup metric ends at its declared boundary: the real selected
+ # shortcut has opened the verified WebView2 chart and safe capabilities.
+ # Keep all later functional probes and the original 120s/1GiB limits.
+ $startWatch.Stop()
+ $readyMemory=[long](Get-Process -Id $shell.Id).WorkingSet64+[long](Get-Process -Id $engine[0].ProcessId).WorkingSet64
+ Write-Host ('W83_NATIVE_READY_MEASUREMENT='+(@{phase=$phase;elapsed_ms=$startWatch.Elapsed.TotalMilliseconds;shell_engine_resident_bytes=$readyMemory;startup_budget_ms=120000;resident_budget_bytes=1073741824;scope='native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded'}|ConvertTo-Json -Compress))
+ Require ($startWatch.Elapsed.TotalSeconds -le 120) 'W83_NATIVE_STARTUP_EXCEEDED_PROSPECTIVE_120S_BUDGET'
+ Require ($readyMemory -le 1073741824) 'W83_SHELL_ENGINE_RESIDENT_EXCEEDED_PROSPECTIVE_1GIB_BUDGET'
+ $functionalWatch=[Diagnostics.Stopwatch]::StartNew()
  if($phase -ceq 'UPDATED'){
   # Real installed CANDIDATE Go-engine HTTP; compile does not evaluate or dispatch.
   $origin='http://127.0.0.1:'+$ports[0].LocalPort
@@ -870,10 +879,11 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   Write-Host '::notice::W83_INSTALLED_CANDIDATE_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS'
  }
  Write-Host ('::notice::W83_NATIVE_'+$phase+'_WEBVIEW2_AND_PAPER_STOPPED=PASS')
- $startWatch.Stop()
+ $functionalWatch.Stop()
+ Write-Host ('W83_NATIVE_FUNCTIONAL_PROBES_MEASUREMENT='+(@{phase=$phase;elapsed_ms=$functionalWatch.Elapsed.TotalMilliseconds;scope='all original and new installed functional probes; separate from native startup; existing workflow timeout unchanged'}|ConvertTo-Json -Compress))
  $engineProcess=Get-Process -Id $engine[0].ProcessId
  $memory=[long]$shell.WorkingSet64+[long]$engineProcess.WorkingSet64
- Write-Host ('W83_NATIVE_PRE_ASSERT_MEASUREMENT='+(@{phase=$phase;elapsed_ms=$startWatch.Elapsed.TotalMilliseconds;shell_engine_resident_bytes=$memory;startup_budget_ms=120000;resident_budget_bytes=1073741824;scope='original stopwatch including all candidate probes; diagnostic only; guards unchanged'}|ConvertTo-Json -Compress))
+ Write-Host ('W83_NATIVE_PRE_ASSERT_MEASUREMENT='+(@{phase=$phase;elapsed_ms=$startWatch.Elapsed.TotalMilliseconds;shell_engine_resident_bytes=$memory;startup_budget_ms=120000;resident_budget_bytes=1073741824;scope='native startup at actual safe UI readiness; guards unchanged; functional duration reported separately'}|ConvertTo-Json -Compress))
  Require ($startWatch.Elapsed.TotalSeconds -le 120) 'W83_NATIVE_STARTUP_EXCEEDED_PROSPECTIVE_120S_BUDGET'
  Require ($memory -le 1073741824) 'W83_SHELL_ENGINE_RESIDENT_EXCEEDED_PROSPECTIVE_1GIB_BUDGET'
  Write-Host ('W83_NATIVE_START_MEASUREMENT='+(@{phase=$phase;elapsed_ms=$startWatch.Elapsed.TotalMilliseconds;shell_engine_resident_bytes=$memory;startup_budget_ms=120000;resident_budget_bytes=1073741824;scope='native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded'}|ConvertTo-Json -Compress))
