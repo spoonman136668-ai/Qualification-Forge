@@ -873,6 +873,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
  $startWatch.Stop()
  $engineProcess=Get-Process -Id $engine[0].ProcessId
  $memory=[long]$shell.WorkingSet64+[long]$engineProcess.WorkingSet64
+ Write-Host ('W83_NATIVE_PRE_ASSERT_MEASUREMENT='+(@{phase=$phase;elapsed_ms=$startWatch.Elapsed.TotalMilliseconds;shell_engine_resident_bytes=$memory;startup_budget_ms=120000;resident_budget_bytes=1073741824;scope='original stopwatch including all candidate probes; diagnostic only; guards unchanged'}|ConvertTo-Json -Compress))
  Require ($startWatch.Elapsed.TotalSeconds -le 120) 'W83_NATIVE_STARTUP_EXCEEDED_PROSPECTIVE_120S_BUDGET'
  Require ($memory -le 1073741824) 'W83_SHELL_ENGINE_RESIDENT_EXCEEDED_PROSPECTIVE_1GIB_BUDGET'
  Write-Host ('W83_NATIVE_START_MEASUREMENT='+(@{phase=$phase;elapsed_ms=$startWatch.Elapsed.TotalMilliseconds;shell_engine_resident_bytes=$memory;startup_budget_ms=120000;resident_budget_bytes=1073741824;scope='native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded'}|ConvertTo-Json -Compress))
