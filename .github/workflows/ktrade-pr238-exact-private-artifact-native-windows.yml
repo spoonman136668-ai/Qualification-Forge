@@ -114,8 +114,8 @@ jobs:
           if((& git -C $w rev-parse 'HEAD:qualification-receipts/ktrade-pr238-complete-chart-full-source-windows-20261031.json').Trim() -cne 'c124ce8c9dfab0ab04df75fb9b8535e256feb7a3'){throw 'EXACT_CURRENT_FULL_REGRESSION_RECEIPT_REQUIRED'}
           if((& git -C $src rev-parse 'HEAD:templates/chart.tmpl').Trim() -cne 'f73fae79e1bc9942e7877ac0a554ed873cb6a413'){throw 'COMPLETE_CHART_BLOB_REQUIRED'}
           $pins=@(
-            @('qualification-harness/ktrade-label-response-affinity/Installed-Label-Lifecycle.ps1','be2c3e69a955ce87d64d68d5fdbc3c6b8237431f'),
-            @('qualification-harness/ktrade-label-response-affinity/Build-And-Qualify.ps1','809d6cc49998f12fab35951397e191e3e74b0f59'),
+            @('qualification-harness/ktrade-label-response-affinity/Installed-Label-Lifecycle.ps1','3f0fa595c5b79db9e879fbaefb94f91dac4b492f'),
+            @('qualification-harness/ktrade-label-response-affinity/Build-And-Qualify.ps1','b87f624d26f171ce57b2b45acfe4e67075bf3828'),
             @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
           )
           foreach($pin in $pins){
