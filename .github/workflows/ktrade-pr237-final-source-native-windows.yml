@@ -2,7 +2,7 @@ name: KTRADE PR237 guide-only pane caption full Windows and same scanned native 
 on:
   push:
     branches: [qualification/ktrade-guide-only-pane-caption-20261031]
-    paths: [.github/workflows/ktrade-pr237-final-native-windows.yml]
+    paths: [.github/workflows/ktrade-pr237-final-source-native-windows.yml]
 permissions:
   contents: read
   actions: read
