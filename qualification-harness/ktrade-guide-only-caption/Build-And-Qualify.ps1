@@ -95,6 +95,6 @@ foreach($entry in $expected){
  } finally { Pop-Location }
 }
 $gateRoot=Join-Path $env:RUNNER_TEMP ('W83-qualified-'+[guid]::NewGuid().ToString('N'))
-& $ps51 -NoProfile -ExecutionPolicy Bypass -File $WitnessScript -PreviousBundle $packages['PREVIOUS'] -CandidateBundle $packages['CANDIDATE'] -QualificationRoot $gateRoot -NativeInputsPath $NativeInputsPath -PaperScenarioPath $PaperScenarioPath
+& $ps51 -NoProfile -OutputFormat Text -ExecutionPolicy Bypass -File $WitnessScript -PreviousBundle $packages['PREVIOUS'] -CandidateBundle $packages['CANDIDATE'] -QualificationRoot $gateRoot -NativeInputsPath $NativeInputsPath -PaperScenarioPath $PaperScenarioPath
 Require ($LASTEXITCODE -eq 0) 'W83_NATIVE_CROSS_VERSION_ACCEPTANCE_FAILED'
 Write-Output 'W83_FINAL_BOUNDARY_SUCCESS; no signing, release, LIVE, or owner-data access authorized'
