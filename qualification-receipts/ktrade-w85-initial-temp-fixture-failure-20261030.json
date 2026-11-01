@@ -1,0 +1,19 @@
+{
+  "schema": "ktrade.qualification.failure.receipt.v1",
+  "run_id": 41078598856,
+  "job_id": 124141374110,
+  "witness": "7eb97a98eb19c7330b2a3dace291783d8a819eb6",
+  "source_sha": "7ddea43a58e433de38244215b256d76988f5e9f6",
+  "conclusion": "failure",
+  "verdict": "FAIL_QUALIFIER_MISSING_ESTABLISHED_TEMP_ENVIRONMENT",
+  "actual_failed_tests": [
+    "TestW18FreshCandidateRetainsPairedProofAndStableProfile",
+    "TestW28BVerifiedReleaseIdentityIsReadOnly"
+  ],
+  "error": "release candidate physical root differs",
+  "cause": "New Wails test step omitted original W82 TEMP/TMP=RUNNER_TEMP setup; the original physical-root guard correctly refused the fixture.",
+  "fix": "Restore original qualified process-local TEMP/TMP setup without changing or weakening path guards, source or tests.",
+  "node_and_native_paper": "NOT_RUN",
+  "owner_data_touched": false,
+  "live_armed": false
+}

@@ -1,0 +1,298 @@
+{
+  "schema": "ktrade.pr233.full-windows-native-integration.v1",
+  "verdict": "PASS_SCOPED_FROZEN_SOURCE_FULL_WINDOWS_TEST_VET_BUILD_AND_SAME_ARCHIVE_NATIVE_LIFECYCLE",
+  "source_pr": 233,
+  "source_sha": "42bf2c698d15da43632540959f9a5eea3999158b",
+  "source_tree": "378603bf6eca76ba54ede3e1db4104cc838c9cc3",
+  "source_parent": "8863604499cbd4af372d52896e78e45d57735581",
+  "changed_paths": [
+    "pkg/catalog_rsi_divergence_test.go",
+    "pkg/pine_compiler.go",
+    "templates/chart.tmpl",
+    "tests/rb3_w90_catalog_actions.test.cjs"
+  ],
+  "run_id": 41218814380,
+  "job_id": 124588886471,
+  "qualifier_execution_sha": "0289a36f6d61794488a4be139f1247c527fb6858",
+  "job_status": "completed",
+  "job_conclusion": "success",
+  "go": "1.26.10",
+  "node": "24",
+  "source_owned_workflow_blob": "b971da1a5721dc43839dc0e99b22df3ee4e2fa10",
+  "actual_extracted_command_bodies": [
+    {
+      "kind": "go",
+      "shell": "pwsh",
+      "sha256": "7e2782e1049b8d8bd297ebccab761c67be95049c237bbb33b311865938b1e054"
+    },
+    {
+      "kind": "node",
+      "shell": "pwsh",
+      "sha256": "3ba16ab998f391a42c9879de1f1f94f071e526e819078200c5c4657472c7a6a7"
+    },
+    {
+      "kind": "assets",
+      "shell": "pwsh",
+      "sha256": "1b29ef7108a4a46b2b5384dab5334cca99a65403c5c43efe166f24d8a0e035ab"
+    },
+    {
+      "kind": "build",
+      "shell": "powershell",
+      "sha256": "98eaa9753ac0addeea61d27ccc638868c255b0e47b359221b74da8a2ba8762be"
+    }
+  ],
+  "verified_results": {
+    "full_original_go_root_tests_vet": "PASS",
+    "full_tagged_app_tests_vet": "PASS",
+    "nested_wails_tests_vet": "PASS",
+    "node_files": 35,
+    "node_cases": 158,
+    "node_fail": 0,
+    "node_skip": 0,
+    "node_cancel": 0,
+    "two_root_baseline_browser": "PASS four sparse original reader files only",
+    "real_vendor_hashes": 118,
+    "asset_staging_repeatable": true,
+    "upstream_notices_and_licenses": "PASS",
+    "shipping_js_affected": 0,
+    "nonshipping_legacy_audit_preserved": true,
+    "original_unsigned_executables": 6,
+    "actual_shipping_binary_scans": "PASS both actual binaries No vulnerabilities found",
+    "same_archive_built_scanned_and_installed_sha256": "b83e72aabec74526e8be79a24eb0e6dca27712ead7052c11f0ea59016343b175",
+    "original_physical_supertrend_and_williams_apply": true,
+    "paper_four_fills_fees_fifo_risk_dedup_stop": true,
+    "cold_no_auto_rearm": true,
+    "old_new_unknown_history_retained_after_rollback": true,
+    "legacy_order_http423": true,
+    "pane_captures": [
+      {
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "left": 46,
+        "retained_screenshot": false,
+        "top": 215,
+        "height": 346,
+        "phase": "BEFORE_SUPERTREND",
+        "width": 932,
+        "png_sha256": "f84c0a4b14494343369a756a8c6384a9ab858fbcedab72fcf33949370cc05630"
+      },
+      {
+        "scope": "captured_original_visible_Price_chart_drawing_surface",
+        "left": 46,
+        "retained_screenshot": false,
+        "top": 215,
+        "height": 346,
+        "phase": "AFTER_SUPERTREND",
+        "width": 932,
+        "png_sha256": "ef44e7b9a0926cea2c3920d88203832f4774a7e8d15dafe2f8811eb61b9d3f11"
+      }
+    ],
+    "pane_difference": {
+      "after_sha256": "ef44e7b9a0926cea2c3920d88203832f4774a7e8d15dafe2f8811eb61b9d3f11",
+      "changed_sample_count": 1017,
+      "pixel_sample_count": 19635,
+      "before_sha256": "f84c0a4b14494343369a756a8c6384a9ab858fbcedab72fcf33949370cc05630",
+      "identical_bounds": true,
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle"
+    },
+    "observed_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 543240192,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "name": "ktrade.exe",
+          "pid": 2120,
+          "working_set_bytes": 33755136
+        },
+        {
+          "name": "ktrade-engine.exe",
+          "pid": 8016,
+          "working_set_bytes": 23769088
+        },
+        {
+          "name": "conhost.exe",
+          "pid": 2392,
+          "working_set_bytes": 18501632
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 3284,
+          "working_set_bytes": 109805568
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 648,
+          "working_set_bytes": 8040448
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 7076,
+          "working_set_bytes": 53145600
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 4232,
+          "working_set_bytes": 33333248
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 2724,
+          "working_set_bytes": 18935808
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 6188,
+          "working_set_bytes": 58998784
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 4876,
+          "working_set_bytes": 184954880
+        }
+      ]
+    },
+    "observed_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 578637824,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "name": "ktrade.exe",
+          "pid": 2120,
+          "working_set_bytes": 30482432
+        },
+        {
+          "name": "ktrade-engine.exe",
+          "pid": 8016,
+          "working_set_bytes": 29319168
+        },
+        {
+          "name": "conhost.exe",
+          "pid": 2392,
+          "working_set_bytes": 18501632
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 3284,
+          "working_set_bytes": 130908160
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 648,
+          "working_set_bytes": 8040448
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 7076,
+          "working_set_bytes": 55541760
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 4232,
+          "working_set_bytes": 33394688
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 2724,
+          "working_set_bytes": 18935808
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 6188,
+          "working_set_bytes": 59121664
+        },
+        {
+          "name": "msedgewebview2.exe",
+          "pid": 4876,
+          "working_set_bytes": 194392064
+        }
+      ]
+    },
+    "actual_probe_coverage_and_sums_verified": true,
+    "physical_rsi_divergence_apply_exact_plot_caption_and_disarmed_capabilities": true,
+    "native_startup_measurements": [
+      {
+        "resident_budget_bytes": 1073741824,
+        "phase": "PREVIOUS",
+        "startup_budget_ms": 120000,
+        "elapsed_ms": 11049.9444,
+        "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+        "shell_engine_resident_bytes": 57237504
+      },
+      {
+        "resident_budget_bytes": 1073741824,
+        "phase": "UPDATED",
+        "startup_budget_ms": 120000,
+        "elapsed_ms": 12618.9981,
+        "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+        "shell_engine_resident_bytes": 55955456
+      },
+      {
+        "resident_budget_bytes": 1073741824,
+        "phase": "ROLLED_BACK",
+        "startup_budget_ms": 120000,
+        "elapsed_ms": 2530.9021,
+        "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+        "shell_engine_resident_bytes": 55386112
+      }
+    ]
+  },
+  "native_harness_blob": "ac2edbb0db1ab6eef9c044778dfa92c2482069dd",
+  "build_harness_blob": "79af7ff20e942901582e525d3df16ba29ded0383",
+  "original_financial_harness_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "limits": [
+    "Bounded engineering qualification; not protected acceptance, product COMPLETE or LIVE_READY",
+    "Regular strict 2-left/2-right price-pivot RSI divergence only; not hidden divergence or universal platform parity",
+    "846 prefix evaluations use finalized input candles; revised or unconfirmed live-candle stability unaccepted",
+    "Numerical raw v5/v6 input maps and edited defaults qualified; installed Apply uses default inputs, not native input-settings/persistence UI",
+    "No independent numeric-to-pixel marker oracle, competitive usability, FPS, target-hardware, HiDPI or long-session resource acceptance",
+    "Observed process working-set sums are not unique physical or peak RAM",
+    "Actual warm UTC midnight and 24h+ soak remain unaccepted; earlier UTC tests use synthetic prior checkpoint dates",
+    "Original Wilder recurrence, persistent-var handling, TradeGuard/ledger trees/schemas and kill policy retained; original RSI backfill and ordinary-series missing-value fallbacks deliberately repaired",
+    "Private engineering package is a separate rebuild until its exact archive has independently passed custody verification and native qualification",
+    "No owner data/account credentials, real broker, signing, release, promotion or LIVE authority"
+  ],
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none",
+  "product_complete": false,
+  "original_tradeguard_tree": "1f894b0a6f8115b8a9d3882fa16fdb289eba510a",
+  "original_ledger_reconcile_tree": "9507b1f181b9a82ebbc4fa63f4bc05b27613e25e",
+  "qualified_base_source": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4",
+  "installed_previous_source": "b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a",
+  "compiler_blob": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+  "previous_compiler_blob": "2b0dfff2b5f19cb9a6c55bdea5584265e3280d35",
+  "preserved_failed_native_run": 41217524027,
+  "preserved_failed_native_receipt_commit": "a6538e4a0e92d8e8bfe2359a5be5bb57838a8d02",
+  "native_caption_correction": {
+    "product_source_changed": false,
+    "expected_catalog_title": "RSI Divergence",
+    "original_plot_label": "RSI",
+    "observed_exact_ui_caption": "Pine: RSI",
+    "harness_correction_commit": "13334bfdb463ba7131130ccacd499d4019e3f205"
+  },
+  "focused_confirmed_rsi_divergence_original_negative_controls": {
+    "run": 41216843794,
+    "witness": "8866be9b7ab0a221123e5f257a78dcc1aa1a2539",
+    "receipt_commit": "a37a08494787d677cc59a3a486b670234249d4a9",
+    "receipt_blob": "49c2afa2803d9cfb1f96e7a9a9f8f0ab292e5af7",
+    "roots": 11,
+    "subtests": 142,
+    "new_leaf_scenarios": 36,
+    "previous_cases": 106,
+    "finalized_candle_prefix_evaluations": 846,
+    "fail": 0,
+    "skip": 0,
+    "original_defect_groups_reproduced": [
+      "oversold/overbought alias",
+      "future-candle RSI warmup backfill",
+      "ordinary-series explicit-NA carry ghost occurrences"
+    ],
+    "race": true,
+    "package_vet": true,
+    "node_actions": 2,
+    "frozen_marker_goldens_unchanged": true
+  }
+}

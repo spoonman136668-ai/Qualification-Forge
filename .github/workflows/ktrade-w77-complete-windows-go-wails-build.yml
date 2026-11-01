@@ -1,0 +1,161 @@
+name: KTRADE W77 final exact W76 source complete Windows Go Wails vet and production build
+on:
+  push:
+    branches: [qualification/ktrade-w77-final-go-wails-build-regression-20261030]
+    paths: [.github/workflows/ktrade-w77-complete-windows-go-wails-build.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w77-final-source-build-20261030
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 65
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      KTRADE_LIVE_TRADING: 'false'
+    steps:
+      - name: Checkout exact W77 independent witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact W75 accepted Node and W74 installed receipts
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: 543a01ff201dc1533addcf7781063697a3bd7b5a
+          path: prior-qualified
+          persist-credentials: false
+      - name: Checkout exact final W76 test-only source child
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 0acfae265370b677dfe6de1386de793fb20b2460
+          fetch-depth: 2
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify exact runtime identity and compositional receipt custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W77_EPHEMERAL_WINDOWS_ONLY'}
+          foreach($pair in @(
+            @('witness',$env:GITHUB_SHA),
+            @('prior-qualified','543a01ff201dc1533addcf7781063697a3bd7b5a'),
+            @('source','0acfae265370b677dfe6de1386de793fb20b2460')
+          )){
+            $p=Join-Path $env:GITHUB_WORKSPACE $pair[0]
+            if((& git -C $p rev-parse HEAD).Trim() -cne $pair[1]){throw 'W77_CHECKOUT_SHA_DRIFT'}
+            if(@(& git -C $p status --porcelain).Count -ne 0){throw 'W77_DIRTY_CHECKOUT'}
+          }
+          $source=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if((& git -C $source rev-parse 'HEAD^{tree}').Trim() -cne '1059c3e77dfb882f652994d9262f0eb681d03cb5'){throw 'W77_SOURCE_TREE_DRIFT'}
+          if((& git -C $source rev-parse HEAD^).Trim() -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6'){throw 'W77_ORIGINAL_W73_PARENT_DRIFT'}
+          $changed=@(& git -C $source diff --name-only HEAD^ HEAD)
+          if($changed.Count -ne 1 -or $changed[0] -cne 'tests/paper_tradeguard_reconciliation.test.cjs'){throw 'W77_PRODUCT_DELTA_NOT_TEST_ONLY'}
+          $oldBroker=(& git -C $source rev-parse 'HEAD^:pkg/advanced_orders.go').Trim()
+          $newBroker=(& git -C $source rev-parse 'HEAD:pkg/advanced_orders.go').Trim()
+          if($oldBroker -cne $newBroker){throw 'W77_ORIGINAL_LIVE_AUTHORITY_CHANGED'}
+          $live=Get-Content -LiteralPath (Join-Path $source 'pkg/advanced_orders.go') -Raw
+          if($live -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'W77_LIVE_NOT_DISARMED'}
+          if(Test-Path -LiteralPath (Join-Path $source '.env')){throw 'W77_WORKSPACE_DOTENV_PRESENT'}
+          if(@(& git -C $source ls-files '.env' '*/.env').Count -ne 0){throw 'W77_TRACKED_DOTENV'}
+          $previous=Join-Path $env:GITHUB_WORKSPACE 'prior-qualified/qualification-receipts/ktrade-w75-operator-market-full-node-windows-20261030.json'
+          if((& git hash-object $previous).Trim() -cne 'e023979d36d8e74d5c847fd6f38791d9eefcf81e'){throw 'W77_W75_NODE_RECEIPT_BLOB_DRIFT'}
+          $nodeReceipt=Get-Content -LiteralPath $previous -Raw|ConvertFrom-Json
+          if($nodeReceipt.source_sha -cne '0acfae265370b677dfe6de1386de793fb20b2460' -or
+             $nodeReceipt.verdict -cne 'PASS_SCOPED_NODE_OPERATOR_MARKET_PINE_SECURITY' -or
+             $nodeReceipt.run_id -ne 41056714705 -or
+             $nodeReceipt.observed.node_test_cases_passed -ne 148 -or
+             $nodeReceipt.observed.node_test_cases_failed -ne 0 -or
+             $nodeReceipt.observed.node_test_cases_skipped -ne 0){throw 'W77_W75_NODE_ACCEPTANCE_DRIFT'}
+          $w74Path=Join-Path $env:GITHUB_WORKSPACE 'prior-qualified/qualification-receipts/ktrade-w74-final-installed-native-fourth-sell-windows-20261030.json'
+          if((& git hash-object $w74Path).Trim() -cne '71ace41011b02341592d45dc2db343ca481e4f12'){throw 'W77_W74_INSTALLED_RECEIPT_BLOB_DRIFT'}
+          $installed=Get-Content -LiteralPath $w74Path -Raw|ConvertFrom-Json
+          if($installed.candidate_sha -cne '7dfec71777730f744e1749b8bd741fbd01f0d2f6' -or
+             $installed.verdict -cne 'PASS_SCOPED_INSTALLED_W31_TO_W73_TO_W31_AND_P10_QUARANTINE'){throw 'W77_W74_INSTALLED_ACCEPTANCE_DRIFT'}
+          Write-Host '::notice::W77_EXACT_TEST_ONLY_CHILD_SOURCE_W74_W75_REUSABLE_ACCEPTED_RECEIPTS=PASS'
+      - name: Native Go 1.25
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0'
+          cache: false
+      - name: Full original final source Go Windows and nested Wails regression plus vet
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          Push-Location $src
+          try{
+            & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W77_FULL_ORIGINAL_KTRADE_TAGGED_APP_FAILED'}
+            & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'W77_ORIGINAL_KTRADE_TAGGED_VET_FAILED'}
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W77_FULL_ORIGINAL_ROOT_GO_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W77_FULL_ORIGINAL_ROOT_VET_FAILED'}
+          }finally{Pop-Location}
+          Push-Location (Join-Path $src 'tools/wails-pilot')
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'W77_FULL_WAILS_GO_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'W77_FULL_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W77_FINAL_ORIGINAL_GO_TAGGED_ROOT_WAILS_ALL_TEST_VET=PASS'
+      - name: Node 24 for locked, non-executing vendor setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Source-bound fixture-free production Windows Wails and Go package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          Remove-Item Env:KTRADE_W32E_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          Remove-Item Env:KTRADE_W13_QUALIFICATION_ONLY -ErrorAction SilentlyContinue
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          Push-Location $src
+          try {
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W77_NPM_OFFLINE_VENDOR_LOCK_FAILED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W77_ORIGINAL_OFFLINE_VENDOR_FAILED'}
+          }finally{Pop-Location}
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-w03-package-'+[guid]::NewGuid().ToString('N'))
+          & (Join-Path $src 'windows/Build-KTRADE-WailsPortable.ps1') -OutputRoot $root -ExpectedSourceSha '0acfae265370b677dfe6de1386de793fb20b2460'
+          if($LASTEXITCODE -ne 0){throw 'W77_ORIGINAL_PAIR_PRODUCTION_BUILD_FAILED'}
+          $manifest=Get-Content -LiteralPath (Join-Path $root 'source-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.schema -cne 'ktrade.wails.package-qualification.v1' -or
+             $manifest.source_sha -cne '0acfae265370b677dfe6de1386de793fb20b2460' -or
+             $manifest.fixture_mode -cne 'none' -or $manifest.live_armed -or
+             $manifest.release_candidate -or
+             $manifest.desktop -cne 'Wails v2 / WebView2'){throw 'W77_WAILS_PAIR_MANIFEST_REJECTED'}
+          $script:package=$root
+          [IO.File]::WriteAllText((Join-Path $env:RUNNER_TEMP 'ktrade-w77-package.txt'),$root)
+          Write-Host '::notice::W77_FINAL_SOURCE_ORIGINAL_UNSIGNED_WAILS_GO_NO_FIXTURE_NO_LIVE_PAIR=PASS'
+      - name: Fail closed and clean only ephemeral Windows package
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $path=Join-Path $env:RUNNER_TEMP 'ktrade-w77-package.txt'
+          if(Test-Path -LiteralPath $path){
+            $p=[IO.File]::ReadAllText($path)
+            if(([IO.Path]::GetDirectoryName($p)) -cne $env:RUNNER_TEMP -or
+               ([IO.Path]::GetFileName($p)) -notmatch '^ktrade-w03-package-[a-f0-9]{32}$'){throw 'W77_UNSAFE_CLEANUP_REFUSED'}
+            Remove-Item -LiteralPath $p -Recurse -Force -ErrorAction Stop
+          }
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '0acfae265370b677dfe6de1386de793fb20b2460'){throw 'W77_SOURCE_SHA_CHANGED'}
+          if(@(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'W77_TRACKED_SOURCE_MUTATED'}
+          Write-Host '::notice::W77_NO_OWNER_DATA_NO_CONNECTED_BROKER_NO_ORDER_NO_LIVE_NO_RELEASE_NO_MERGE'

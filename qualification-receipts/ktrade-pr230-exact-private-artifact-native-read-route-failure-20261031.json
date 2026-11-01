@@ -1,0 +1,31 @@
+{
+  "schema": "ktrade.pr230.exact-private-native.infrastructure-failure.v1",
+  "verdict": "FAIL_INFRA_EXISTING_PRIVATE_ACTIONS_READ_HTTP404_BEFORE_NATIVE",
+  "source_sha": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+  "source_tree": "894152b0c45b102584ce092b2aa964701ed40205",
+  "run_id": 41184348560,
+  "job_id": 124488060404,
+  "qualifier_execution_sha": "ecd332c86d6322b695c4618ddfb4b649337ed07b",
+  "job_status": "completed",
+  "job_conclusion": "failure",
+  "failed_step": "Read exact private artifact using existing read credential only never publish it",
+  "observed_error": "PRIVATE_ARTIFACT_EXISTING_READ_ROUTE_UNAVAILABLE_HTTP_404",
+  "native_step": "skipped",
+  "artifact_id": 13035861531,
+  "artifact_outer_sha256": "0e2e7aac83d8266e4668c8d5df32690630acb7747c4c7602f69363eac77d5b4f",
+  "installer_sha256": "3cb5e7fea812d76bfa29747cf13b1d0a131d565f46e29e1d6a705eff81014f38",
+  "connected_github_tool_account_download_and_independent_zip_verification": "PASS same artifact",
+  "existing_runner_source_token_private_actions_read": "HTTP404;no inference of general account access failure",
+  "product_failure_established": false,
+  "private_artifact_native_executed": false,
+  "source_identical_different_hosted_archive_full_native": {
+    "run": 41182705117,
+    "conclusion": "success",
+    "archive_sha256": "045e876eeefe6a037a43edff1546a82ae66a43ab14bfa126b974ffe269d168f9"
+  },
+  "no_new_credentials_permissions_or_controllers": true,
+  "source_rebuild_needed_for_read_route_repair": false,
+  "release_authority": "none",
+  "live_armed": false,
+  "product_complete": false
+}

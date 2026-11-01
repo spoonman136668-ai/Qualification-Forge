@@ -1,0 +1,359 @@
+{
+  "schema": "ktrade.pr236.full-source-owned-windows-native.v1",
+  "verdict": "PASS_SCOPED_ORIGINAL_RSI_GUIDES_NA_TRANSPORT_FULL_SOURCE_CI_AND_SAME_SCANNED_NATIVE_PACKAGE",
+  "source_sha": "504b28f07a24882470b847ff014391104f78bd66",
+  "source_tree": "bc516c9c38128949cf19bbcb784a88e29dd08685",
+  "run_id": 41254118077,
+  "job_id": 124693543238,
+  "witness_sha": "ab6f73989777d51350e8c0906992bd117501b65f",
+  "status": "completed",
+  "conclusion": "success",
+  "focused_run": 41239409461,
+  "focused_receipt_commit": "2990e459e7c60037f75829854872fac863d7e0c3",
+  "focused_receipt_blob": "ee494acfac1f57bbddd7572edf01627ecc043409",
+  "original_compiler_blob": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+  "qualified_nonfinite_drawing_fix_blob": "f5b52befb522a260289af0177dfd0c9eda1d4d6b",
+  "source_owned_ci_workflow_blob": "b971da1a5721dc43839dc0e99b22df3ee4e2fa10",
+  "complete_original_go_tagged_wails_tests_and_vet": "PASS",
+  "current_api_race_roots": 6,
+  "node": {
+    "files": 38,
+    "cases": 181,
+    "fail": 0,
+    "skip": 0,
+    "two_root_browser": "PASS"
+  },
+  "assets": {
+    "files": 180,
+    "vendor": 118,
+    "repeatable": true,
+    "licenses_and_notices": "PASS",
+    "shipping_js_known_affected_nodes": 0,
+    "nonshipping_legacy_advisories_unchanged": true
+  },
+  "unsigned_binaries": 6,
+  "actual_main_pair_binary_scans": "PASS No vulnerabilities found",
+  "go_version": "go1.26.10",
+  "actual_same_scanned_installer_sha256": "9a7604767ae36aa3fb6f88a57ee984a34716ac25d5593f35070775ac4f62166a",
+  "native_harness_blob": "dcca1e51c9facd7c0f539f3b4ea627c95c1ee568",
+  "builder_blob": "e24c48c889198f3a603344deaeaa52f73365507d",
+  "original_financial_scenario_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "verified_native": {
+    "original_v5_v6_rsi_guides": [
+      {
+        "removed_rows": [],
+        "scope": "original_Go_RSI_levels_and_native_horizontal_gray_row_presence_removal_not_independent_numeric_to_pixel_position_oracle",
+        "physical_editor_compile_apply_and_remove": true,
+        "version": 5,
+        "baseline_sha256": "c48053c2254c6aea10ff42018bf2e5b9cbbae022a73acfe2e54b960ca85dff67",
+        "applied_rows": [
+          {
+            "first_row": 58,
+            "last_row": 58,
+            "max_samples": 218,
+            "threshold": 167
+          },
+          {
+            "first_row": 77,
+            "last_row": 77,
+            "max_samples": 231,
+            "threshold": 167
+          },
+          {
+            "first_row": 96,
+            "last_row": 96,
+            "max_samples": 227,
+            "threshold": 167
+          }
+        ],
+        "baseline_rows": [],
+        "actual_original_go_levels": [
+          70,
+          30,
+          50
+        ],
+        "removed_sha256": "c48053c2254c6aea10ff42018bf2e5b9cbbae022a73acfe2e54b960ca85dff67",
+        "applied_sha256": "f00f570931b9ec20c192ef650806ee5a18bca204b398f3696d42f4db4edb58eb",
+        "identical_bounds": true
+      },
+      {
+        "removed_rows": [],
+        "scope": "original_Go_RSI_levels_and_native_horizontal_gray_row_presence_removal_not_independent_numeric_to_pixel_position_oracle",
+        "physical_editor_compile_apply_and_remove": true,
+        "version": 6,
+        "baseline_sha256": "c48053c2254c6aea10ff42018bf2e5b9cbbae022a73acfe2e54b960ca85dff67",
+        "applied_rows": [
+          {
+            "first_row": 58,
+            "last_row": 58,
+            "max_samples": 218,
+            "threshold": 167
+          },
+          {
+            "first_row": 77,
+            "last_row": 77,
+            "max_samples": 231,
+            "threshold": 167
+          },
+          {
+            "first_row": 96,
+            "last_row": 96,
+            "max_samples": 227,
+            "threshold": 167
+          }
+        ],
+        "baseline_rows": [],
+        "actual_original_go_levels": [
+          70,
+          30,
+          50
+        ],
+        "removed_sha256": "c48053c2254c6aea10ff42018bf2e5b9cbbae022a73acfe2e54b960ca85dff67",
+        "applied_sha256": "f00f570931b9ec20c192ef650806ee5a18bca204b398f3696d42f4db4edb58eb",
+        "identical_bounds": true
+      }
+    ],
+    "retained_marker_colors": [
+      {
+        "physical_editor_compile_and_apply": true,
+        "marked_up_pixels": 3056,
+        "marked_http": {
+          "actual_response_bar_price_and_style_checked": true,
+          "candles": 300,
+          "shapes": 60,
+          "down": 30,
+          "up": 30
+        },
+        "version": 5,
+        "baseline_up_pixels": 0,
+        "baseline_sha256": "176bd984b2d8de08bd56f63ab698ad3b179cfa8db90a78661637e9a4449d6d34",
+        "marked_down_pixels": 3527,
+        "baseline_down_pixels": 0,
+        "scope": "bounded_synthetic_source_actual_Go_bar_price_style_and_both_native_marker_colors_not_full_RSI_pixel_oracle",
+        "baseline_http": {
+          "actual_response_bar_price_and_style_checked": true,
+          "candles": 300,
+          "shapes": 0,
+          "down": 0,
+          "up": 0
+        },
+        "identical_bounds": true,
+        "marked_sha256": "132c49a5c7234751a9ffa05df11a8c1ed84c3eff3a1ec280e699d2f588911306"
+      },
+      {
+        "physical_editor_compile_and_apply": true,
+        "marked_up_pixels": 3056,
+        "marked_http": {
+          "actual_response_bar_price_and_style_checked": true,
+          "candles": 300,
+          "shapes": 60,
+          "down": 30,
+          "up": 30
+        },
+        "version": 6,
+        "baseline_up_pixels": 0,
+        "baseline_sha256": "176bd984b2d8de08bd56f63ab698ad3b179cfa8db90a78661637e9a4449d6d34",
+        "marked_down_pixels": 3527,
+        "baseline_down_pixels": 0,
+        "scope": "bounded_synthetic_source_actual_Go_bar_price_style_and_both_native_marker_colors_not_full_RSI_pixel_oracle",
+        "baseline_http": {
+          "actual_response_bar_price_and_style_checked": true,
+          "candles": 300,
+          "shapes": 0,
+          "down": 0,
+          "up": 0
+        },
+        "identical_bounds": true,
+        "marked_sha256": "132c49a5c7234751a9ffa05df11a8c1ed84c3eff3a1ec280e699d2f588911306"
+      }
+    ],
+    "warm_saved_inputs": [
+      {
+        "values": {
+          "input_1": 2.5,
+          "input_0": 3
+        },
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "name": "Supertrend",
+        "revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296"
+      },
+      {
+        "values": {
+          "input_0": 3
+        },
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "name": "RSI Divergence",
+        "revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914"
+      }
+    ],
+    "cold_restored_and_explicit_reset_inputs": [
+      {
+        "disk_and_original_go_verified": true,
+        "name": "Supertrend",
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "restored_values": {
+          "input_1": 2.5,
+          "input_0": 3
+        },
+        "explicit_reset_verified": true,
+        "default_fields": {
+          "ATR Period": 10,
+          "Multiplier": 3
+        },
+        "saved_revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296"
+      },
+      {
+        "disk_and_original_go_verified": true,
+        "name": "RSI Divergence",
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "restored_values": {
+          "input_0": 3
+        },
+        "explicit_reset_verified": true,
+        "default_fields": {
+          "RSI Period": 14
+        },
+        "saved_revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914"
+      }
+    ],
+    "supertrend_actual_pane_difference": {
+      "identical_bounds": true,
+      "pixel_sample_count": 19635,
+      "before_sha256": "f382a220581d38ed9528309d2ba89a9852584ba8c393cb4ade132407078868b6",
+      "after_sha256": "07ca25984ab101e03912e61a5cebf059010998b773a441cfe61198e9dbe13858",
+      "scope": "native_desktop_pane_difference_only_not_independent_pixel_oracle",
+      "changed_sample_count": 566
+    },
+    "actual_processes_before": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 539914240,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "working_set_bytes": 34078720,
+          "pid": 5484,
+          "name": "ktrade.exe"
+        },
+        {
+          "working_set_bytes": 23904256,
+          "pid": 2128,
+          "name": "ktrade-engine.exe"
+        },
+        {
+          "working_set_bytes": 18481152,
+          "pid": 196,
+          "name": "conhost.exe"
+        },
+        {
+          "working_set_bytes": 100823040,
+          "pid": 6788,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 8015872,
+          "pid": 7044,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 56127488,
+          "pid": 2956,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 33222656,
+          "pid": 9180,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 18927616,
+          "pid": 7864,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 61124608,
+          "pid": 7644,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 185208832,
+          "pid": 9040,
+          "name": "msedgewebview2.exe"
+        }
+      ]
+    },
+    "actual_processes_after": {
+      "scope": "shell,engine,and_all_current_descendants_including_WebView2",
+      "total_working_set_bytes": 574148608,
+      "process_count": 10,
+      "webview2_count": 7,
+      "members": [
+        {
+          "working_set_bytes": 30797824,
+          "pid": 5484,
+          "name": "ktrade.exe"
+        },
+        {
+          "working_set_bytes": 25960448,
+          "pid": 2128,
+          "name": "ktrade-engine.exe"
+        },
+        {
+          "working_set_bytes": 18481152,
+          "pid": 196,
+          "name": "conhost.exe"
+        },
+        {
+          "working_set_bytes": 128512000,
+          "pid": 6788,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 8015872,
+          "pid": 7044,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 55291904,
+          "pid": 2956,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 33320960,
+          "pid": 9180,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 18927616,
+          "pid": 7864,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 61419520,
+          "pid": 7644,
+          "name": "msedgewebview2.exe"
+        },
+        {
+          "working_set_bytes": 193421312,
+          "pid": 9040,
+          "name": "msedgewebview2.exe"
+        }
+      ]
+    },
+    "process_sums_verified": true,
+    "four_paper_fills_fees_fifo_risk_dedup_stop_cold_no_rearm_and_history_rollback": true
+  },
+  "limits": [
+    "Bounded hosted engineering qualification, not product completion or production admission",
+    "Three native gray row groups show original RSI guides and removal; not an independent numeric-to-pixel-position oracle",
+    "Guide-only pane caption remains a separate follow-up; default RSI caption was preserved",
+    "Previous installed update/rollback baseline b03dd6, not latest installed owner-profile migration",
+    "Warm UTC midnight/24h soak, target hardware/FPS/HiDPI, full original parity, owner financial custody, broader security, source CI and release enforcement remain open",
+    "Private review rebuild still requires exact private-byte installed native acceptance"
+  ],
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

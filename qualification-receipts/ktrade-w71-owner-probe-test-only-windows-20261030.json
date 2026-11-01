@@ -1,0 +1,34 @@
+{
+  "schema": "ktrade.qualification.test-only-reuse.v1",
+  "gate": "W71_OWNER_REFUSAL_OBSERVER",
+  "source_sha": "d914d6d6f966b94422ab8a0582a0a4f39c6bda43",
+  "source_tree": "c01cb291b2fc9bec73c2dcbd7a17b378055b0c7d",
+  "source_pr": 218,
+  "fully_qualified_production_source": "aee9f5007fbd963c8bbf42631d5089a1630ab477",
+  "only_changed_path": "pkg/advanced_order_v2_cdp_owner_windows_test.go",
+  "default_excluded_build_tag": "windows && ktrade_w71_owner_readonly",
+  "production_bytes_changed": false,
+  "foundation_full_run_id": 41025595146,
+  "foundation_receipt_commit": "1a694249ffa264db67ab27ccca7b6da01008c829",
+  "test_only_run_id": 41027810979,
+  "test_only_job_id": 123970014133,
+  "witness_sha": "6296a11fef214d4b72df4ff3948e5b4d4253b416",
+  "workflow_blob": "06354479d51bb9b95977eadaa34f0c31ea9e7782",
+  "conclusion": "success",
+  "completed_utc": "2026-10-30T08:41:24Z",
+  "checks": [
+    "Exact source/tree, immediate fully-qualified parent and sole excluded owner test delta",
+    "Body-preserving observer synthetic test, JSON omits private fields, malformed account/balance/identity never match",
+    "Both owner hooks compiled; tagged pkg vet passed",
+    "Actual owner flag removed and real-provider hooks not executed on hosted runner"
+  ],
+  "real_provider_candidate_verdict": "UNVERIFIED; initial native source run refused, separate diagnostic pending",
+  "authority": {
+    "opening_cash": false,
+    "fee_currency": false,
+    "history_complete": false,
+    "posting": false,
+    "hold_release": false,
+    "live": false
+  }
+}

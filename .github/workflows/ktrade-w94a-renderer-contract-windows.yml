@@ -1,0 +1,70 @@
+name: KTRADE W94A pinned Supertrend renderer/data alignment
+on:
+  push:
+    branches: [qualification/ktrade-w94-renderer-contract-20261030]
+    paths:
+      - .github/workflows/ktrade-w94a-renderer-contract-windows.yml
+      - qualification-harness/ktrade-w94/renderer-contract.test.cjs
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w94a-renderer-contract-20261030
+  cancel-in-progress: false
+jobs:
+  renderer-boundary:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    env:
+      KTRADE_LIVE_TRADING: 'false'
+      GITHUB_TOKEN: ${{ github.token }}
+      KTRADE_CANDIDATE: ${{ github.workspace }}\candidate
+    steps:
+      - name: Checkout exact qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          fetch-depth: 3
+          persist-credentials: false
+      - name: Checkout exact unchanged KTRADE PR229 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: cea559a5abc0136d1ca0dff16c313f8dac0477f2
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Pin source, W93 evidence, and test execution custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          $s=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:KTRADE_LIVE_TRADING -cne 'false'){throw 'W94A_HOSTED_OFFLINE_WINDOWS_REQUIRED'}
+          if((& git -C $s rev-parse HEAD).Trim() -cne 'cea559a5abc0136d1ca0dff16c313f8dac0477f2'){throw 'W94A_SOURCE_SHA_DRIFT'}
+          if((& git -C $s rev-parse 'HEAD^{tree}').Trim() -cne 'a6076bc3c1e2bcae6b21c10a4ea810105a05bd7e'){throw 'W94A_SOURCE_TREE_DRIFT'}
+          if((& git -C $s rev-parse 'HEAD:static/pine_plot_renderer.js').Trim() -cne '3fb025859c6ce54899d72a9eb0a4096e86ea9f4b'){throw 'W94A_RENDERER_BLOB_DRIFT'}
+          if((& git -C $w rev-parse 'HEAD~2').Trim() -cne '2fc95c45ce49bac64a221afc4fffd77661ed4eaa'){throw 'W94A_ACCEPTED_W93_PARENT_DRIFT'}
+          if((& git -C $w rev-parse 'HEAD~2:qualification-receipts/ktrade-w93-supertrend-native-windows-20261030.json').Trim() -cne '77539dc43016887b9c7cb2340d310cdc1e7e9cbc'){throw 'W94A_W93_RECEIPT_BLOB_DRIFT'}
+          foreach($d in @($w,$s)){if(@(& git -C $d status --porcelain).Count -ne 0){throw 'W94A_DIRTY_WORKTREE'}}
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41157406050' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne '4a4cccae79904ebfe9eae0838799bcfbaeb23ea2'){throw 'W94A_ORIGINAL_W93_RUN_NOT_ACCEPTED'}
+          Write-Host '::notice::W94A_EXACT_ORIGINAL_W93_NATIVE_SOURCE_TREE_AND_RENDERER_BLOB=PASS'
+      - name: Execute independent presentation-boundary cases
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          & node --test (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w94/renderer-contract.test.cjs')
+          if($LASTEXITCODE -ne 0){throw 'W94A_RENDERER_BOUNDARY_FAILURE'}
+          Write-Host '::notice::W94A_INDEPENDENT_RENDERER_PRESENTATION_TESTS=PASS'
+      - name: Preserve release separation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:KTRADE_LIVE_TRADING -cne 'false'){throw 'W94A_LIVE_GUARD_DRIFT'}
+          Write-Host '::notice::W94A_TEST_DOUBLES_NOT_PIXEL_OR_FPS_PROOF_NO_OWNER_DATA_NO_BROKER_NO_LIVE_NO_RELEASE'

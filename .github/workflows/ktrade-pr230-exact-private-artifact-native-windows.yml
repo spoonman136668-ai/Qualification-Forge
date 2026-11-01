@@ -1,0 +1,150 @@
+name: KTRADE PR230 exact private engineering artifact native qualification
+on:
+  push:
+    branches: [qualification/ktrade-pine-input-period-binding-20261031]
+    paths: [.github/workflows/ktrade-pr230-exact-private-artifact-native-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pr230-exact-private-artifact-native-20261031
+  cancel-in-progress: false
+jobs:
+  exact-private-native:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9c12ea7eab02d34e0f2de35b9e45e9486145fa0e
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Read exact private artifact using existing read credential only never publish it
+        id: artifact
+        shell: pwsh
+        env:
+          PRIVATE_ARTIFACT_READ_TOKEN: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $ProgressPreference='SilentlyContinue'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_HOSTED_QUALIFICATION_REQUIRED'}
+          $headers=@{Authorization=('Bearer '+$env:PRIVATE_ARTIFACT_READ_TOKEN);Accept='application/vnd.github+json'}
+          $archive=Join-Path $env:RUNNER_TEMP 'pr230-private-engineering.zip'
+          try{
+            $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/ckb/actions/runs/41183871207' -Headers $headers -TimeoutSec 30
+            if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne '7069245f299170939671ca6ff2b60bae742dccdb'){throw 'PRIVATE_BUILD_PROOF_DRIFT'}
+            $meta=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/ckb/actions/artifacts/13035861531' -Headers $headers -TimeoutSec 30
+            if($meta.id -ne 13035861531 -or $meta.expired -or $meta.digest -cne 'sha256:0e2e7aac83d8266e4668c8d5df32690630acb7747c4c7602f69363eac77d5b4f' -or $meta.workflow_run.head_sha -cne '7069245f299170939671ca6ff2b60bae742dccdb'){throw 'PRIVATE_ARTIFACT_METADATA_DRIFT'}
+            # Authenticate only the GitHub request. A signed blob redirect is
+            # fetched without the repository bearer token; URL stays in memory.
+            $handler=[Net.Http.HttpClientHandler]::new()
+            $handler.AllowAutoRedirect=$false
+            $http=[Net.Http.HttpClient]::new($handler)
+            try{
+              $request=[Net.Http.HttpRequestMessage]::new([Net.Http.HttpMethod]::Get,'https://api.github.com/repos/spoonman136668-ai/ckb/actions/artifacts/13035861531/zip')
+              $request.Headers.Authorization=[Net.Http.Headers.AuthenticationHeaderValue]::new('Bearer',$env:PRIVATE_ARTIFACT_READ_TOKEN)
+              $request.Headers.UserAgent.ParseAdd('KTRADE-private-artifact-qualification')
+              $response=$http.SendAsync($request).GetAwaiter().GetResult()
+              try{
+                if([int]$response.StatusCode -in @(302,303,307)){
+                  $redirect=$response.Headers.Location
+                  if(!$redirect.IsAbsoluteUri -or $redirect.Scheme -cne 'https' -or $redirect.Host -notmatch '(^|\.)(blob\.core\.windows\.net|githubusercontent\.com)$'){throw 'PRIVATE_ARTIFACT_REDIRECT_HOST_REFUSED'}
+                  $response.Dispose()
+                  $response=$http.GetAsync($redirect).GetAwaiter().GetResult()
+                }
+                if([int]$response.StatusCode -ne 200){throw ('PRIVATE_ARTIFACT_DOWNLOAD_HTTP_'+[int]$response.StatusCode)}
+                $stream=$response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+                try{$file=[IO.File]::Create($archive);try{$stream.CopyTo($file)}finally{$file.Dispose()}}finally{$stream.Dispose()}
+              }finally{$response.Dispose();$request.Dispose()}
+            }finally{$http.Dispose();$handler.Dispose()}
+          }catch{
+            # Never emit an exception containing a signed download URL/token.
+            $message=$_.Exception.Message
+            if($message -cmatch '^PRIVATE_[A-Z_0-9]+$'){throw $message}
+            $httpStatus=0
+            try{$httpStatus=[int]$_.Exception.Response.StatusCode}catch{}
+            throw ('PRIVATE_ARTIFACT_EXISTING_READ_ROUTE_UNAVAILABLE_HTTP_'+$httpStatus)
+          }
+          if((Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant() -cne '0e2e7aac83d8266e4668c8d5df32690630acb7747c4c7602f69363eac77d5b4f'){throw 'PRIVATE_OUTER_ARCHIVE_HASH_DRIFT'}
+          $outer=[IO.Compression.ZipFile]::OpenRead($archive)
+          $delivery=Join-Path $env:RUNNER_TEMP ('pr230-private-exact-'+[guid]::NewGuid().ToString('N'))
+          $null=New-Item -ItemType Directory $delivery
+          try{
+            $names=@($outer.Entries|ForEach-Object{$_.FullName})
+            $expected=@('KTRADE-EngineeringCandidate.zip','engineering-review.json','setup-build-receipt.json','README.txt')
+            if($names.Count -ne 4 -or @($names|Select-Object -Unique).Count -ne 4 -or @($names|Where-Object{$_ -cnotin $expected}).Count -ne 0){throw 'PRIVATE_WRAPPER_EXACT_FOUR_FILES_REQUIRED'}
+            foreach($entry in $outer.Entries){
+              if((($entry.ExternalAttributes -shr 16) -band 0xF000) -eq 0xA000){throw 'PRIVATE_WRAPPER_SYMLINK_REFUSED'}
+              [IO.Compression.ZipFileExtensions]::ExtractToFile($entry,(Join-Path $delivery $entry.FullName),$false)
+            }
+          }finally{$outer.Dispose()}
+          $review=Get-Content (Join-Path $delivery 'engineering-review.json') -Raw|ConvertFrom-Json
+          if($review.source_sha -cne '9c12ea7eab02d34e0f2de35b9e45e9486145fa0e' -or $review.source_tree -cne '894152b0c45b102584ce092b2aa964701ed40205' -or $review.archive_sha256 -cne '3cb5e7fea812d76bfa29747cf13b1d0a131d565f46e29e1d6a705eff81014f38' -or $review.live_armed -or $review.signed -or $review.app_executed -or $review.owner_data_accessed -or $review.release_authority -cne 'none'){throw 'PRIVATE_REVIEW_SOURCE_OR_AUTHORITY_REFUSED'}
+          $inner=Join-Path $delivery 'KTRADE-EngineeringCandidate.zip'
+          if((Get-FileHash $inner -Algorithm SHA256).Hash.ToLowerInvariant() -cne '3cb5e7fea812d76bfa29747cf13b1d0a131d565f46e29e1d6a705eff81014f38'){throw 'PRIVATE_ACTUAL_INSTALLER_HASH_DRIFT'}
+          Move-Item $inner (Join-Path $delivery 'KTRADE-SetupBundle.zip')
+          [IO.File]::AppendAllText($env:GITHUB_OUTPUT,('bundle_root='+$delivery+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          Write-Host '::notice::EXACT_PRIVATE_ARTIFACT_READ_WITH_EXISTING_SCOPE_BOTH_HASHES_DISARMED_SOURCE_PROOFS_NO_PUBLIC_UPLOAD=PASS'
+      - name: Exact source and completed final full integration proof
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '9c12ea7eab02d34e0f2de35b9e45e9486145fa0e' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '894152b0c45b102584ce092b2aa964701ed40205' -or @(& git -C $src status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $src '.env'))){throw 'EXACT_CLEAN_SOURCE_REQUIRED'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41182705117' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne '39d9c408cfb6e4b75799df6586987b44f37b2cc6'){throw 'ORIGINAL_FROZEN_FULL_FINAL_ACCEPTANCE_REQUIRED'}
+          $pins=@(
+            @('qualification-harness/ktrade-input-period/Installed-Period-Lifecycle.ps1','56c91297744f89abd65a575acea9321fb7677e8e'),
+            @('qualification-harness/ktrade-input-period/Build-And-Qualify.ps1','db07ab70ccd867f50d6980af4641850e98af547e'),
+            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
+          )
+          foreach($pin in $pins){
+            if((& git -C (Join-Path $env:GITHUB_WORKSPACE 'witness') rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'EXACT_ORIGINAL_NATIVE_FINANCIAL_HARNESS_REQUIRED'}
+          }
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original exact private package real installed native lifecycle
+        shell: pwsh
+        env:
+          CANDIDATE_BUNDLE_ROOT: ${{ steps.artifact.outputs.bundle_root }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          $probeLog=Join-Path $env:RUNNER_TEMP 'pr230-exact-private-native-output.txt'
+          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-input-period/Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-input-period/Installed-Period-Lifecycle.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1') -CandidateQualifiedBundleRoot $env:CANDIDATE_BUNDLE_ROOT -ExpectedCandidateArchiveSha256 '3cb5e7fea812d76bfa29747cf13b1d0a131d565f46e29e1d6a705eff81014f38' 2>&1 | Tee-Object -FilePath $probeLog
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'EXACT_PRIVATE_ARCHIVE_NATIVE_ACCEPTANCE_FAILED'}
+          $lines=@(Get-Content $probeLog)
+          foreach($marker in @('::notice::W94B_ACTIVE_PIXEL_AND_WEBVIEW_PROCESS_PROBES_EXECUTED=PASS','::notice::W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS','::notice::W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS')){
+            if(@($lines|Where-Object{$_ -ceq $marker}).Count -ne 1){throw 'EXACT_PRIVATE_ARTIFACT_ACTUAL_NATIVE_OUTPUT_MISSING'}
+          }
+          Write-Host '::notice::EXACT_PRIVATE_ENGINEERING_INSTALLER_NATIVE_UI_PAPER_STOP_COLD_ROLLBACK_OBSERVED_PIXELS_PROCESSES=PASS'

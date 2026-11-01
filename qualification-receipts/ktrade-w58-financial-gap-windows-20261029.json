@@ -1,0 +1,102 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W58",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_sha": "7ed8e26370ad196fd04e8b21d455e11a90f66343",
+  "source_tree": "7c06f29c2d11be5e547dab646caa4b9fb69e41ff",
+  "parent_sha": "369bf3a364ffb3429c32fd8868c147c5225e7880",
+  "parent_tree": "c52994c5d04f2fd71c8cf782e70de97c7fecf127",
+  "parent_qualification": {
+    "pr": 204,
+    "run_id": 40959264643,
+    "receipt_commit": "4953b4e8092deadd0cb014072200b306a83364f6"
+  },
+  "source_pr": 205,
+  "source_branch": "feature/rb3-w58-disarmed-financial-gap-review-20261029",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 30,
+  "qualification_branch": "qualification/ktrade-w58-financial-gap-20261029",
+  "witness_sha": "d1c6c055b9e4d5e74ca7332c8da548fa83a1a41a",
+  "workflow_path": ".github/workflows/ktrade-w58-financial-gap-windows.yml",
+  "workflow_git_blob": "e5adba7a791c773172516a0800dfb5b95de421fe",
+  "run_id": 40966132597,
+  "job_id": 123771601960,
+  "run_event": "push",
+  "run_attempt": 1,
+  "run_status": "completed",
+  "conclusion": "success",
+  "run_completed_at": "2026-10-29T22:38:01Z",
+  "environment": {
+    "os": "windows/amd64",
+    "runner_image": "windows-2022",
+    "image_version": "20261025.346.1",
+    "go_version": "1.25.0",
+    "node_version": "24.22.1",
+    "gowork": "off",
+    "goflags": "-p=2",
+    "gomaxprocs": 2,
+    "cgo_enabled": true,
+    "isolated_temp_tmp": true
+  },
+  "changed_paths": [
+    "pkg/advanced_order_financial_gap.go",
+    "pkg/advanced_order_financial_gap_test.go"
+  ],
+  "qualification_steps": {
+    "exact_parent_tree_and_two_file_scope": "PASS",
+    "source_live_disarm": "PASS",
+    "original_w57_financial_account_custody_unchanged": "PASS",
+    "focused_w58_arithmetic_and_refusal_tests": "PASS",
+    "affected_w41_w58_and_race": "PASS",
+    "full_tagged_app_root_wails_test_vet": "PASS",
+    "offline_node_vendor": "PASS",
+    "unsigned_original_wails_go_production_pair_no_synthetic_tags": "PASS",
+    "isolated_package_disposal_and_source_pin": "PASS"
+  },
+  "proofs": [
+    "W58 computes observed USDC quote account total minus hypothetical USDC-denominated BUY fill cash delta using exact 24-decimal rational arithmetic; resulting unattributed offset is not a verified opening balance or spendable authorization",
+    "reuses W57 original bound two separately signed GETs and confirms durable W56 accounting head and original risk holds without posting any financial entries",
+    "negative tests reject missing durable fill evidence, divergent account reads, stale time, altered LIVE-disarmed intent, cold owner and malformed/oversized decimals",
+    "retains W57 account review, existing W56 accounting and TradeGuard without changes; public original LIVE broker authorization remains literal false",
+    "fresh full tagged app, root Go, nested Wails tests and vet passed; affected financial and race checks passed",
+    "build of unsigned original production Go/Wails pair used fixture_mode none and source-disabled LIVE and was disposed; no native runtime UI acceptance is claimed"
+  ],
+  "attempt_history": [
+    {
+      "run_id": 40965986582,
+      "witness_sha": "bd427154dce7f4358ecc1d385b291cf37e1d7bce",
+      "source_sha": "d467874369805948003202cb523570e2692ca611",
+      "conclusion": "failure",
+      "reason": "focused W58 exact-decimal arithmetic test expectation incorrect; superseded candidate, not qualifying evidence"
+    },
+    {
+      "run_id": 40966132597,
+      "witness_sha": "d1c6c055b9e4d5e74ca7332c8da548fa83a1a41a",
+      "source_sha": "7ed8e26370ad196fd04e8b21d455e11a90f66343",
+      "conclusion": "success",
+      "reason": "corrected exact 24-decimal expectation; all mandatory Windows qualification stages passed"
+    }
+  ],
+  "live_source_disabled": true,
+  "opening_balance_verified": false,
+  "commission_currency_verified": false,
+  "snapshot_atomic": false,
+  "accounting_committed": false,
+  "release_authorized": false,
+  "live_order_authorized": false,
+  "cross_process_exclusivity_verified": false,
+  "venue_reservation_established": false,
+  "real_credentials_used": false,
+  "new_boundary_real_broker_account_or_order_requests": 0,
+  "owner_data_touched": false,
+  "qualified_native_gui_runtime": false,
+  "source_merged": false,
+  "limitations": [
+    "W58 is a private diagnostic and arithmetic review, not actual whole-account reconciliation, an established opening balance, or evidence of venue commission asset",
+    "unattributed offset may include unrelated trades, transfers, pre-existing holdings, account activity and non-atomic observation drift; do not classify it as settled cash or funds available",
+    "the quote-denominated commission cash delta is explicitly hypothetical; venue commission currency remains unverified",
+    "no financial posting, hold release, cross-process exclusive account lease, live order/cancel authority, real brokerage credentials or production account interactions",
+    "source qualification and unsigned production build are not deployed/native operator UI acceptance, protected-branch integration, merge, signing, account migration or real-money activation",
+    "all original TradeGuard holds remain; stacked W57/W58 drafts are not merged into protected main"
+  ]
+}

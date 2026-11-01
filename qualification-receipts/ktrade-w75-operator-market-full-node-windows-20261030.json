@@ -1,0 +1,82 @@
+{
+  "schema": "ktrade.qualification.original-node-regression.v1",
+  "gate": "W75",
+  "scope": "Source-pinned comprehensive checked-in Node operator, market, Pine, browser persistence, PAPER safety on original Windows",
+  "verdict": "PASS_SCOPED_NODE_OPERATOR_MARKET_PINE_SECURITY",
+  "source_repo": "spoonman136668-ai/ktrade",
+  "source_pr": 221,
+  "source_sha": "0acfae265370b677dfe6de1386de793fb20b2460",
+  "source_tree": "1059c3e77dfb882f652994d9262f0eb681d03cb5",
+  "source_parent": "7dfec71777730f744e1749b8bd741fbd01f0d2f6",
+  "source_delta_only": [
+    "tests/paper_tradeguard_reconciliation.test.cjs"
+  ],
+  "source_runtime_go_unchanged": true,
+  "source_test_git_blob": "e5b3c5d1ebacabebf02a5005aa2297773fc66a30",
+  "shared_cash_guard_go_blob": "2c46814fa2514e96cca95aa7e2f021b6532dcc8a",
+  "qualification_repo": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 47,
+  "witness_sha": "19ee7779bb4970d2c3b522ae9e695ee55d28d6ab",
+  "workflow_path": ".github/workflows/ktrade-w75-operator-market-full-node-windows.yml",
+  "workflow_git_blob": "b1c2e58e8ebb867b76aef4e8eb41ef928deaee27",
+  "run_id": 41056714705,
+  "job_id": 124065968033,
+  "event": "push",
+  "attempt": 1,
+  "status": "completed",
+  "conclusion": "success",
+  "completed_utc": "2026-10-30T12:38:00Z",
+  "runner": "ephemeral github-hosted windows-2022",
+  "node_major": 24,
+  "prior_accepted_w74": {
+    "candidate_sha": "7dfec71777730f744e1749b8bd741fbd01f0d2f6",
+    "runner_receipt_git_blob": "71ace41011b02341592d45dc2db343ca481e4f12",
+    "run_id": 41048262607,
+    "scope": "Native installed W31->W73->W31 plus P10 PAPER fourth SELL quarantine; W76 only changes test source, not runtime"
+  },
+  "observed": {
+    "original_node_test_files_discovered": 32,
+    "standalone_cross_version_browser_test_files": 1,
+    "standalone_W28F_browser_two_real_pinned_source_roots": true,
+    "standalone_W28F_result": "PASS",
+    "original_node_test_files_via_node_test": 31,
+    "node_test_cases_run": 148,
+    "node_test_cases_passed": 148,
+    "node_test_cases_failed": 0,
+    "node_test_cases_skipped": 0,
+    "node_test_cases_cancelled": 0,
+    "paper_ledger_guard_test_pass": true,
+    "original_go_runtime_changed": false
+  },
+  "prior_failure": {
+    "run_id": 41056206965,
+    "status": "completed",
+    "conclusion": "failure",
+    "node_cases": 149,
+    "passed": 147,
+    "failed": 2,
+    "root_causes": [
+      "W28F required two absolute original source roots; original blanket node --test invocation omitted both",
+      "Historic PAPER guard test looked only at ledger.go; original unchanged fill guards moved to filled_amounts.go"
+    ],
+    "remedy": [
+      "Separate pinned W31 and current-child W28F CLI invocation, never silently omit it",
+      "Source-authentic test-only W76 candidate checks shared fill owner and original ledger delegation without changing production code"
+    ]
+  },
+  "boundaries": {
+    "full_candidate_wide_final_windows_regression_completed_at_this_source": false,
+    "full_release_accepted": false,
+    "main_protected": false,
+    "owner_installed_data_modified": false,
+    "broker_access": false,
+    "live_authorized": false,
+    "production_signed_or_deployed": false
+  },
+  "evidence": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41056714705",
+    "https://github.com/spoonman136668-ai/ktrade/pull/221",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41056206965"
+  ],
+  "provenance_notice": "Evidence-only receipt committed after the completed source-locked job; this commit is not the execution witness or a re-run."
+}

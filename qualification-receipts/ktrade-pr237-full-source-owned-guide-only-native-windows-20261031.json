@@ -1,0 +1,338 @@
+{
+  "schema": "ktrade.guide-only-caption.full-source-owned-native-windows.v1",
+  "verdict": "PASS_SCOPED_ORIGINAL_GO_GUIDE_ONLY_ZERO_PLOTS_ACTUAL_NATIVE_CAPTION_AND_PRIOR_LIFECYCLE",
+  "source_sha": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc",
+  "source_tree": "6f956e8eb095b577de8e4a79f3327a70097dc986",
+  "run_id": 41257723807,
+  "job_id": 124704362056,
+  "witness_sha": "c10f5028773e724eb64b12c38d1d9ef1fc7a70f3",
+  "status": "completed",
+  "conclusion": "success",
+  "focused_run": 41255809478,
+  "focused_receipt_commit": "92ef17e0d944362f7fcdcdbd4fad2a27588ed359",
+  "focused_receipt_blob": "e0cba3eab73b39021d35296d6dc7f035af22affd",
+  "original_compiler_blob": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+  "qualified_nonfinite_drawing_fix_blob": "f5b52befb522a260289af0177dfd0c9eda1d4d6b",
+  "source_owned_ci_workflow_blob": "b971da1a5721dc43839dc0e99b22df3ee4e2fa10",
+  "complete_original_go_tagged_wails_tests_and_vet": "PASS",
+  "current_api_race_roots": 7,
+  "node": {
+    "cases": 181,
+    "pass": 181,
+    "fail": 0,
+    "skip": 0
+  },
+  "assets": {
+    "files": 180,
+    "vendor": 118,
+    "repeatable": true,
+    "licenses_and_notices": "PASS",
+    "shipping_js_known_affected_nodes": 0,
+    "nonshipping_legacy_advisories_unchanged": true
+  },
+  "unsigned_binaries": 6,
+  "actual_main_pair_binary_scans": "PASS No vulnerabilities found",
+  "go_version": "go1.26.10",
+  "actual_same_scanned_installer_sha256": "e2a0b4d3fbf911e41123154323b7d0884ffaabbfb239621c28da3b2a9563a648",
+  "native_harness_blob": "e499418acd930c8cbb9643001e434b2c49460bcd",
+  "builder_blob": "84ee912d8481da15f0bb918527a07fdadf547b5b",
+  "original_financial_scenario_blob": "c69c3c05ff7f4ef933856b036bfa23fbf0a760f1",
+  "verified_native": {
+    "v5_v6_guide_only_zero_plots_actual_caption_and_gray_rows": [
+      {
+        "version": 5,
+        "actual_guide_rows": [
+          {
+            "first_row": 46,
+            "last_row": 46,
+            "max_samples": 227,
+            "threshold": 167
+          },
+          {
+            "first_row": 77,
+            "last_row": 77,
+            "max_samples": 228,
+            "threshold": 167
+          },
+          {
+            "first_row": 108,
+            "last_row": 108,
+            "max_samples": 226,
+            "threshold": 167
+          }
+        ],
+        "original_go_plot_count": 0,
+        "native_pane_sha256": "a8e0193bfa7241afbb46a9d17b07b1c00f25973475077325ae19dc3d9bbfe9fb",
+        "original_go_model_plot_count": 0,
+        "scope": "original_Go_guide_only_metadata_actual_native_caption_and_gray_row_presence_not_independent_numeric_to_pixel_oracle",
+        "physical_editor_compile_and_apply": true,
+        "actual_pane_caption": "Pine: Overbought, Oversold, Middle",
+        "original_go_levels": [
+          70,
+          30,
+          50
+        ]
+      },
+      {
+        "version": 6,
+        "actual_guide_rows": [
+          {
+            "first_row": 46,
+            "last_row": 46,
+            "max_samples": 227,
+            "threshold": 167
+          },
+          {
+            "first_row": 77,
+            "last_row": 77,
+            "max_samples": 228,
+            "threshold": 167
+          },
+          {
+            "first_row": 108,
+            "last_row": 108,
+            "max_samples": 226,
+            "threshold": 167
+          }
+        ],
+        "original_go_plot_count": 0,
+        "native_pane_sha256": "a8e0193bfa7241afbb46a9d17b07b1c00f25973475077325ae19dc3d9bbfe9fb",
+        "original_go_model_plot_count": 0,
+        "scope": "original_Go_guide_only_metadata_actual_native_caption_and_gray_row_presence_not_independent_numeric_to_pixel_oracle",
+        "physical_editor_compile_and_apply": true,
+        "actual_pane_caption": "Pine: Overbought, Oversold, Middle",
+        "original_go_levels": [
+          70,
+          30,
+          50
+        ]
+      }
+    ],
+    "v5_v6_original_rsi_guides_presence_removal": [
+      {
+        "version": 5,
+        "removed_sha256": "ef0c27b3930562bf8723a5393901a33b7d116ac14205115370d058c74e89d379",
+        "baseline_sha256": "ef0c27b3930562bf8723a5393901a33b7d116ac14205115370d058c74e89d379",
+        "removed_rows": [],
+        "scope": "original_Go_RSI_levels_and_native_horizontal_gray_row_presence_removal_not_independent_numeric_to_pixel_position_oracle",
+        "applied_sha256": "af553b3114c861f4e37de107b0f250204e2b123e2406d74d90ce687ff1e11ec9",
+        "physical_editor_compile_apply_and_remove": true,
+        "identical_bounds": true,
+        "applied_rows": [
+          {
+            "first_row": 58,
+            "last_row": 58,
+            "max_samples": 218,
+            "threshold": 167
+          },
+          {
+            "first_row": 77,
+            "last_row": 77,
+            "max_samples": 234,
+            "threshold": 167
+          },
+          {
+            "first_row": 96,
+            "last_row": 96,
+            "max_samples": 241,
+            "threshold": 167
+          }
+        ],
+        "actual_original_go_levels": [
+          70,
+          30,
+          50
+        ],
+        "baseline_rows": []
+      },
+      {
+        "version": 6,
+        "removed_sha256": "b92e9936bd73f3fce787543285e91f3b0eb51e12ee4a6d3531054a0cc057b09a",
+        "baseline_sha256": "b92e9936bd73f3fce787543285e91f3b0eb51e12ee4a6d3531054a0cc057b09a",
+        "removed_rows": [],
+        "scope": "original_Go_RSI_levels_and_native_horizontal_gray_row_presence_removal_not_independent_numeric_to_pixel_position_oracle",
+        "applied_sha256": "4750a8deb2d2d1e13e6445b6542da2f967eb85cad71275b0bbedfda2f47dc8ee",
+        "physical_editor_compile_apply_and_remove": true,
+        "identical_bounds": true,
+        "applied_rows": [
+          {
+            "first_row": 58,
+            "last_row": 58,
+            "max_samples": 218,
+            "threshold": 167
+          },
+          {
+            "first_row": 77,
+            "last_row": 77,
+            "max_samples": 234,
+            "threshold": 167
+          },
+          {
+            "first_row": 96,
+            "last_row": 96,
+            "max_samples": 241,
+            "threshold": 167
+          }
+        ],
+        "actual_original_go_levels": [
+          70,
+          30,
+          50
+        ],
+        "baseline_rows": []
+      }
+    ],
+    "v5_v6_original_markers": [
+      {
+        "version": 5,
+        "marked_http": {
+          "down": 30,
+          "actual_response_bar_price_and_style_checked": true,
+          "shapes": 60,
+          "up": 30,
+          "candles": 300
+        },
+        "baseline_sha256": "864ee75f9ae9fd839fe4a88730cfdb12d55fd65795d99e666aec7c782ce4f145",
+        "baseline_down_pixels": 0,
+        "physical_editor_compile_and_apply": true,
+        "scope": "bounded_synthetic_source_actual_Go_bar_price_style_and_both_native_marker_colors_not_full_RSI_pixel_oracle",
+        "baseline_http": {
+          "down": 0,
+          "actual_response_bar_price_and_style_checked": true,
+          "shapes": 0,
+          "up": 0,
+          "candles": 300
+        },
+        "identical_bounds": true,
+        "marked_sha256": "71edd086a9d3439c4a3e2fc31901fa96fddc0a853255761a7a28b74b30d1476e",
+        "marked_down_pixels": 3572,
+        "baseline_up_pixels": 0,
+        "marked_up_pixels": 3295
+      },
+      {
+        "version": 6,
+        "marked_http": {
+          "down": 30,
+          "actual_response_bar_price_and_style_checked": true,
+          "shapes": 60,
+          "up": 30,
+          "candles": 300
+        },
+        "baseline_sha256": "864ee75f9ae9fd839fe4a88730cfdb12d55fd65795d99e666aec7c782ce4f145",
+        "baseline_down_pixels": 0,
+        "physical_editor_compile_and_apply": true,
+        "scope": "bounded_synthetic_source_actual_Go_bar_price_style_and_both_native_marker_colors_not_full_RSI_pixel_oracle",
+        "baseline_http": {
+          "down": 0,
+          "actual_response_bar_price_and_style_checked": true,
+          "shapes": 0,
+          "up": 0,
+          "candles": 300
+        },
+        "identical_bounds": true,
+        "marked_sha256": "71edd086a9d3439c4a3e2fc31901fa96fddc0a853255761a7a28b74b30d1476e",
+        "marked_down_pixels": 3572,
+        "baseline_up_pixels": 0,
+        "marked_up_pixels": 3295
+      }
+    ],
+    "warm_settings": [
+      {
+        "revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296",
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "values": {
+          "input_1": 2.5,
+          "input_0": 3
+        },
+        "name": "Supertrend"
+      },
+      {
+        "revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914",
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "values": {
+          "input_0": 3
+        },
+        "name": "RSI Divergence"
+      }
+    ],
+    "cold_settings_restore_and_reset": [
+      {
+        "explicit_reset_verified": true,
+        "restored_values": {
+          "input_1": 2.5,
+          "input_0": 3
+        },
+        "disk_and_original_go_verified": true,
+        "default_fields": {
+          "ATR Period": 10,
+          "Multiplier": 3
+        },
+        "source_sha256": "12d7c51db2e73175ae4c2e6b13c25888961597ae32ce4c8b2afd3380e83aa178",
+        "saved_revision": "b544a538cf9e6ebe11159c5ea3b9050850ca693bef99517b98de4807e302a296",
+        "name": "Supertrend"
+      },
+      {
+        "explicit_reset_verified": true,
+        "restored_values": {
+          "input_0": 3
+        },
+        "disk_and_original_go_verified": true,
+        "default_fields": {
+          "RSI Period": 14
+        },
+        "source_sha256": "1d8b9c44b9a4fd35bcc5b7532a6df75ff75a2d6fa48146af03a04d7a1699b626",
+        "saved_revision": "b0995f7f36b7fe0dc3b607b773ecaccda0498a1dc255238fa8eab6b955dd0914",
+        "name": "RSI Divergence"
+      }
+    ],
+    "notices": [
+      "PR237_EXACT_INPUT_SETTINGS_ORIGINAL_SHAPE_COMPILER_FINANCIAL_CUSTODY_LIVE_FALSE=PASS",
+      "PR237_CURRENT_API_RACE_CAS_CORRUPTION_COLD_RESET_AND_VIEW_ONLY_NO_STORAGE_FALLBACK=PASS",
+      "NATIVE_CI_FULL_ROOT_TAGGED_WAILS_TEST_VET=PASS",
+      "NATIVE_CI_ALL_NODE=PASS files=38 cases=181",
+      "NATIVE_CI_REPEATABLE_LICENSED_SHIPPING_ASSETS=PASS",
+      "NATIVE_CI_ORIGINAL_UNSIGNED_PACKAGE_ACTUAL_BINARY_SCANS_NO_APP_NO_INSTALL_NO_RELEASE=PASS",
+      "W83_NATIVE_PREVIOUS_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+      "W83_INSTALLED_CANDIDATE_ORIGINAL_CHART_AND_PINE_RENDERER=PASS",
+      "W83_INSTALLED_CANDIDATE_REAL_GO_PINE_V5_V6_COMPILE_AND_REFUSAL=PASS",
+      "W93_REAL_INSTALLED_WEBVIEW2_SUPERTREND_ENABLED_PHYSICAL_APPLY_ORIGINAL_MAIN_CHART_RENDER_STATUS_NO_TRADING=PASS",
+      "W94B_ACTUAL_MAIN_PRICE_CHART_DESKTOP_GEOMETRY_AND_PIXEL_CHANGE=PASS",
+      "W94B_ACTIVE_PIXEL_AND_WEBVIEW_PROCESS_PROBES_EXECUTED=PASS",
+      "W90_NATIVE_CATALOG_EXPLICIT_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING=PASS",
+      "RSI_REAL_INSTALLED_WEBVIEW2_CONFIRMED_DIVERGENCE_PHYSICAL_APPLY_RSI_PANE_NO_TRADING=PASS",
+      "PINE_SETTINGS_NATIVE_PHYSICAL_NUMERIC_APPLY_SAVE_VALIDATION_AND_SOURCE_CUSTODY=PASS",
+      "PINE_MARKER_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_BOTH_ARROW_COLOR_OBSERVATION=PASS",
+      "PINE_HLINE_NATIVE_ORIGINAL_V5_V6_RSI_THREE_LEVELS_PHYSICAL_GUIDE_ROWS_AND_REMOVAL=PASS",
+      "PINE_GUIDE_ONLY_NATIVE_ORIGINAL_V5_V6_ZERO_PLOTS_THREE_LEVELS_AND_ACTUAL_PANE_CAPTION=PASS",
+      "W83_INSTALLED_CANDIDATE_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS",
+      "W83_NATIVE_UPDATED_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+      "W33C_P9_REAL_WAILS_TWO_CONSECUTIVE_PUBLIC_MARKET_ROUNDTRIPS=PASS",
+      "W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+      "W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS",
+      "W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS",
+      "PINE_SETTINGS_NATIVE_COLD_REOPEN_RESTORE_AND_EXPLICIT_DEFAULT_RESET=PASS",
+      "W83_NATIVE_ROLLED_BACK_WEBVIEW2_AND_PAPER_STOPPED=PASS",
+      "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+      "W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS",
+      "W94B_ACTUAL_OUTPUT_COVERAGE_ENFORCED_PANE_DIFFERENCE_AND_ALL_OBSERVED_DESCENDANT_MEMORY=PASS",
+      "PR237_ACTUAL_NUMERIC_SETTINGS_PHYSICAL_SAVE_INVALID_VALUE_COLD_DISK_RESTORE_DEFAULT_RESET_OUTPUT_COVERAGE=PASS",
+      "PR237_ACTUAL_ORIGINAL_V5_V6_NATIVE_MARKER_HTTP_AND_PHYSICAL_COLOR_OUTPUT_COVERAGE=PASS",
+      "PR237_ACTUAL_ORIGINAL_GO_RSI_THREE_NATIVE_GUIDE_ROWS_AND_REMOVAL_OUTPUT_COVERAGE=PASS",
+      "PR237_ACTUAL_GUIDE_ONLY_ZERO_PLOTS_NATIVE_CAPTION_AND_LEVELS_OUTPUT_COVERAGE=PASS",
+      "W83_REAL_INSTALLED_UPGRADE_FOUR_CURRENT_NATIVE_PAPER_FILLS_STOP_COLD_ACCOUNT_ROLLBACK_HISTORY_RETAINED=PASS",
+      "NO_OWNER_DATA_NO_REAL_BROKER_NO_SIGNING_NO_PROMOTION_NO_LIVE"
+    ]
+  },
+  "limits": [
+    "Scoped installed engineering acceptance, not product COMPLETE or production admission",
+    "Guide-only source has no original Go plots or model plots; native exact caption and three guide rows verified in v5/v6",
+    "No independent numeric-to-pixel position, glyph, absolute-price or label-pane oracle claim",
+    "Private PR237 rebuild intentionally not made; final descendant private candidate must independently qualify its exact bytes",
+    "Warm UTC/24h soak, target hardware/FPS/HiDPI, owner profile and financial custody, broader security, CI/release enforcement remain open"
+  ],
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

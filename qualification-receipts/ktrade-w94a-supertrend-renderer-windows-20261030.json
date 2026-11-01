@@ -1,0 +1,66 @@
+{
+  "schema": "ktrade.qualification.w94a.renderer-contract.v1",
+  "gate": "W94A",
+  "verdict": "PASS_SCOPED_PINNED_WINDOWS_RENDERER_DATA_ALIGNMENT",
+  "production_release_verdict": "HOLD",
+  "full_w94_visual_performance_verdict": "UNVERIFIED",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 229,
+  "source_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+  "source_tree": "a6076bc3c1e2bcae6b21c10a4ea810105a05bd7e",
+  "renderer_blob": "3fb025859c6ce54899d72a9eb0a4096e86ea9f4b",
+  "source_modified": false,
+  "foundation": {
+    "gate": "W93",
+    "execution_sha": "4a4cccae79904ebfe9eae0838799bcfbaeb23ea2",
+    "run_id": 41157406050,
+    "job_id": 124407126578,
+    "receipt_sha": "77539dc43016887b9c7cb2340d310cdc1e7e9cbc",
+    "source_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2"
+  },
+  "qualifier_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualifier_pr": 62,
+  "qualifier_execution_sha": "04b6ca4aa5186ffe8bb99b731416e07cfa55111d",
+  "qualifier_base_sha": "2fc95c45ce49bac64a221afc4fffd77661ed4eaa",
+  "workflow_path": ".github/workflows/ktrade-w94a-renderer-contract-windows.yml",
+  "workflow_blob": "2720a2a2cd448c64fa0cae4c076e93d17c1e18c3",
+  "test_path": "qualification-harness/ktrade-w94/renderer-contract.test.cjs",
+  "test_blob": "0c790fc868d9e11d958b77fc5b0dc3fb9f8f74fb",
+  "run_id": 41159034883,
+  "job_id": 124412209487,
+  "run_status": "completed",
+  "run_conclusion": "success",
+  "run_updated_at": "2026-10-31T02:14:18Z",
+  "runner": "GitHub-hosted Windows 2022",
+  "node_major": 24,
+  "results": {
+    "test_groups": 5,
+    "test_groups_passed": 5,
+    "exact_source_custody": "PASS",
+    "frozen_W93_dependency": "PASS",
+    "original_65_bar_time_and_null_warmup_alignment": "PASS",
+    "main_price_overlay_and_replacement_without_stale_series": "PASS",
+    "malformed_length_duplicate_timestamp_nan_infinity_rejected": "PASS (5 negative cases)",
+    "partial_renderer_failure_rollback": "PASS",
+    "timing_observation": {
+      "iterations": 25,
+      "bars": 300,
+      "median_ms": 0.015500000000002956,
+      "max_ms": 0.7869000000000028,
+      "scope": "Node test-double adapter only; not WebView2 rasterization, FPS or retail performance"
+    }
+  },
+  "scope_limits": [
+    "The qualifying source is untouched. This runs exact original renderer's plan/apply methods against explicit test-double chart-series interfaces, not the real Windows WebView2 rasterizer, GPU, screenshots, graphical pixel reference or actual native dynamic graph memory.",
+    "The 25x300-bar Node timing is an observation and has no frozen product acceptance threshold; do not classify it as UI latency or FPS PASS.",
+    "W93 full Go/Wails/native install regression on the identical product SHA is retained by exact immutable identity, not rerun in this W94A job; mandatory final release regression remains.",
+    "W94B independent actual Windows pixel/main-pane visual parity and whole-process WebView2 child resource accounting are UNVERIFIED.",
+    "KTRADE main and PR229 are unchanged, no release, merge, owner data, broker credentials, orders, LIVE, signing or production deployment."
+  ],
+  "urls": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41159034883",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/pull/62",
+    "https://github.com/spoonman136668-ai/ktrade/pull/229"
+  ],
+  "provenance": "Original completed Windows job metadata and raw job logs checked. This follow-on receipt-only commit is nonexecuting and must never be represented as a new qualification."
+}

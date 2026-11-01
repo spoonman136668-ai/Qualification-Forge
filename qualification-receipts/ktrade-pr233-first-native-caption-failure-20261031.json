@@ -1,0 +1,44 @@
+{
+  "schema": "ktrade.qualification.partial-failure.v1",
+  "product_pr": 233,
+  "source_sha": "42bf2c698d15da43632540959f9a5eea3999158b",
+  "source_tree": "378603bf6eca76ba54ede3e1db4104cc838c9cc3",
+  "run_id": 41217524027,
+  "job_id": 124585073056,
+  "witness_sha": "8ad522e88b419985920932ea3f6104c3eda069ed",
+  "verdict": "FAIL_NATIVE_RSI_CAPTION_ASSERTION_FULL_LIFECYCLE_NOT_ACCEPTED",
+  "completed_source_owned_checks": {
+    "go_tagged_wails_tests_and_vet": "PASS",
+    "node": {
+      "files": 35,
+      "tests": 158,
+      "failures": 0
+    },
+    "original_offline_assets_and_licenses": "PASS",
+    "unsigned_six_binary_package_and_actual_binary_scans": "PASS"
+  },
+  "scanned_installer_sha256": "ce8e8095cc59164b23f1760e69ad871f8292e7558f190b59eb9f53ce590ea80d",
+  "native_observed_before_failure": [
+    "Previous install/start",
+    "Candidate original chart and renderers",
+    "Real Pine v5/v6 compile/refusal",
+    "Visible enabled RSI catalog Apply button",
+    "Physical Supertrend Apply and executed real pixel/process probes",
+    "Physical Williams Apply with observed pane"
+  ],
+  "failed_assertion": "W83_NATIVE_UI_NOT_OBSERVED_Pine: RSI Divergence",
+  "cause": "Harness expected indicator catalog name. Original BuildPineOverlayModelV2 uses plot.Label; pine_plot_renderer applies separate plot.title values; chart setPinePaneCaption produces Pine: RSI for this script's sole RSI plot.",
+  "native_after_failure": "RSI pane acceptance, current PAPER fills, Stop, cold restart and rollback were not reached. This run does not accept full native lifecycle.",
+  "narrow_harness_fix": {
+    "commit": "13334bfdb463ba7131130ccacd499d4019e3f205",
+    "blob": "ac2edbb0db1ab6eef9c044778dfa92c2482069dd",
+    "assertion": "Physical Apply RSI Divergence followed by exact observed UIA Name Pine: RSI; live/strategy/paper disabled capabilities unchanged"
+  },
+  "rerun": {
+    "run_id": 41218814380,
+    "witness_sha": "0289a36f6d61794488a4be139f1247c527fb6858",
+    "status": "IN_PROGRESS_NOT_YET_ACCEPTED"
+  },
+  "product_source_changed_for_harness_fix": false,
+  "scope": "Isolated GitHub-hosted Windows; no owner data, signing, promotion or LIVE authority."
+}

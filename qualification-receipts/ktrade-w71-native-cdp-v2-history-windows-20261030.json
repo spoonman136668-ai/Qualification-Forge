@@ -1,0 +1,52 @@
+{
+  "schema": "ktrade.qualification.receipt.v1",
+  "gate": "W71",
+  "source_repository": "spoonman136668-ai/ktrade",
+  "source_pr": 218,
+  "source_sha": "aee9f5007fbd963c8bbf42631d5089a1630ab477",
+  "source_tree": "57ec748803a58ca30c84d98b8e651fe7e219c095",
+  "parent_source_sha": "895e8ea91a30e318d0a087e62f634ef706559dfe",
+  "qualification_repository": "spoonman136668-ai/Qualification-Forge",
+  "qualification_pr": 42,
+  "witness_sha": "258e1169f1b25bc36c4c42aa7b6f6ce249d4f0ce",
+  "workflow_path": ".github/workflows/ktrade-w71-native-cdp-v2-history-windows.yml",
+  "workflow_blob": "195d2ee97a0f57effd710c97c3a27d6c5661e8ac",
+  "run_id": 41025595146,
+  "job_id": 123962847930,
+  "status": "completed",
+  "conclusion": "success",
+  "completed_utc": "2026-10-30T08:29:23Z",
+  "changed_paths": [
+    "pkg/advanced_order_auth.go",
+    "pkg/advanced_order_v2_cdp_owner_windows_test.go",
+    "pkg/advanced_order_v2_cdp_readonly.go",
+    "pkg/advanced_order_v2_cdp_readonly_test.go"
+  ],
+  "passed_checks": [
+    "Exact W70 parent, four Go paths and original LIVE=false",
+    "Six focused W71 test roots: shared CDP signer, bounded v2 history, drift, empty terminal page, privacy and malformed transport/URI",
+    "Owner-only hook compiled without execution on hosted runner",
+    "W41-W71 financial/risk/PAPER regression and race",
+    "Full tagged app/root/nested Wails tests and vet",
+    "Original unsigned fixture-free Go/Wails production build and isolated cleanup"
+  ],
+  "data_origin": "Hosted Windows synthetic memory-only venue responses; no owner keys or actual provider data",
+  "shared_original_es256_encoding_body_byte_identical": true,
+  "real_owner_first_use": "not yet run; requires separate completed owner run and receipt",
+  "authority": {
+    "opening_balance_verified": false,
+    "commission_currency_verified": false,
+    "full_cash_history_reconciled": false,
+    "wallet_broker_mapping_verified": false,
+    "oauth_proved": false,
+    "snapshot_atomic": false,
+    "financial_ledger_posted": false,
+    "hold_release_authorized": false,
+    "live_order_authorized": false
+  },
+  "limitations": [
+    "A bounded terminal page chain is not proof of complete lifetime cash history or transaction semantics.",
+    "Matching native/v2 account ID, USDC label and balances are scoped observations, not financial posting authority.",
+    "Source and qualification PRs remain draft/unmerged; protected source main remains unchanged."
+  ]
+}
