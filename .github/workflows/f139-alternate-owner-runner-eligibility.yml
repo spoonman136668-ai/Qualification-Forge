@@ -1,0 +1,74 @@
+name: F139 alternate elevated Windows runner eligibility
+on:
+  push:
+    branches: [diagnostic/f139-alternate-owner-runner-20261101]
+permissions:
+  contents: read
+concurrency:
+  group: f139-alternate-owner-runner-eligibility-20261101
+  cancel-in-progress: false
+jobs:
+  alternate-owner-access:
+    if: github.actor == 'spoonman136668-ai'
+    runs-on: windows-2022
+    timeout-minutes: 3
+    steps:
+      - name: Read only original machine, elevation, task and profile eligibility
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_EVENT_NAME -cne 'push' -or
+             $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or
+             $env:GITHUB_ACTOR -cne 'spoonman136668-ai' -or
+             $env:GITHUB_RUN_ATTEMPT -cne '1') {throw 'F139_ALTERNATE_EVENT_INVALID'}
+          $identity=[Security.Principal.WindowsIdentity]::GetCurrent()
+          $admin=[Security.Principal.WindowsPrincipal]::new($identity).IsInRole(
+            [Security.Principal.WindowsBuiltInRole]::Administrator)
+          $task=Get-ScheduledTask -TaskName 'FORGE-F139-UnifiedController' -ErrorAction SilentlyContinue
+          $sidMatch=$false
+          $dbMatch=$false
+          $source=''
+          $clean=$false
+          $canonical=Join-Path $env:LOCALAPPDATA 'FORGE-F139\state.sqlite'
+          if($null -ne $task -and @($task.Actions).Count -eq 1) {
+            $principal=[string]$task.Principal.UserId
+            $sid=''
+            try {$sid=(New-Object Security.Principal.NTAccount($principal)).Translate(
+              [Security.Principal.SecurityIdentifier]).Value} catch {}
+            $sidMatch=($principal -ieq $identity.Name -or $sid -ceq $identity.User.Value)
+            $opts=[string]$task.Actions[0].Arguments
+            $db=[regex]::Match($opts,'(?i)(?:^|\s)-Database\s+"([^"]+)"')
+            $root=[regex]::Match($opts,'(?i)(?:^|\s)-RepositoryRoot\s+"([^"]+)"')
+            if($db.Success) {$dbMatch=([IO.Path]::GetFullPath($db.Groups[1].Value) -ieq [IO.Path]::GetFullPath($canonical))}
+            if($root.Success) {
+              $source=(& git -C $root.Groups[1].Value rev-parse HEAD | Out-String).Trim()
+              if($LASTEXITCODE -ne 0){$source=''}
+              $dirty=@(& git -C $root.Groups[1].Value status --porcelain --untracked-files=all)
+              $clean=($LASTEXITCODE -eq 0 -and $dirty.Count -eq 0)
+            }
+          }
+          $report=[ordered]@{
+            schema='forge.f139.alternate-original-owner-runner-eligibility.v1'
+            runner=$env:RUNNER_NAME
+            alternate_runner=($env:RUNNER_NAME -cne 'FORGE-CODEX-REMOTE')
+            escalated=$admin
+            original_machine=($env:COMPUTERNAME -ieq 'LINKDEADKB')
+            original_task_seen=($null -ne $task)
+            owner_sid_match=$sidMatch
+            canonical_database_present=(Test-Path -LiteralPath $canonical -PathType Leaf)
+            task_database_profile_match=$dbMatch
+            installed_source_sha=$source
+            working_tree_clean=$clean
+            original_task_mutations=0
+            original_database_opens=0
+            installation_authorized_by_this_probe=$false
+          }
+          $report | ConvertTo-Json -Compress | Write-Output
+          if(-not ($report.alternate_runner -and $report.escalated -and
+              $report.original_machine -and $report.original_task_seen -and
+              $report.owner_sid_match -and $report.canonical_database_present -and
+              $report.task_database_profile_match -and $report.working_tree_clean -and
+              $source -ceq '49c7b15343bea3c201fb52b498d8c0f397384afe')) {
+            throw 'F139_ALTERNATE_ORIGINAL_OWNER_ROUTE_NOT_PROVEN'
+          }
+          Write-Output 'F139_ALTERNATE_ORIGINAL_OWNER_ROUTE=PASS_READ_ONLY'
