@@ -894,7 +894,7 @@ function ViewportGlyphAnchors([object]$reference,[object]$candidate,[string]$pha
   if($pairs.Count -lt 6){return $false}
   # Original view changed by physical pan, not Apply: six genuine matching
   # same-glyph time ticks within twelve pixels must not be found by accident.
-  Write-Host ('PINE_VIEWPORT_NATIVE_ANCHORED_TICKS='+(@{phase=$phase;reference_sha256=$reference.axis_sha256;observed_sha256=$candidate.axis_sha256;matched_tick_glyphs=$pairs.Count;max_allowed_drift_pixels=12;one_pixel_shape_tolerance=$true;pairs=@($pairs);scope='bounded_actual_native_unchanged_ordered_time_label_glyphs_after_pane_reflow_not_full_logical_range_oracle'}|ConvertTo-Json -Compress -Depth 6))
+  Write-Host ('PINE_VIEWPORT_NATIVE_ANCHORED_TICKS='+(@{phase=$phase;reference_sha256=$reference.axis_sha256;observed_sha256=$candidate.axis_sha256;matched_tick_glyphs=$pairs.Count;max_allowed_drift_pixels=12;one_pixel_shape_tolerance=$true;pairs=@($pairs.ToArray());scope='bounded_actual_native_unchanged_ordered_time_label_glyphs_after_pane_reflow_not_full_logical_range_oracle'}|ConvertTo-Json -Compress -Depth 6))
   return $true
  }finally{$before.Dispose();$after.Dispose()}
 }
