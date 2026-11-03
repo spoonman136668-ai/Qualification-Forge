@@ -321,7 +321,13 @@ function SettingsWorkspace([string]$origin,[string]$source,[hashtable]$expected)
    $property=$record.workspace.PSObject.Properties['inputs']
    $actual=[pscustomobject]@{}
    if($null -ne $property){$actual=$property.Value}
-   $lastDiagnostic=@{observed=$true;success=$record.success;source_equal=($record.workspace.code -ceq $source.Trim());expected_keys=@($expected.Keys);actual_keys=@($actual.PSObject.Properties|ForEach-Object {$_.Name});inputs_property_present=($null -ne $property)}
+   # Identity diagnostics only; retain strict equality and unchanged timeout.
+   # No source text, broker credentials, or owner data are emitted.
+   $observedCode=[string]$record.workspace.code
+   $requestedCode=$source.Trim()
+   $hashExpected=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($requestedCode))).ToLowerInvariant()
+   $hashObserved=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($observedCode))).ToLowerInvariant()
+   $lastDiagnostic=@{observed=$true;success=$record.success;source_equal=($observedCode -ceq $requestedCode);expected_keys=@($expected.Keys);actual_keys=@($actual.PSObject.Properties|ForEach-Object {$_.Name});inputs_property_present=($null -ne $property);expected_source_sha256=$hashExpected;actual_source_sha256=$hashObserved;expected_code_chars=$requestedCode.Length;actual_code_chars=$observedCode.Length}
    if($record.success -eq $true -and $record.workspace.code -ceq $source.Trim() -and (SettingsValuesMatch $actual $expected)){return}
   }catch{}
   Start-Sleep -Milliseconds 300
@@ -723,7 +729,10 @@ function ViewportStableAxis([object]$shell,[string]$phase){
  return $b
 }
 function ViewportNative([object]$shell,[string]$origin){
- $baselineSource="//@version=6"+[Environment]::NewLine+'indicator("Viewport baseline",overlay=true)'+[Environment]::NewLine+'plot(close)'
+ # Use the same syntactically qualified original v6 plot form already proven
+ # by LabelNative, before adding wheel/drag viewport interaction.
+ # Do not introduce a second unqualified bare-plot rendering control here.
+ $baselineSource="//@version=6"+[Environment]::NewLine+'indicator("Viewport baseline",overlay=true)'+[Environment]::NewLine+'plot(close,"Reference",color=color.white)'
  MarkerPhysicalApply $shell $origin $baselineSource
  $baseline=ViewportStableAxis $shell 'BASELINE'
  $node=FindUI $shell 'Price chart drawing surface' $false 20
