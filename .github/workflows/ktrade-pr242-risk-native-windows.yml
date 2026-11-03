@@ -57,7 +57,10 @@ jobs:
           # Only two TradeGuard paths may differ from PR241; original risk changes must be tested anew.
           # No prior original financial acceptance is inherited for the changed TradeGuard code.
           $delta=@(& git -C $p diff --name-only ae70c58ded58be33d5cb5f156adaf0890cc3457c HEAD|Sort-Object)
-          if(($delta -join '|') -cne 'internal/originaltradeguard/risk.go|internal/originaltradeguard/risk_retry_amount_test.go'){throw 'PR242_EXACT_RISK_PATHS_REQUIRED'}
+          Write-Host ('PR242_OBSERVED_CHANGED_PATHS='+($delta -join '|'))
+          if($delta.Count -ne 2 -or
+             @($delta|Where-Object {$_ -ceq 'internal/originaltradeguard/risk.go'}).Count -ne 1 -or
+             @($delta|Where-Object {$_ -ceq 'internal/originaltradeguard/risk_retry_amount_test.go'}).Count -ne 1){throw 'PR242_EXACT_RISK_PATHS_REQUIRED'}
           foreach($same in @('cmd','pkg','static','templates','tests','tools','windows','go.mod','go.sum','.github')){
            if((& git -C $p rev-parse ('HEAD:'+$same)).Trim() -cne (& git -C $p rev-parse ('ae70c58ded58be33d5cb5f156adaf0890cc3457c:'+$same)).Trim()){throw 'PR241_QUALIFIED_FOUNDATION_DRIFT'}
           }
