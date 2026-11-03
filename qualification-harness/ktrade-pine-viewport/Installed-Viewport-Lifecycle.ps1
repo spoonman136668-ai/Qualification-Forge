@@ -762,7 +762,9 @@ function ViewportNative([object]$shell,[string]$origin){
   foreach($overlay in @($true,$false)){
    $mode=if($overlay){'OVERLAY'}else{'PANE'}
    $word=if($overlay){'true'}else{'false'}
-   $source=('//@version='+$version+[Environment]::NewLine+'indicator("Viewport native '+$version+' '+$mode+'",overlay='+$word+')'+[Environment]::NewLine+'plot(close*1.0001)')
+   # Monaco normalizes incoming edited sources to LF; preserve byte-exact
+   # evaluated source equality across all four v5/v6 overlay/pane cases.
+   $source=('//@version='+$version+"`n"+'indicator("Viewport native '+$version+' '+$mode+'",overlay='+$word+')'+"`n"+'plot(close*1.0001)')
    MarkerPhysicalApply $shell $origin $source
    $workspace=Invoke-RestMethod -Method Post -Uri ($origin+'/api/workspace/save') -Headers @{Origin=$origin} -ContentType 'application/json' -Body '{}' -TimeoutSec 10
    Require ($workspace.success -eq $true -and $workspace.workspace.code -ceq $source.Trim()) 'VIEWPORT_ACTUAL_APPLIED_SOURCE_MISMATCH'
