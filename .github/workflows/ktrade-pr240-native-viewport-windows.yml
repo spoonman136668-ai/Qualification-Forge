@@ -74,7 +74,7 @@ jobs:
           # Reuse only this immutable receipt plus identical source/test/toolchain/workflow
           # identities; do not pretend this hosted token has private Actions permission.
           $pins=@(
-           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','13cc956bc3210cd90fa877a6da682473a075e904'),
+           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','9bac91e9343c1bb9d8c3d5fde2128dd156dc53c1'),
            @('qualification-harness/ktrade-pine-viewport/Build-And-Qualify.ps1','39c34bdf23b0effa9e6ffc74ac15696ee7b3470c'),
            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
           )
@@ -221,10 +221,32 @@ jobs:
           $navigation=@(ProbeJson 'PINE_VIEWPORT_ACTUAL_PHYSICAL_NAVIGATION=' 1)[0]
           if(!$navigation.physical_mouse_wheel_and_drag -or $navigation.baseline.axis_sha256 -ceq $navigation.panned.axis_sha256){throw 'VIEWPORT_ACTUAL_INPUT_POSITIVE_CONTROL_REQUIRED'}
           $views=@(ProbeJson 'PINE_VIEWPORT_ACTUAL_NATIVE_APPLY=' 4)
+          # Native source emits a bounded-date-label receipt only when the
+          # otherwise byte-identical current-session time axis changes.
+          # Every such exception must correlate with exactly one real Apply.
+          $volatile=@($observed|Where-Object {$_.StartsWith('PINE_VIEWPORT_BOUNDED_SESSION_LABEL=')}|ForEach-Object { $_.Substring('PINE_VIEWPORT_BOUNDED_SESSION_LABEL='.Length)|ConvertFrom-Json })
+          if($volatile.Count -gt 4){throw 'VIEWPORT_TOO_MANY_SESSION_LABEL_EXCEPTIONS'}
+          foreach($v in $volatile){
+           if($v.phase -cnotin @('V5_OVERLAY','V5_PANE','V6_OVERLAY','V6_PANE') -or
+              $v.reference_sha256 -cne $navigation.panned.axis_sha256 -or
+              !$v.outside_single_label_pixels_identical -or
+              $v.changed_pixels -lt 1 -or $v.changed_pixels -gt 900 -or
+              $v.unchanged_label_clusters -lt 6 -or $v.right -le $v.left -or
+              $v.left -lt [Math]::Floor($v.axis_width*0.65) -or
+              $v.right -gt [Math]::Ceiling($v.axis_width*0.84) -or
+              ($v.right-$v.left+1) -gt [Math]::Ceiling($v.axis_width*0.14)){throw 'VIEWPORT_UNAUTHORIZED_PIXEL_DIFFERENCE'}
+          }
           foreach($version in @(5,6)){
            foreach($overlay in @($true,$false)){
             $v=@($views|Where-Object {$_.version -eq $version -and $_.overlay -eq $overlay})
-            if($v.Count -ne 1 -or !$v[0].physical_compile_apply -or !$v[0].original_go_source_and_response_checked -or $v[0].label_pixels -lt 8 -or $v[0].before_axis_sha256 -cne $navigation.panned.axis_sha256 -or $v[0].after_axis_sha256 -cne $navigation.panned.axis_sha256){throw 'VIEWPORT_ALL_FOUR_REAL_AXIS_OBSERVATIONS_REQUIRED'}
+            if($v.Count -ne 1 -or !$v[0].physical_compile_apply -or !$v[0].original_go_source_and_response_checked -or !$v[0].bounded_original_session_label_comparison -or $v[0].label_pixels -lt 8 -or $v[0].before_axis_sha256 -cne $navigation.panned.axis_sha256){throw 'VIEWPORT_ALL_FOUR_REAL_AXIS_OBSERVATIONS_REQUIRED'}
+            $phase=('V'+$version+'_'+$(if($overlay){'OVERLAY'}else{'PANE'}))
+            $exceptions=@($volatile|Where-Object {$_.phase -ceq $phase})
+            if($v[0].after_axis_sha256 -ceq $navigation.panned.axis_sha256){
+             if($exceptions.Count -ne 0){throw 'VIEWPORT_UNNECESSARY_DATE_LABEL_EXCEPTION'}
+            }else{
+             if($exceptions.Count -ne 1 -or $exceptions[0].observed_sha256 -cne $v[0].after_axis_sha256){throw 'VIEWPORT_MISSING_PROVEN_SINGLE_LABEL_EXCEPTION'}
+            }
            }
           }
           if(@($observed|Where-Object {$_ -ceq '::notice::PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS'}).Count -ne 1){throw 'VIEWPORT_ACTUAL_PROBE_MUST_EXECUTE'}
