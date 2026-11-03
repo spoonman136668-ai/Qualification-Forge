@@ -74,7 +74,7 @@ jobs:
           # Reuse only this immutable receipt plus identical source/test/toolchain/workflow
           # identities; do not pretend this hosted token has private Actions permission.
           $pins=@(
-           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','9bac91e9343c1bb9d8c3d5fde2128dd156dc53c1'),
+           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','bc3ab480c64f3078c819303f02d3671de39e7025'),
            @('qualification-harness/ktrade-pine-viewport/Build-And-Qualify.ps1','39c34bdf23b0effa9e6ffc74ac15696ee7b3470c'),
            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
           )
@@ -226,6 +226,21 @@ jobs:
           # Every such exception must correlate with exactly one real Apply.
           $volatile=@($observed|Where-Object {$_.StartsWith('PINE_VIEWPORT_BOUNDED_SESSION_LABEL=')}|ForEach-Object { $_.Substring('PINE_VIEWPORT_BOUNDED_SESSION_LABEL='.Length)|ConvertFrom-Json })
           if($volatile.Count -gt 4){throw 'VIEWPORT_TOO_MANY_SESSION_LABEL_EXCEPTIONS'}
+          $anchored=@($observed|Where-Object {$_.StartsWith('PINE_VIEWPORT_NATIVE_ANCHORED_TICKS=')}|ForEach-Object { $_.Substring('PINE_VIEWPORT_NATIVE_ANCHORED_TICKS='.Length)|ConvertFrom-Json })
+          if($anchored.Count -gt 4){throw 'VIEWPORT_TOO_MANY_ANCHORED_TICK_EXCEPTIONS'}
+          foreach($a in $anchored){
+           if($a.phase -cnotin @('V5_OVERLAY','V5_PANE','V6_OVERLAY','V6_PANE') -or
+              $a.reference_sha256 -cne $navigation.panned.axis_sha256 -or
+              $a.matched_tick_glyphs -lt 6 -or $a.max_allowed_drift_pixels -ne 12 -or
+              !$a.one_pixel_shape_tolerance -or @($a.pairs).Count -ne $a.matched_tick_glyphs){
+             throw 'VIEWPORT_ANCHORED_NATIVE_TICK_GLYPHS_NOT_PROVEN'
+           }
+           $last=-1000
+           foreach($pair in @($a.pairs)){
+            if([Math]::Abs([int]$pair.drift) -gt 12 -or $pair.before -le $last){throw 'VIEWPORT_UNORDERED_OR_MOVED_ANCHORS'}
+            $last=[int]$pair.before
+           }
+          }
           foreach($v in $volatile){
            if($v.phase -cnotin @('V5_OVERLAY','V5_PANE','V6_OVERLAY','V6_PANE') -or
               $v.reference_sha256 -cne $navigation.panned.axis_sha256 -or
@@ -242,10 +257,13 @@ jobs:
             if($v.Count -ne 1 -or !$v[0].physical_compile_apply -or !$v[0].original_go_source_and_response_checked -or !$v[0].bounded_original_session_label_comparison -or $v[0].label_pixels -lt 8 -or $v[0].before_axis_sha256 -cne $navigation.panned.axis_sha256){throw 'VIEWPORT_ALL_FOUR_REAL_AXIS_OBSERVATIONS_REQUIRED'}
             $phase=('V'+$version+'_'+$(if($overlay){'OVERLAY'}else{'PANE'}))
             $exceptions=@($volatile|Where-Object {$_.phase -ceq $phase})
+            $anchors=@($anchored|Where-Object {$_.phase -ceq $phase})
             if($v[0].after_axis_sha256 -ceq $navigation.panned.axis_sha256){
-             if($exceptions.Count -ne 0){throw 'VIEWPORT_UNNECESSARY_DATE_LABEL_EXCEPTION'}
+             if($exceptions.Count -ne 0 -or $anchors.Count -ne 0){throw 'VIEWPORT_UNNECESSARY_PIXEL_EXCEPTION'}
             }else{
-             if($exceptions.Count -ne 1 -or $exceptions[0].observed_sha256 -cne $v[0].after_axis_sha256){throw 'VIEWPORT_MISSING_PROVEN_SINGLE_LABEL_EXCEPTION'}
+             if(($exceptions.Count+$anchors.Count) -ne 1){throw 'VIEWPORT_MISSING_EXACTLY_ONE_NATIVE_PIXEL_PROOF'}
+             $actualProof=if($exceptions.Count -eq 1){$exceptions[0].observed_sha256}else{$anchors[0].observed_sha256}
+             if($actualProof -cne $v[0].after_axis_sha256){throw 'VIEWPORT_PIXEL_PROOF_DOES_NOT_MATCH_ACTUAL_AXIS'}
             }
            }
           }
