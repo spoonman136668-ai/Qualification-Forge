@@ -732,7 +732,12 @@ function ViewportNative([object]$shell,[string]$origin){
  # Use the same syntactically qualified original v6 plot form already proven
  # by LabelNative, before adding wheel/drag viewport interaction.
  # Do not introduce a second unqualified bare-plot rendering control here.
- $baselineSource="//@version=6"+[Environment]::NewLine+'indicator("Viewport baseline",overlay=true)'+[Environment]::NewLine+'plot(close,"Reference",color=color.white)'
+ # Monaco and Go's native request normalize the submitted Pine source to LF;
+ # build the exact identity now rather than comparing Windows CRLF to LF.
+ $baselineSource=('//@version=6'+"`n"+'indicator("Viewport baseline",overlay=true)'+"`n"+'plot(close,"Reference",color=color.white)')
+ $baselineBytes=[Text.Encoding]::UTF8.GetBytes($baselineSource)
+ $baselineSha=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($baselineBytes)).ToLowerInvariant()
+ Require ($baselineSha -ceq '592148256f1b16286315e345d830c74efa39dd96c580cdd1e970149ccb4578e2') 'VIEWPORT_INDEPENDENT_LF_BASELINE_SHA_DRIFT'
  MarkerPhysicalApply $shell $origin $baselineSource
  $baseline=ViewportStableAxis $shell 'BASELINE'
  $node=FindUI $shell 'Price chart drawing surface' $false 20
