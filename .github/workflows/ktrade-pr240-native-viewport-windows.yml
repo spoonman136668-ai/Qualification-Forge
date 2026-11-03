@@ -74,7 +74,7 @@ jobs:
           # Reuse only this immutable receipt plus identical source/test/toolchain/workflow
           # identities; do not pretend this hosted token has private Actions permission.
           $pins=@(
-           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','bc3ab480c64f3078c819303f02d3671de39e7025'),
+           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','89102398ac21afc7dcbf3ffea64d4d03fe1ef959'),
            @('qualification-harness/ktrade-pine-viewport/Build-And-Qualify.ps1','39c34bdf23b0effa9e6ffc74ac15696ee7b3470c'),
            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
           )
@@ -84,6 +84,9 @@ jobs:
            [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $w $pin[0]),[ref]$tokens,[ref]$errors)
            if($errors.Count -ne 0){throw ('NATIVE_POWERSHELL_SYNTAX_FAILED '+(($errors|ForEach-Object {$_.ToString()}) -join '; '))}
           }
+          $focused=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41698080849' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($focused.status -cne 'completed' -or $focused.conclusion -cne 'success' -or $focused.head_sha -cne '4ed76ef706ece2dba1d2b6cd5646d215629a6a06'){throw 'EXACT_FOCUSED_AUTHENTIC_SCREENSHOT_MATCHER_PASS_REQUIRED'}
+          Write-Host '::notice::PR240_FOCUSED_AUTHENTIC_SCREENSHOT_AND_NEGATIVE_PAN=PASS'
           Write-Host '::notice::PR240_EXACT_SOURCE_FULL_SOURCE_CI_RECEIPT_AND_ALL_ORIGINAL_FINANCIAL_FOUNDATIONS=PASS'
       - uses: actions/setup-go@v5
         with:
