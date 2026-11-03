@@ -1,0 +1,134 @@
+{
+  "schema": "ktrade.pr242.independent-full-tree-and-scoped-security-review.v1",
+  "verdict": "PASS_INDEPENDENT_FULL_TREE_EXACT_MATCH_AND_BOUNDED_FAIL_CLOSED_SECURITY_REVIEW__INTEGRATION_HOLD",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "main_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "main_tree": "8b43e35338f9be645a9fbb5a79f14c3c6ab328e3",
+    "pr": 242,
+    "product_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0",
+    "product_tree": "7ac32bf78cb7788def25975a075ab54d564fc17f",
+    "head_commit_ahead_by": 579,
+    "head_commit_behind_by": 0
+  },
+  "tree_evidence": {
+    "method": "Independently fetched GitHub Git Trees API recursive=true for immutable main and PR242 tree SHAs; both responses truncated=false. Compared complete blob paths, Git blob IDs and modes, including deletions; compared all resulting entries against previously published 431-path compositional manifest.",
+    "comparison": "PASS_ZERO_MISMATCHES",
+    "expected_receipt_path": "qualification-receipts/ktrade-pr242-mainline-compositional-431-path-scope-20261103.json",
+    "expected_receipt_blob": "55c8070ad1e6316938236f3b8c5fe5f11cc3d466",
+    "counts": {
+      "base_blobs": 6983,
+      "candidate_blobs": 7369,
+      "added": 386,
+      "modified": 45,
+      "deleted": 0,
+      "mode_changed": 0,
+      "changed_paths": 431
+    }
+  },
+  "targeted_security_evidence": [
+    {
+      "id": "live-adapter-public-API",
+      "status": "PASS_STATIC_FENCED",
+      "path": "pkg/advanced_orders.go",
+      "blob": "fd7e4737442b5452c3c52722b257a9c8347a1e38",
+      "proof": "liveBrokerageAuthorized() is hardcoded false; PlaceOrder, GetOrder and CancelOrder return ErrLiveBrokerageDisabled before broker transport; does not prove all possible execution surfaces."
+    },
+    {
+      "id": "legacy-http-order-handler",
+      "status": "PASS_STATIC_AND_INSTALLED_HTTP423",
+      "path": "cmd/ktrade/main_full.go",
+      "blob": "bfadf7a46cfaf90ad15600e7b820a7f59456563b",
+      "proof": "handlePlaceOrder returns http.StatusLocked (423); original installed qualification observed refusal and no automatic rearm."
+    },
+    {
+      "id": "isolated-paper-accounting-and-preview",
+      "status": "PASS_STATIC_NO_ACTIVE_SUBMISSION",
+      "path": "cmd/ktrade/paper_authority_route_full.go",
+      "blob": "bf214d1395648367685191374e296ce32f1a8251",
+      "proof": "Read-only paper accounting/authority; preview read path; POST /api/paper/proposals/submit uses DisabledSubmissionHandler in isolated route."
+    },
+    {
+      "id": "brokerintent-exact-local-holds",
+      "status": "PASS_STATIC_CUSTODY_SCOPED",
+      "path": "internal/brokerintent/local_reservations.go",
+      "blob": "b0ec889c4fbc8b40c61d59b4f4daf05ff19ced2a",
+      "proof": "Account-specific fence and v2 risk continuity check, exact rational funding checks, risk snapshot reservation reconciliation, uncertain state quarantine; not a LIVE execution authorization."
+    },
+    {
+      "id": "paper-writer-lease",
+      "status": "PASS_STATIC_CUSTODY_SCOPED",
+      "path": "internal/papercustody/custody.go",
+      "blob": "7aa3f3b49cbc82adfe06f4b985a158e321a73ccf",
+      "proof": "Exclusive application and session locks acquired before funding; stale lease not silently stolen."
+    },
+    {
+      "id": "paper-prepared-and-durable-stop",
+      "status": "PASS_STATIC_AND_NATIVE_PAPER",
+      "path": "internal/paperreconcile/reconcile.go",
+      "blob": "c4822f9fa4548a2d7ffc7d6c6bb1775911926b28",
+      "proof": "PREPARED journal before fill, pending uncertainty blocks replay, Stop records stopped journal before donor Kill; native two PAPER roundtrips/four fills/Stop/cold no-rearm PASS."
+    },
+    {
+      "id": "cold-owner-terminal",
+      "status": "PASS_STATIC_NO_AUTOREARM",
+      "path": "internal/paperengine/owner.go",
+      "blob": "5ac2405daa3d380213176ec1d2d51d0777512442",
+      "proof": "Existing paper root on NewOwner marks terminal; authenticated fresh market proof; status reports PAPER and LIVE disarmed."
+    },
+    {
+      "id": "tradeguard-buy-retry",
+      "status": "PASS_SOURCE_WINDOWS_AND_INSTALLED_FINANCIAL",
+      "path": "internal/originaltradeguard/risk.go",
+      "blob": "eeec0935ebdeb397053e16a6bdfcc8f78bfb7b87",
+      "proof": "Same-client BUY amount identity conflict verified by positive, negative and race source tests; exact-source native Windows PR242 run 41735740760 PASS."
+    },
+    {
+      "id": "original-donor-kill-restart",
+      "status": "KNOWN_GAP_LIVE_ADMISSION_BLOCKED",
+      "path": "internal/originaltradeguard/risk_port_test.go",
+      "blob": "a8a20574081f006ad6c1dd05ff160d59988ab9c0",
+      "proof": "Existing original risk v2 restart test explicitly demonstrates killed state is not persisted. Paper coordinator compensates with durable stopped barrier; no claim that original donor itself safely resumes LIVE."
+    },
+    {
+      "id": "credential-template",
+      "status": "PASS_STATIC_EMPTY_TRACKED_CREDENTIALS",
+      "path": "config.json",
+      "blob": "00f336d7f6d6eba8f50bcc10ac0f9f038205ff03",
+      "proof": "Repository config has empty API key name/secret and account ID; original CI rejects tracked non-empty credentials."
+    },
+    {
+      "id": "source-owned-workflow",
+      "status": "PASS_EXACT_SOURCE_WINDOWS",
+      "path": ".github/workflows/ktrade-native-windows.yml",
+      "blob": "067b76ec1b666d01014188167ed2e63ec9bccb86",
+      "proof": "Hosted Windows source checks, origin guard, LIVE disabled, full Go/tagged/Wails tests and vet, Node, pinned assets, unsigned actual binary scan all passed PR242 exact source run 41729717763."
+    }
+  ],
+  "qualification": {
+    "source_windows_run_id": 41729717763,
+    "installed_native_windows_run_id": 41735740760,
+    "native_qualifier_sha": "81a2c17947040e4eb5f4fc6950f3a12307de1ae8",
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "exact_financial_receipt_blob": "5ced373c856f45beebd60c8112d2399245198651",
+    "full_regression_reuse_condition": "Exact unchanged immutable product SHA/tree and verified original source-owned full Windows regression; mandatory regression rerun on any source/config/toolchain/qualification-identity drift."
+  },
+  "limitations": {
+    "all_changed_files_individually_line_reviewed": false,
+    "independent_integrated_mainline_admission": "NOT_GRANTED",
+    "source_owner_required_checks": "OFF_AT_TIME_OF_AUDIT",
+    "main_branch_protected": false,
+    "active_repository_rulesets": 0,
+    "full_end_to_end_live": "PROHIBITED",
+    "live_trading": "DISARMED",
+    "original_donor_kill_continuity": "KNOWN_NOT_PERSISTED",
+    "owner_pc_hidpi": "UNVERIFIED",
+    "full_logical_chart_range": "UNVERIFIED",
+    "final_24h_soak": "DEFERRED_TO_FINAL_RELEASE_CANDIDATE",
+    "signing_and_installed_owner_promotion": "HOLD",
+    "deployment": "NONE",
+    "merge": "NONE"
+  },
+  "next_gate": "Independent cumulative admission review/controls: ensure protected main and required source-owned checks via established owner governance; then authorize staged integration only after review of any still-unexamined high-risk source paths. No mutation to main or LIVE."
+}
