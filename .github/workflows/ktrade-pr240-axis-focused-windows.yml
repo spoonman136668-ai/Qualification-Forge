@@ -27,7 +27,7 @@ jobs:
           $ProgressPreference='SilentlyContinue'
           $scope='qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1'
           $blob=(& git rev-parse ('HEAD:'+$scope)).Trim()
-          if($LASTEXITCODE -ne 0 -or $blob -cne 'bc3ab480c64f3078c819303f02d3671de39e7025'){throw 'AXIS_FOCUSED_NATIVE_HARNESS_DRIFT'}
+          if($LASTEXITCODE -ne 0 -or $blob -cne '89102398ac21afc7dcbf3ffea64d4d03fe1ef959'){throw 'AXIS_FOCUSED_NATIVE_HARNESS_DRIFT'}
           $source=Get-Content -LiteralPath $scope -Raw
           $start=$source.IndexOf('function ViewportSingleSessionLabelEquivalent(')
           $end=$source.IndexOf('function ViewportMouseAway(',$start)
