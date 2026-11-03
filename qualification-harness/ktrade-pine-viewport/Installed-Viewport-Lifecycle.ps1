@@ -836,20 +836,20 @@ function ViewportLabelRuns([System.Drawing.Bitmap]$bitmap){
  for($x=0;$x -lt $bitmap.Width;$x++){
   $ink=$false
   for($y=0;$y -lt $bitmap.Height;$y++){
-   if(ViewportIsInk $bitmap.GetPixel($x,$y)){$ink=$true;break}
+   if(ViewportIsInk ($bitmap.GetPixel($x,$y))){$ink=$true;break}
   }
   if(!$ink){continue}
   if($x-$last -gt 6){$ranges.Add([pscustomobject]@{start=$x;end=$x})}
   else{$ranges[$ranges.Count-1].end=$x}
   $last=$x
  }
- return @($ranges)
+ return @($ranges.ToArray())
 }
 function ViewportGlyphCoverage([System.Drawing.Bitmap]$source,[object]$a,[System.Drawing.Bitmap]$target,[object]$b){
  $inkCount=0;$matched=0
  for($y=0;$y -lt $source.Height;$y++){
   for($x=[int]$a.start;$x -le [int]$a.end;$x++){
-   if(!(ViewportIsInk $source.GetPixel($x,$y))){continue}
+   if(!(ViewportIsInk ($source.GetPixel($x,$y)))){continue}
    $inkCount++
    $relative=$x-[int]$a.start
    $found=$false
@@ -859,7 +859,7 @@ function ViewportGlyphCoverage([System.Drawing.Bitmap]$source,[object]$a,[System
     foreach($dx in @(-1,0,1)){
      $xx=[int]$b.start+$relative+$dx
      if($xx -lt [int]$b.start-1 -or $xx -gt [int]$b.end+1 -or $xx -lt 0 -or $xx -ge $target.Width){continue}
-     if(ViewportIsInk $target.GetPixel($xx,$yy)){$found=$true;break}
+     if(ViewportIsInk ($target.GetPixel($xx,$yy))){$found=$true;break}
     }
     if($found){break}
    }
