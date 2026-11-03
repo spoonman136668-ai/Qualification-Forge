@@ -767,7 +767,7 @@ function ViewportAxis([object]$shell,[string]$phase){
 # identical, unlike real pan/zoom, which must change multiple separated ticks.
 # This does not certify logical-range equality or relax the independent navigation
 # positive control. It records every allowed single-label exception.
-function ViewportAxisEquivalent([object]$reference,[object]$candidate,[string]$phase){
+function ViewportSingleSessionLabelEquivalent([object]$reference,[object]$candidate,[string]$phase){
  if($reference.width -ne $candidate.width -or $reference.height -ne $candidate.height -or
     $reference.chart_width -ne $candidate.chart_width -or $reference.chart_height -ne $candidate.chart_height -or
     $reference.left -ne $candidate.left -or $reference.top -ne $candidate.top){return $false}
@@ -816,6 +816,91 @@ function ViewportAxisEquivalent([object]$reference,[object]$candidate,[string]$p
   Write-Host ('PINE_VIEWPORT_BOUNDED_SESSION_LABEL='+(@{phase=$phase;reference_sha256=$reference.axis_sha256;observed_sha256=$candidate.axis_sha256;changed_pixels=$changes;left=$minX;right=$maxX;axis_width=$before.Width;unchanged_label_clusters=$runs;outside_single_label_pixels_identical=$true;scope='single_original_native_session_calendar_label_only_not_pixel_to_logical_range_oracle'}|ConvertTo-Json -Compress))
   return $true
  }finally{$before.Dispose();$after.Dispose()}
+}
+
+
+# The original trading chart can slightly respace ticks when the independent
+# Pine price scale is first shown. Prove that SIX distinct actual time-label
+# glyph clusters survive in order and move no farther than twelve pixels.
+# Do not infer text from OCR or accept only hashes or a generic color match.
+function ViewportIsInk([System.Drawing.Color]$p){
+ return ($p.R -ge 110 -and $p.R -le 240 -and
+   $p.G -ge 110 -and $p.G -le 240 -and
+   $p.B -ge 110 -and $p.B -le 240 -and
+   [Math]::Abs([int]$p.R-[int]$p.G) -le 40 -and
+   [Math]::Abs([int]$p.G-[int]$p.B) -le 40)
+}
+function ViewportLabelRuns([System.Drawing.Bitmap]$bitmap){
+ $ranges=New-Object 'System.Collections.Generic.List[object]'
+ $last=-1000
+ for($x=0;$x -lt $bitmap.Width;$x++){
+  $ink=$false
+  for($y=0;$y -lt $bitmap.Height;$y++){
+   if(ViewportIsInk $bitmap.GetPixel($x,$y)){$ink=$true;break}
+  }
+  if(!$ink){continue}
+  if($x-$last -gt 6){$ranges.Add([pscustomobject]@{start=$x;end=$x})}
+  else{$ranges[$ranges.Count-1].end=$x}
+  $last=$x
+ }
+ return @($ranges)
+}
+function ViewportGlyphCoverage([System.Drawing.Bitmap]$source,[object]$a,[System.Drawing.Bitmap]$target,[object]$b){
+ $inkCount=0;$matched=0
+ for($y=0;$y -lt $source.Height;$y++){
+  for($x=[int]$a.start;$x -le [int]$a.end;$x++){
+   if(!(ViewportIsInk $source.GetPixel($x,$y))){continue}
+   $inkCount++
+   $relative=$x-[int]$a.start
+   $found=$false
+   foreach($dy in @(-1,0,1)){
+    $yy=$y+$dy
+    if($yy -lt 0 -or $yy -ge $target.Height){continue}
+    foreach($dx in @(-1,0,1)){
+     $xx=[int]$b.start+$relative+$dx
+     if($xx -lt [int]$b.start-1 -or $xx -gt [int]$b.end+1 -or $xx -lt 0 -or $xx -ge $target.Width){continue}
+     if(ViewportIsInk $target.GetPixel($xx,$yy)){$found=$true;break}
+    }
+    if($found){break}
+   }
+   if($found){$matched++}
+  }
+ }
+ return ($inkCount -ge 8 -and ($matched/$inkCount) -ge 0.90)
+}
+function ViewportGlyphAnchors([object]$reference,[object]$candidate,[string]$phase){
+ if($reference.width -ne $candidate.width -or $reference.height -ne $candidate.height -or
+   $reference.chart_width -ne $candidate.chart_width -or $reference.chart_height -ne $candidate.chart_height -or
+   $reference.left -ne $candidate.left -or $reference.top -ne $candidate.top){return $false}
+ $before=[System.Drawing.Bitmap]::new((Join-Path $env:RUNNER_TEMP ('pr240-viewport-axis-'+$reference.phase+'.png')))
+ $after=[System.Drawing.Bitmap]::new((Join-Path $env:RUNNER_TEMP ('pr240-viewport-axis-'+$candidate.phase+'.png')))
+ try{
+  if($before.Width -ne $after.Width -or $before.Height -ne $after.Height -or $before.Height -ne 18){return $false}
+  $runsA=@(ViewportLabelRuns $before);$runsB=@(ViewportLabelRuns $after)
+  $pairs=New-Object 'System.Collections.Generic.List[object]'
+  $lastEnd=-1
+  foreach($a in $runsA){
+   foreach($b in $runsB){
+    if($b.start -le $lastEnd -or
+      [Math]::Abs([int]$a.start-[int]$b.start) -gt 12 -or
+      [Math]::Abs(([int]$a.end-[int]$a.start)-([int]$b.end-[int]$b.start)) -gt 3){continue}
+    if(!(ViewportGlyphCoverage $before $a $after $b)){continue}
+    if(!(ViewportGlyphCoverage $after $b $before $a)){continue}
+    $pairs.Add([pscustomobject]@{before=[int]$a.start;after=[int]$b.start;drift=[int]$b.start-[int]$a.start})
+    $lastEnd=[int]$b.end
+    break
+   }
+  }
+  if($pairs.Count -lt 6){return $false}
+  # Original view changed by physical pan, not Apply: six genuine matching
+  # same-glyph time ticks within twelve pixels must not be found by accident.
+  Write-Host ('PINE_VIEWPORT_NATIVE_ANCHORED_TICKS='+(@{phase=$phase;reference_sha256=$reference.axis_sha256;observed_sha256=$candidate.axis_sha256;matched_tick_glyphs=$pairs.Count;max_allowed_drift_pixels=12;one_pixel_shape_tolerance=$true;pairs=@($pairs);scope='bounded_actual_native_unchanged_ordered_time_label_glyphs_after_pane_reflow_not_full_logical_range_oracle'}|ConvertTo-Json -Compress -Depth 6))
+  return $true
+ }finally{$before.Dispose();$after.Dispose()}
+}
+function ViewportAxisEquivalent([object]$reference,[object]$candidate,[string]$phase){
+ if(ViewportSingleSessionLabelEquivalent $reference $candidate $phase){return $true}
+ return (ViewportGlyphAnchors $reference $candidate $phase)
 }
 
 function ViewportMouseAway([object]$shell){
