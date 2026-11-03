@@ -47,7 +47,7 @@ jobs:
            foreach($entry in $archive.Entries){
             if($entry.FullName -cnotmatch '^pr240-viewport-axis-[A-Z0-9_\-]+(?:-context)?\.png$' -or $entry.Length -gt 90000){throw 'AXIS_FOCUSED_UNEXPECTED_ARCHIVE_ENTRY'}
            }
-           $archive.ExtractToDirectory($env:RUNNER_TEMP)
+           [IO.Compression.ZipFileExtensions]::ExtractToDirectory($archive,$env:RUNNER_TEMP)
           }finally{$archive.Dispose()}
           foreach($check in @(
            @('BASELINE','f5256b1ec529ea986a41dd79ce418a38398eb158235af18f0aed726e4421daab'),
