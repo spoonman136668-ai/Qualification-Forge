@@ -1,0 +1,67 @@
+{
+  "schema": "ktrade.pr240.native-viewport.source-newline-negatives.v1",
+  "outcome": "FAILED_NATIVE_VIEWPORT_QUALIFICATION",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 240,
+    "sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+    "tree": "b81cf9b2711ab2bf7d6ff76aee7238ba3b033b3d",
+    "changed": false,
+    "source_ci_run": 41628850571,
+    "source_ci_verdict": "PASS"
+  },
+  "attempts": [
+    {
+      "run_id": 41632082035,
+      "witness": "01d5572557fc56f0b616bd0881e99729d1c8c500",
+      "job_id": 125903920230,
+      "verdict": "FAIL",
+      "first_failure": "SETTINGS_ACTUAL_GO_OVERLAY_INPUT_BINDINGS_NOT_OBSERVED",
+      "actual_go_workspace_source_equal": false,
+      "explanation_at_attempt": "unresolved"
+    },
+    {
+      "run_id": 41636837266,
+      "witness": "1e6b760c125806daf75bc502033c11f9d54b111f",
+      "job_id": 125920051570,
+      "verdict": "FAIL",
+      "first_failure": "SETTINGS_ACTUAL_GO_OVERLAY_INPUT_BINDINGS_NOT_OBSERVED",
+      "expected": {
+        "characters": 100,
+        "sha256": "3da3d54287fd776e53482b543c3fca0ee445fa8b280474ed1931706262611d19",
+        "line_endings": "CRLF"
+      },
+      "observed": {
+        "characters": 98,
+        "sha256": "592148256f1b16286315e345d830c74efa39dd96c580cdd1e970149ccb4578e2",
+        "line_endings": "LF"
+      },
+      "independent_hash_reproduction": true,
+      "explanation": "The exact two missing CR characters are due to Monaco LF source normalization. Go workspace identity was correct for normalized source; the Windows-native harness expected CRLF."
+    }
+  ],
+  "bounded_test_only_changes": [
+    {
+      "commit": "7141b6b7422c2a63e39fd8c9d83c4a7409708726",
+      "effect": "construct baseline source with LF and assert exact independent SHA-256; preserve byte-identical Go workspace identity guard"
+    },
+    {
+      "commit": "f7c566df0256e2b670bb904c7d30491e33e3b618",
+      "effect": "construct all four v5/v6 overlay and pane scripts with LF; preserve strict Go source equality and viewport/navigation controls"
+    }
+  ],
+  "outstanding": {
+    "run": "41638135584 at 39f29c8a8cfaa7d0e3828ce3581d2dcc1f0fdb44 (started before second correction); do not claim its result here",
+    "final_native_viewport_verdict": "UNVERIFIED",
+    "scoped_release": "HOLD",
+    "mandatory_full_final_regression": "REQUIRED"
+  },
+  "guards": {
+    "live_armed": false,
+    "owner_data_accessed": false,
+    "production_source_changed": false,
+    "financial_thresholds_changed": false,
+    "approval_or_promotion_authority": "none"
+  },
+  "note": "Negative identity-bound receipt only; not a W94B nor PR240 accepted native visual/performance qualification. Exact result of already-running job must be checked separately."
+}
