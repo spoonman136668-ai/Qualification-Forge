@@ -95,6 +95,7 @@ jobs:
           $pins=@(
            @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','36bb0a7dac5cca866a2fe0bd018faa365fdeeb7c'),
            @('qualification-harness/ktrade-pine-viewport/Build-And-Qualify.ps1','c754ef22eb14db54eb7f08040ff094628583d69a'),
+           @('qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR242.ps1','166cd65d256b4b23166a7485fad79b4bb8bbee2b'),
            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1'),
            @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR242.ps1','e4df3d5933c7a4f1eab2190f62b2dff4c681c1a1')
           )
@@ -107,6 +108,12 @@ jobs:
           $oldWitness=Get-Content (Join-Path $w 'qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1') -Raw
           $newWitness=Get-Content (Join-Path $w 'qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR242.ps1') -Raw
           if($newWitness.Replace('3a1754aea9aeb733216489c25fcb585c0e9ef4e0','ae70c58ded58be33d5cb5f156adaf0890cc3457c') -cne $oldWitness){throw 'WITNESS_UNREVIEWED_DELTA'}
+          $originalBuilder=Get-Content (Join-Path $w 'qualification-harness/ktrade-pine-viewport/Build-And-Qualify.ps1') -Raw
+          $candidateBuilder=Get-Content (Join-Path $w 'qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR242.ps1') -Raw
+          $newBuilderPin="sha='3a1754aea9aeb733216489c25fcb585c0e9ef4e0';tree='7ac32bf78cb7788def25975a075ab54d564fc17f'"
+          $oldBuilderPin="sha='ae70c58ded58be33d5cb5f156adaf0890cc3457c';tree='4d008fe74aef4311e7fdfe1cebe0275328ff24a5'"
+          if($candidateBuilder.Replace($newBuilderPin,$oldBuilderPin) -cne $originalBuilder){throw 'PR242_BUILD_WITNESS_UNREVIEWED_DELTA'}
+          Write-Host '::notice::PR242_EXACT_BUILD_SHA_TREE_AND_UNCHANGED_HARNESS=PASS'
           $focused=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41698080849' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
           if($focused.status -cne 'completed' -or $focused.conclusion -cne 'success' -or $focused.head_sha -cne '4ed76ef706ece2dba1d2b6cd5646d215629a6a06'){throw 'EXACT_FOCUSED_AUTHENTIC_SCREENSHOT_MATCHER_PASS_REQUIRED'}
           Write-Host '::notice::PR242_INHERITED_PR240_FOCUSED_AUTHENTIC_SCREENSHOT_AND_NEGATIVE_PAN=PASS'
@@ -197,7 +204,7 @@ jobs:
           $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
           $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
           $probeLog=Join-Path $env:RUNNER_TEMP 'pr242-exact-private-native-output.txt'
-          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-pine-viewport/Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR242.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1') -CandidateQualifiedBundleRoot $env:CANDIDATE_BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:CANDIDATE_ARCHIVE_SHA256 *>&1 | Tee-Object -FilePath $probeLog
+          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR242.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR242.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1') -CandidateQualifiedBundleRoot $env:CANDIDATE_BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:CANDIDATE_ARCHIVE_SHA256 *>&1 | Tee-Object -FilePath $probeLog
           if($LASTEXITCODE -ne 0 -or !$?){throw 'EXACT_PRIVATE_ARCHIVE_NATIVE_ACCEPTANCE_FAILED'}
           # Actual execution coverage is mandatory. Defined-but-uncalled probes
           # must never turn a green lifecycle run into visual/memory acceptance.
