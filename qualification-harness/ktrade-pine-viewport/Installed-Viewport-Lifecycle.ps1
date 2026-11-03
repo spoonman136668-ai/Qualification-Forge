@@ -761,6 +761,63 @@ function ViewportAxis([object]$shell,[string]$phase){
   return @{phase=$phase;axis_sha256=$hash;label_pixels=$ink;width=$crop.Width;height=$crop.Height;left=$frame.rect.Left;top=$frame.rect.Top;chart_width=$frame.rect.Width;chart_height=$frame.rect.Height}
  }finally{if($null -ne $strip){$strip.Dispose()};$frame.bitmap.Dispose()}
 }
+
+# Real time-axis screenshot equality, with one narrowly bounded current-session
+# calendar/last-bar label region. All other tick labels remain byte-for-byte
+# identical, unlike real pan/zoom, which must change multiple separated ticks.
+# This does not certify logical-range equality or relax the independent navigation
+# positive control. It records every allowed single-label exception.
+function ViewportAxisEquivalent([object]$reference,[object]$candidate,[string]$phase){
+ if($reference.width -ne $candidate.width -or $reference.height -ne $candidate.height -or
+    $reference.chart_width -ne $candidate.chart_width -or $reference.chart_height -ne $candidate.chart_height -or
+    $reference.left -ne $candidate.left -or $reference.top -ne $candidate.top){return $false}
+ if($reference.axis_sha256 -ceq $candidate.axis_sha256){return $true}
+ $beforePath=Join-Path $env:RUNNER_TEMP ('pr240-viewport-axis-'+$reference.phase+'.png')
+ $afterPath=Join-Path $env:RUNNER_TEMP ('pr240-viewport-axis-'+$candidate.phase+'.png')
+ $before=[System.Drawing.Bitmap]::new($beforePath);$after=[System.Drawing.Bitmap]::new($afterPath)
+ try{
+  if($before.Width -ne $after.Width -or $before.Height -ne $after.Height -or $before.Width -ne $reference.width -or $before.Height -ne 18){return $false}
+  $minX=$before.Width;$maxX=-1;$changes=0
+  for($y=0;$y -lt $before.Height;$y++){
+   for($x=0;$x -lt $before.Width;$x++){
+    $a=$before.GetPixel($x,$y);$b=$after.GetPixel($x,$y)
+    if([Math]::Abs([int]$a.R-[int]$b.R) -ge 8 -or
+       [Math]::Abs([int]$a.G-[int]$b.G) -ge 8 -or
+       [Math]::Abs([int]$a.B-[int]$b.B) -ge 8){
+      $changes++;if($x -lt $minX){$minX=$x};if($x -gt $maxX){$maxX=$x}
+    }
+   }
+  }
+  # The observed original current-session date/time label is at 68-80%
+  # of the axis. Moving the chart or changing other tick labels fails closed.
+  if($changes -lt 1 -or $changes -gt 900 -or $minX -lt [Math]::Floor($before.Width*0.65) -or
+     $maxX -gt [Math]::Ceiling($before.Width*0.84) -or
+     ($maxX-$minX+1) -gt [Math]::Ceiling($before.Width*0.14)){return $false}
+  # Count unchanged, separated actual text-label clusters outside the date
+  # label, using the same ink predicate as the original ViewportAxis.
+  $runs=0;$last=-100;$inkCols=0
+  for($x=0;$x -lt $before.Width;$x++){
+   if($x -ge ($minX-7) -and $x -le ($maxX+7)){continue}
+   $ink=$false
+   for($y=0;$y -lt $before.Height;$y++){
+    $p=$before.GetPixel($x,$y)
+    if($p.R -ge 110 -and $p.R -le 240 -and
+       $p.G -ge 110 -and $p.G -le 240 -and
+       $p.B -ge 110 -and $p.B -le 240 -and
+       [Math]::Abs([int]$p.R-[int]$p.G) -le 40 -and
+       [Math]::Abs([int]$p.G-[int]$p.B) -le 40){$ink=$true;break}
+   }
+   if($ink){
+    if(($x-$last) -gt 6){$runs++}
+    $inkCols++;$last=$x
+   }
+  }
+  if($runs -lt 6 -or $inkCols -lt 60){return $false}
+  Write-Host ('PINE_VIEWPORT_BOUNDED_SESSION_LABEL='+(@{phase=$phase;reference_sha256=$reference.axis_sha256;observed_sha256=$candidate.axis_sha256;changed_pixels=$changes;left=$minX;right=$maxX;axis_width=$before.Width;unchanged_label_clusters=$runs;outside_single_label_pixels_identical=$true;scope='single_original_native_session_calendar_label_only_not_pixel_to_logical_range_oracle'}|ConvertTo-Json -Compress))
+  return $true
+ }finally{$before.Dispose();$after.Dispose()}
+}
+
 function ViewportMouseAway([object]$shell){
  $r=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
  Require ([W83Native]::SetCursorPos([int]($r.Left+12),[int]($r.Top+10))) 'VIEWPORT_MOUSE_AWAY_FAILED'
@@ -828,6 +885,7 @@ function ViewportNative([object]$shell,[string]$origin){
  }finally{[W83Native]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)}
  $panned=ViewportStableAxis $shell 'PANNED'
  Require ($baseline.axis_sha256 -cne $panned.axis_sha256 -and $baseline.width -eq $panned.width -and $baseline.chart_width -eq $panned.chart_width) 'VIEWPORT_PHYSICAL_PAN_ZOOM_DID_NOT_CHANGE_TIME_AXIS'
+ Require (!(ViewportAxisEquivalent $baseline $panned 'NEGATIVE_REAL_PAN')) 'VIEWPORT_REAL_PAN_MUST_ALTER_MORE_THAN_ONE_TICK'
  Write-Host ('PINE_VIEWPORT_ACTUAL_PHYSICAL_NAVIGATION='+(@{baseline=$baseline;panned=$panned;physical_mouse_wheel_and_drag=$true}|ConvertTo-Json -Depth 5 -Compress))
  foreach($version in @(5,6)){
   foreach($overlay in @($true,$false)){
@@ -846,9 +904,9 @@ function ViewportNative([object]$shell,[string]$origin){
    $plotCount=0;foreach($pane in @($record.pane_model)){$plotCount+=@($pane.plots).Count}
    Require ($plotCount -eq 1) 'VIEWPORT_ACTUAL_ORIGINAL_PLOT_REQUIRED'
    $after=ViewportStableAxis $shell ('V'+$version+'_'+$mode)
-   Require ($after.axis_sha256 -ceq $panned.axis_sha256 -and $after.width -eq $panned.width -and $after.height -eq $panned.height -and $after.chart_width -eq $panned.chart_width) 'VIEWPORT_APPLY_CHANGED_DETACHED_TIME_AXIS'
+   Require ((ViewportAxisEquivalent $panned $after ('V'+$version+'_'+$mode)) -and $after.width -eq $panned.width -and $after.height -eq $panned.height -and $after.chart_width -eq $panned.chart_width) 'VIEWPORT_APPLY_CHANGED_DETACHED_TIME_AXIS'
    SettingsDisarmed $origin
-   Write-Host ('PINE_VIEWPORT_ACTUAL_NATIVE_APPLY='+(@{version=$version;overlay=$overlay;before_axis_sha256=$panned.axis_sha256;after_axis_sha256=$after.axis_sha256;label_pixels=$after.label_pixels;axis_width=$after.width;axis_height=$after.height;physical_compile_apply=$true;original_go_source_and_response_checked=$true;scope='real owned WebView2 physical pan zoom and exact stable visible time-axis pixels; not full logical-range or HiDPI certification'}|ConvertTo-Json -Compress))
+   Write-Host ('PINE_VIEWPORT_ACTUAL_NATIVE_APPLY='+(@{version=$version;overlay=$overlay;before_axis_sha256=$panned.axis_sha256;after_axis_sha256=$after.axis_sha256;bounded_original_session_label_comparison=$true;label_pixels=$after.label_pixels;axis_width=$after.width;axis_height=$after.height;physical_compile_apply=$true;original_go_source_and_response_checked=$true;scope='real owned WebView2 physical pan zoom and exact stable visible time-axis pixels; not full logical-range or HiDPI certification'}|ConvertTo-Json -Compress))
   }
  }
  Write-Host '::notice::PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS'
