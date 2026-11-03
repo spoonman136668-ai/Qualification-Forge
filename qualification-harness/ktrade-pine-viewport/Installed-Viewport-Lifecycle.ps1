@@ -433,7 +433,26 @@ function MarkerNative([object]$shell,[string]$origin){
    W94BWaitOriginalChartBounds $shell $baseline.rect
    $after=MarkerCaptureChart $shell ('MARKER_APPLIED_V'+$version)
    $markedColors=@(MarkerColorCounts $after.bitmap)
-   Require ($baseline.rect.Equals($after.rect) -and $markedColors.Count -eq 2 -and $markedColors[0] -ge 40 -and $markedColors[1] -ge 40 -and $baseline.digest -cne $after.digest) 'MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED'
+   # Native chart pixels can arrive after the Go HTTP response and editor
+   # geometry have settled. Sample the unchanged original screen up to five
+   # times. Preserve every original hard pixel/geometry/negative requirement.
+   # If all observations fail, fail closed and print counts to distinguish
+   # delayed WebView presentation from off-viewport marker content.
+   $renderVerified=$false;$observations=@()
+   for($sample=1;$sample -le 5;$sample++){
+    $renderVerified=($baseline.rect.Equals($after.rect) -and $markedColors.Count -eq 2 -and
+      $markedColors[0] -ge 40 -and $markedColors[1] -ge 40 -and $baseline.digest -cne $after.digest)
+    $observations+=@{sample=$sample;up_pixels=$markedColors[0];down_pixels=$markedColors[1];
+      identical_bounds=$baseline.rect.Equals($after.rect);same_sha=($baseline.digest -ceq $after.digest)}
+    if($renderVerified -or $sample -eq 5){break}
+    $after.bitmap.Dispose();$after=$null
+    Start-Sleep -Milliseconds 750
+    W94BWaitOriginalChartBounds $shell $baseline.rect
+    $after=MarkerCaptureChart $shell ('MARKER_APPLIED_V'+$version+'_RECHECK_'+$sample)
+    $markedColors=@(MarkerColorCounts $after.bitmap)
+   }
+   Write-Host ('PINE_MARKER_NATIVE_SCREEN_RENDER_DIAGNOSTIC='+(@{version=$version;observations=$observations;original_go_shape_count=$markedHTTP.shapes;scope='original_native_pixels_unchanged_thresholds_no_JS_injection'}|ConvertTo-Json -Depth 5 -Compress))
+   Require $renderVerified 'MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED'
    SettingsDisarmed $origin
    Write-Host ('PINE_MARKER_ACTUAL_NATIVE_COLOR_AND_ORIGINAL_HTTP='+(@{version=$version;baseline_http=$baselineHTTP;marked_http=$markedHTTP;baseline_up_pixels=$baselineColors[0];baseline_down_pixels=$baselineColors[1];marked_up_pixels=$markedColors[0];marked_down_pixels=$markedColors[1];identical_bounds=$true;baseline_sha256=$baseline.digest;marked_sha256=$after.digest;physical_editor_compile_and_apply=$true;scope='bounded_synthetic_source_actual_Go_bar_price_style_and_both_native_marker_colors_not_full_RSI_pixel_oracle'}|ConvertTo-Json -Depth 5 -Compress))
   }finally{if($null -ne $after){$after.bitmap.Dispose()};$baseline.bitmap.Dispose()}
