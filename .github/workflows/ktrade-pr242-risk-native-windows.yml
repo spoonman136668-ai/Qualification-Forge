@@ -129,7 +129,12 @@ jobs:
           if($exit -ne 0){throw 'PR242_ORIGINAL_TRADEGUARD_RACE_FAILED'}
           $logs=@($output|ForEach-Object {[string]$_})
           foreach($test in @('TestOriginalRiskBUYRetryAmountIdentityIsImmutable','TestOriginalRiskConcurrentSameIDConflictingBUYAmountOnlyOneAdmitted')){
-           if(@($logs|Where-Object {$_.Contains(('--- PASS: '+$test))}).Count -ne 1){throw ('PR242_EXPECTED_NEGATIVE_TEST_MISSING_'+$test)}
+           $exactPrefix=('--- PASS: '+$test+' (')
+           if(@($logs|Where-Object {$_.Trim().StartsWith($exactPrefix,[StringComparison]::Ordinal)}).Count -ne 1){throw ('PR242_EXPECTED_NEGATIVE_TEST_MISSING_'+$test)}
+          }
+          foreach($sub in @('standard','manual')){
+           $exactPrefix=('--- PASS: TestOriginalRiskBUYRetryAmountIdentityIsImmutable/'+$sub+' (')
+           if(@($logs|Where-Object {$_.Trim().StartsWith($exactPrefix,[StringComparison]::Ordinal)}).Count -ne 1){throw ('PR242_EXPECTED_IDEMPOTENT_SUBTEST_MISSING_'+$sub)}
           }
           Write-Host '::notice::PR242_ORIGINAL_RISK_CONFLICT_AND_RACE=PASS'
       - name: Source-owned repeatable assets licenses and shipping audit
