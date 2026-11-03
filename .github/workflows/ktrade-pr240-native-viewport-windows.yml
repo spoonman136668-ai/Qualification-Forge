@@ -74,7 +74,7 @@ jobs:
           # Reuse only this immutable receipt plus identical source/test/toolchain/workflow
           # identities; do not pretend this hosted token has private Actions permission.
           $pins=@(
-           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','5730a61d78a371c9a46a567d4026a7fd2c934af8'),
+           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','6e82372edd133e2d8ce92a8d4828a1d6f90778ba'),
            @('qualification-harness/ktrade-pine-viewport/Build-And-Qualify.ps1','39c34bdf23b0effa9e6ffc74ac15696ee7b3470c'),
            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
           )
