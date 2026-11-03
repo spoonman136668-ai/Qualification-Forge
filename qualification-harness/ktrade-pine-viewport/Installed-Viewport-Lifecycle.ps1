@@ -728,7 +728,29 @@ function ViewportStableAxis([object]$shell,[string]$phase){
  Require ($a.axis_sha256 -ceq $b.axis_sha256 -and $a.width -eq $b.width -and $a.height -eq $b.height) 'VIEWPORT_AXIS_NOT_STABLE_BEFORE_COMPARISON'
  return $b
 }
+function ViewportWaitStableLayout([object]$shell,[int]$expectedLeft,[int]$expectedWidth){
+ # Pane height may legitimately change, but price time-axis width/left may not.
+ # Wait until layout has stopped moving rather than comparing animation frames.
+ $until=[DateTime]::UtcNow.AddSeconds(12);$stable=0;$previousHeight=-1
+ do{
+  $node=FindUI $shell 'Price chart drawing surface' $false 2
+  $r=$node.Current.BoundingRectangle
+  $left=[int][Math]::Ceiling($r.Left);$width=[int][Math]::Floor($r.Width);$height=[int][Math]::Floor($r.Height)
+  if($left -eq $expectedLeft -and $width -eq $expectedWidth -and $height -eq $previousHeight){$stable++}else{$stable=0}
+  if($stable -ge 3){return}
+  $previousHeight=$height
+  Start-Sleep -Milliseconds 160
+ }while([DateTime]::UtcNow -lt $until)
+ throw 'VIEWPORT_ORIGINAL_NATIVE_LAYOUT_DID_NOT_STABILIZE_AT_BASELINE_WIDTH'
+}
+
 function ViewportNative([object]$shell,[string]$origin){
+ # Capture authoritative native chart geometry with the Pine panel closed,
+ # before baseline Compile opens/reflows that panel.
+ $initialNode=FindUI $shell 'Price chart drawing surface' $false 20
+ $initialBox=$initialNode.Current.BoundingRectangle
+ $initialRect=[System.Drawing.Rectangle]::new([int][Math]::Ceiling($initialBox.Left),[int][Math]::Ceiling($initialBox.Top),[int][Math]::Floor($initialBox.Width),[int][Math]::Floor($initialBox.Height))
+ Require ($initialRect.Width -ge 220 -and $initialRect.Height -ge 140) 'VIEWPORT_ORIGINAL_NATIVE_PRICE_BOUNDS_INVALID'
  # Use the same syntactically qualified original v6 plot form already proven
  # by LabelNative, before adding wheel/drag viewport interaction.
  # Do not introduce a second unqualified bare-plot rendering control here.
@@ -739,6 +761,9 @@ function ViewportNative([object]$shell,[string]$origin){
  $baselineSha=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($baselineBytes)).ToLowerInvariant()
  Require ($baselineSha -ceq '592148256f1b16286315e345d830c74efa39dd96c580cdd1e970149ccb4578e2') 'VIEWPORT_INDEPENDENT_LF_BASELINE_SHA_DRIFT'
  MarkerPhysicalApply $shell $origin $baselineSource
+ # The original editor close schedules a 300ms chart resize. Match the
+ # exact pre-open bounds before taking two allegedly stable native captures.
+ W94BWaitOriginalChartBounds $shell $initialRect
  $baseline=ViewportStableAxis $shell 'BASELINE'
  $node=FindUI $shell 'Price chart drawing surface' $false 20
  $r=$node.Current.BoundingRectangle
@@ -766,6 +791,7 @@ function ViewportNative([object]$shell,[string]$origin){
    # evaluated source equality across all four v5/v6 overlay/pane cases.
    $source=('//@version='+$version+"`n"+'indicator("Viewport native '+$version+' '+$mode+'",overlay='+$word+')'+"`n"+'plot(close*1.0001)')
    MarkerPhysicalApply $shell $origin $source
+   ViewportWaitStableLayout $shell $initialRect.Left $initialRect.Width
    $workspace=Invoke-RestMethod -Method Post -Uri ($origin+'/api/workspace/save') -Headers @{Origin=$origin} -ContentType 'application/json' -Body '{}' -TimeoutSec 10
    Require ($workspace.success -eq $true -and $workspace.workspace.code -ceq $source.Trim()) 'VIEWPORT_ACTUAL_APPLIED_SOURCE_MISMATCH'
    $body=@{code=$source;symbol=$workspace.workspace.symbol;timeframe=$workspace.workspace.timeframe;limit=300}|ConvertTo-Json -Compress
