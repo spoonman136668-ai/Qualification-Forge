@@ -1,0 +1,323 @@
+name: KTRADE PR242 exact installed TradeGuard retry and PAPER qualification
+on:
+  push:
+    branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
+    paths: [.github/workflows/ktrade-pr242-risk-native-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pr242-financial-native-20261103
+  cancel-in-progress: false
+jobs:
+  native-viewport:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      KTRADE_EXPECTED_SOURCE: '3a1754aea9aeb733216489c25fcb585c0e9ef4e0'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 3a1754aea9aeb733216489c25fcb585c0e9ef4e0
+          path: product
+          fetch-depth: 20
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact source qualified full Windows receipt and immutable native harness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_ISOLATED_WINDOWS_QUALIFICATION_REQUIRED'}
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if((& git -C $p rev-parse HEAD).Trim() -cne '3a1754aea9aeb733216489c25fcb585c0e9ef4e0' -or @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'EXACT_CLEAN_PR242_SOURCE_REQUIRED'}
+          # Inherit all PR241 original native installed and security qualifications by immutable content.
+          # Only two TradeGuard paths may differ from PR241; original risk changes must be tested anew.
+          # No prior original financial acceptance is inherited for the changed TradeGuard code.
+          $delta=@(& git -C $p diff --name-only ae70c58ded58be33d5cb5f156adaf0890cc3457c HEAD|Sort-Object)
+          if(($delta -join '|') -cne 'internal/originaltradeguard/risk.go|internal/originaltradeguard/risk_retry_amount_test.go'){throw 'PR242_EXACT_RISK_PATHS_REQUIRED'}
+          foreach($same in @('cmd','pkg','static','templates','tests','tools','windows','go.mod','go.sum','.github')){
+           if((& git -C $p rev-parse ('HEAD:'+$same)).Trim() -cne (& git -C $p rev-parse ('ae70c58ded58be33d5cb5f156adaf0890cc3457c:'+$same)).Trim()){throw 'PR241_QUALIFIED_FOUNDATION_DRIFT'}
+          }
+          $securityPins=@(
+           @('cmd/ktrade/main_full.go','bfadf7a46cfaf90ad15600e7b820a7f59456563b'),
+           @('cmd/ktrade/rb2_pine_shared_interpreter_full_test.go','3db885ad9694b721603d2249703c68259378f4c1'),
+           @('cmd/ktrade/rb3_pine_http_ingress_full_test.go','241edf5370b196a4d5e2c5c3dea2b260ffa2f22c')
+          )
+          foreach($pin in $securityPins){if((& git -C $p rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'PR241_AUTHENTIC_SECURITY_SOURCE_OR_NEGATIVE_TEST_DRIFT'}}
+          foreach($risk in @(@('internal/originaltradeguard/risk.go','eeec0935ebdeb397053e16a6bdfcc8f78bfb7b87'),@('internal/originaltradeguard/risk_retry_amount_test.go','2b4254dd741a940ca3b3f01c2b1122b3c3afb551'))){if((& git -C $p rev-parse ('HEAD:'+$risk[0])).Trim() -cne $risk[1]){throw 'PR242_EXACT_RISK_BLOBS_REQUIRED'}}
+          if((& git -C $p rev-parse 'HEAD:templates/chart.tmpl').Trim() -cne '3fbbce76737cbf1f8865c1a52ed92acb8dd83a81' -or (& git -C $p rev-parse 'HEAD:.github/workflows/ktrade-native-windows.yml').Trim() -cne '067b76ec1b666d01014188167ed2e63ec9bccb86'){throw 'COMPLETE_CHART_OR_SOURCE_CI_WORKFLOW_DRIFT'}
+          foreach($folder in @('previous','product')){
+           $root=Join-Path $env:GITHUB_WORKSPACE $folder
+           if(@(& git -C $root status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $root '.env'))){throw 'CLEAN_CREDENTIAL_FREE_SOURCE_REQUIRED'}
+           $cfg=Get-Content (Join-Path $root 'config.json') -Raw|ConvertFrom-Json
+           if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'TRACKED_CREDENTIALS_REFUSED'}
+           if((Get-Content (Join-Path $root 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          }
+          $receiptPath='qualification-receipts/ktrade-pr242-source-windows-verification-20261103.json'
+          if((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -cne 'b3afbf9a1ae9a021af5bf9b63d58a363e2422df2'){throw 'PR242_SOURCE_RECEIPT_DRIFT'}
+          $receipt=Get-Content (Join-Path $w $receiptPath) -Raw|ConvertFrom-Json
+          if($receipt.verdict -cne 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -or $receipt.source.head_sha -cne '3a1754aea9aeb733216489c25fcb585c0e9ef4e0' -or $receipt.qualification.run_id -ne 41729717763 -or $receipt.qualification.job_id -ne 126243591642 -or $receipt.qualification.run_conclusion -cne 'success' -or !$receipt.qualification.all_reported_steps_success -or $receipt.qualification.log_observed_node_cases -ne 191){throw 'PR242_SOURCE_WINDOWS_CI_REQUIRED'}
+          $nativeParent='qualification-receipts/ktrade-pr241-exact-installed-native-windows-20261103.json'
+          if((& git -C $w rev-parse ('HEAD:'+$nativeParent)).Trim() -cne '38f69da5656fe4ac66d79a618a92a45b1053e531'){throw 'PR241_NATIVE_PARENT_RECEIPT_CHANGED'}
+          $qualifiedParent=Get-Content (Join-Path $w $nativeParent) -Raw|ConvertFrom-Json
+          if($qualifiedParent.witness.run_id -ne 41724345293 -or $qualifiedParent.witness.conclusion -cne 'success' -or !$qualifiedParent.witness.all_18_job_steps_success){throw 'PR241_NATIVE_PARENT_PASS_REQUIRED'}
+          $parentReceipt='qualification-receipts/ktrade-pr240-pine-apply-viewport-source-windows-20261103.json'
+          if((& git -C $w rev-parse ('HEAD:'+$parentReceipt)).Trim() -cne 'a188fae0719450a9dbeb2e8712d455bdfcbd1704'){throw 'PR240_SOURCE_PARENT_RECEIPT_DRIFT'}
+          # Private Actions originals were verified through the connected authorized reader.
+          # Reuse only this immutable receipt plus identical source/test/toolchain/workflow
+          # identities; do not pretend this hosted token has private Actions permission.
+          $pins=@(
+           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1','36bb0a7dac5cca866a2fe0bd018faa365fdeeb7c'),
+           @('qualification-harness/ktrade-pine-viewport/Build-And-Qualify.ps1','c754ef22eb14db54eb7f08040ff094628583d69a'),
+           @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1'),
+           @('qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR242.ps1','e4df3d5933c7a4f1eab2190f62b2dff4c681c1a1')
+          )
+          foreach($pin in $pins){
+           if((& git -C $w rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'EXACT_NATIVE_OR_FINANCIAL_HARNESS_DRIFT'}
+           $tokens=$null;$errors=$null
+           [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $w $pin[0]),[ref]$tokens,[ref]$errors)
+           if($errors.Count -ne 0){throw ('NATIVE_POWERSHELL_SYNTAX_FAILED '+(($errors|ForEach-Object {$_.ToString()}) -join '; '))}
+          }
+          $oldWitness=Get-Content (Join-Path $w 'qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1') -Raw
+          $newWitness=Get-Content (Join-Path $w 'qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR242.ps1') -Raw
+          if($newWitness.Replace('3a1754aea9aeb733216489c25fcb585c0e9ef4e0','ae70c58ded58be33d5cb5f156adaf0890cc3457c') -cne $oldWitness){throw 'WITNESS_UNREVIEWED_DELTA'}
+          $focused=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41698080849' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($focused.status -cne 'completed' -or $focused.conclusion -cne 'success' -or $focused.head_sha -cne '4ed76ef706ece2dba1d2b6cd5646d215629a6a06'){throw 'EXACT_FOCUSED_AUTHENTIC_SCREENSHOT_MATCHER_PASS_REQUIRED'}
+          Write-Host '::notice::PR242_INHERITED_PR240_FOCUSED_AUTHENTIC_SCREENSHOT_AND_NEGATIVE_PAN=PASS'
+          Write-Host '::notice::PR242_SOURCE_CI_AND_RISK_SOURCE_GUARDS=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original BUY retry conflicting amount and concurrent race
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          $output=& go test -count=1 -race -v -run '^(TestOriginalRiskBUYRetryAmountIdentityIsImmutable|TestOriginalRiskConcurrentSameIDConflictingBUYAmountOnlyOneAdmitted)$' ./internal/originaltradeguard 2>&1
+          $exit=$LASTEXITCODE
+          $output|ForEach-Object {Write-Host $_}
+          if($exit -ne 0){throw 'PR242_ORIGINAL_TRADEGUARD_RACE_FAILED'}
+          $logs=@($output|ForEach-Object {[string]$_})
+          foreach($test in @('TestOriginalRiskBUYRetryAmountIdentityIsImmutable','TestOriginalRiskConcurrentSameIDConflictingBUYAmountOnlyOneAdmitted')){
+           if(@($logs|Where-Object {$_.Contains(('--- PASS: '+$test))}).Count -ne 1){throw ('PR242_EXPECTED_NEGATIVE_TEST_MISSING_'+$test)}
+          }
+          Write-Host '::notice::PR242_ORIGINAL_RISK_CONFLICT_AND_RACE=PASS'
+      - name: Source-owned repeatable assets licenses and shipping audit
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          & npm.cmd ci --ignore-scripts --no-audit --no-fund
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_LOCKED_ASSET_INSTALL_FAILED'}
+          & node scripts/stage_offline_vendor.cjs
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_FIRST_ASSET_STAGE_FAILED'}
+          $first=(Get-FileHash static/vendor/assets-manifest.json -Algorithm SHA256).Hash
+          & node scripts/stage_offline_vendor.cjs
+          if($LASTEXITCODE -ne 0 -or (Get-FileHash static/vendor/assets-manifest.json -Algorithm SHA256).Hash -cne $first){throw 'NATIVE_CI_ASSET_RESTAGE_CHANGED'}
+          & node -e "const fs=require('node:fs'),c=require('node:crypto');const m=JSON.parse(fs.readFileSync('static/vendor/assets-manifest.json'));if(m.files.some(f=>f.path==='assets-manifest.json'))throw Error('self inclusion');for(const f of m.files)if(c.createHash('sha256').update(fs.readFileSync('static/vendor/'+f.path)).digest('hex')!==f.sha256)throw Error('asset hash');console.log('NATIVE_CI_VENDOR_PAYLOAD_HASHES=PASS files='+m.files.length);"
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_VENDOR_PAYLOAD_HASH_INVALID'}
+          & node scripts/audit_shipped_dependencies.cjs .
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_SHIPPED_ADVISORY_OR_NOTICE_AUDIT_FAILED'}
+          Write-Host '::notice::NATIVE_CI_REPEATABLE_LICENSED_SHIPPING_ASSETS=PASS'
+      - name: Source-owned unsigned installer and actual shipping binary scans
+        id: package
+        shell: powershell
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:PSModulePath=Join-Path $PSHOME 'Modules'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
+          & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $root -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_ORIGINAL_UNSIGNED_SETUP_BUILD_FAILED'}
+          $manifest=Get-Content (Join-Path $root 'KTRADE-SetupBundle/installer-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.source_sha -cne $env:KTRADE_EXPECTED_SOURCE -or $manifest.signature_status -cne 'unsigned' -or $manifest.live_armed -or $manifest.release_authority -cne 'none'){throw 'NATIVE_CI_PACKAGE_AUTHORITY_DRIFT'}
+          $exes=@(Get-ChildItem $root -Filter '*.exe' -Recurse -File)
+          if($exes.Count -ne 6){throw 'NATIVE_CI_SIX_ORIGINAL_BINARIES_REQUIRED'}
+          foreach($exe in $exes){
+            $version=(& go version $exe.FullName)-join ''
+            if($LASTEXITCODE -ne 0 -or !$version.Trim().EndsWith(': go1.26.10',[StringComparison]::Ordinal) -or (Get-AuthenticodeSignature $exe.FullName).Status -cne 'NotSigned'){throw 'NATIVE_CI_BINARY_COMPILER_OR_SIGNATURE_DRIFT'}
+          }
+          & go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_PINNED_SCANNER_UNAVAILABLE'}
+          $scanner=Join-Path ((& go env GOPATH).Trim()) 'bin/govulncheck.exe'
+          $payload=@(Get-ChildItem $root -Filter 'KTRADE-WailsPortable' -Directory -Recurse)
+          if($payload.Count -ne 1){throw 'NATIVE_CI_PAYLOAD_AMBIGUOUS'}
+          foreach($name in @('ktrade.exe','ktrade-engine.exe')){
+            & $scanner -mode=binary (Join-Path $payload[0].FullName $name)
+            if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_SHIPPING_BINARY_VULNERABILITY_FOUND'}
+          }
+          $changes=@(& git status --porcelain)
+          if(@($changes|Where-Object{$_ -cnotin @('?? node_modules/','?? static/vendor/')}).Count -ne 0){throw 'NATIVE_CI_UNEXPECTED_SOURCE_OR_OUTPUT_CHANGE'}
+          Write-Host ('NATIVE_CI_UNSIGNED_INSTALLER_SHA256='+((Get-FileHash (Join-Path $root 'KTRADE-SetupBundle.zip') -Algorithm SHA256).Hash.ToLowerInvariant()))
+          Write-Host '::notice::NATIVE_CI_ORIGINAL_UNSIGNED_PACKAGE_ACTUAL_BINARY_SCANS_NO_APP_NO_INSTALL_NO_RELEASE=PASS'
+          [IO.File]::AppendAllText($env:GITHUB_OUTPUT,('bundle_root='+$root+[Environment]::NewLine+'archive_sha256='+((Get-FileHash (Join-Path $root 'KTRADE-SetupBundle.zip') -Algorithm SHA256).Hash.ToLowerInvariant())+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+      - name: Actual installed physical viewport and complete original PAPER lifecycle
+        shell: pwsh
+        env:
+          CANDIDATE_BUNDLE_ROOT: ${{ steps.package.outputs.bundle_root }}
+          CANDIDATE_ARCHIVE_SHA256: ${{ steps.package.outputs.archive_sha256 }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          $probeLog=Join-Path $env:RUNNER_TEMP 'pr242-exact-private-native-output.txt'
+          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-pine-viewport/Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR242.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1') -CandidateQualifiedBundleRoot $env:CANDIDATE_BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:CANDIDATE_ARCHIVE_SHA256 *>&1 | Tee-Object -FilePath $probeLog
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'EXACT_PRIVATE_ARCHIVE_NATIVE_ACCEPTANCE_FAILED'}
+          # Actual execution coverage is mandatory. Defined-but-uncalled probes
+          # must never turn a green lifecycle run into visual/memory acceptance.
+          $observed=@(Get-Content -LiteralPath $probeLog)
+          function ProbeJson([string]$prefix,[int]$count){
+            $rows=@($observed|Where-Object {$_ -is [string] -and $_.StartsWith($prefix,[StringComparison]::Ordinal)})
+            if($rows.Count -ne $count){throw ('W94B_REQUIRED_ACTUAL_PROBE_OUTPUT_MISSING_'+$prefix)}
+            return @($rows|ForEach-Object {$_.Substring($prefix.Length)|ConvertFrom-Json -ErrorAction Stop})
+          }
+          $ready=@(ProbeJson 'W83_NATIVE_READY_MEASUREMENT=' 3)
+          $functional=@(ProbeJson 'W83_NATIVE_FUNCTIONAL_PROBES_MEASUREMENT=' 3)
+          foreach($phase in @('PREVIOUS','UPDATED','ROLLED_BACK')){
+            $r=@($ready|Where-Object {$_.phase -ceq $phase})
+            $f=@($functional|Where-Object {$_.phase -ceq $phase})
+            if($r.Count -ne 1 -or $f.Count -ne 1 -or $r[0].elapsed_ms -le 0 -or $r[0].elapsed_ms -gt 120000 -or $r[0].startup_budget_ms -ne 120000 -or $r[0].shell_engine_resident_bytes -le 0 -or $r[0].shell_engine_resident_bytes -gt 1073741824 -or $r[0].resident_budget_bytes -ne 1073741824 -or $f[0].elapsed_ms -lt 0){throw 'ALL_THREE_REAL_STARTUP_AND_FULL_FUNCTIONAL_TIMINGS_REQUIRED'}
+          }
+          $screens=@(ProbeJson 'W94B_PRICE_CHART_SCREEN_DIGEST=' 2)
+          if(@($screens|Where-Object {$_.phase -ceq 'BEFORE_SUPERTREND'}).Count -ne 1 -or @($screens|Where-Object {$_.phase -ceq 'AFTER_SUPERTREND'}).Count -ne 1){throw 'W94B_BOTH_REAL_SCREEN_PHASES_REQUIRED'}
+          $comparison=@(ProbeJson 'W94B_REAL_PRICE_PANE_COMPARISON=' 1)[0]
+          if(!$comparison.identical_bounds -or $comparison.pixel_sample_count -lt 500 -or $comparison.changed_sample_count -lt 15 -or $comparison.before_sha256 -ceq $comparison.after_sha256){throw 'W94B_ACTUAL_PANE_PIXEL_DELTA_REQUIRED'}
+          foreach($prefix in @('W94B_PROCESS_TREE_BEFORE=','W94B_PROCESS_TREE_AFTER=')){
+            $p=@(ProbeJson $prefix 1)[0]
+            if($p.webview2_count -lt 1 -or $p.process_count -ne @($p.members).Count -or $p.total_working_set_bytes -le 0){throw 'W94B_COMPLETE_REAL_PROCESS_MEASUREMENT_REQUIRED'}
+            $sum=[long]0;foreach($member in $p.members){$sum+=[long]$member.working_set_bytes}
+            if($sum -ne [long]$p.total_working_set_bytes){throw 'W94B_PROCESS_TOTAL_MISMATCH'}
+          }
+          if(@($observed|Where-Object {$_ -ceq '::notice::W94B_ACTIVE_PIXEL_AND_WEBVIEW_PROCESS_PROBES_EXECUTED=PASS'}).Count -ne 1){throw 'W94B_ACTUAL_PROBE_COMPLETION_REQUIRED'}
+          Write-Host '::notice::W94B_ACTUAL_OUTPUT_COVERAGE_ENFORCED_PANE_DIFFERENCE_AND_ALL_OBSERVED_DESCENDANT_MEMORY=PASS'
+          $lines=@(Get-Content $probeLog)
+          foreach($marker in @('::notice::RSI_REAL_INSTALLED_WEBVIEW2_CONFIRMED_DIVERGENCE_PHYSICAL_APPLY_RSI_PANE_NO_TRADING=PASS','::notice::W94B_ACTIVE_PIXEL_AND_WEBVIEW_PROCESS_PROBES_EXECUTED=PASS','::notice::W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS','::notice::W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS')){
+            if(@($lines|Where-Object{$_ -ceq $marker}).Count -ne 1){throw 'EXACT_PRIVATE_ARTIFACT_ACTUAL_NATIVE_OUTPUT_MISSING'}
+          }
+          foreach($required in @('::notice::PINE_SETTINGS_NATIVE_PHYSICAL_NUMERIC_APPLY_SAVE_VALIDATION_AND_SOURCE_CUSTODY=PASS','::notice::PINE_SETTINGS_NATIVE_COLD_REOPEN_RESTORE_AND_EXPLICIT_DEFAULT_RESET=PASS')){
+            if(@($observed|Where-Object {$_ -ceq $required}).Count -ne 1){throw 'SETTINGS_ACTUAL_NATIVE_PROBE_COMPLETION_REQUIRED'}
+          }
+          $settings=@(ProbeJson 'PINE_SETTINGS_ACTUAL_NATIVE_COLD_RESTORE_RESET=' 2)
+          if(@($settings|Where-Object {$_.name -ceq 'Supertrend' -and $_.restored_values.input_0 -eq 3 -and $_.restored_values.input_1 -eq 2.5 -and $_.explicit_reset_verified -eq $true -and $_.disk_and_original_go_verified -eq $true}).Count -ne 1 -or @($settings|Where-Object {$_.name -ceq 'RSI Divergence' -and $_.restored_values.input_0 -eq 3 -and $_.explicit_reset_verified -eq $true -and $_.disk_and_original_go_verified -eq $true}).Count -ne 1){throw 'BOTH_REAL_SETTINGS_VALUES_AND_COLD_RESET_OUTPUTS_REQUIRED'}
+          if(@($observed|Where-Object {$_ -ceq '::notice::PINE_MARKER_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_BOTH_ARROW_COLOR_OBSERVATION=PASS'}).Count -ne 1){throw 'EXACT_PRIVATE_ACTUAL_MARKER_PROBE_MUST_EXECUTE'}
+          $markers=@(ProbeJson 'PINE_MARKER_ACTUAL_NATIVE_COLOR_AND_ORIGINAL_HTTP=' 2)
+          foreach($version in @(5,6)){
+            $match=@($markers|Where-Object {$_.version -eq $version})
+            if($match.Count -ne 1){throw 'EXACT_PRIVATE_BOTH_NATIVE_PINE_VERSIONS_REQUIRED'}
+            $m=$match[0]
+            if(!$m.identical_bounds -or !$m.physical_editor_compile_and_apply -or $m.baseline_up_pixels -gt 2 -or $m.baseline_down_pixels -gt 2 -or $m.marked_up_pixels -lt 40 -or $m.marked_down_pixels -lt 40 -or $m.baseline_http.shapes -ne 0 -or $m.marked_http.up -lt 1 -or $m.marked_http.down -lt 1 -or !$m.marked_http.actual_response_bar_price_and_style_checked){throw 'EXACT_PRIVATE_ACTUAL_MARKER_HTTP_AND_COLOR_OBSERVATIONS_REQUIRED'}
+          }
+          if(@($observed|Where-Object {$_ -ceq '::notice::PINE_HLINE_NATIVE_ORIGINAL_V5_V6_RSI_THREE_LEVELS_PHYSICAL_GUIDE_ROWS_AND_REMOVAL=PASS'}).Count -ne 1){throw 'EXACT_PRIVATE_GUIDE_PROBE_MUST_EXECUTE'}
+          $guides=@(ProbeJson 'PINE_HLINE_ACTUAL_NATIVE_RSI_GUIDE_ROWS=' 2)
+          foreach($version in @(5,6)){
+            $match=@($guides|Where-Object {$_.version -eq $version})
+            if($match.Count -ne 1){throw 'EXACT_PRIVATE_BOTH_GUIDE_VERSIONS_REQUIRED'}
+            $g=$match[0];$levels=@($g.actual_original_go_levels)
+            if($levels.Count -ne 3 -or $levels[0] -ne 70 -or $levels[1] -ne 30 -or $levels[2] -ne 50 -or !$g.identical_bounds -or !$g.physical_editor_compile_apply_and_remove -or @($g.baseline_rows).Count -ne 0 -or @($g.applied_rows).Count -ne 3 -or @($g.removed_rows).Count -ne 0){throw 'EXACT_PRIVATE_RSI_GUIDE_ROWS_AND_REMOVAL_REQUIRED'}
+          }
+          if(@($observed|Where-Object {$_ -ceq '::notice::PINE_GUIDE_ONLY_NATIVE_ORIGINAL_V5_V6_ZERO_PLOTS_THREE_LEVELS_AND_ACTUAL_PANE_CAPTION=PASS'}).Count -ne 1){throw 'EXACT_PRIVATE_GUIDE_ONLY_PROBE_REQUIRED'}
+          $guideOnly=@(ProbeJson 'PINE_GUIDE_ONLY_NATIVE_ACTUAL=' 2)
+          foreach($version in @(5,6)){
+            $g=@($guideOnly|Where-Object {$_.version -eq $version})
+            if($g.Count -ne 1 -or $g[0].actual_pane_caption -cne 'Pine: Overbought, Oversold, Middle' -or $g[0].original_go_plot_count -ne 0 -or $g[0].original_go_model_plot_count -ne 0 -or @($g[0].actual_guide_rows).Count -ne 3 -or (@($g[0].original_go_levels) -join '|') -cne '70|30|50' -or !$g[0].physical_editor_compile_and_apply){throw 'EXACT_PRIVATE_GUIDE_ONLY_NATIVE_OUTPUT_REQUIRED'}
+          }
+          if(@($observed|Where-Object {$_ -ceq '::notice::PINE_LABEL_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_CYAN_OBSERVATION=PASS'}).Count -ne 1){throw 'EXACT_PRIVATE_LABEL_PROBE_REQUIRED'}
+          $labels=@(ProbeJson 'PINE_LABEL_ACTUAL_NATIVE_COLOR_AND_ORIGINAL_HTTP=' 2)
+          foreach($version in @(5,6)){
+            $m=@($labels|Where-Object {$_.version -eq $version})
+            if($m.Count -ne 1 -or !$m[0].identical_bounds -or !$m[0].physical_editor_compile_and_apply -or $m[0].baseline_cyan_pixels -gt 2 -or $m[0].applied_cyan_pixels -lt 40 -or $m[0].baseline_sha256 -ceq $m[0].applied_sha256){throw 'EXACT_PRIVATE_LABEL_NATIVE_OUTPUT_REQUIRED'}
+          }
+          $navigation=@(ProbeJson 'PINE_VIEWPORT_ACTUAL_PHYSICAL_NAVIGATION=' 1)[0]
+          if(!$navigation.physical_mouse_wheel_and_drag -or $navigation.baseline.axis_sha256 -ceq $navigation.panned.axis_sha256){throw 'VIEWPORT_ACTUAL_INPUT_POSITIVE_CONTROL_REQUIRED'}
+          $views=@(ProbeJson 'PINE_VIEWPORT_ACTUAL_NATIVE_APPLY=' 4)
+          # Native source emits a bounded-date-label receipt only when the
+          # otherwise byte-identical current-session time axis changes.
+          # Every such exception must correlate with exactly one real Apply.
+          $volatile=@($observed|Where-Object {$_.StartsWith('PINE_VIEWPORT_BOUNDED_SESSION_LABEL=')}|ForEach-Object { $_.Substring('PINE_VIEWPORT_BOUNDED_SESSION_LABEL='.Length)|ConvertFrom-Json })
+          if($volatile.Count -gt 4){throw 'VIEWPORT_TOO_MANY_SESSION_LABEL_EXCEPTIONS'}
+          $anchored=@($observed|Where-Object {$_.StartsWith('PINE_VIEWPORT_NATIVE_ANCHORED_TICKS=')}|ForEach-Object { $_.Substring('PINE_VIEWPORT_NATIVE_ANCHORED_TICKS='.Length)|ConvertFrom-Json })
+          if($anchored.Count -gt 4){throw 'VIEWPORT_TOO_MANY_ANCHORED_TICK_EXCEPTIONS'}
+          foreach($a in $anchored){
+           if($a.phase -cnotin @('V5_OVERLAY','V5_PANE','V6_OVERLAY','V6_PANE') -or
+              $a.reference_sha256 -cne $navigation.panned.axis_sha256 -or
+              $a.matched_tick_glyphs -lt 6 -or $a.max_allowed_drift_pixels -ne 12 -or
+              !$a.one_pixel_shape_tolerance -or @($a.pairs).Count -ne $a.matched_tick_glyphs){
+             throw 'VIEWPORT_ANCHORED_NATIVE_TICK_GLYPHS_NOT_PROVEN'
+           }
+           $last=-1000
+           foreach($pair in @($a.pairs)){
+            if([Math]::Abs([int]$pair.drift) -gt 12 -or $pair.before -le $last){throw 'VIEWPORT_UNORDERED_OR_MOVED_ANCHORS'}
+            $last=[int]$pair.before
+           }
+          }
+          foreach($v in $volatile){
+           if($v.phase -cnotin @('V5_OVERLAY','V5_PANE','V6_OVERLAY','V6_PANE') -or
+              $v.reference_sha256 -cne $navigation.panned.axis_sha256 -or
+              !$v.outside_single_label_pixels_identical -or
+              $v.changed_pixels -lt 1 -or $v.changed_pixels -gt 900 -or
+              $v.unchanged_label_clusters -lt 6 -or $v.right -le $v.left -or
+              $v.left -lt [Math]::Floor($v.axis_width*0.65) -or
+              $v.right -gt [Math]::Ceiling($v.axis_width*0.84) -or
+              ($v.right-$v.left+1) -gt [Math]::Ceiling($v.axis_width*0.14)){throw 'VIEWPORT_UNAUTHORIZED_PIXEL_DIFFERENCE'}
+          }
+          foreach($version in @(5,6)){
+           foreach($overlay in @($true,$false)){
+            $v=@($views|Where-Object {$_.version -eq $version -and $_.overlay -eq $overlay})
+            if($v.Count -ne 1 -or !$v[0].physical_compile_apply -or !$v[0].original_go_source_and_response_checked -or !$v[0].bounded_original_session_label_comparison -or $v[0].label_pixels -lt 8 -or $v[0].before_axis_sha256 -cne $navigation.panned.axis_sha256){throw 'VIEWPORT_ALL_FOUR_REAL_AXIS_OBSERVATIONS_REQUIRED'}
+            $phase=('V'+$version+'_'+$(if($overlay){'OVERLAY'}else{'PANE'}))
+            $exceptions=@($volatile|Where-Object {$_.phase -ceq $phase})
+            $anchors=@($anchored|Where-Object {$_.phase -ceq $phase})
+            if($v[0].after_axis_sha256 -ceq $navigation.panned.axis_sha256){
+             if($exceptions.Count -ne 0 -or $anchors.Count -ne 0){throw 'VIEWPORT_UNNECESSARY_PIXEL_EXCEPTION'}
+            }else{
+             if(($exceptions.Count+$anchors.Count) -ne 1){throw 'VIEWPORT_MISSING_EXACTLY_ONE_NATIVE_PIXEL_PROOF'}
+             $actualProof=if($exceptions.Count -eq 1){$exceptions[0].observed_sha256}else{$anchors[0].observed_sha256}
+             if($actualProof -cne $v[0].after_axis_sha256){throw 'VIEWPORT_PIXEL_PROOF_DOES_NOT_MATCH_ACTUAL_AXIS'}
+            }
+           }
+          }
+          if(@($observed|Where-Object {$_ -ceq '::notice::PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS'}).Count -ne 1){throw 'VIEWPORT_ACTUAL_PROBE_MUST_EXECUTE'}
+          Write-Host '::notice::PR242_SOURCE_BUILT_NATIVE_VIEWPORT_AND_ORIGINAL_PAPER_STOP_COLD_ROLLBACK=PASS'
+      - name: Retain only synthetic-profile time-axis screenshots
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr242-native-time-axis
+          path: ${{ runner.temp }}/pr240-viewport-axis-*.png
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Final source custody
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($folder in @('previous','product')){if(@(& git -C (Join-Path $env:GITHUB_WORKSPACE $folder) status --porcelain --untracked-files=no).Count -ne 0){throw 'TRACKED_SOURCE_MUTATED'}}
+          Write-Host '::notice::NO_OWNER_DATA_NO_REAL_ORDERS_NO_LIVE_NO_SIGNING_NO_PROMOTION_NO_SOAK'
