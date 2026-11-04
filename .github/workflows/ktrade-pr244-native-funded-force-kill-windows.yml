@@ -129,7 +129,7 @@ jobs:
             Need ($errors.Count -eq 0) ('PR244_GENERATED_WITNESS_SYNTAX '+(($errors|ForEach-Object {$_.ToString()}) -join '; '))
           }
           $helper='qualification-harness/ktrade-pr244-crash/Prepare-Funded-Force-Kill.ps1'
-          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq 'a36a7fbcc3b4195ef5e4fbc3d9611c98d621e4b5') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
+          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq 'bb54f76dfa099dbae995b01ea3683100dfafb588') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
           foreach($r in @(
             @{path='qualification-receipts/ktrade-pr244-exact-risk-matrix-windows-20261104.json';sha='9a630db7c0f258588f01923688a1f4341a4e233c'},
             @{path='qualification-receipts/ktrade-pr244-current-go-security-scan-windows-20261104.json';sha='6c8c08909a005c3a35cbb9b8b287fb7b5e7ff66b'},
