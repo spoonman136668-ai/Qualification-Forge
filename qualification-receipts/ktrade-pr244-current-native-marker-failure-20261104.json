@@ -1,0 +1,78 @@
+{
+  "schema": "ktrade.pr244.current-native-marker-failure.v1",
+  "verdict": "FAIL_EXACT_HEAD_INSTALLED_WINDOWS_MARKER_PHYSICAL_PIXELS",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "a032956d895b08784f01e293347c76c1d50853dd",
+    "tree": "f0272d4ce83d95450f1af416ffa5de2265eceaf4",
+    "chart_template_blob": "04092fd2e9f201620d62d9d86b0443d3deeff199",
+    "prior_source": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "chart_template_same_as_prior": true,
+    "post_decode_overlay_execution_and_response_unchanged": true
+  },
+  "qualification": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "sha": "de91993e2864ed68d13264f4d4656d5ea94a3ff0",
+    "workflow_blob": "f2d442764f71abc6b08f2e7f42d916d7ddf89a42",
+    "workflow_run_id": 41924809363,
+    "job_id": 126906292018,
+    "run_attempt": 1,
+    "run_conclusion": "failure",
+    "failing_step": "Original real installed Wails WebView2 and PAPER lifecycle with PR244 ingress probe",
+    "failing_assertion": "MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED"
+  },
+  "observations": {
+    "preflight": "PASS",
+    "unsigned_installer": "PASS",
+    "native_wails_started": "PASS",
+    "installed_workspace_origin_limits_and_both_valid_forms": "PASS",
+    "go_evaluation_candles": 300,
+    "go_markers": 60,
+    "go_marker_up": 30,
+    "go_marker_down": 30,
+    "go_response_shape_checks_passed": true,
+    "monaco_source_copyback_identical": true,
+    "app_status": "Pine plots applied.",
+    "physical_up_pixels_by_five_samples": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "physical_down_pixels_by_five_samples": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "physical_chart_bounds_unchanged": true,
+    "changed_frame_hash": true,
+    "subsequent_paper_checks": "NOT_EXECUTED"
+  },
+  "comparison": {
+    "prior_qualified_native_run_id": 41759236968,
+    "prior_source": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "prior_v5_go_markers": 60,
+    "prior_v5_up_pixels": 3054,
+    "prior_v5_down_pixels": 3843,
+    "prior_chart_template_blob_same": true,
+    "render_regression_or_environment_nondeterminism": "UNRESOLVED"
+  },
+  "policy": {
+    "do_not_waive_native_marker_thresholds": true,
+    "no_live_no_owner_no_release": true,
+    "source_ci_still_valid": true,
+    "installed_native_acceptance": "HOLD",
+    "no_merge": "HOLD"
+  },
+  "evidence": {
+    "workflow_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41924809363",
+    "source_run": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41916946139",
+    "evidence_type": "GitHub Actions original decoded log plus immutable source comparisons",
+    "next": "one unchanged-SHA diagnostic reproduction, no PASS unless full native run success; repeated failure requires source-or-UI root-cause diagnosis"
+  }
+}
