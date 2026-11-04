@@ -95,7 +95,7 @@ jobs:
               $labels+=,$label
               Write-Host ('PR244_PERF_CURRENT='+($row|ConvertTo-Json -Compress -Depth 4))
             }
-            if(@($labels|Sort-Object) -cjoin ',' -cne 'v5_32,v5_512,v6_32,v6_512'){throw 'PR244_PERF_INCOMPLETE_MATRIX'}
+            if((@($labels|Sort-Object) -join ',') -cne 'v5_32,v5_512,v6_32,v6_512'){throw 'PR244_PERF_INCOMPLETE_MATRIX'}
             Write-Host '::notice::PR244_PERF_ORIGINAL_V5_V6_32_512_ASSIGNMENTS_P95_ALLOCATION_ZERO_NETWORK=PASS'
           }finally{Pop-Location}
       - name: No source changes release or live permission
