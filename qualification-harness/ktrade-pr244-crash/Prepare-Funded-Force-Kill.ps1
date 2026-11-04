@@ -68,6 +68,30 @@ $injection=@'
  $dataRoot=Join-Path $stage 'data'
  if(!(Test-Path -LiteralPath $leased -PathType Leaf) -or
     !(Test-Path -LiteralPath $dataRoot -PathType Container)){throw 'PR244_CRASH_LEASE_OR_DATA_ROOT_UNAVAILABLE'}
+ # Source-bound original sealed paper checkpoint, created while still
+ # running, is immutable; never try to read the live exclusive process lease.
+ if($crashArchive.snapshot_seal -cnotmatch '^[a-f0-9]{64}$'){throw 'PR244_CRASH_SEAL_REQUIRED'}
+ $preHistory=Join-Path $dataRoot 'paper-history'
+ $preSource=Join-Path $preHistory $crashArchive.source_id
+ Ordinary $preHistory $true
+ Ordinary $preSource $true
+ $checkpointMatches=@(Get-ChildItem -LiteralPath $preSource -File -ErrorAction Stop|Where-Object {
+   $_.Name -match ('^checkpoint-[0-9]{19}-'+$crashArchive.snapshot_seal.Substring(0,24)+'\.json$')
+ })
+ if($checkpointMatches.Count -ne 1 -or ($checkpointMatches[0].Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0){
+   throw 'PR244_CRASH_ORIGINAL_CHECKPOINT_AMBIGUOUS'
+ }
+ $checkpointPath=$checkpointMatches[0].FullName
+ Ordinary $checkpointPath $false
+ $checkpoint=Get-Content -LiteralPath $checkpointPath -Raw|ConvertFrom-Json -Depth 30
+ if($checkpoint.seal -cne $crashArchive.snapshot_seal -or
+    $checkpoint.source_id -cne $crashArchive.source_id -or
+    $checkpoint.source_sha256 -cne $script:p5SourceHash -or
+    $checkpoint.live_armed -ne $false -or $null -eq $checkpoint.original_risk){
+     throw 'PR244_CRASH_FINANCIAL_CHECKPOINT_SOURCE_RISK_DRIFT'
+ }
+ $checkpointHash=Hash $checkpointPath
+ Write-Host '::notice::PR244_CRASH_SEALED_CHECKPOINT_PREKILL=PASS'
  $shellPid=[int]$shell.Id
  $enginePid=[int]$engine.ProcessId
  $shellInfo=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shellPid)
@@ -92,9 +116,15 @@ $injection=@'
  # for the negative relaunch attempt; no live locked file is read.
  if(!(Test-Path -LiteralPath $leased -PathType Leaf)){throw 'PR244_CRASH_LEASE_SILENTLY_RELEASED'}
  $leaseHash=Hash $leased
- $dataHash=Hashes $dataRoot
- if(!$leaseHash -or $dataHash.Count -lt 1){throw 'PR244_CRASH_POST_TERMINATION_STATE_UNAVAILABLE'}
- Write-Host '::notice::PR244_CRASH_POST_KILL_LEASE_AND_DATA_HASHED=PASS'
+ if((Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_CHECKPOINT_CHANGED_DURING_FORCE_KILL'}
+ # Hash the entire durable financial and saved-strategy roots, not volatile
+ # WebView2 profile lockfiles that legitimately remain open outside this scope.
+ $paperHistory=Join-Path $dataRoot 'paper-history'
+ $pineLibrary=Join-Path $dataRoot 'pine-library'
+ $paperHistoryHash=Hashes $paperHistory
+ $pineLibraryHash=Hashes $pineLibrary
+ if(!$leaseHash -or $paperHistoryHash.Count -lt 2 -or $pineLibraryHash.Count -lt 1){throw 'PR244_CRASH_ORIGINAL_FINANCIAL_AND_PINE_INVENTORY_MISSING'}
+ Write-Host '::notice::PR244_CRASH_SEALED_FINANCIAL_AND_PINE_FILES_VERIFIED_POSTKILL=PASS'
  $selected=Get-Content -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json') -Raw|ConvertFrom-Json
  if($selected.source_sha -cne $NewSHA -or $selected.live_armed -ne $false){throw 'PR244_CRASH_INSTALL_SELECTION_CHANGED'}
  $folder=Join-Path $script:shortcuts ('KTRADE-'+$selected.selection_digest.Substring(0,16))
@@ -110,7 +140,9 @@ $injection=@'
  if($candidateApps.Count -ne 0 -or !(Test-Path -LiteralPath $leased) -or (Hash $leased) -cne $leaseHash){
    throw 'PR244_CRASH_UNAUTHORIZED_RELAUNCH_OR_REARM'
  }
- AssertHashes $dataHash (Hashes $dataRoot) 'PR244_CRASH_RELAUNCH_FINANCIAL_DATA_CHANGED'
+ if((Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_CHECKPOINT_CHANGED_DURING_REFUSED_RELAUNCH'}
+ AssertHashes $paperHistoryHash (Hashes $paperHistory) 'PR244_CRASH_FINANCIAL_ARCHIVE_CHANGED_DURING_REFUSED_RELAUNCH'
+ AssertHashes $pineLibraryHash (Hashes $pineLibrary) 'PR244_CRASH_SAVED_PINE_CHANGED_DURING_REFUSED_RELAUNCH'
  Write-Host '::notice::PR244_CRASH_ONE_SETTLED_PAPER_BUY_CHILD_TERMINATED_STALE_LEASE_QUARANTINED_NO_REARM=PASS'
  return
 '@
