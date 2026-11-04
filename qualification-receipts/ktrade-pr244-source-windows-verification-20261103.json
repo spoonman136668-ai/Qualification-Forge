@@ -1,0 +1,69 @@
+{
+  "schema": "ktrade.pr244.source-windows-verification.v1",
+  "verdict": "PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "head_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "tree": "7143f2fa49b2027bb60d8d5106c632b2aa0c230d",
+    "base_pr": 243,
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "changed_paths": [
+      "cmd/ktrade/main_full.go",
+      "cmd/ktrade/rb3_workspace_http_ingress_full_test.go",
+      "pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go",
+      "pkg/p18a_closeout_workspace_http_surface_gate_test.go",
+      "pkg/p18a_t05_workspace_http_request_response_contract_test.go",
+      "pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go"
+    ]
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/ktrade",
+    "workflow_run_id": 41755443367,
+    "workflow_run_url": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41755443367",
+    "job_id": 126330475781,
+    "workflow_event": "pull_request",
+    "head_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "run_attempt": 1,
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "successful_job_steps": 15,
+    "total_job_steps": 15,
+    "go_wails_full_tests_and_vet": "PASS",
+    "node_tests": {
+      "cases": 193,
+      "passed": 193,
+      "failed": 0,
+      "files": 40
+    },
+    "repeatable_shipped_assets_licenses_scans": "PASS",
+    "unsigned_installer_binary_scans": "PASS",
+    "unsigned_archive_sha256": "52ab5c8f9464f436d22cd949bea3e72b5dbf43faf718ef4b1fc83dd9abb1b2ab",
+    "live_armed": false,
+    "release_authority": "none"
+  },
+  "historical_native_parent": {
+    "pr": 243,
+    "head_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "qualification_run_id": 41748868563,
+    "verdict": "PASS_HISTORICAL_ONLY"
+  },
+  "limitations": {
+    "pr244_installed_native_qualification": "UNVERIFIED",
+    "original_owner_install": "NOT_AUTHORIZED",
+    "owner_data_migration": "UNVERIFIED",
+    "hidpi": "UNVERIFIED",
+    "main_merge": "HOLD",
+    "production_release_signing": "HOLD",
+    "live_broker_orders": "NONE",
+    "final_24_hour_soak": "DEFERRED",
+    "security_review_all_cumulative_paths": "NOT_GRANTED"
+  },
+  "provenance": {
+    "observation_source": "connected GitHub Actions run and job metadata, decoded job logs, source commit object, PR changed-file patches",
+    "receipt_is": "CI_OBSERVATION_NOT_PROMOTION",
+    "witness_branch_parent_before_write": "023aaa1c06799ad84990ea94cbd89dc348d844aa"
+  }
+}
