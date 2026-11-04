@@ -1,0 +1,86 @@
+{
+  "schema": "ktrade.pr228.root-native-windows-rerun-qualified.v1",
+  "gate": "RB3_ROOT_PR228_EXACT_SOURCE_WINDOWS_QUALIFICATION",
+  "verdict": "PASS_ORIGINAL_WINDOWS_NATIVE_SOURCE_FULL_REGRESSION_AT_IMMUTABLE_PR228_SHA",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 228,
+    "branch": "feature/rb3-native-windows-integration-ci-20261030",
+    "sha": "365a7085ccd86c3f917206fe2569aba51f00d8d0",
+    "tree": "5b5c589762fb3798a453449e665a1672a5d6066a",
+    "main_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "workflow_path": ".github/workflows/ktrade-native-windows.yml",
+    "workflow_blob": "b971da1a5721dc43839dc0e99b22df3ee4e2fa10"
+  },
+  "qualification": {
+    "run_id": 41149210661,
+    "run_attempt": 2,
+    "job_id": 126294243332,
+    "status": "completed",
+    "conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "job_steps_success": 15,
+    "job_steps_total": 15,
+    "run_started_at": "2026-11-04T00:08:33Z",
+    "run_updated_at": "2026-11-04T00:14:26Z",
+    "event": "pull_request",
+    "node_test_files": 35,
+    "node_test_cases": 158,
+    "vendor_payload_files": 118,
+    "scanned_unsigned_installer_sha256": "30067f052ccef41451463f515e09293c2a175dd4772b998795b2728b4fe8e2c3",
+    "checks": {
+      "native_windows": "success",
+      "older_wails_branch_specific_job": "skipped_as_branch_gate"
+    }
+  },
+  "observed": {
+    "preflight_source_guard": "PASS",
+    "historical_browser_baseline": "PASS",
+    "read_only_disarmed_authority": "PASS",
+    "full_original_go_engine_app_and_wails_tests_vet": "PASS",
+    "node_and_browser_compat": "PASS",
+    "locked_shipped_assets_and_notices": "PASS",
+    "actual_shipping_binary_scan": "PASS",
+    "unsigned_installer_build": "PASS"
+  },
+  "previous_failure": {
+    "run_id": 41149210661,
+    "run_attempt": 1,
+    "conclusion": "failure",
+    "historical_job_log": "UNAVAILABLE",
+    "root_cause": "UNVERIFIED; retry passed unchanged source, therefore do not attribute a specific infrastructure failure without evidence",
+    "rereun_focused_failed_jobs_only": true
+  },
+  "stack_provenance": {
+    "root_pr": 228,
+    "tip_pr": 242,
+    "tip_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0",
+    "tip_source_windows_run_id": 41729717763,
+    "tip_native_installed_windows_run_id": 41735740760,
+    "scope_manifest_path": "qualification-receipts/ktrade-pr242-independent-431-path-full-tree-scoped-security-20261103.json",
+    "scope_manifest_blob": "4513250142e5a7a654477c74bda24f3892607bc4",
+    "caveat": "Root PR228 is an ancestor, so this does not substitute for exact current PR242 tests, which have separate PASS evidence."
+  },
+  "admission": {
+    "main_protected": false,
+    "required_status_checks": "OFF",
+    "active_rulesets": 0,
+    "all_prs_in_stack_draft": true,
+    "mainline_integrated_security_signoff": "UNVERIFIED",
+    "owner_hardware_hidpi": "UNVERIFIED",
+    "release": "HOLD",
+    "merge": "HOLD",
+    "live": "DISARMED",
+    "real_orders": "NONE",
+    "signing": "HOLD",
+    "final_24h_soak": "DEFERRED",
+    "owner_data": "UNTOUCHED"
+  },
+  "refs": {
+    "run": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41149210661",
+    "root_pr": "https://github.com/spoonman136668-ai/ktrade/pull/228",
+    "tip_pr": "https://github.com/spoonman136668-ai/ktrade/pull/242",
+    "qualifier_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/72"
+  }
+}
