@@ -129,7 +129,7 @@ jobs:
             Need ($errors.Count -eq 0) ('PR244_GENERATED_WITNESS_SYNTAX '+(($errors|ForEach-Object {$_.ToString()}) -join '; '))
           }
           $helper='qualification-harness/ktrade-pr244-crash/Prepare-Funded-Force-Kill.ps1'
-          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq '202a30d6766cc2093871aff57facccf90d2af104') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
+          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq 'd12be77b1f40c003606a576a2e5c91420072d5d1') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
           foreach($r in @(
             @{path='qualification-receipts/ktrade-pr244-exact-risk-matrix-windows-20261104.json';sha='9a630db7c0f258588f01923688a1f4341a4e233c'},
             @{path='qualification-receipts/ktrade-pr244-current-go-security-scan-windows-20261104.json';sha='6c8c08909a005c3a35cbb9b8b287fb7b5e7ff66b'},
@@ -178,6 +178,21 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          # The original W83 runtime intentionally removes Go/Node from PATH.
+          # Compile this exact-source read-only report BEFORE crossing that isolation
+          # boundary; invoke the pinned standalone executable inside the child.
+          $go=(Get-Command go -ErrorAction Stop).Source
+          if((& $go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'PR244_ORPHAN_REPORT_COMPILER_DRIFT'}
+          $reportExe=Join-Path $env:RUNNER_TEMP ('pr244-orphan-report-'+[guid]::NewGuid().ToString('N')+'.exe')
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product/tools/wails-pilot')
+          try{
+            & $go build -mod=readonly -trimpath -o $reportExe ./cmd/orphan-custody-report
+            if($LASTEXITCODE -ne 0){throw 'PR244_ORPHAN_REPORT_BUILD_FAILED'}
+          }finally{Pop-Location}
+          if(!(Test-Path -LiteralPath $reportExe -PathType Leaf)){throw 'PR244_ORPHAN_REPORT_BINARY_MISSING'}
+          $env:KTRADE_PR244_ORPHAN_REPORT_EXE=$reportExe
+          $env:KTRADE_PR244_ORPHAN_REPORT_SHA256=(Get-FileHash -LiteralPath $reportExe -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host '::notice::PR244_ORPHAN_EXACT_SOURCE_STANDALONE_TOOL_PREPARED=PASS'
           $out=Join-Path $env:RUNNER_TEMP 'pr244-installed-native.log'
           & (Join-Path $env:RUNNER_TEMP 'Build-And-Qualify-PR244-Crash.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:RUNNER_TEMP 'Installed-PR244-Funded-Crash.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $env:RUNNER_TEMP 'Original-W40-Paper-Crash.ps1') -CandidateQualifiedBundleRoot $env:BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:BUNDLE_SHA *>&1 | Tee-Object -FilePath $out
           if($LASTEXITCODE -ne 0 -or !$?){throw 'PR244_REAL_FUNDED_CRASH_WITNESS_FAILED'}
