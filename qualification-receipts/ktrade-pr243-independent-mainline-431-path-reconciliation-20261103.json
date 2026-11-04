@@ -1,0 +1,76 @@
+{
+  "schema": "ktrade.pr243.cumulative-mainline-independent-exact-tree-admission-evidence.v1",
+  "verdict": "PASS_EXACT_SCOPE_SOURCE_AND_NATIVE_EVIDENCE__MAINLINE_AND_RELEASE_ADMISSION_UNVERIFIED",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "main_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "main_tree": "8b43e35338f9be645a9fbb5a79f14c3c6ab328e3",
+    "tip_pr": 243,
+    "tip_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "tip_tree": "0d8257297d53a8edd4a40b4099f102106619b2a2",
+    "base_pr": 242,
+    "base_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0"
+  },
+  "full_tree": {
+    "method": "Git Trees REST recursive=true on the immutable main and PR243 tree identities; both responses untruncated; independent path/blob/mode comparison against previous PR242 manifest.",
+    "main_blobs": 6983,
+    "tip_blobs": 7369,
+    "total_changed_paths": 431,
+    "added": 386,
+    "modified": 45,
+    "deleted": 0,
+    "mode_changed": 0,
+    "diff_vs_complete_PR242_manifest": 2,
+    "other_429_paths_byte_identical": true,
+    "prior_manifest_path": "qualification-receipts/ktrade-pr242-mainline-compositional-431-path-scope-20261103.json",
+    "prior_manifest_blob": "55c8070ad1e6316938236f3b8c5fe5f11cc3d466",
+    "exact_diff_over_previous": [
+      {
+        "path": "templates/chart.tmpl",
+        "prior_blob": "3fbbce76737cbf1f8865c1a52ed92acb8dd83a81",
+        "current_blob": "04092fd2e9f201620d62d9d86b0443d3deeff199",
+        "status": "modified"
+      },
+      {
+        "path": "tests/rb3_pine_apply_viewport.test.cjs",
+        "prior_blob": "dd6ec149d75c8d22822c9cd36e7e8042d13b248e",
+        "current_blob": "4276c13445f76ad0359d2c1f7cfccfea37ddf076",
+        "status": "modified"
+      }
+    ]
+  },
+  "qualified_evidence": {
+    "source_windows": {
+      "run_id": 41747313575,
+      "conclusion": "success",
+      "receipt_path": "qualification-receipts/ktrade-pr243-source-windows-verification-20261103.json",
+      "receipt_blob": "c9bf0e70fc086986ceb4c16eca308c6cd01841d7",
+      "node_tests": 193,
+      "node_failures": 0
+    },
+    "installed_windows": {
+      "run_id": 41748868563,
+      "job_id": 126308655745,
+      "conclusion": "success",
+      "workflow_sha": "b6178989d06a55448c56bf2da21e5449ca74df9b",
+      "receipt_path": "qualification-receipts/ktrade-pr243-exact-installed-native-windows-20261103.json",
+      "receipt_blob": "d498516e57f459a63272ece28c416437c3ebd8ca",
+      "native_webview2_four_pine_modes": "PASS_PHYSICAL_TIME_AXIS",
+      "original_paper_stop_cold_rollback": "PASS"
+    }
+  },
+  "admission": {
+    "all_431_changes_independently_sec_reviewed": false,
+    "full_native_fractional_logical_range_identity": "UNVERIFIED_NOT_SAME_AS_PHYSICAL_TICK_GLYPH_PROOF",
+    "owner_hidpi": "UNVERIFIED",
+    "tradeguard_v2_restart_kill_live": "KNOWN_NONPERSISTENT",
+    "required_github_checks": "OPTIONAL",
+    "merge": "HOLD",
+    "live": "DISARMED",
+    "deployment": "NONE",
+    "signing": "HOLD",
+    "owner_import": "NONE",
+    "final_24_hour_soak": "DEFERRED"
+  },
+  "next_eligible_gate": "Bounded independent security and release-scope admission review on the exact complete 431-file manifest, prioritizing broker, installer/updates and credential/diagnostic outputs; require separately authorized integration/release acceptance. Do not treat optional branch protection as a blocker."
+}
