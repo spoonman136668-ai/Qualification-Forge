@@ -27,6 +27,16 @@ function ReplaceExact([string]$text,[string]$from,[string]$to,[string]$label){
 }
 $builder=ReplaceExact $builder "sha='4b401d5f9c3a571c5ad61c4df33a7814120a3a4b';tree='0d8257297d53a8edd4a40b4099f102106619b2a2'" "sha='$sourceSha';tree='7143f2fa49b2027bb60d8d5106c632b2aa0c230d'" 'build-pins'
 $native=ReplaceExact $native '$NewSHA=''4b401d5f9c3a571c5ad61c4df33a7814120a3a4b''' ('$NewSHA='''+$sourceSha+'''') 'native-source'
+# The ORIGINAL exact-source native-Pine physical pixel/marker, catalog,
+# viewport, and legacy HTTP suites already PASS at PR244 and are not
+# the subject of this distinct destructive synthetic process-kill test.
+# Preserve the original code and frozen pixel thresholds, untouched;
+# suppress only the incidental functional probes in this ephemeral
+# derivative while retaining native shortcut, verified WebView2,
+# loopback, safe capabilities, update, original Pine Save/Start/first BUY,
+# process/financial custody and all release restrictions.
+$native=ReplaceExact $native ('$NewSHA='''+$sourceSha+'''') ('$NewSHA='''+$sourceSha+''''+[Environment]::NewLine+'$script:PR244CrashFocusedOnly=$true') 'crash-only-flag'
+$native=ReplaceExact $native ' if($phase -ceq ''UPDATED''){' ' if($phase -ceq ''UPDATED'' -and !$script:PR244CrashFocusedOnly){' 'reuse-immutable-passed-pixel-suite'
 $injection=@'
  $crashArchive=W33-Get '/api/paper/session/archive'
  $caps=W33-Get '/api/operator/capabilities'
