@@ -1,0 +1,92 @@
+{
+  "schema": "ktrade.pr244.exact-current-db-reachable-go-security-windows.v1",
+  "verdict": "PASS_SCOPED_ZERO_KNOWN_REACHABLE_GO_VULNERABILITIES_EXACT_HEAD",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "tree": "7143f2fa49b2027bb60d8d5106c632b2aa0c230d",
+    "source_changed": false
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "branch": "qualification/ktrade-original-pine-label-response-affinity-20261031",
+    "workflow": ".github/workflows/ktrade-pr244-security-reachability-windows.yml",
+    "workflow_blob": "974d42df065fd5dcaea8179dec6608f36bb79a24",
+    "qualifier_sha": "5caabb53f5ff099d0d81d269537d77c32c42a905",
+    "run_id": 41802329580,
+    "job_id": 126480858237,
+    "run_attempt": 1,
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "runner": "GitHub-hosted Windows 2022",
+    "go_version": "go1.26.10",
+    "scanner": "golang.org/x/vuln/cmd/govulncheck@v1.9.0",
+    "reducer_source_blob": "a09f76ecc2d01df01b806fbb15bceae05f36ef20"
+  },
+  "scan": {
+    "database": "https://vuln.go.dev",
+    "database_modified": "2026-11-02T22:01:43Z",
+    "engine": {
+      "scope": "engine",
+      "tags": "ktrade_full",
+      "packages": "./cmd/ktrade",
+      "affected_vulnerability_ids": 2,
+      "reachable_symbol_findings": 0,
+      "findings": [],
+      "zero_reachable_known_vulnerabilities": true
+    },
+    "wails": {
+      "scope": "wails",
+      "tags": "desktop,production",
+      "packages": ".",
+      "affected_vulnerability_ids": 0,
+      "reachable_symbol_findings": 0,
+      "findings": [],
+      "zero_reachable_known_vulnerabilities": true
+    }
+  },
+  "required_markers": [
+    "PR244_SEC_EXACT_PRODUCT_DISARM_PRIOR_NATIVE_RISK_AND_SOURCE=PASS",
+    "PR244_SEC_ENGINE_AND_WAILS_CURRENT_DB_ZERO_REACHABLE_KNOWN_GO_VULNERABILITIES=PASS",
+    "PR244_SEC_NO_BROKER_NO_OWNER_DATA_NO_RELEASE_NO_SOURCE_CHANGES"
+  ],
+  "prerequisite_receipts": {
+    "source_full_windows": {
+      "path": "qualification-receipts/ktrade-pr244-source-windows-verification-20261103.json",
+      "blob": "1913e555ab83e49a26a754758011daef17ecb758",
+      "run_id": 41755443367
+    },
+    "native_installed": {
+      "path": "qualification-receipts/ktrade-pr244-exact-installed-native-windows-20261103.json",
+      "blob": "a0af626306a31f0c86863cbf77c2b96ca5a2bdef",
+      "run_id": 41759236968
+    },
+    "risk_race": {
+      "path": "qualification-receipts/ktrade-pr244-exact-risk-matrix-windows-20261104.json",
+      "blob": "9a630db7c0f258588f01923688a1f4341a4e233c",
+      "run_id": 41800656552
+    }
+  },
+  "limits": {
+    "scope": "Go scanner reachable symbols only, exact declared build tags, frozen database date; not a full source security audit or guarantee about unscanned C/JS/installer/owner runtime",
+    "current_database_later_than_previous_20261027": true,
+    "known_affected_ids_without_reachable_symbols": 2,
+    "owner_pc_hidpi": "UNVERIFIED",
+    "real_profile_data_migration": "HOLD",
+    "go_code_modified": false,
+    "live_broker_requests": "NONE",
+    "original_live_tradeguard_kill_restart": "KNOWN_GAP",
+    "merge": "HOLD",
+    "signing": "HOLD",
+    "release": "HOLD",
+    "soak": "NOT_RUN",
+    "promotion_authority": "NONE"
+  },
+  "provenance": {
+    "evidence": "GitHub Actions completed run, decoded log markers with sanitized original Go reducer, exact immutable SHA and source receipt preflight",
+    "prior_branch_head": "5caabb53f5ff099d0d81d269537d77c32c42a905"
+  }
+}
