@@ -119,6 +119,47 @@ jobs:
           }
           '@
           $n=$n.Replace($oldPin,$newPin).Replace($start,($probe+[Environment]::NewLine+$start)).Replace($insert,($insert+[Environment]::NewLine+'  PR244InstalledIngress $origin'))
+          # Observability-only: no relaxation of native UI wait, pixel or PAPER checks.
+          $uiAnchor=' throw (''W83_NATIVE_UI_NOT_OBSERVED_''+$label)'
+          $uiProbe=@'
+ if($label -ceq 'Verify chart UI'){
+  try{
+   $shell.Refresh()
+   $uiRoot=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+   $uiNodes=$uiRoot.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+   $sample=@()
+   foreach($uiNode in $uiNodes){
+    if($sample.Count -ge 40){break}
+    try{
+     $uiName=[string]$uiNode.Current.Name
+     if([string]::IsNullOrWhiteSpace($uiName) -or $uiNode.Current.IsOffscreen){continue}
+     $sample+=@{name=$uiName.Substring(0,[Math]::Min(96,$uiName.Length));type=[string]$uiNode.Current.ControlType.ProgrammaticName;enabled=[bool]$uiNode.Current.IsEnabled}
+    }catch{}
+   }
+   $web=@(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {$_.Name -ceq 'msedgewebview2.exe'} | Select-Object -First 16 ProcessId,ParentProcessId)
+   Write-Host ('W83_VERIFY_CHART_UI_FAILURE_DIAGNOSTIC='+(@{shell_pid=[int]$shell.Id;shell_window_handle=$shell.MainWindowHandle.ToInt64();uia_total=$uiNodes.Count;visible_named_sample=$sample;webview_processes=$web;scope='ephemeral_Windows_UIA_and_processes_no_owner_data'}|ConvertTo-Json -Compress -Depth 6))
+  }catch{Write-Host ('W83_VERIFY_CHART_UI_DIAGNOSTIC_UNAVAILABLE='+$_.Exception.GetType().Name)}
+ }
+'@
+          $pixelAnchor='   Require $renderVerified ''MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED'''
+          $pixelProbe=@'
+   if(!$renderVerified){
+    $aquaRelaxed=0;$yellowRelaxed=0;$diff=0;$sampled=0
+    for($py=0;$py -lt $after.bitmap.Height;$py+=4){
+     for($px=0;$px -lt $after.bitmap.Width;$px+=4){
+      $ap=$after.bitmap.GetPixel($px,$py);$bp=$baseline.bitmap.GetPixel($px,$py);$sampled++
+      if($ap.R -le 100 -and $ap.G -ge 160 -and $ap.B -ge 160){$aquaRelaxed++}
+      if($ap.R -ge 160 -and $ap.G -ge 160 -and $ap.B -le 100){$yellowRelaxed++}
+      if([Math]::Abs([int]$ap.R-[int]$bp.R) -ge 12 -or [Math]::Abs([int]$ap.G-[int]$bp.G) -ge 12 -or [Math]::Abs([int]$ap.B-[int]$bp.B) -ge 12){$diff++}
+     }
+    }
+    Write-Host ('W83_MARKER_FAILED_PHYSICAL_PALETTE_DIAGNOSTIC='+(@{version=$version;sampled_pixels=$sampled;changed_pixels=$diff;relaxed_aqua_samples=$aquaRelaxed;relaxed_yellow_samples=$yellowRelaxed;strict_up_pixels=$markedColors[0];strict_down_pixels=$markedColors[1];go_marker_count=$markedHTTP.shapes;chart_width=$after.rect.Width;chart_height=$after.rect.Height;scope='read_only_diagnostic_not_qualification_or_release'}|ConvertTo-Json -Compress))
+   }
+'@
+          Need ($n.Contains($uiAnchor) -and $n.Contains($pixelAnchor)) 'PR244_NATIVE_DIAGNOSTIC_ANCHORS_DRIFT'
+          $n=$n.Replace($uiAnchor,($uiProbe+[Environment]::NewLine+$uiAnchor)).Replace($pixelAnchor,($pixelProbe+[Environment]::NewLine+$pixelAnchor))
+          Need ($n.Contains('W83_VERIFY_CHART_UI_FAILURE_DIAGNOSTIC') -and $n.Contains('W83_MARKER_FAILED_PHYSICAL_PALETTE_DIAGNOSTIC') -and
+            $n.Contains($uiAnchor) -and $n.Contains($pixelAnchor)) 'PR244_NATIVE_DIAGNOSTIC_INSTALLATION_FAILED'
           $buildPath=Join-Path $env:RUNNER_TEMP 'Build-And-Qualify-PR244.ps1'
           $nativePath=Join-Path $env:RUNNER_TEMP 'Installed-Viewport-Lifecycle-PR244.ps1'
           [IO.File]::WriteAllText($buildPath,$b,[Text.UTF8Encoding]::new($false))
