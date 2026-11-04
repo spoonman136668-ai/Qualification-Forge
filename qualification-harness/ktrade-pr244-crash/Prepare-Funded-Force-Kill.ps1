@@ -92,6 +92,16 @@ $injection=@'
  }
  $checkpointHash=Hash $checkpointPath
  Write-Host '::notice::PR244_CRASH_SEALED_CHECKPOINT_PREKILL=PASS'
+ # Both original PAPER writer leases must exist while the funded session is
+ # live; check presence only, never attempt to steal or read a held handle.
+ $paperApplicationLease=Join-Path $preHistory 'application-owner.lock'
+ $paperSessionLease=Join-Path $preSource 'owner.lock'
+ foreach($paperLease in @($paperApplicationLease,$paperSessionLease)){
+   if(!(Test-Path -LiteralPath $paperLease -PathType Leaf)){
+     throw 'PR244_CRASH_FUNDED_PAPER_OWNER_LEASE_MISSING_BEFORE_KILL'
+   }
+   Ordinary $paperLease $false
+ }
  $shellPid=[int]$shell.Id
  $enginePid=[int]$engine.ProcessId
  $shellInfo=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shellPid)
@@ -115,6 +125,20 @@ $injection=@'
  # no longer held open. The post-kill hash becomes the immutable baseline
  # for the negative relaunch attempt; no live locked file is read.
  if(!(Test-Path -LiteralPath $leased -PathType Leaf)){throw 'PR244_CRASH_LEASE_SILENTLY_RELEASED'}
+ # Force-kill must NOT silently delete either ORIGINAL PAPER owner lease.
+ # The files can be read only after the owned engine is fully terminated.
+ foreach($paperLease in @($paperApplicationLease,$paperSessionLease)){
+   if(!(Test-Path -LiteralPath $paperLease -PathType Leaf)){
+     throw 'PR244_CRASH_FINANCIAL_LEASE_SILENTLY_RELEASED'
+   }
+   Ordinary $paperLease $false
+ }
+ $paperApplicationLeaseHash=Hash $paperApplicationLease
+ $paperSessionLeaseHash=Hash $paperSessionLease
+ if(!$paperApplicationLeaseHash -or !$paperSessionLeaseHash){
+   throw 'PR244_CRASH_FINANCIAL_LEASE_DIGEST_NOT_VERIFIED'
+ }
+ Write-Host '::notice::PR244_CRASH_BOTH_PAPER_OWNER_LEASES_SURVIVED_FORCE_KILL=PASS'
  $leaseHash=Hash $leased
  if((Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_CHECKPOINT_CHANGED_DURING_FORCE_KILL'}
  # Hash the entire durable financial and saved-strategy roots, not volatile
@@ -140,6 +164,16 @@ $injection=@'
  if($candidateApps.Count -ne 0 -or !(Test-Path -LiteralPath $leased) -or (Hash $leased) -cne $leaseHash){
    throw 'PR244_CRASH_UNAUTHORIZED_RELAUNCH_OR_REARM'
  }
+ # Retain both original orphan locks unchanged across the attempted launch.
+ # A stopped operator must perform a separately authorized custody review;
+ # this negative test provides no lease-clear or account-rearm operation.
+ if(!(Test-Path -LiteralPath $paperApplicationLease -PathType Leaf) -or
+    !(Test-Path -LiteralPath $paperSessionLease -PathType Leaf) -or
+    (Hash $paperApplicationLease) -cne $paperApplicationLeaseHash -or
+    (Hash $paperSessionLease) -cne $paperSessionLeaseHash){
+   throw 'PR244_CRASH_ORPHAN_PAPER_OWNER_LEASE_CHANGED_DURING_REFUSED_RELAUNCH'
+ }
+ Write-Host '::notice::PR244_CRASH_BOTH_PAPER_OWNER_LEASES_UNCHANGED_AFTER_REFUSED_RELAUNCH=PASS'
  if((Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_CHECKPOINT_CHANGED_DURING_REFUSED_RELAUNCH'}
  AssertHashes $paperHistoryHash (Hashes $paperHistory) 'PR244_CRASH_FINANCIAL_ARCHIVE_CHANGED_DURING_REFUSED_RELAUNCH'
  AssertHashes $pineLibraryHash (Hashes $pineLibrary) 'PR244_CRASH_SAVED_PINE_CHANGED_DURING_REFUSED_RELAUNCH'
