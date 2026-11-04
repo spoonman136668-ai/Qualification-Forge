@@ -75,7 +75,7 @@ jobs:
             $events=@($raw|ForEach-Object {$_|ConvertFrom-Json -ErrorAction Stop})
             if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'PR244_PERF_FAILURE_OR_SKIP'}
             $root='TestW80OriginalEditorCompileLatencyAndAllocationBudget'
-            $cases=@($root+'/v5_32_assignments',$root+'/v5_512_assignments',$root+'/v6_32_assignments',$root+'/v6_512_assignments')
+            $cases=@("$($root)/v5_32_assignments","$($root)/v5_512_assignments","$($root)/v6_32_assignments","$($root)/v6_512_assignments")
             foreach($case in $cases){
               if(@($events|Where-Object {$_.Action -ceq 'pass' -and $_.Test -ceq $case}).Count -ne 1){throw ('PR244_PERF_CASE_ABSENT_'+$case)}
             }
