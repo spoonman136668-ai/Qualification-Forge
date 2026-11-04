@@ -4,7 +4,7 @@ param(
 )
 $ErrorActionPreference='Stop'
 function Need([bool]$ok,[string]$label){if(!$ok){throw $label}}
-$sourceSha='1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664'
+$sourceSha='2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105'
 $original=Join-Path $WitnessRoot 'qualification-harness/ktrade-pine-viewport'
 $paperOriginal=Join-Path $WitnessRoot 'qualification-harness/ktrade-w83/Original-W40-Paper.ps1'
 $builderPath=Join-Path $original 'Build-And-Qualify-PR243.ps1'
@@ -25,7 +25,7 @@ function ReplaceExact([string]$text,[string]$from,[string]$to,[string]$label){
  Need ($text.Split([string[]]@($from),[StringSplitOptions]::None).Count -eq 2) ('PR244_CRASH_ANCHOR_NOT_UNIQUE_'+$label)
  return $text.Replace($from,$to)
 }
-$builder=ReplaceExact $builder "sha='4b401d5f9c3a571c5ad61c4df33a7814120a3a4b';tree='0d8257297d53a8edd4a40b4099f102106619b2a2'" "sha='$sourceSha';tree='7143f2fa49b2027bb60d8d5106c632b2aa0c230d'" 'build-pins'
+$builder=ReplaceExact $builder "sha='4b401d5f9c3a571c5ad61c4df33a7814120a3a4b';tree='0d8257297d53a8edd4a40b4099f102106619b2a2'" "sha='$sourceSha';tree='ef368f075cab7ac943582986d8c60d3d3acf4dce'" 'build-pins'
 $native=ReplaceExact $native '$NewSHA=''4b401d5f9c3a571c5ad61c4df33a7814120a3a4b''' ('$NewSHA='''+$sourceSha+'''') 'native-source'
 # The ORIGINAL exact-source native-Pine physical pixel/marker, catalog,
 # viewport, and legacy HTTP suites already PASS at PR244 and are not
@@ -149,6 +149,42 @@ $injection=@'
  $pineLibraryHash=Hashes $pineLibrary
  if(!$leaseHash -or $paperHistoryHash.Count -lt 2 -or $pineLibraryHash.Count -lt 1){throw 'PR244_CRASH_ORIGINAL_FINANCIAL_AND_PINE_INVENTORY_MISSING'}
  Write-Host '::notice::PR244_CRASH_SEALED_FINANCIAL_AND_PINE_FILES_VERIFIED_POSTKILL=PASS'
+ function PR244ReadOrphanReport([string]$install,[string]$data,[string]$id){
+   $root=Join-Path $env:GITHUB_WORKSPACE 'product/tools/wails-pilot'
+   if(!(Test-Path -LiteralPath (Join-Path $root 'cmd/orphan-custody-report/main.go') -PathType Leaf)){throw 'PR244_CRASH_OPERATOR_CLI_MISSING'}
+   Push-Location $root
+   try{
+     $raw=@(& go run -mod=readonly ./cmd/orphan-custody-report inspect $install $data $id)
+     if($LASTEXITCODE -ne 0 -or $raw.Count -ne 1){throw 'PR244_CRASH_OPERATOR_CLI_REFUSED'}
+     return ($raw[0]|ConvertFrom-Json -Depth 16)
+   }finally{Pop-Location}
+ }
+ $reportBefore=PR244ReadOrphanReport $script:installedRoot $dataRoot $crashArchive.source_id
+ if($reportBefore.schema -cne 'ktrade.orphan-custody.diagnostic-only.v1' -or
+    $reportBefore.selected_source_sha -cne $NewSHA -or
+    $reportBefore.selection_receipt_digest -cnotmatch '^[a-f0-9]{64}$' -or
+    $reportBefore.paper.source_id -cne $crashArchive.source_id -or
+    $reportBefore.state -cne 'QUARANTINED' -or
+    $reportBefore.release_process_lease -cne 'PRESENT' -or
+    $reportBefore.paper.state -cne 'QUARANTINED_OWNER_LEASES' -or
+    $reportBefore.paper.application_owner_lease -cne 'PRESENT' -or
+    $reportBefore.paper.session_owner_lease -cne 'PRESENT' -or
+    $reportBefore.process_quiescence_proven -ne $false -or
+    $reportBefore.financial_replay_verified -ne $false -or
+    $reportBefore.original_risk_verified -ne $false -or
+    $reportBefore.safe_to_clear -ne $false -or
+    $reportBefore.execution_restore_eligible -ne $false -or
+    $reportBefore.live_armed -ne $false -or
+    $reportBefore.owner_data_mutated -ne $false){throw 'PR244_CRASH_OPERATOR_REPORT_QUARANTINE_OR_AUTHORITY_DRIFT'}
+ $reportBeforeJSON=$reportBefore|ConvertTo-Json -Compress -Depth 16
+ if((Hash $leased) -cne $leaseHash -or
+   (Hash $paperApplicationLease) -cne $paperApplicationLeaseHash -or
+   (Hash $paperSessionLease) -cne $paperSessionLeaseHash -or
+   (Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_OPERATOR_REPORT_CHANGED_OWNER_CUSTODY'}
+ AssertHashes $paperHistoryHash (Hashes $paperHistory) 'PR244_CRASH_OPERATOR_REPORT_FINANCIAL_MUTATION'
+ AssertHashes $pineLibraryHash (Hashes $pineLibrary) 'PR244_CRASH_OPERATOR_REPORT_PINE_MUTATION'
+ Write-Host '::notice::PR244_CRASH_OPERATOR_READONLY_QUARANTINE_JSON=PASS'
+
  $selected=Get-Content -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json') -Raw|ConvertFrom-Json
  if($selected.source_sha -cne $NewSHA -or $selected.live_armed -ne $false){throw 'PR244_CRASH_INSTALL_SELECTION_CHANGED'}
  $folder=Join-Path $script:shortcuts ('KTRADE-'+$selected.selection_digest.Substring(0,16))
@@ -174,6 +210,16 @@ $injection=@'
    throw 'PR244_CRASH_ORPHAN_PAPER_OWNER_LEASE_CHANGED_DURING_REFUSED_RELAUNCH'
  }
  Write-Host '::notice::PR244_CRASH_BOTH_PAPER_OWNER_LEASES_UNCHANGED_AFTER_REFUSED_RELAUNCH=PASS'
+ $reportAfter=PR244ReadOrphanReport $script:installedRoot $dataRoot $crashArchive.source_id
+ if(($reportAfter|ConvertTo-Json -Compress -Depth 16) -cne $reportBeforeJSON -or
+   (Hash $leased) -cne $leaseHash -or
+   (Hash $paperApplicationLease) -cne $paperApplicationLeaseHash -or
+   (Hash $paperSessionLease) -cne $paperSessionLeaseHash -or
+   (Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_OPERATOR_REPORT_REPEAT_CHANGED_CUSTODY'}
+ AssertHashes $paperHistoryHash (Hashes $paperHistory) 'PR244_CRASH_OPERATOR_REPORT_REPEAT_FINANCIAL_MUTATION'
+ AssertHashes $pineLibraryHash (Hashes $pineLibrary) 'PR244_CRASH_OPERATOR_REPORT_REPEAT_PINE_MUTATION'
+ Write-Host '::notice::PR244_CRASH_OPERATOR_REPORT_REPEATED_NO_MUTATION=PASS'
+
  if((Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_CHECKPOINT_CHANGED_DURING_REFUSED_RELAUNCH'}
  AssertHashes $paperHistoryHash (Hashes $paperHistory) 'PR244_CRASH_FINANCIAL_ARCHIVE_CHANGED_DURING_REFUSED_RELAUNCH'
  AssertHashes $pineLibraryHash (Hashes $pineLibrary) 'PR244_CRASH_SAVED_PINE_CHANGED_DURING_REFUSED_RELAUNCH'

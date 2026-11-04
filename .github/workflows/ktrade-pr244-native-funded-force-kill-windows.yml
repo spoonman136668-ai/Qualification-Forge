@@ -22,7 +22,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: 1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664
+      KTRADE_EXPECTED_SOURCE: 2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664
+          ref: 2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105
           path: product
           fetch-depth: 0
           persist-credentials: false
@@ -53,29 +53,29 @@ jobs:
           Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and $env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'PR244_ISOLATED_WINDOWS_REQUIRED'
           $p=Join-Path $env:GITHUB_WORKSPACE 'product'
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
-          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq '7143f2fa49b2027bb60d8d5106c632b2aa0c230d') 'PR244_EXACT_TREE_DRIFT'
+          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq 'ef368f075cab7ac943582986d8c60d3d3acf4dce') 'PR244_EXACT_TREE_DRIFT'
           Need (@(& git -C $p status --porcelain).Count -eq 0 -and @(& git -C $w status --porcelain).Count -eq 0 -and !(Test-Path (Join-Path $p '.env'))) 'PR244_DIRTY_OR_CREDENTIAL_SOURCE'
           $config=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
           Need (!$config.api_key.key_name -and !$config.api_key.key_secret -and !$config.account_id -and !$config.ngrok_authtoken) 'PR244_TRACKED_CREDENTIALS_REFUSED'
           Need ((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw).Contains('func liveBrokerageAuthorized() bool { return false }')) 'PR244_LIVE_DISARM_REQUIRED'
           $paths=@(& git -C $p diff --name-only 4b401d5f9c3a571c5ad61c4df33a7814120a3a4b HEAD | Sort-Object)
-          $wanted=@('cmd/ktrade/main_full.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go')|Sort-Object
-          Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_SIX_PATH_DRIFT'
-          $receiptPath='qualification-receipts/ktrade-pr244-source-windows-verification-20261103.json'
-          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '1913e555ab83e49a26a754758011daef17ecb758') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
+          $wanted=@('cmd/ktrade/main_full.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go','internal/papercustody/orphan_lease_observation.go','internal/papercustody/orphan_lease_observation_test.go','tools/wails-pilot/backend/orphan_custody_diagnostic.go','tools/wails-pilot/backend/orphan_custody_diagnostic_test.go','tools/wails-pilot/cmd/orphan-custody-report/main.go','tools/wails-pilot/cmd/orphan-custody-report/main_test.go')|Sort-Object
+          Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_TWELVE_PATH_EXACT_SOURCE_DRIFT'
+          $receiptPath='qualification-receipts/ktrade-pr244-orphan-operator-report-source-windows-20261104.json'
+          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '3cedad0ce461ff4b34dc2db74b2212b54c21d69f') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
           $receipt=Get-Content (Join-Path $w $receiptPath) -Raw|ConvertFrom-Json
-          Need ($receipt.verdict -ceq 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -and $receipt.source.head_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.qualification.workflow_run_id -eq 41755443367 -and $receipt.qualification.job_id -eq 126330475781 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.qualification.node_tests.passed -eq 193) 'PR244_SOURCE_CI_NOT_VERIFIED'
+          Need ($receipt.verdict -ceq 'PASS_SCOPED_EXACT_SHA_SOURCE_NATIVE_WINDOWS_GO_WAILS_NODE_PACKAGE' -and $receipt.product.sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.product.tree -ceq 'ef368f075cab7ac943582986d8c60d3d3acf4dce' -and $receipt.qualification.run_id -eq 41877520793 -and $receipt.qualification.job_id -eq 126740918536 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.qualification.node_tests.passed -eq 193) 'PR244_SOURCE_CI_NOT_VERIFIED'
           $builderRel='qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR243.ps1'
           $nativeRel='qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR243.ps1'
           Need ((& git -C $w rev-parse ('HEAD:'+$builderRel)).Trim() -ceq '57adfe95974b14d0be92b1a7f354e119ce44044c' -and (& git -C $w rev-parse ('HEAD:'+$nativeRel)).Trim() -ceq '6bbe4cb1cdc1c14417fbde22d42ec1a1b52d40a4') 'PR244_INHERITED_HARNESS_BLOB_DRIFT'
           $b=Get-Content (Join-Path $w $builderRel) -Raw
           $oldPair="sha='4b401d5f9c3a571c5ad61c4df33a7814120a3a4b';tree='0d8257297d53a8edd4a40b4099f102106619b2a2'"
-          $newPair="sha='1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664';tree='7143f2fa49b2027bb60d8d5106c632b2aa0c230d'"
+          $newPair="sha='2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105';tree='ef368f075cab7ac943582986d8c60d3d3acf4dce'"
           Need ($b.Contains($oldPair)) 'PR244_BUILDER_PIN_MISSING'
           $b=$b.Replace($oldPair,$newPair)
           $n=Get-Content (Join-Path $w $nativeRel) -Raw
           $oldPin='$NewSHA=''4b401d5f9c3a571c5ad61c4df33a7814120a3a4b'''
-          $newPin='$NewSHA=''1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664'''
+          $newPin='$NewSHA=''2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105'''
           $start='function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){'
           $insert='  SettingsWarm $shell $origin'
           Need ($n.Contains($oldPin) -and $n.Contains($start) -and $n.Contains($insert)) 'PR244_NATIVE_ANCHORS_MISSING'
@@ -129,7 +129,7 @@ jobs:
             Need ($errors.Count -eq 0) ('PR244_GENERATED_WITNESS_SYNTAX '+(($errors|ForEach-Object {$_.ToString()}) -join '; '))
           }
           $helper='qualification-harness/ktrade-pr244-crash/Prepare-Funded-Force-Kill.ps1'
-          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq '91dee3baf082a62b81ac163c30fdfdf96c8e6711') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
+          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq '202a30d6766cc2093871aff57facccf90d2af104') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
           foreach($r in @(
             @{path='qualification-receipts/ktrade-pr244-exact-risk-matrix-windows-20261104.json';sha='9a630db7c0f258588f01923688a1f4341a4e233c'},
             @{path='qualification-receipts/ktrade-pr244-current-go-security-scan-windows-20261104.json';sha='6c8c08909a005c3a35cbb9b8b287fb7b5e7ff66b'},
@@ -182,7 +182,7 @@ jobs:
           & (Join-Path $env:RUNNER_TEMP 'Build-And-Qualify-PR244-Crash.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:RUNNER_TEMP 'Installed-PR244-Funded-Crash.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $env:RUNNER_TEMP 'Original-W40-Paper-Crash.ps1') -CandidateQualifiedBundleRoot $env:BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:BUNDLE_SHA *>&1 | Tee-Object -FilePath $out
           if($LASTEXITCODE -ne 0 -or !$?){throw 'PR244_REAL_FUNDED_CRASH_WITNESS_FAILED'}
           $lines=@(Get-Content $out)
-          foreach($marker in @('::notice::PR244_CRASH_PREDECESSOR_COLD_UPDATE_REUSES_EXACT_NATIVE_W83=PASS','::notice::PR244_CRASH_SEALED_CHECKPOINT_PREKILL=PASS','::notice::PR244_CRASH_SEALED_FINANCIAL_AND_PINE_FILES_VERIFIED_POSTKILL=PASS','::notice::PR244_CRASH_BOTH_PAPER_OWNER_LEASES_SURVIVED_FORCE_KILL=PASS','::notice::PR244_CRASH_BOTH_PAPER_OWNER_LEASES_UNCHANGED_AFTER_REFUSED_RELAUNCH=PASS','::notice::PR244_CRASH_ONE_SETTLED_PAPER_BUY_CHILD_TERMINATED_STALE_LEASE_QUARANTINED_NO_REARM=PASS','::notice::PR244_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS')){
+          foreach($marker in @('::notice::PR244_CRASH_PREDECESSOR_COLD_UPDATE_REUSES_EXACT_NATIVE_W83=PASS','::notice::PR244_CRASH_SEALED_CHECKPOINT_PREKILL=PASS','::notice::PR244_CRASH_SEALED_FINANCIAL_AND_PINE_FILES_VERIFIED_POSTKILL=PASS','::notice::PR244_CRASH_BOTH_PAPER_OWNER_LEASES_SURVIVED_FORCE_KILL=PASS','::notice::PR244_CRASH_BOTH_PAPER_OWNER_LEASES_UNCHANGED_AFTER_REFUSED_RELAUNCH=PASS','::notice::PR244_CRASH_OPERATOR_READONLY_QUARANTINE_JSON=PASS','::notice::PR244_CRASH_OPERATOR_REPORT_REPEATED_NO_MUTATION=PASS','::notice::PR244_CRASH_ONE_SETTLED_PAPER_BUY_CHILD_TERMINATED_STALE_LEASE_QUARANTINED_NO_REARM=PASS','::notice::PR244_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS')){
             if(@($lines|Where-Object {$_ -ceq $marker}).Count -ne 1){throw ('PR244_FUNDED_CRASH_WITNESS_REQUIRED_'+$marker)}
           }
           Write-Host '::notice::PR244_EXACT_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS'
