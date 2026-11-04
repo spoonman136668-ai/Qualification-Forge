@@ -1,0 +1,112 @@
+{
+  "schema": "ktrade.pr243.exact-installed-logical-chart-windows.v1",
+  "verdict": "PASS_EXACT_HEAD_INSTALLED_WINDOWS_NATIVE_VIEWPORT_AND_ORIGINAL_PAPER_LIFECYCLE",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 243,
+    "sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "tree": "0d8257297d53a8edd4a40b4099f102106619b2a2",
+    "base_pr": 242,
+    "base_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0",
+    "changed_paths": [
+      "templates/chart.tmpl",
+      "tests/rb3_pine_apply_viewport.test.cjs"
+    ],
+    "changed_blobs": {
+      "templates/chart.tmpl": "04092fd2e9f201620d62d9d86b0443d3deeff199",
+      "tests/rb3_pine_apply_viewport.test.cjs": "4276c13445f76ad0359d2c1f7cfccfea37ddf076"
+    }
+  },
+  "witness": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "sha": "b6178989d06a55448c56bf2da21e5449ca74df9b",
+    "workflow_path": ".github/workflows/ktrade-pr243-logical-native-windows.yml",
+    "workflow_blob": "ab189560d483b238efc25832ad1c9f33af0c34cf",
+    "run_id": 41748868563,
+    "run_attempt": 1,
+    "job_id": 126308655745,
+    "event": "push",
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "successful_job_steps": 20,
+    "total_job_steps": 20,
+    "run_created_at": "2026-11-04T00:42:50Z",
+    "run_updated_at": "2026-11-04T00:57:47Z",
+    "source_builder_blob": "57adfe95974b14d0be92b1a7f354e119ce44044c",
+    "source_installed_witness_blob": "6bbe4cb1cdc1c14417fbde22d42ec1a1b52d40a4",
+    "original_w83_build_harness_unchanged": true,
+    "original_w83_installed_lifecycle_unmodified_except_candidate_sha": true,
+    "scanned_unsigned_bundle_sha256": "14b5942e740510b117ab96da7e8442a9fdc4572f1ce92dc6bd7c7843fe1b64e7",
+    "synthetic_time_axis_artifact": {
+      "name": "pr243-native-time-axis",
+      "id": 13284429741,
+      "size_bytes": 238312,
+      "expired": false
+    }
+  },
+  "prerequisite": {
+    "original_source_windows_run_id": 41747313575,
+    "original_source_windows_job_id": 126303454670,
+    "original_source_windows_conclusion": "success",
+    "source_windows_receipt_path": "qualification-receipts/ktrade-pr243-source-windows-verification-20261103.json",
+    "source_windows_receipt_blob": "c9bf0e70fc086986ceb4c16eca308c6cd01841d7",
+    "qualified_previous_native_run_id": 41735740760,
+    "qualified_previous_source_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0"
+  },
+  "observations": {
+    "exact_source_and_harness": "PASS",
+    "focused_original_viewport_node_tests": {
+      "status": "PASS",
+      "cases": 9,
+      "failed": 0,
+      "scope": "fractional logical range preservation and true negative control under chart mock; not independently measured live logical coordinates"
+    },
+    "original_risk_conflict_and_concurrent_race": "PASS",
+    "shipping_assets_license_and_advisory": "PASS",
+    "actual_unsigned_installer_and_binary_scans": "PASS",
+    "installed_webview2_previous_candidate_and_rollback": "PASS",
+    "actual_physical_pan_and_zoom": "PASS",
+    "pine_5_overlay_pane": "PASS_NATIVE_AXIS_GLYPH_OBSERVATION",
+    "pine_6_overlay_pane": "PASS_NATIVE_AXIS_GLYPH_OBSERVATION",
+    "chart_shape_hline_label_numeric_settings": "PASS",
+    "paper": "PASS_2_BUY_SELL_ROUNDTRIPS_4_FILLS_FIFO_RISK_PNL_DEDUP_STOP_COLD_NO_REARM",
+    "legacy_order_http_423": "PASS",
+    "no_owner_data_no_live_no_release": "PASS",
+    "final_source_custody": "PASS",
+    "actual_native_log_markers": [
+      "PR243_ORIGINAL_RISK_CONFLICT_AND_RACE=PASS",
+      "PR243_ORIGINAL_LOGICAL_RANGE_NEGATIVE_AND_FRACTIONAL_BAR_TEST=PASS",
+      "NATIVE_CI_REPEATABLE_LICENSED_SHIPPING_ASSETS=PASS",
+      "NATIVE_CI_ORIGINAL_UNSIGNED_PACKAGE_ACTUAL_BINARY_SCANS_NO_APP_NO_INSTALL_NO_RELEASE=PASS",
+      "W83_SOURCE_AND_NINE_INSTALLER_BLOBS_IDENTICAL=PASS",
+      "W83_INSTALLED_CANDIDATE_ORIGINAL_CHART_AND_PINE_RENDERER=PASS",
+      "W83_INSTALLED_CANDIDATE_REAL_GO_PINE_V5_V6_COMPILE_AND_REFUSAL=PASS",
+      "PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS",
+      "W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+      "W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS",
+      "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+      "W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS"
+    ]
+  },
+  "limitations": {
+    "native_physical_logical_fractional_bar_oracle": "UNVERIFIED_PHYSICAL_TEST_ONLY_TIME_AXIS_PIXEL_GLYPH_COMPARISON",
+    "owner_pc_hidpi": "UNVERIFIED",
+    "mainline_merge": "HOLD",
+    "release_promotion": "HOLD",
+    "signing": "HOLD",
+    "live_broker_orders": "NONE",
+    "owner_install": "HOLD",
+    "final_24_hour_soak": "DEFERRED",
+    "full_431_path_cumulative_security_acceptance": "NOT_GRANTED",
+    "github_required_ci_checks": "OPTIONAL_NOT_AN_INHERENT_PRIVATE_REPOSITORY_PREREQUISITE"
+  },
+  "refs": {
+    "native_run": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41748868563",
+    "source_run": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41747313575",
+    "source_pr": "https://github.com/spoonman136668-ai/ktrade/pull/243",
+    "qualification_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/72"
+  }
+}
