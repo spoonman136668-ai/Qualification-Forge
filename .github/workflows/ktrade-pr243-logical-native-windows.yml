@@ -2,7 +2,7 @@ name: KTRADE PR243 exact installed logical range, chart and PAPER qualification
 on:
   push:
     branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
-    paths: [.github/workflows/ktrade-pr243-risk-native-windows.yml]
+    paths: [.github/workflows/ktrade-pr243-logical-native-windows.yml]
 permissions:
   contents: read
   actions: read
