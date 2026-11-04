@@ -1,0 +1,91 @@
+{
+  "schema": "ktrade.pr244.orphan-custody-operator-report-source-windows-qualification.v1",
+  "verdict": "PASS_SCOPED_EXACT_SHA_SOURCE_NATIVE_WINDOWS_GO_WAILS_NODE_PACKAGE",
+  "product": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "branch": "feature/rb3-workspace-http-ingress-20261103",
+    "sha": "2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105",
+    "tree": "ef368f075cab7ac943582986d8c60d3d3acf4dce",
+    "parent_sha": "910f607dc86b7b524c2cc31f1a66ecc0afade16e",
+    "new_files": [
+      {
+        "path": "tools/wails-pilot/cmd/orphan-custody-report/main.go",
+        "blob": "4a18dd257b447494152503d733aa5b27d136388f"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/orphan-custody-report/main_test.go",
+        "blob": "970a3a779370dd47d7893dda3d018098027d3ae3"
+      }
+    ],
+    "existing_file_blobs_modified": 0
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/ktrade",
+    "workflow": ".github/workflows/ktrade-native-windows.yml",
+    "run_id": 41877520793,
+    "run_url": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41877520793",
+    "job_id": 126740918536,
+    "run_attempt": 1,
+    "event": "pull_request",
+    "run_created_at": "2026-11-04T17:26:05Z",
+    "run_updated_at": "2026-11-04T17:45:31Z",
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "job_started_at": "2026-11-04T17:26:08Z",
+    "job_completed_at": "2026-11-04T17:36:03Z",
+    "source_sha_log_exact": true,
+    "source_tree_log_exact": true,
+    "compiler": "go1.26.10",
+    "go_engine_full_suite": "PASS",
+    "go_engine_vet": "PASS",
+    "go_full_app_tagged_tests_and_vet": "PASS",
+    "wails_module_full_tests_and_vet": "PASS",
+    "wails_cli_package": "ktrade-wails-pilot/cmd/orphan-custody-report",
+    "wails_cli_package_test_log": "ok ktrade-wails-pilot/cmd/orphan-custody-report 0.028s",
+    "node_tests": {
+      "files": 40,
+      "cases": 193,
+      "passed": 193,
+      "failed": 0,
+      "skipped": 0
+    },
+    "locked_repeatable_shipped_assets": "PASS",
+    "unsigned_installer_six_original_binaries_scan": "PASS",
+    "unsigned_installer_zip_sha256": "ea0a74030083eec15ef69eef827e6bfb901d8b67a64c08b6dad68fb8d2fc8090",
+    "shipping_go_binary_import_reachability_vuln_count": 0,
+    "run_artifact_uploads": 0,
+    "live_armed": false,
+    "release_authority": "none"
+  },
+  "separate_legacy_wails_workflow": {
+    "run_id": 41877520819,
+    "conclusion": "skipped",
+    "reason": "workflow job bound to original feature/rb2-portable-app-owned-paper-20261023 branch; not source failure"
+  },
+  "prior_native_force_kill_evidence": {
+    "run_id": 41823981289,
+    "product_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "qualifier_sha": "ac549db38e03c4cab6bcc398d3b30bc35efca9e7",
+    "applicability": "HISTORICAL_ONLY_NOT_EXACT_NEW_SHA"
+  },
+  "limits": {
+    "scope": "source-level full native Windows regression and read-only CLI; not installed-runtime or broker-recovery validation",
+    "runtime_operator_report_on_installed_crashed_candidate": "UNVERIFIED",
+    "crash_recovery_or_lease_clearance": "NOT_AUTHORIZED",
+    "process_quiescence": "NOT_PROVEN",
+    "financial_replay_on_orphan": "NOT_PROVEN",
+    "original_risk_rearm": "NOT_AUTHORIZED",
+    "owner_profile_mutation": false,
+    "shipping_cli_in_six_binary_installer": false,
+    "live_broker_orders": "NONE",
+    "physical_windows_crash_at_new_product_sha": "UNVERIFIED",
+    "linux_regression": "UNVERIFIED",
+    "production_release_signing": "HOLD",
+    "main_merge": "HOLD",
+    "soak_24h": "NOT_RUN"
+  },
+  "provenance": "GitHub first-attempt run/job metadata and 1877-line decoded native job log; exact Git tree and PR ref; no generated workflow artifacts. This receipt records observation, not release acceptance."
+}
