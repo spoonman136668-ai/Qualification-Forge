@@ -93,7 +93,7 @@ jobs:
               @{name='foreign-origin';headers=@{Origin='https://attacker.invalid'};body=$valid;type='application/json';method='Post';want=403},
               @{name='cross-site';headers=@{Origin=$origin;'Sec-Fetch-Site'='cross-site'};body=$valid;type='application/json';method='Post';want=403},
               @{name='non-json';headers=$trusted;body=$valid;type='text/plain';method='Post';want=403},
-              @{name='wrong-method';headers=$trusted;body=$valid;type='application/json';method='Put';want=403},
+              @{name='wrong-method';headers=$trusted;body=$valid;type='application/json';method='Put';want=405},
               @{name='malformed';headers=$trusted;body='{';type='application/json';method='Post';want=400},
               @{name='trailing-json';headers=$trusted;body='{"code":"bad"} {"code":"second"}';type='application/json';method='Post';want=400},
               @{name='oversized';headers=$trusted;body=((' ' * ((1 -shl 20)+1))+'{"code":"bad"}');type='application/json';method='Post';want=413}
