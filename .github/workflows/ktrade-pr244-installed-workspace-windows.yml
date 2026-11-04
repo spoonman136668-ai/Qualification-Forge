@@ -22,7 +22,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: 1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664
+      KTRADE_EXPECTED_SOURCE: a032956d895b08784f01e293347c76c1d50853dd
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664
+          ref: a032956d895b08784f01e293347c76c1d50853dd
           path: product
           fetch-depth: 0
           persist-credentials: false
@@ -53,29 +53,29 @@ jobs:
           Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and $env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'PR244_ISOLATED_WINDOWS_REQUIRED'
           $p=Join-Path $env:GITHUB_WORKSPACE 'product'
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
-          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq '7143f2fa49b2027bb60d8d5106c632b2aa0c230d') 'PR244_EXACT_TREE_DRIFT'
+          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq 'f0272d4ce83d95450f1af416ffa5de2265eceaf4') 'PR244_EXACT_TREE_DRIFT'
           Need (@(& git -C $p status --porcelain).Count -eq 0 -and @(& git -C $w status --porcelain).Count -eq 0 -and !(Test-Path (Join-Path $p '.env'))) 'PR244_DIRTY_OR_CREDENTIAL_SOURCE'
           $config=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
           Need (!$config.api_key.key_name -and !$config.api_key.key_secret -and !$config.account_id -and !$config.ngrok_authtoken) 'PR244_TRACKED_CREDENTIALS_REFUSED'
           Need ((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw).Contains('func liveBrokerageAuthorized() bool { return false }')) 'PR244_LIVE_DISARM_REQUIRED'
           $paths=@(& git -C $p diff --name-only 4b401d5f9c3a571c5ad61c4df33a7814120a3a4b HEAD | Sort-Object)
-          $wanted=@('cmd/ktrade/main_full.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go')|Sort-Object
-          Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_SIX_PATH_DRIFT'
-          $receiptPath='qualification-receipts/ktrade-pr244-source-windows-verification-20261103.json'
-          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '1913e555ab83e49a26a754758011daef17ecb758') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
+          $wanted=@('.github/workflows/ktrade-native-windows.yml','cmd/ktrade/main_full.go','cmd/ktrade/pine_hline_transport_full_test.go','cmd/ktrade/pine_shape_transport_full_test.go','cmd/ktrade/rb3_pine_overlay_ingress_full_test.go','cmd/ktrade/rb3_w32c_overlay_full_test.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','internal/papercustody/orphan_lease_observation.go','internal/papercustody/orphan_lease_observation_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go','tools/wails-pilot/backend/orphan_custody_diagnostic.go','tools/wails-pilot/backend/orphan_custody_diagnostic_test.go','tools/wails-pilot/cmd/orphan-custody-report/main.go','tools/wails-pilot/cmd/orphan-custody-report/main_test.go','windows/Build-KTRADE-OrphanCustodyReview.ps1')|Sort-Object
+          Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_18_PATH_DRIFT'
+          $receiptPath='qualification-receipts/ktrade-pr244-current-source-windows-verification-20261104.json'
+          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '32ff688c42976d03c10839427cce15161e92aba6') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
           $receipt=Get-Content (Join-Path $w $receiptPath) -Raw|ConvertFrom-Json
-          Need ($receipt.verdict -ceq 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -and $receipt.source.head_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.qualification.workflow_run_id -eq 41755443367 -and $receipt.qualification.job_id -eq 126330475781 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.qualification.node_tests.passed -eq 193) 'PR244_SOURCE_CI_NOT_VERIFIED'
+          Need ($receipt.verdict -ceq 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -and $receipt.source.head_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.qualification.workflow_run_id -eq 41916946139 -and $receipt.qualification.job_id -eq 126879012258 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.qualification.node_tests.passed -eq 193) 'PR244_SOURCE_CI_NOT_VERIFIED'
           $builderRel='qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR243.ps1'
           $nativeRel='qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR243.ps1'
           Need ((& git -C $w rev-parse ('HEAD:'+$builderRel)).Trim() -ceq '57adfe95974b14d0be92b1a7f354e119ce44044c' -and (& git -C $w rev-parse ('HEAD:'+$nativeRel)).Trim() -ceq '6bbe4cb1cdc1c14417fbde22d42ec1a1b52d40a4') 'PR244_INHERITED_HARNESS_BLOB_DRIFT'
           $b=Get-Content (Join-Path $w $builderRel) -Raw
           $oldPair="sha='4b401d5f9c3a571c5ad61c4df33a7814120a3a4b';tree='0d8257297d53a8edd4a40b4099f102106619b2a2'"
-          $newPair="sha='1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664';tree='7143f2fa49b2027bb60d8d5106c632b2aa0c230d'"
+          $newPair="sha='a032956d895b08784f01e293347c76c1d50853dd';tree='f0272d4ce83d95450f1af416ffa5de2265eceaf4'"
           Need ($b.Contains($oldPair)) 'PR244_BUILDER_PIN_MISSING'
           $b=$b.Replace($oldPair,$newPair)
           $n=Get-Content (Join-Path $w $nativeRel) -Raw
           $oldPin='$NewSHA=''4b401d5f9c3a571c5ad61c4df33a7814120a3a4b'''
-          $newPin='$NewSHA=''1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664'''
+          $newPin='$NewSHA=''a032956d895b08784f01e293347c76c1d50853dd'''
           $start='function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){'
           $insert='  SettingsWarm $shell $origin'
           Need ($n.Contains($oldPin) -and $n.Contains($start) -and $n.Contains($insert)) 'PR244_NATIVE_ANCHORS_MISSING'
