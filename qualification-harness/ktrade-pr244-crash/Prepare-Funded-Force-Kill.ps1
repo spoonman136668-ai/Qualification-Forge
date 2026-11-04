@@ -37,6 +37,24 @@ $native=ReplaceExact $native '$NewSHA=''4b401d5f9c3a571c5ad61c4df33a7814120a3a4b
 # process/financial custody and all release restrictions.
 $native=ReplaceExact $native ('$NewSHA='''+$sourceSha+'''') ('$NewSHA='''+$sourceSha+''''+[Environment]::NewLine+'$script:PR244CrashFocusedOnly=$true') 'crash-only-flag'
 $native=ReplaceExact $native ' if($phase -ceq ''UPDATED''){' ' if($phase -ceq ''UPDATED'' -and !$script:PR244CrashFocusedOnly){' 'reuse-immutable-passed-pixel-suite'
+
+# The original PREVIOUS native startup and active-update-negative are already
+# PASS at exact SHA under W83. For a focused destructive CURRENT candidate
+# PAPER crash, reuse that receipt without requiring a second old desktop.
+# Keep original stopped predecessor, supported user-data copy, selected
+# candidate update, and live-disarmed checks in this derived witness.
+$oldLaunch=@'
+ $script:active=StartInstalled $oldMaint $old 'PREVIOUS'
+ $null=Setup $newSetup 'Update' $false
+ Require ((Hash $oldReceiptPath) -ceq $oldReceiptHash) 'W83_ACTIVE_UPDATE_MUTATED_RECEIPT'
+ StopInstalled $script:active;$script:active=$null
+'@
+$coldPrevious=@'
+ Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w28c-active-process.lock'))) 'PR244_CRASH_PREDECESSOR_OWNER_LEASE_PRESENT'
+ Require ((Hash $oldReceiptPath) -ceq $oldReceiptHash) 'PR244_CRASH_PREDECESSOR_RECEIPT_CHANGED'
+ Write-Host '::notice::PR244_CRASH_PREDECESSOR_COLD_UPDATE_REUSES_EXACT_NATIVE_W83=PASS'
+'@
+$native=ReplaceExact $native $oldLaunch $coldPrevious 'previous-native-reused-from-immutable-w83'
 $injection=@'
  $crashArchive=W33-Get '/api/paper/session/archive'
  $caps=W33-Get '/api/operator/capabilities'
