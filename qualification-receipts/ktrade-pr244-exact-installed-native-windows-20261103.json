@@ -1,0 +1,101 @@
+{
+  "schema": "ktrade.pr244.exact-installed-workspace-windows.v1",
+  "verdict": "PASS_EXACT_HEAD_INSTALLED_WINDOWS_NATIVE_WORKSPACE_INGRESS_AND_ORIGINAL_PAPER_LIFECYCLE",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "tree": "7143f2fa49b2027bb60d8d5106c632b2aa0c230d",
+    "base_pr": 243,
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "changed_paths": [
+      "cmd/ktrade/main_full.go",
+      "cmd/ktrade/rb3_workspace_http_ingress_full_test.go",
+      "pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go",
+      "pkg/p18a_closeout_workspace_http_surface_gate_test.go",
+      "pkg/p18a_t05_workspace_http_request_response_contract_test.go",
+      "pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go"
+    ]
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "workflow_path": ".github/workflows/ktrade-pr244-installed-workspace-windows.yml",
+    "workflow_sha": "fbe7a8b092aeed9b0b9f2cce7d13c23f75863b57",
+    "workflow_blob": "278a6e927ba219cab600cafb1e6852ecbb084135",
+    "workflow_run_id": 41759236968,
+    "workflow_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41759236968",
+    "run_attempt": 1,
+    "run_event": "push",
+    "run_created_at": "2026-11-04T02:12:44Z",
+    "run_updated_at": "2026-11-04T02:26:45Z",
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "job_id": 126342678645,
+    "job_name": "native-ingress",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "successful_job_steps": 15,
+    "total_job_steps": 15,
+    "observed_installed_bundle_source_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "observed_portable_package_zip_sha256": "5f471f4555c4bb7ac3c050de4f7f33b3a7a316f96068b8632483a1426305e2d2",
+    "observed_previous_package_zip_sha256": "9dcc581bb4ac9375457546cb5f3f366a09164df6d5d1750b77ef66959baf5f23"
+  },
+  "source_prerequisite": {
+    "source_receipt_path": "qualification-receipts/ktrade-pr244-source-windows-verification-20261103.json",
+    "source_receipt_blob": "1913e555ab83e49a26a754758011daef17ecb758",
+    "source_windows_run_id": 41755443367,
+    "source_windows_conclusion": "success",
+    "original_full_go_wails_vet": "PASS",
+    "node_cases_passed": 193
+  },
+  "observations": {
+    "exact_source_and_immutable_witness": "PASS",
+    "original_unsigned_installation_build_six_shipping_executables": "PASS",
+    "installed_workspace_wrong_method": "HTTP_405_ROUTER_REFUSAL_NO_MUTATION",
+    "installed_workspace_origin_type_method_size_invalid_trailing_state_and_valid_forms": "PASS",
+    "real_wails_webview2_installed_chart_pine_v5_v6_and_physical_viewport": "PASS",
+    "original_legacy_order_http_423_and_no_rearm": "PASS",
+    "paper_two_buy_sell_roundtrips_four_fills_fifo_risk_pnl_dedup": "PASS",
+    "cold_stop_no_rearm": "PASS",
+    "real_installed_update_rollback": "PASS",
+    "no_owner_data_no_live_no_release": "PASS",
+    "required_evidence_markers": [
+      "PR244_IMMUTABLE_SOURCE_RECEIPT_AND_DERIVED_NATIVE_HARNESS=PASS",
+      "PR244_EXACT_UNSIGNED_SOURCE_BUILT_DISARMED=PASS",
+      "PR244_INSTALLED_WORKSPACE_ORIGIN_LIMIT_STATE_AND_VALID_FORMS=PASS",
+      "PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS",
+      "W83_INSTALLED_CANDIDATE_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS",
+      "W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+      "W33C_P9_NATIVE_COLD_FOUR_FILL_STOPPED_ACCOUNT_NO_AUTO_REARM=PASS",
+      "W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS",
+      "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+      "W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS",
+      "PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS"
+    ]
+  },
+  "prior_failures_and_correction": {
+    "run_41758134294": "FAIL_INSTALLER_DIRECTORY_NAMING_HARNESS_ONLY",
+    "run_41758346788": "FAIL_INSTALLED_HTTP_WRONG_METHOD_EXPECTED_403_BUT_ROUTER_RETURNED_405",
+    "qualifier_correction_commit": "fbe7a8b092aeed9b0b9f2cce7d13c23f75863b57",
+    "qualifier_correction_scope": "single_wrong_method_status_expectation_403_to_405",
+    "product_source_changed_for_correction": false
+  },
+  "limitations": {
+    "owner_pc_hidpi": "UNVERIFIED",
+    "full_fractional_chart_logical_range_native_oracle": "UNVERIFIED_PHYSICAL_TIME_AXIS_TEST_ONLY",
+    "owner_data_import_or_migration": "UNVERIFIED",
+    "all_cumulative_mainline_paths_security_review": "NOT_GRANTED",
+    "mainline_merge": "HOLD",
+    "installer_signing": "HOLD",
+    "release_promotion": "HOLD",
+    "live_broker_orders": "NONE",
+    "owner_install": "HOLD",
+    "final_24h_soak": "DEFERRED",
+    "separately_authorized_acceptance": "NOT_GRANTED_BY_THIS_RECEIPT"
+  },
+  "provenance": {
+    "evidence": "connected_GitHub_Actions_run_jobs_decoded_original_logs_read_back_workflow_and_source_receipt",
+    "receipt_is": "CI_OBSERVATION_NOT_RELEASE_ACCEPTANCE",
+    "witness_branch_parent_before_write": "fbe7a8b092aeed9b0b9f2cce7d13c23f75863b57"
+  }
+}
