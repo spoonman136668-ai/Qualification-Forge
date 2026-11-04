@@ -1,0 +1,215 @@
+{
+  "schema": "ktrade.rb3.stacked-integration-static-admission.v1",
+  "verdict": "PASS_EXACT_STACK_AND_BOUNDARY_REVIEW__HOLD_MAINLINE_INTEGRATION_AND_RELEASE",
+  "observed": "2026-11-03 Eastern; GitHub Actions completed 2026-11-04 UTC",
+  "product": {
+    "repository": "spoonman136668-ai/ktrade",
+    "main_commit": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "main_tree": "8b43e35338f9be645a9fbb5a79f14c3c6ab328e3",
+    "candidate_pr": 244,
+    "candidate_commit": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "candidate_tree": "7143f2fa49b2027bb60d8d5106c632b2aa0c230d",
+    "ancestry": {
+      "linear_open_draft_prs": [
+        {
+          "pr": 228,
+          "base_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+          "head_sha": "365a7085ccd86c3f917206fe2569aba51f00d8d0"
+        },
+        {
+          "pr": 229,
+          "base_sha": "365a7085ccd86c3f917206fe2569aba51f00d8d0",
+          "head_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2"
+        },
+        {
+          "pr": 230,
+          "base_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+          "head_sha": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e"
+        },
+        {
+          "pr": 231,
+          "base_sha": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+          "head_sha": "2773c8eb8e840a0eb0a6524820d394f5a35a925f"
+        },
+        {
+          "pr": 232,
+          "base_sha": "2773c8eb8e840a0eb0a6524820d394f5a35a925f",
+          "head_sha": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4"
+        },
+        {
+          "pr": 233,
+          "base_sha": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4",
+          "head_sha": "42bf2c698d15da43632540959f9a5eea3999158b"
+        },
+        {
+          "pr": 234,
+          "base_sha": "42bf2c698d15da43632540959f9a5eea3999158b",
+          "head_sha": "db79330ffee632b66c5e17b4a60d29c421febbab"
+        },
+        {
+          "pr": 235,
+          "base_sha": "db79330ffee632b66c5e17b4a60d29c421febbab",
+          "head_sha": "3901f737474f8fb5428dbb0d77a14fcb53d68d89"
+        },
+        {
+          "pr": 236,
+          "base_sha": "3901f737474f8fb5428dbb0d77a14fcb53d68d89",
+          "head_sha": "504b28f07a24882470b847ff014391104f78bd66"
+        },
+        {
+          "pr": 237,
+          "base_sha": "504b28f07a24882470b847ff014391104f78bd66",
+          "head_sha": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc"
+        },
+        {
+          "pr": 238,
+          "base_sha": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc",
+          "head_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015"
+        },
+        {
+          "pr": 239,
+          "base_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+          "head_sha": "72f7b5aa75ece04be0d59e6449c052d2753f468d"
+        },
+        {
+          "pr": 240,
+          "base_sha": "72f7b5aa75ece04be0d59e6449c052d2753f468d",
+          "head_sha": "50651c09f8367e66e2cdb51e69c552c866fc4313"
+        },
+        {
+          "pr": 241,
+          "base_sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+          "head_sha": "ae70c58ded58be33d5cb5f156adaf0890cc3457c"
+        },
+        {
+          "pr": 242,
+          "base_sha": "ae70c58ded58be33d5cb5f156adaf0890cc3457c",
+          "head_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0"
+        },
+        {
+          "pr": 243,
+          "base_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0",
+          "head_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b"
+        },
+        {
+          "pr": 244,
+          "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+          "head_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664"
+        }
+      ],
+      "all_links_exact": true,
+      "base_main_unchanged": true,
+      "head_stack_not_merged": true,
+      "commits_ahead": 589,
+      "commits_behind": 0
+    },
+    "full_git_tree_custody": {
+      "main_blobs": 6983,
+      "candidate_blobs": 7370,
+      "non_truncated_both": true,
+      "unchanged_blob_paths": 6934,
+      "added_paths": 387,
+      "modified_blob_paths": 49,
+      "deleted_paths": 0,
+      "mode_changed_paths": 0,
+      "compare_endpoint_limit_notice": "GitHub compare API listed only 300 changed files, therefore not used as full manifest; identity derived from two 100%-complete recursive Git trees and compared by path, blob sha, and mode",
+      "prior_cumulative_scope_receipt": "qualification-receipts/ktrade-pr244-corrected-workspace-contract-scope-20261103.json",
+      "prior_receipt_blob": "a5f60549df181501a52c6ec3875f2f3131793969"
+    }
+  },
+  "immutable_reused_qualification": {
+    "source_windows": {
+      "run_id": 41755443367,
+      "source_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+      "conclusion": "success",
+      "full_go_wails_vet": "PASS",
+      "node_tests": 193,
+      "receipt_blob": "1913e555ab83e49a26a754758011daef17ecb758"
+    },
+    "native_installed": {
+      "run_id": 41759236968,
+      "qualifier_sha": "fbe7a8b092aeed9b0b9f2cce7d13c23f75863b57",
+      "source_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+      "job_id": 126342678645,
+      "conclusion": "success",
+      "successful_steps": 15,
+      "receipt_commit": "f11109f17726e4bb0313eaa37dc00537d1f44987",
+      "receipt_blob": "a0af626306a31f0c86863cbf77c2b96ca5a2bdef"
+    }
+  },
+  "bounded_additional_security_review": {
+    "scope": "Read-only review of exact-blob source logic for 9 high-risk HTTP, paper owner, ledger, reconciliation, intent journal, and operator capability paths. No new test execution and no exhaustive path audit.",
+    "source_blobs": {
+      "cmd/ktrade/origin_security_full.go": "cfc488dea8ac8f59be85c5ace6a62363b22166b8",
+      "cmd/ktrade/main_full.go": "0069483dc9b59437a0e39c1b8e9d00e24f2955a1",
+      "cmd/ktrade/paper_session_full.go": "8962cecbbb58369258035bf2d1ecf2506b513f3b",
+      "cmd/ktrade/paper_session_runner_full.go": "2ae0e5439b8c666c1c15a089e6a2ce11279cac6c",
+      "internal/paperreconcile/reconcile.go": "c4822f9fa4548a2d7ffc7d6c6bb1775911926b28",
+      "internal/papertrading/ledger.go": "66527a1d9453b27f4bf55dc271a9cf9333eef5e6",
+      "internal/brokerintent/journal.go": "87f10d787d0339182d875df7a8a7f14418e9e499",
+      "cmd/ktrade/operator_capabilities_full.go": "492d07dda21cd808b777fdb54ae32ab31e53f6ad",
+      "cmd/ktrade/pine_library_compat_full.go": "5c3ed2f40c11136f6f7672a9a89f95807b06eaeb"
+    },
+    "observations": [
+      {
+        "id": "HTTP-SAME-ORIGIN",
+        "status": "PASS_BOUNDED_STATIC",
+        "evidence": "pineCompatLocal requires loopback Host and RemoteAddr; modifying requests require exact Origin and reject cross-site fetch metadata. localJSONWriteAllowed requires application/json; workspace load requires POST, 1 MiB MaxBytesReader, no trailing JSON, and assigns state only after validation."
+      },
+      {
+        "id": "PAPER-OWNER-ADMISSION",
+        "status": "PASS_BOUNDED_STATIC",
+        "evidence": "paper routes are locked without isolated/portable verified owner. Native Start requires fresh unfunded owner, canonical saved Pine strategy/hash, verified candles, durable writer before funding; POST routes require local JSON authorization and 2048-byte bounded inputs."
+      },
+      {
+        "id": "PAPER-WORKER-CUSTODY",
+        "status": "PASS_BOUNDED_STATIC",
+        "evidence": "running evaluator rechecks saved source identity, authentic finalized-bar inputs, no pyramiding; serializes evaluation by owner mutex, publishes risk-linked durable checkpoint and STOP before releasing writer. Worker cannot inherit a newer channel's authority."
+      },
+      {
+        "id": "LEDGER-RECONCILIATION",
+        "status": "PASS_BOUNDED_STATIC",
+        "evidence": "TEMP-only sandbox, regular-file identity and bounded journal reads, 0600 exclusive writer locks, hashed event-chain replay; coordinator persists PREPARED before risk reserve/fill, refuses uncertain IDs, and preserves interrupted states for independent review."
+      },
+      {
+        "id": "BROKER-INTENT-JOURNAL",
+        "status": "PASS_BOUNDED_STATIC",
+        "evidence": "journal records DISPATCHING before transport and does not auto-retry uncertain states. ACKNOWLEDGED is not a fill; immutable attempt and fill-observation triggers and binding/source checks in inspected functions."
+      },
+      {
+        "id": "OPERATOR-UI-CAPABILITIES",
+        "status": "PASS_BOUNDED_STATIC",
+        "evidence": "GET capabilities disabled by default, no LIVE authority, paper execution advertised only when same owner has verified running durable custody, matching source, and active unattended worker."
+      }
+    ],
+    "negative_claims": "No complete security audit of all 436 modified/added paths, no new runtime qualification, no user-machine installed evidence, no live broker test, and no scientific or release acceptance granted.",
+    "prior_review": {
+      "receipt_blob": "b8bc7c781846eb7b640986d10c7491f92a02806e",
+      "at_pr": 243,
+      "reviewed_source_files": 24,
+      "reviewed_test_files": 8,
+      "scope": "bounded security review of broker/credential/installer/update paths; not a cumulative signoff"
+    }
+  },
+  "decision": {
+    "development_stack": "PASS_SOURCE_AND_NATIVE_TESTS_WITH_BOUNDED_BOUNDARY_REVIEW",
+    "mainline_integration": "HOLD_UNTIL_SEPARATELY_AUTHORIZED_ACCEPTANCE_AND_FULL_STACK_RELEASE_CONTRACT",
+    "owner_pc_hidpi": "UNVERIFIED",
+    "native_exact_fractional_chart_logical_oracle": "UNVERIFIED",
+    "original_tradeguard_live_kill_restart": "KNOWN_GAP_LIVE_BLOCKED",
+    "actual_owner_data_and_credentials_runtime": "UNVERIFIED",
+    "final_24_hour_soak": "DEFERRED_UNTIL_FINAL_RELEASE_CANDIDATE",
+    "all_436_files_line_by_line_review": "NOT_DONE",
+    "owner_install": "NOT_AUTHORIZED",
+    "live_broker_orders": "NONE",
+    "trading_guard_change": "NONE",
+    "deployment_signing_release": "HOLD",
+    "next_gate": "Check cross-stack release/admission contract and cumulative high-risk source families against original authoritative acceptance standards, then prepare a final non-trading integration qualification candidate; never infer promotion authority from passing tests."
+  },
+  "provenance": {
+    "source": "Connected private GitHub repository: current PR list, exact SHA Git trees, code blobs, read-back receipts, finished CI",
+    "qualifier_branch_parent_before_write": "f11109f17726e4bb0313eaa37dc00537d1f44987",
+    "receipt_is": "READ_ONLY_EVIDENCE_AND_ADVISORY_HOLD_NOT_ACCEPTANCE",
+    "new_controller_or_runner": "NONE"
+  }
+}
