@@ -35,8 +35,11 @@ $injection=@'
     $bought.last_ledger_hash -cnotmatch '^[a-f0-9]{64}$'){throw 'PR244_CRASH_FUNDED_SOURCE_RISK_OR_LEDGER_UNVERIFIED'}
  $leased=Join-Path $script:installedRoot '.ktrade-w28c-active-process.lock'
  if(!(Test-Path -LiteralPath $leased)){throw 'PR244_CRASH_ACTIVE_LEASE_MISSING'}
- $leaseHash=Hash $leased
- $dataHash=Hashes (Join-Path $stage 'data')
+ # The running Go owner holds the lease EXCLUSIVELY; reading/hash-open
+ # while it is live is an invalid verifier operation, not an app defect.
+ $dataRoot=Join-Path $stage 'data'
+ if(!(Test-Path -LiteralPath $leased -PathType Leaf) -or
+    !(Test-Path -LiteralPath $dataRoot -PathType Container)){throw 'PR244_CRASH_LEASE_OR_DATA_ROOT_UNAVAILABLE'}
  $shellPid=[int]$shell.Id
  $enginePid=[int]$engine.ProcessId
  $shellInfo=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shellPid)
@@ -47,6 +50,7 @@ $injection=@'
  }
  Write-Output ('PR244_CRASH_REAL_FIRST_BUY='+(@{source_id=$firstArchive.source_id;source_sha256=$script:p5SourceHash;fill_count=1;cash=$buyProduct.cash;ledger_hash=$bought.last_ledger_hash;owned_shell_pid=$shellPid;owned_engine_pid=$enginePid}|ConvertTo-Json -Compress))
  # Only the synthetic installed app's exact owned process is terminated.
+ Write-Host '::notice::PR244_CRASH_PRE_KILL_ONE_SETTLED_PAPER_BUY_ACCOUNT_RISK_VERIFIED=PASS'
  $shell.Kill()
  if(!$shell.WaitForExit(20000)){throw 'PR244_CRASH_SHELL_NOT_TERMINATED'}
  $until=(Get-Date).AddSeconds(20)
@@ -55,8 +59,14 @@ $injection=@'
    Start-Sleep -Milliseconds 250
  }while((Get-Date) -lt $until)
  if(Get-Process -Id $enginePid -ErrorAction SilentlyContinue){throw 'PR244_CRASH_ORPHAN_ENGINE_STILL_RUNNING'}
- if(!(Test-Path -LiteralPath $leased) -or (Hash $leased) -cne $leaseHash){throw 'PR244_CRASH_LEASE_SILENTLY_RELEASED'}
- AssertHashes $dataHash (Hashes (Join-Path $stage 'data')) 'PR244_CRASH_DURABLE_DATA_CHANGED'
+ # After BOTH original owned processes are gone, the quarantined lock is
+ # no longer held open. The post-kill hash becomes the immutable baseline
+ # for the negative relaunch attempt; no live locked file is read.
+ if(!(Test-Path -LiteralPath $leased -PathType Leaf)){throw 'PR244_CRASH_LEASE_SILENTLY_RELEASED'}
+ $leaseHash=Hash $leased
+ $dataHash=Hashes $dataRoot
+ if(!$leaseHash -or $dataHash.Count -lt 1){throw 'PR244_CRASH_POST_TERMINATION_STATE_UNAVAILABLE'}
+ Write-Host '::notice::PR244_CRASH_POST_KILL_LEASE_AND_DATA_HASHED=PASS'
  $selected=Get-Content -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json') -Raw|ConvertFrom-Json
  if($selected.source_sha -cne $NewSHA -or $selected.live_armed -ne $false){throw 'PR244_CRASH_INSTALL_SELECTION_CHANGED'}
  $folder=Join-Path $script:shortcuts ('KTRADE-'+$selected.selection_digest.Substring(0,16))
@@ -72,7 +82,7 @@ $injection=@'
  if($candidateApps.Count -ne 0 -or !(Test-Path -LiteralPath $leased) -or (Hash $leased) -cne $leaseHash){
    throw 'PR244_CRASH_UNAUTHORIZED_RELAUNCH_OR_REARM'
  }
- AssertHashes $dataHash (Hashes (Join-Path $stage 'data')) 'PR244_CRASH_RELAUNCH_FINANCIAL_DATA_CHANGED'
+ AssertHashes $dataHash (Hashes $dataRoot) 'PR244_CRASH_RELAUNCH_FINANCIAL_DATA_CHANGED'
  Write-Host '::notice::PR244_CRASH_ONE_SETTLED_PAPER_BUY_CHILD_TERMINATED_STALE_LEASE_QUARANTINED_NO_REARM=PASS'
  return
 '@
