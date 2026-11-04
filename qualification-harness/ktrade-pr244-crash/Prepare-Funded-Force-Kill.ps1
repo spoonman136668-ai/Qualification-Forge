@@ -13,7 +13,7 @@ foreach($item in @(
  @{path='qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR243.ps1';sha='57adfe95974b14d0be92b1a7f354e119ce44044c'},
  @{path='qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR243.ps1';sha='6bbe4cb1cdc1c14417fbde22d42ec1a1b52d40a4'},
  @{path='qualification-harness/ktrade-w83/Original-W40-Paper.ps1';sha='c69c3c05ff7f4ef933856b036bfa23fbf0a760f1'},
- @{path='qualification-harness/ktrade-w83/Original-W40-Native-Inputs.ps1';sha='8ec5a9e7ad9f75208ac1d89f4560964d7c3639c9'}
+ @{path='qualification-harness/ktrade-w83/Original-W40-Native-Inputs.ps1';sha='646a3dc40cb8877e7bc34690e02f74773b83529c'}
 )){
  $blob=(& git -C $WitnessRoot rev-parse ('HEAD:'+$item.path)).Trim()
  Need ($blob -ceq $item.sha) ('PR244_CRASH_ORIGINAL_WITNESS_BLOB_DRIFT_'+$item.path)
