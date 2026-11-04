@@ -1,0 +1,126 @@
+{
+  "schema": "ktrade.pr244.exact-installed-pine-overlay-http-negative.v1",
+  "verdict": "PASS_EXACT_HEAD_WINDOWS_INSTALLED_PINE_OVERLAY_SECURITY_AND_NATIVE_PAPER",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "a032956d895b08784f01e293347c76c1d50853dd",
+    "tree": "f0272d4ce83d95450f1af416ffa5de2265eceaf4",
+    "source_ci_run_id": 41916946139,
+    "source_ci_job_id": 126879012258,
+    "source_ci_conclusion": "success",
+    "original_source_node_test_cases_passed": 193
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "branch": "qualification/ktrade-original-pine-label-response-affinity-20261031",
+    "workflow_path": ".github/workflows/ktrade-pr244-installed-workspace-windows.yml",
+    "workflow_sha": "dcd85c82e5240077c3a727512cdeb71d35b67c86",
+    "workflow_blob": "95470a7dd0a1ac2b20ecebf2f5ada18766d68feb",
+    "run_id": 41931801337,
+    "job_id": 126930272658,
+    "attempt": 1,
+    "conclusion": "success",
+    "started_at": "2026-11-04T23:12:10Z",
+    "updated_at": "2026-11-04T23:25:41Z",
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41931801337"
+  },
+  "original_log_markers": [
+    "PR244_INSTALLED_PINE_OVERLAY_REFUSAL_NO_WORKSPACE_MUTATION=PASS",
+    "PR244_INSTALLED_WORKSPACE_ORIGIN_LIMIT_STATE_AND_VALID_FORMS=PASS",
+    "PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS",
+    "PINE_MARKER_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_BOTH_ARROW_COLOR_OBSERVATION=PASS",
+    "W33C_P9_NATIVE_SAVE_TWO_BUY_SELL_ROUNDTRIPS_FIFO_RISK_PNL_DEDUP_STOP=PASS",
+    "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+    "W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS",
+    "W83_NATIVE_CHILD_EXIT_CODE=0"
+  ],
+  "test": {
+    "endpoint": "POST /api/pine/overlay",
+    "context": "real installed Go engine in isolated Windows 2022 runner",
+    "negative_case_count": 8,
+    "negative_cases": [
+      {
+        "name": "missing-origin",
+        "expected_http": 403
+      },
+      {
+        "name": "foreign-origin",
+        "expected_http": 403
+      },
+      {
+        "name": "cross-site",
+        "expected_http": 403
+      },
+      {
+        "name": "non-json",
+        "expected_http": 403
+      },
+      {
+        "name": "wrong-method",
+        "expected_http": 405
+      },
+      {
+        "name": "malformed",
+        "expected_http": 400
+      },
+      {
+        "name": "trailing-json",
+        "expected_http": 400
+      },
+      {
+        "name": "oversized",
+        "expected_http": 413
+      }
+    ],
+    "after_each_rejection": "read original /api/workspace/save and require original workspace code byte-identical",
+    "operator_capabilities": "still disarmed",
+    "result": "PASS",
+    "limitation": "Each case's individual status is asserted in original ephemeral witness; aggregate PASS marker and workflow success observed in GitHub Actions log. This gate does not claim direct market transport or storage byte-level instrumentation."
+  },
+  "native": {
+    "shipping_unsigned_original_six_binary_installer": "PASS",
+    "installed_wails_webview2": "PASS",
+    "marker_v5": {
+      "go_candles": 300,
+      "go_markers": 60,
+      "go_up": 30,
+      "go_down": 30,
+      "physical_up_pixels": 3189,
+      "physical_down_pixels": 3363
+    },
+    "marker_v6": {
+      "go_candles": 300,
+      "go_markers": 60,
+      "go_up": 30,
+      "go_down": 30,
+      "physical_up_pixels": 3189,
+      "physical_down_pixels": 3363
+    },
+    "native_paper_two_buy_sell_roundtrips_fifo_risk_pnl_dedup_stop": "PASS",
+    "cold_state_no_auto_rearm": "PASS",
+    "installed_update_rollback": "PASS"
+  },
+  "historical_uncertainty": {
+    "earlier_native_run_id": 41924809363,
+    "earlier_attempt_1": "FAIL_MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED",
+    "earlier_attempt_2": "FAIL_W83_NATIVE_UI_NOT_OBSERVED_Verify chart UI",
+    "intermittent_ui_reliability": "UNRESOLVED",
+    "previous_single_pass_run_id": 41928120519,
+    "causal_regression_fix": "NOT_CLAIMED"
+  },
+  "scope": {
+    "one_exact_head_installed_windows_run": "PASS",
+    "repeatability_across_workstations": "UNVERIFIED",
+    "user_owner_windows_acceptance": "NOT_EXECUTED",
+    "product_source_changed": false,
+    "live_broker_trading_authority": "NONE",
+    "release_signing_merge_deployment": "NOT_AUTHORIZED",
+    "existing_full_native_negative_controls_not_waived": true
+  },
+  "provenance": {
+    "source": "GitHub Actions exact-run/job conclusion plus original decoded job logs",
+    "receipt_role": "immutable evidence of this one qualification, not production or release acceptance"
+  }
+}
