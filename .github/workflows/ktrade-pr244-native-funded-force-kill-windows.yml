@@ -129,7 +129,7 @@ jobs:
             Need ($errors.Count -eq 0) ('PR244_GENERATED_WITNESS_SYNTAX '+(($errors|ForEach-Object {$_.ToString()}) -join '; '))
           }
           $helper='qualification-harness/ktrade-pr244-crash/Prepare-Funded-Force-Kill.ps1'
-          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq 'd12be77b1f40c003606a576a2e5c91420072d5d1') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
+          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq '0c1d228e8b4dd5a167c37fee76747069b7ee14cb') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
           foreach($r in @(
             @{path='qualification-receipts/ktrade-pr244-exact-risk-matrix-windows-20261104.json';sha='9a630db7c0f258588f01923688a1f4341a4e233c'},
             @{path='qualification-receipts/ktrade-pr244-current-go-security-scan-windows-20261104.json';sha='6c8c08909a005c3a35cbb9b8b287fb7b5e7ff66b'},
@@ -178,9 +178,8 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
-          # The original W83 runtime intentionally removes Go/Node from PATH.
-          # Compile this exact-source read-only report BEFORE crossing that isolation
-          # boundary; invoke the pinned standalone executable inside the child.
+          # W83 intentionally strips build tools from its child runtime PATH.
+          # Build the source-bound read-only report before crossing that boundary.
           $go=(Get-Command go -ErrorAction Stop).Source
           if((& $go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'PR244_ORPHAN_REPORT_COMPILER_DRIFT'}
           $reportExe=Join-Path $env:RUNNER_TEMP ('pr244-orphan-report-'+[guid]::NewGuid().ToString('N')+'.exe')

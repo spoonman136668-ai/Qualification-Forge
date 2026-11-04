@@ -156,108 +156,19 @@ $injection=@'
    try{
      $exe=$env:KTRADE_PR244_ORPHAN_REPORT_EXE
      $sha=$env:KTRADE_PR244_ORPHAN_REPORT_SHA256
-     $tempRoot=[IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar)+[IO.Path]::DirectorySeparatorChar
-     if([string]::IsNullOrWhiteSpace($exe) -or ![IO.Path]::IsPathRooted($exe) -or
-       !$exe.StartsWith($tempRoot,[StringComparison]::OrdinalIgnoreCase) -or
-       $sha -cnotmatch '^[0-9a-f]{64}
-     if($LASTEXITCODE -ne 0 -or $raw.Count -ne 1){throw 'PR244_CRASH_OPERATOR_CLI_REFUSED'}
-     return ($raw[0]|ConvertFrom-Json -Depth 16)
-   }finally{Pop-Location}
- }
- $reportBefore=PR244ReadOrphanReport $script:installedRoot $dataRoot $crashArchive.source_id
- if($reportBefore.schema -cne 'ktrade.orphan-custody.diagnostic-only.v1' -or
-    $reportBefore.selected_source_sha -cne $NewSHA -or
-    $reportBefore.selection_receipt_digest -cnotmatch '^[a-f0-9]{64}$' -or
-    $reportBefore.paper.source_id -cne $crashArchive.source_id -or
-    $reportBefore.state -cne 'QUARANTINED' -or
-    $reportBefore.release_process_lease -cne 'PRESENT' -or
-    $reportBefore.paper.state -cne 'QUARANTINED_OWNER_LEASES' -or
-    $reportBefore.paper.application_owner_lease -cne 'PRESENT' -or
-    $reportBefore.paper.session_owner_lease -cne 'PRESENT' -or
-    $reportBefore.process_quiescence_proven -ne $false -or
-    $reportBefore.financial_replay_verified -ne $false -or
-    $reportBefore.original_risk_verified -ne $false -or
-    $reportBefore.safe_to_clear -ne $false -or
-    $reportBefore.execution_restore_eligible -ne $false -or
-    $reportBefore.live_armed -ne $false -or
-    $reportBefore.owner_data_mutated -ne $false){throw 'PR244_CRASH_OPERATOR_REPORT_QUARANTINE_OR_AUTHORITY_DRIFT'}
- $reportBeforeJSON=$reportBefore|ConvertTo-Json -Compress -Depth 16
- if((Hash $leased) -cne $leaseHash -or
-   (Hash $paperApplicationLease) -cne $paperApplicationLeaseHash -or
-   (Hash $paperSessionLease) -cne $paperSessionLeaseHash -or
-   (Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_OPERATOR_REPORT_CHANGED_OWNER_CUSTODY'}
- AssertHashes $paperHistoryHash (Hashes $paperHistory) 'PR244_CRASH_OPERATOR_REPORT_FINANCIAL_MUTATION'
- AssertHashes $pineLibraryHash (Hashes $pineLibrary) 'PR244_CRASH_OPERATOR_REPORT_PINE_MUTATION'
- Write-Host '::notice::PR244_CRASH_OPERATOR_READONLY_QUARANTINE_JSON=PASS'
-
- $selected=Get-Content -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json') -Raw|ConvertFrom-Json
- if($selected.source_sha -cne $NewSHA -or $selected.live_armed -ne $false){throw 'PR244_CRASH_INSTALL_SELECTION_CHANGED'}
- $folder=Join-Path $script:shortcuts ('KTRADE-'+$selected.selection_digest.Substring(0,16))
- $shortcut=Join-Path $folder 'KTRADE.lnk'
- Ordinary $shortcut $false
- # Attempt the SAME previously verified original native shortcut; a stale
- # orphan lease must refuse it rather than silently rearm the account.
- Start-Process -FilePath $shortcut
- Start-Sleep -Seconds 6
- $candidateApps=@(Get-CimInstance Win32_Process -Filter "Name='ktrade.exe'"|Where-Object {
-   [string]::Equals($_.ExecutablePath,(Join-Path $stage 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)
- })
- if($candidateApps.Count -ne 0 -or !(Test-Path -LiteralPath $leased) -or (Hash $leased) -cne $leaseHash){
-   throw 'PR244_CRASH_UNAUTHORIZED_RELAUNCH_OR_REARM'
- }
- # Retain both original orphan locks unchanged across the attempted launch.
- # A stopped operator must perform a separately authorized custody review;
- # this negative test provides no lease-clear or account-rearm operation.
- if(!(Test-Path -LiteralPath $paperApplicationLease -PathType Leaf) -or
-    !(Test-Path -LiteralPath $paperSessionLease -PathType Leaf) -or
-    (Hash $paperApplicationLease) -cne $paperApplicationLeaseHash -or
-    (Hash $paperSessionLease) -cne $paperSessionLeaseHash){
-   throw 'PR244_CRASH_ORPHAN_PAPER_OWNER_LEASE_CHANGED_DURING_REFUSED_RELAUNCH'
- }
- Write-Host '::notice::PR244_CRASH_BOTH_PAPER_OWNER_LEASES_UNCHANGED_AFTER_REFUSED_RELAUNCH=PASS'
- $reportAfter=PR244ReadOrphanReport $script:installedRoot $dataRoot $crashArchive.source_id
- if(($reportAfter|ConvertTo-Json -Compress -Depth 16) -cne $reportBeforeJSON -or
-   (Hash $leased) -cne $leaseHash -or
-   (Hash $paperApplicationLease) -cne $paperApplicationLeaseHash -or
-   (Hash $paperSessionLease) -cne $paperSessionLeaseHash -or
-   (Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_OPERATOR_REPORT_REPEAT_CHANGED_CUSTODY'}
- AssertHashes $paperHistoryHash (Hashes $paperHistory) 'PR244_CRASH_OPERATOR_REPORT_REPEAT_FINANCIAL_MUTATION'
- AssertHashes $pineLibraryHash (Hashes $pineLibrary) 'PR244_CRASH_OPERATOR_REPORT_REPEAT_PINE_MUTATION'
- Write-Host '::notice::PR244_CRASH_OPERATOR_REPORT_REPEATED_NO_MUTATION=PASS'
-
- if((Hash $checkpointPath) -cne $checkpointHash){throw 'PR244_CRASH_CHECKPOINT_CHANGED_DURING_REFUSED_RELAUNCH'}
- AssertHashes $paperHistoryHash (Hashes $paperHistory) 'PR244_CRASH_FINANCIAL_ARCHIVE_CHANGED_DURING_REFUSED_RELAUNCH'
- AssertHashes $pineLibraryHash (Hashes $pineLibrary) 'PR244_CRASH_SAVED_PINE_CHANGED_DURING_REFUSED_RELAUNCH'
- Write-Host '::notice::PR244_CRASH_ONE_SETTLED_PAPER_BUY_CHILD_TERMINATED_STALE_LEASE_QUARANTINED_NO_REARM=PASS'
- return
-'@
-$paper=ReplaceExact $paper ' $buyProduct=P5-Account $buyAccount 1 $buyExpected' (' $buyProduct=P5-Account $buyAccount 1 $buyExpected'+[Environment]::NewLine+$injection) 'first-one-buy'
-$invoke='& { Set-StrictMode -Off; Run-P9NativeRoundTrips }'
-$afterInvoke=@'
-& { Set-StrictMode -Off; Run-P9NativeRoundTrips }
-$script:active=$null
-Write-Host '::notice::PR244_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS'
-return
-'@
-$native=ReplaceExact $native $invoke $afterInvoke 'after-only-first-buy'
-$files=@(
- @{name='Build-And-Qualify-PR244-Crash.ps1';source=$builder},
- @{name='Installed-PR244-Funded-Crash.ps1';source=$native},
- @{name='Original-W40-Paper-Crash.ps1';source=$paper}
-)
-foreach($file in $files){
- $dest=Join-Path $OutputRoot $file.name
- [IO.File]::WriteAllText($dest,$file.source,[Text.UTF8Encoding]::new($false))
- $tok=$null;$errs=$null
- [void][Management.Automation.Language.Parser]::ParseFile($dest,[ref]$tok,[ref]$errs)
- Need ($errs.Count -eq 0) ('PR244_CRASH_DERIVED_SCRIPT_PARSE '+$file.name+' '+(($errs|ForEach-Object {$_.ToString()}) -join '; '))
-}
-Write-Host '::notice::PR244_CRASH_PINNED_NATIVE_BUILDER_PAPER_SOURCE_DERIVED_WITHOUT_MUTATING_ORIGINAL=PASS'
- -or !(Test-Path -LiteralPath $exe -PathType Leaf) -or
-       (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant() -cne $sha){
-       throw 'PR244_CRASH_OPERATOR_PINNED_REPORT_EXE_REQUIRED'
+     if([string]::IsNullOrWhiteSpace($exe) -or $sha -cnotmatch '^[0-9a-f]{64}$'){
+       throw 'PR244_CRASH_OPERATOR_PINNED_REPORT_IDENTITY_REQUIRED'
      }
-     $raw=@(& $exe inspect $install $data $id)
+     if(-not [IO.Path]::IsPathRooted($exe)){throw 'PR244_CRASH_OPERATOR_RELATIVE_BINARY_REFUSED'}
+     $tool=[IO.Path]::GetFullPath($exe)
+     $tempRoot=[IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd([IO.Path]::DirectorySeparatorChar)+[IO.Path]::DirectorySeparatorChar
+     if(-not $tool.StartsWith($tempRoot,[StringComparison]::OrdinalIgnoreCase)){
+       throw 'PR244_CRASH_OPERATOR_BINARY_OUTSIDE_EPHEMERAL_TEMP'
+     }
+     if(-not (Test-Path -LiteralPath $tool -PathType Leaf)){throw 'PR244_CRASH_OPERATOR_BINARY_MISSING'}
+     $actual=(Get-FileHash -LiteralPath $tool -Algorithm SHA256).Hash.ToLowerInvariant()
+     if($actual -cne $sha){throw 'PR244_CRASH_OPERATOR_BINARY_HASH_DRIFT'}
+     $raw=@(& $tool inspect $install $data $id)
      if($LASTEXITCODE -ne 0 -or $raw.Count -ne 1){throw 'PR244_CRASH_OPERATOR_CLI_REFUSED'}
      return ($raw[0]|ConvertFrom-Json -Depth 16)
    }finally{Pop-Location}
