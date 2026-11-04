@@ -138,15 +138,17 @@ jobs:
           node-version: '24'
       - name: Original unsigned installer from exact source
         id: package
-        shell: pwsh
+        shell: powershell
         working-directory: product
         run: |
           $ErrorActionPreference='Stop'
+          $env:PSModulePath=Join-Path $PSHOME 'Modules'
+          $env:TEMP=$env:RUNNER_TEMP; $env:TMP=$env:RUNNER_TEMP
           & npm.cmd ci --ignore-scripts --no-audit --no-fund
           if($LASTEXITCODE -ne 0){throw 'PR244_NPM_LOCKED_INSTALL_FAILED'}
           & node scripts/stage_offline_vendor.cjs
           if($LASTEXITCODE -ne 0){throw 'PR244_OFFLINE_ASSETS_FAILED'}
-          $root=Join-Path $env:RUNNER_TEMP ('pr244-native-'+[guid]::NewGuid().ToString('N'))
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
           & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $root -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE
           if($LASTEXITCODE -ne 0){throw 'PR244_ORIGINAL_INSTALLER_BUILD_FAILED'}
           $m=Get-Content (Join-Path $root 'KTRADE-SetupBundle/installer-manifest.json') -Raw|ConvertFrom-Json
