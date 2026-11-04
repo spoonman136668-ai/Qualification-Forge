@@ -1,0 +1,135 @@
+{
+  "schema": "ktrade.pr244.optional-orphan-operator-support-zip.windows.v1",
+  "verdict": "PASS_EXACT_SOURCE_WINDOWS_REGRESSION_OPTIONAL_SUPPORT_ARCHIVE_INTEGRITY",
+  "recorded_date_utc": "2026-11-04",
+  "product": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "branch": "feature/rb3-workspace-http-ingress-20261103",
+    "source_sha": "b45b3781d60b7bf1bf0e92666f538ff7f184ae02",
+    "tree_sha": "12a2d683e3b8d9cc737cdd5605750b3ce9db2eb9",
+    "parent_sha": "2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105",
+    "changes": [
+      {
+        "path": "windows/Build-KTRADE-OrphanCustodyReview.ps1",
+        "status": "added",
+        "blob": "51465d1922c0538de31313a4e70cc0dd7ee8d948"
+      },
+      {
+        "path": ".github/workflows/ktrade-native-windows.yml",
+        "status": "modified",
+        "blob": "d8d82be3b8deb67f414d67d3eccbc890a07051c4"
+      }
+    ],
+    "existing_engine_or_broker_sources_modified": false
+  },
+  "source_ci": {
+    "repo": "spoonman136668-ai/ktrade",
+    "run_id": 41911558565,
+    "job_id": 126860161182,
+    "event": "pull_request",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "run_url": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41911558565",
+    "run_created_at": "2026-11-04T20:57:53Z",
+    "terminal_utc": "2026-11-04T21:06:31Z",
+    "source_sha_and_tree_log_exact": true,
+    "engine_full_go_and_vet": "PASS",
+    "wails_full_go_and_vet": "PASS",
+    "node_files": 40,
+    "node_tests": 193,
+    "node_passed": 193,
+    "node_failed": 0,
+    "node_skipped": 0,
+    "asset_repeatability_and_notices": "PASS",
+    "original_unsigned_six_binary_installer_and_binary_scans": "PASS",
+    "original_unsigned_installer_zip_sha256": "35ccc5f6a4066ddef6418d920f3654c180b7613c665ca1e97e75a83ee4aa27f1",
+    "optional_support_builder": "PASS",
+    "optional_support_identity_and_no_authority_check": "PASS",
+    "artifact_upload_step": "PASS"
+  },
+  "private_action_artifact": {
+    "id": 13362853212,
+    "name": "ktrade-orphan-custody-review-b45b3781d60b7bf1bf0e92666f538ff7f184ae02",
+    "created_at": "2026-11-04T21:06:28Z",
+    "expires_at": "2026-11-11T21:06:26Z",
+    "expired_at_observation": false,
+    "uploaded_file_size_bytes": 3822899,
+    "uploaded_outer_archive_sha256": "24fb6c7c456bf8c3da96c424caebe45172b1aa553a8de962121c6cc5d2b5a038",
+    "outer_archive_contains": [
+      "KTRADE-Orphan-Custody-Review.zip"
+    ],
+    "inner_archive_size_bytes": 3829328,
+    "inner_archive_sha256": "31b9323edfe224c33a21f83bbb7a21be5cac934571f6fb4668580042e89bfe45",
+    "inner_archive_contains": [
+      "orphan-custody-report.exe",
+      "READ-ME-FIRST.txt",
+      "review-manifest.json"
+    ],
+    "manifest_sha256": "0effc0541bf83a2e4290d1b44932dae69d3c992a57943729e8e284dad4f5e7d2",
+    "operator_exe_sha256": "a51e073b6bd0599ac46486560145a44d5167c5f0ea015d62f6580a9881f02896",
+    "operator_exe_size_bytes": 6772224,
+    "operator_exe_pe_magic": "MZ",
+    "operator_instructions_sha256": "1d473d040489b0cfa5f083f6f4743d95348ab9da89ac69eb435faf27f2f9f317",
+    "manifest_file_entries_sha256_match_archive_bytes": true,
+    "manifest_source_sha_exact": true,
+    "manifest_go_version": "go1.26.10",
+    "manifest_package_scope": "separate-optional-unsigned-review",
+    "manifest_signature_status": "unsigned",
+    "manifest_operator_invocation_only": true,
+    "manifest_automatically_installed": false,
+    "manifest_original_owner_profile_accessed": false,
+    "manifest_original_owner_data_mutated": false,
+    "manifest_safe_to_clear": false,
+    "manifest_execution_restore_eligible": false,
+    "manifest_live_armed": false,
+    "manifest_release_authority": "none"
+  },
+  "independent_validation": {
+    "source": "Downloaded GitHub Actions artifact ID 13362853212 and inspected its wrapper and inner ZIP bytes using Python standard-library zipfile/hashlib",
+    "outer_zip_sha_matches_github_artifact_digest": true,
+    "inner_zip_sha_matches_ci_logged_value": true,
+    "exe_sha_matches_ci_logged_and_manifest": true,
+    "readme_sha_matches_manifest": true,
+    "manifest_lists_only_exe_and_readme": true,
+    "three_exact_inner_members": true,
+    "notices_seen": [
+      "NATIVE_CI_FULL_ROOT_TAGGED_WAILS_TEST_VET=PASS",
+      "NATIVE_CI_ALL_NODE=PASS files=40 cases=193",
+      "NATIVE_CI_REPEATABLE_LICENSED_SHIPPING_ASSETS=PASS",
+      "NATIVE_CI_ORIGINAL_UNSIGNED_PACKAGE_ACTUAL_BINARY_SCANS_NO_APP_NO_INSTALL_NO_RELEASE=PASS",
+      "ORPHAN_REPORT_OPTIONAL_ISOLATED_READONLY_BUNDLE=PASS",
+      "NATIVE_CI_SEPARATE_OPTIONAL_READONLY_OPERATOR_ZIP=PASS"
+    ]
+  },
+  "scope_and_limits": {
+    "qualification": "standalone ZIP packaging and file-byte integrity on hosted Windows source CI; not production release acceptance",
+    "native_installed_crash_test_same_source_sha": "NOT_RUN_AT_NEW_SHA",
+    "native_installed_crash_test_parent_source": {
+      "product_sha": "2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105",
+      "qualification_sha": "6d603d967b605d1275976f4a7fbfe8cd90e04051",
+      "run_id": 41891748626,
+      "result": "PASS_PARENT_SHA_ONLY"
+    },
+    "end_user_original_machine_test": "UNVERIFIED",
+    "binary_executed_from_downloaded_zip": false,
+    "live_orders_performed": false,
+    "owner_profile_accessed": false,
+    "owner_data_modified": false,
+    "lease_clearance_authorized": false,
+    "financial_replay_or_trading_restore_authorized": false,
+    "installer_shipping_binary_count_unchanged": 6,
+    "main_merged": false,
+    "signed": false,
+    "deployed": false,
+    "soak_24h": "NOT_RUN",
+    "required_manual_operator_inputs": [
+      "absolute-release-parent",
+      "absolute-data-root",
+      "exact-paper-source-id"
+    ],
+    "suggested_next_action": "Return to primary KTRADE measurable order-creation/reconciliation throughput and production completion priorities; do not duplicate source or crash qualifications."
+  },
+  "provenance": "Current GitHub PR head and Git tree, exact native Actions run/job logs, first-page workflow artifact metadata, direct downloaded private artifact ZIP byte verification. Does not grant release or execution authority."
+}
