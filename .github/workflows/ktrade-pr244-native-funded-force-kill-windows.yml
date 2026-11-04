@@ -129,7 +129,7 @@ jobs:
             Need ($errors.Count -eq 0) ('PR244_GENERATED_WITNESS_SYNTAX '+(($errors|ForEach-Object {$_.ToString()}) -join '; '))
           }
           $helper='qualification-harness/ktrade-pr244-crash/Prepare-Funded-Force-Kill.ps1'
-          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq 'f4c027ff9ff8aeaa2053e0855e4656b340511cf8') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
+          Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq '6a301be7ec3e4c3ecb3b632e5bc3a8a72cf1eb3e') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
           foreach($r in @(
             @{path='qualification-receipts/ktrade-pr244-exact-risk-matrix-windows-20261104.json';sha='9a630db7c0f258588f01923688a1f4341a4e233c'},
             @{path='qualification-receipts/ktrade-pr244-current-go-security-scan-windows-20261104.json';sha='6c8c08909a005c3a35cbb9b8b287fb7b5e7ff66b'},
@@ -182,7 +182,7 @@ jobs:
           & (Join-Path $env:RUNNER_TEMP 'Build-And-Qualify-PR244-Crash.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:RUNNER_TEMP 'Installed-PR244-Funded-Crash.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $env:RUNNER_TEMP 'Original-W40-Paper-Crash.ps1') -CandidateQualifiedBundleRoot $env:BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:BUNDLE_SHA *>&1 | Tee-Object -FilePath $out
           if($LASTEXITCODE -ne 0 -or !$?){throw 'PR244_REAL_FUNDED_CRASH_WITNESS_FAILED'}
           $lines=@(Get-Content $out)
-          foreach($marker in @('::notice::PR244_CRASH_ONE_SETTLED_PAPER_BUY_CHILD_TERMINATED_STALE_LEASE_QUARANTINED_NO_REARM=PASS','::notice::PR244_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS')){
+          foreach($marker in @('::notice::PR244_CRASH_PREDECESSOR_COLD_UPDATE_REUSES_EXACT_NATIVE_W83=PASS','::notice::PR244_CRASH_ONE_SETTLED_PAPER_BUY_CHILD_TERMINATED_STALE_LEASE_QUARANTINED_NO_REARM=PASS','::notice::PR244_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS')){
             if(@($lines|Where-Object {$_ -ceq $marker}).Count -ne 1){throw ('PR244_FUNDED_CRASH_WITNESS_REQUIRED_'+$marker)}
           }
           Write-Host '::notice::PR244_EXACT_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS'
