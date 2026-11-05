@@ -1,0 +1,3424 @@
+{
+  "schema": "ktrade.rb3.pr244.mainline-complete-identity.v1",
+  "verdict": "PASS_FULL_UNTRUNCATED_GIT_TREE_AND_17_PR_PARENT_LINKS__INTEGRATION_HOLD",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "main_commit": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "main_tree": "8b43e35338f9be645a9fbb5a79f14c3c6ab328e3",
+    "main_protected": false,
+    "stack_parent_pr": 243,
+    "stack_parent_commit": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "stack_parent_tree": "0d8257297d53a8edd4a40b4099f102106619b2a2",
+    "candidate_pr": 244,
+    "candidate_commit": "a032956d895b08784f01e293347c76c1d50853dd",
+    "candidate_tree": "f0272d4ce83d95450f1af416ffa5de2265eceaf4",
+    "main_to_candidate_commits_ahead": 594,
+    "main_to_candidate_commits_behind": 0
+  },
+  "tree_proof": {
+    "untruncated": true,
+    "recursive": true,
+    "blob_count": {
+      "main": 6983,
+      "parent": 7369,
+      "candidate": 7378
+    },
+    "main_to_tip_count": {
+      "added": 395,
+      "modified": 49,
+      "deleted": 0,
+      "mode_changed": 0
+    },
+    "parent_to_tip_count": {
+      "added": 9,
+      "modified": 9,
+      "deleted": 0,
+      "mode_changed": 0
+    },
+    "main_to_tip_all_changed_paths_with_blobs": [
+      {
+        "path": ".gitattributes",
+        "change": "added",
+        "before": null,
+        "after": "ba85587d8e046375e7b92e35759eaa056ac01e7b",
+        "mode": "100644"
+      },
+      {
+        "path": ".github/workflows/ktrade-native-windows.yml",
+        "change": "added",
+        "before": null,
+        "after": "d8d82be3b8deb67f414d67d3eccbc890a07051c4",
+        "mode": "100644"
+      },
+      {
+        "path": ".github/workflows/rb2-native-brave-focused-windows.yml",
+        "change": "added",
+        "before": null,
+        "after": "9a5fa82f5f52b276a8cc5fdc266340f9b3b22662",
+        "mode": "100644"
+      },
+      {
+        "path": ".github/workflows/rb2-wails-w01-windows.yml",
+        "change": "added",
+        "before": null,
+        "after": "ca8caf35344f558a72f4f6f42daf8d0fadd9c750",
+        "mode": "100644"
+      },
+      {
+        "path": ".gitignore",
+        "change": "added",
+        "before": null,
+        "after": "b623d0e52b29f9e0ac95329aa98b730217b4a919",
+        "mode": "100644"
+      },
+      {
+        "path": "AGENTS.md",
+        "change": "added",
+        "before": null,
+        "after": "36d9059c70e06a52d5faf243dd67b5f3e9660e54",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade-paper-history-review/main.go",
+        "change": "added",
+        "before": null,
+        "after": "db16c636f920356207267201330d208f3c796999",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade-pine-restore-proof/main.go",
+        "change": "added",
+        "before": null,
+        "after": "b773bb919695a3717bdc88e6a7145958fb33b5f7",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade-w17c8-fixture/main.go",
+        "change": "added",
+        "before": null,
+        "after": "6b8e55f0bfd788c605d43c797c4ebcc1977858c6",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/main_full.go",
+        "change": "modified",
+        "before": "5b21fba52ee8ab1c696c3b773819d8f32c31c653",
+        "after": "646b13ece306b762b4391562d3ff300c40b725cb",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/next_entry_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "c0f9280941cd3dfbfde5b86321cb7e0bd66b4e8c",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/operator_capabilities_full.go",
+        "change": "added",
+        "before": null,
+        "after": "492d07dda21cd808b777fdb54ae32ab31e53f6ad",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/origin_security_full.go",
+        "change": "added",
+        "before": null,
+        "after": "cfc488dea8ac8f59be85c5ace6a62363b22166b8",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_authority_route_full.go",
+        "change": "modified",
+        "before": "3da56d085beea58d75c7eabac6a1969842749206",
+        "after": "bf214d1395648367685191374e296ce32f1a8251",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_candles_source_production_full.go",
+        "change": "added",
+        "before": null,
+        "after": "e99c2e6b009e837ba8bc52970ab774e285d3521a",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_candles_source_w13_fixture_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "be9f338366d3b54509a7f9348b508866af53d127",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_candles_source_w13_fixture_full.go",
+        "change": "added",
+        "before": null,
+        "after": "1f643e3346fea04e8f5298fb345c4cab04d2a316",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_final_close_review_full.go",
+        "change": "added",
+        "before": null,
+        "after": "7e33d17eacd3aacce70154a4114034027e2c7440",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_session_full.go",
+        "change": "added",
+        "before": null,
+        "after": "8962cecbbb58369258035bf2d1ecf2506b513f3b",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_session_runner_full.go",
+        "change": "added",
+        "before": null,
+        "after": "2ae0e5439b8c666c1c15a089e6a2ce11279cac6c",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_strategy_preview_full.go",
+        "change": "added",
+        "before": null,
+        "after": "b9c3dacdcc26cf47c304f91523358fd118d914fb",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_valuation_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "79fc1fe71699087c636c5221099925d72b8fb8cb",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/paper_valuation_full.go",
+        "change": "added",
+        "before": null,
+        "after": "00054f6f43245684432ff8fc36b9f259dfee4fcd",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/pine_guide_only_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "aa85ffbca1866b213b63d8c59f7558780b0a76a0",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/pine_hline_transport_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "65b1c3bd0e4f55b7f2fe612a192df44daa3471bf",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/pine_input_settings_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "dd189fa3a8c8006447442220a6a0f3215f9ecd46",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/pine_input_settings_full.go",
+        "change": "added",
+        "before": null,
+        "after": "af7e0741d2683e999fd683316df626e8a7c94e42",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/pine_label_response_affinity_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "3688451396f0d95c72dac78f81b5eef82fe91016",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/pine_library_compat_full.go",
+        "change": "modified",
+        "before": "dc57252f3ac682f9b2ebd489ccf2934dbe0cc868",
+        "after": "5c3ed2f40c11136f6f7672a9a89f95807b06eaeb",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/pine_shape_transport_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "a83b770c7faff21587a0ad4a9f52b4c446aee899",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_advanced_public_candles_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "0e561e42929f839c386b6f716939128e0b7acbc6",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_advanced_public_candles_full.go",
+        "change": "added",
+        "before": null,
+        "after": "72f79d8c117ae752fb829490502e6a4a19e16344",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_coinbase_market_rows_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "34f3f2f85ad12d9e147beb74c3fd45589db79349",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_coinbase_market_rows_full.go",
+        "change": "added",
+        "before": null,
+        "after": "06f45bf0b900185772cc61cb4d92f8f401641221",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_durable_paper_session_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "aec19828fc8d2b58f5c6262a9fb2d9444de7b5dc",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_market_security_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "15f984e0dac548fda5d1da6e37c3f5a149ca60a9",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_native_pine_donor_bridge_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "ff25f1af9af7edc16200095738222568cd45e414",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_operator_capabilities_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "2959bec94b22aff6eba1f3f98bc37e49c090148f",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_paper_session_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "4593140da4ec754134a760f78cc9d69c4dbbb721",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_paper_strategy_preview_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "616461c90651ff31752dd2daba3c989ca24dca76",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_pine_shared_interpreter_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "3db885ad9694b721603d2249703c68259378f4c1",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_portable_custody_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "cc8f5f580c0e571faea842522044994205c71a6a",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_portable_paper_cold_archive_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "cf21c02521874db20b2812be0b5c8d28b221574c",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_portable_paper_owner_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "fc1df630622989ed6a3329fdcee7a3e8ddeaf684",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_portable_paper_owner_full.go",
+        "change": "added",
+        "before": null,
+        "after": "54edb36d22da104ef247c528ace4669387d9f720",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_strategy_save_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "102fcf328352c90a021deaebbb9997135ec3e01d",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb2_verified_candles_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "0e6429d14eae78df93f03050df5c1db31b62eb01",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_pine_http_ingress_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "241edf5370b196a4d5e2c5c3dea2b260ffa2f22c",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_pine_overlay_ingress_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "2f119ce5008d69074928c6ee624cc56152032422",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_w32b_editor_compile_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "b1b5ad33031d0fbbcb4a5186d6ac9d37ef96b9e9",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_w32c_overlay_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "6709219baaed4910747914c2adaebca89b701dd3",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_w33a_operator_paper_state_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "7181bf408b6b5e2000c2fd02fe44c0279474b2d5",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_wails_paper_lifecycle_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "870b7b8c7574acadb6af84c9590381af7276b9fe",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_wails_portable_owner_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "440398b141d316cdfb568c6b0de23a5a9dba87b3",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_wails_portable_owner_full.go",
+        "change": "added",
+        "before": null,
+        "after": "b2764b0add221a620d85de816516f08a2511d753",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_workspace_http_ingress_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "506e96fb9ccfb46424ed828f4dc754659eaa9d8c",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/strategy_save_full.go",
+        "change": "added",
+        "before": null,
+        "after": "a29410ce5697dfc8afea0b4c2e7375cc439c42ac",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/verified_candles_full.go",
+        "change": "added",
+        "before": null,
+        "after": "ca50d703c7e68fdda5bb105ca157f48af5532400",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w17c5_restored_supported_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "cc059636edd317f7219e62ef28057d852fd29764",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w17d0_stable_origin_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "78427b8dedc2683939cc89dad91b73d14de1bd83",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w17d0_stable_origin_full.go",
+        "change": "added",
+        "before": null,
+        "after": "c15a405ff9fedee28baca9ed5e0b8cbfbb5838f5",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w18_candidate_origin_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "dd8678882a5eccf650d1bf362ba92823b6730542",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w18_candidate_origin_full.go",
+        "change": "added",
+        "before": null,
+        "after": "960fb080922ebdd1db7722bda6db21a55d427e60",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w19_unsupported_pine_order_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "edbbd83707f9c72786ad154fd5eb8a90f306d5d1",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w32e_webview_fixture_full_windows_test.go",
+        "change": "added",
+        "before": null,
+        "after": "7256dbe0adcebd95f0cfe41c5789dc25ae54d4b6",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w32e_webview_fixture_full_windows.go",
+        "change": "added",
+        "before": null,
+        "after": "0ccd016281aa722d7f96550304a7aacdec115d80",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w33c_p3_native_close_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "1c510fb63e96d0681c34671b2f9ecce642f72890",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w33c_p4_native_close_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "bb4831ae10844ff9982b27312187290b4847d963",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/w80_compile_performance_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "27f9892c6961e4d64feac418f53b69074d5267a5",
+        "mode": "100644"
+      },
+      {
+        "path": "config.json",
+        "change": "modified",
+        "before": "e4c7612f2c5f9684f34f0f7a1c50345db06bc69c",
+        "after": "00f336d7f6d6eba8f50bcc10ac0f9f038205ff03",
+        "mode": "100644"
+      },
+      {
+        "path": "docs/rebuild/RB1_SINGLE_TRACK_CONTRACT.md",
+        "change": "added",
+        "before": null,
+        "after": "238c70a782c4b5042bc76225e78e380941304522",
+        "mode": "100644"
+      },
+      {
+        "path": "docs/rebuild/RB2_PRODUCT_COMPLETION_AND_COMPETITIVE_ACCEPTANCE.md",
+        "change": "added",
+        "before": null,
+        "after": "41c6ce0502d8354271d167277416f52105061021",
+        "mode": "100644"
+      },
+      {
+        "path": "docs/rebuild/RB3_REGRESSION_RECONCILIATION.md",
+        "change": "added",
+        "before": null,
+        "after": "45062d7a01dcc388fb35058819ff4a519f253d2f",
+        "mode": "100644"
+      },
+      {
+        "path": "docs/rebuild/RB3_WAILS_CODEX_WEB_OWNER_DECISION_20261024.md",
+        "change": "added",
+        "before": null,
+        "after": "76580668d920d0c7507f31ea264d53f088288fd9",
+        "mode": "100644"
+      },
+      {
+        "path": "go.mod",
+        "change": "modified",
+        "before": "4edcb1945291b65726a7bb234ba15d00cb711b44",
+        "after": "58abae485b600e0d8b1c066c3d2a533cdbc717bc",
+        "mode": "100644"
+      },
+      {
+        "path": "go.sum",
+        "change": "modified",
+        "before": "69585a34b570b18b077a232985e0bd116adaecd3",
+        "after": "8c1d9a56bc2b0762ad15c3cdb64995dfacfe1e16",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/fill_accounting_test.go",
+        "change": "added",
+        "before": null,
+        "after": "1095ccd6b91756e8a296fe2bda1f7a37b6ec787a",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/fill_accounting.go",
+        "change": "added",
+        "before": null,
+        "after": "8b2ea06ca92f8132fb447385f7bc6e4e9b662b54",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/fill_observations_test.go",
+        "change": "added",
+        "before": null,
+        "after": "5bbc5e4a84c7023a3c0753483091e8fb74b025c9",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/fill_observations.go",
+        "change": "added",
+        "before": null,
+        "after": "6be8cc7933d3934750bea72997dc6f3caed999f7",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/journal_test.go",
+        "change": "added",
+        "before": null,
+        "after": "de676844241a5c5595258331c5f6dd3ed8368070",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/journal.go",
+        "change": "added",
+        "before": null,
+        "after": "87f10d787d0339182d875df7a8a7f14418e9e499",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/local_observation_test.go",
+        "change": "added",
+        "before": null,
+        "after": "1f9b89c1fef1e9442685ecec34a8a0a0c2b7d872",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/local_observation.go",
+        "change": "added",
+        "before": null,
+        "after": "f6ee8a518d9336652d5d5ebea074426dbdf0710e",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/local_reservations_test.go",
+        "change": "added",
+        "before": null,
+        "after": "3ea37be760733e87f8de12e8975c09925c776f32",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerintent/local_reservations.go",
+        "change": "added",
+        "before": null,
+        "after": "b0ec889c4fbc8b40c61d59b4f4daf05ff19ced2a",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerprecision/evidence_test.go",
+        "change": "added",
+        "before": null,
+        "after": "323f8e3eb81eeeac6f76625f34aa8e3da780cf3b",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/brokerprecision/evidence.go",
+        "change": "added",
+        "before": null,
+        "after": "359b3ec68b2e9f29c5a5bbfbc303de76a739639a",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/durable_upgrade.go",
+        "change": "modified",
+        "before": "0b5d77438af932cee56082aab320ef8d1378d0b5",
+        "after": "02f5f1667832561c862d2d090f6190abc3c958ae",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/installed_reconcile_receipt_test.go",
+        "change": "added",
+        "before": null,
+        "after": "b5cc2ab395548538c3fd12fb3fb7bf7b959a8e3a",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/installed_reconcile_receipt.go",
+        "change": "added",
+        "before": null,
+        "after": "c0aeab1ac48d1983adde953b7d5931a6f9202b04",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/installed_reconcile_shadow_test.go",
+        "change": "added",
+        "before": null,
+        "after": "3b15e03d54171ffc901206052b40005cf0a0b2c9",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/installed_reconcile_shadow.go",
+        "change": "added",
+        "before": null,
+        "after": "2fd4468e919a8cd3b7e717dac30d75e3ba22852b",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/installed_transfer_shadow_test.go",
+        "change": "added",
+        "before": null,
+        "after": "459a0389c11c8ee081828bcf3d9edf44a4d1a3f5",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/installed_transfer_shadow.go",
+        "change": "added",
+        "before": null,
+        "after": "a59a6afedab822b1890d7a68820002395e398fca",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17b_synthetic_legacy_migration_test.go",
+        "change": "added",
+        "before": null,
+        "after": "7475a59b4a3b215fdb9b334a33b2b3c4bda1d1b6",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17c_complete_data_digest_test.go",
+        "change": "added",
+        "before": null,
+        "after": "a42a5a45526fe4cc776fa46f86f25282bfc0367c",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17c_complete_data_digest.go",
+        "change": "added",
+        "before": null,
+        "after": "44c9a0cca76ea604832d9f7e8815397d6b6cddee",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17c2_historical_coverage.go",
+        "change": "added",
+        "before": null,
+        "after": "beca065d34e151a6d6351548d1a1fb066623ea7f",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17c2_install_coverage_test.go",
+        "change": "added",
+        "before": null,
+        "after": "2ba7e2caf74698008396ac5d178225d5d70a0607",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17c3_synthetic_escrow_trial_test.go",
+        "change": "added",
+        "before": null,
+        "after": "225a590361025686611c4f0fa728340e4b7555be",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17c3_synthetic_escrow_trial.go",
+        "change": "added",
+        "before": null,
+        "after": "f15f4a6c09218890d7c95d5dd78f05766188eb45",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17c4_inactive_historical_test.go",
+        "change": "added",
+        "before": null,
+        "after": "19d88ceb1f9800e40eaa0d1796af8ecb37b50c89",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17c4_inactive_historical.go",
+        "change": "added",
+        "before": null,
+        "after": "c673a4255275bff3f15096af13f0263fc6764135",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/durableupgrade/w17c5_supported_app_restore.go",
+        "change": "added",
+        "before": null,
+        "after": "68621e6605763dee64a87c9c4a2d723a453e0921",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/atomicfile.go",
+        "change": "added",
+        "before": null,
+        "after": "ef3b0c578b2f22b046ea8514909a5cf1f1ab88bb",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/audit_original.go",
+        "change": "added",
+        "before": null,
+        "after": "0cc6ee2377a2c6c08089f2dec2e64b732b1184ff",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/brokerless_boundary.go",
+        "change": "added",
+        "before": null,
+        "after": "501ba71bc534449701d417a6ba0814a30aee6215",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/product_currency_original.go",
+        "change": "added",
+        "before": null,
+        "after": "5bff127625c1cb055a84404b1c47fc3aac8dc85b",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/risk_policy_original.go",
+        "change": "added",
+        "before": null,
+        "after": "83ca9b333fcdb18332ee0ad605e222aa81aba35e",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/risk_port_test.go",
+        "change": "added",
+        "before": null,
+        "after": "a8a20574081f006ad6c1dd05ff160d59988ab9c0",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/risk_retry_amount_test.go",
+        "change": "added",
+        "before": null,
+        "after": "2b4254dd741a940ca3b3f01c2b1122b3c3afb551",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/risk.go",
+        "change": "added",
+        "before": null,
+        "after": "eeec0935ebdeb397053e16a6bdfcc8f78bfb7b87",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/tradeguard_continuity_runtime.go",
+        "change": "added",
+        "before": null,
+        "after": "66e3eac72c2e24b52250d98ce7ab00e2ddbcd23b",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/tradeguard_continuity.go",
+        "change": "added",
+        "before": null,
+        "after": "3ede2b01361c25c835a1bd57c9319134de7f8e48",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/originaltradeguard/validate-symbol.go",
+        "change": "added",
+        "before": null,
+        "after": "df3e24cb0bd1b461e1ebbc78c24861a4c8693b53",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperapp/account_review_test.go",
+        "change": "added",
+        "before": null,
+        "after": "3429e0b3f16f71a7424edd0fd3e072950d88c871",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperapp/account_review.go",
+        "change": "added",
+        "before": null,
+        "after": "30a2b6eb31db73c108d7027ef85730960b461283",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/checkpoint_order_test.go",
+        "change": "added",
+        "before": null,
+        "after": "5132f26347dadd3ea14a3abbfaf9348d2bf49623",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/checkpoint_order.go",
+        "change": "added",
+        "before": null,
+        "after": "c9acd6789de5184e22cd1462953f748ccef12018",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/custody_test.go",
+        "change": "added",
+        "before": null,
+        "after": "20754eccca89f94982e4baa34adf3086aaa9053f",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/custody.go",
+        "change": "added",
+        "before": null,
+        "after": "7aa3f3b49cbc82adfe06f4b985a158e321a73ccf",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/original_risk_proof_test.go",
+        "change": "added",
+        "before": null,
+        "after": "7c8885d26ef1da9a10af380dc7e635028da7d567",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/original_risk_proof.go",
+        "change": "added",
+        "before": null,
+        "after": "df042ab0e61eb523025341ca0ee5738fc4eb5a31",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/orphan_lease_observation_test.go",
+        "change": "added",
+        "before": null,
+        "after": "4c71f73737dddc0aa2424441860816e135d3fd17",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/orphan_lease_observation.go",
+        "change": "added",
+        "before": null,
+        "after": "6d8296668992599b36049d71c40c2953f552e39c",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/recovery_comparison.go",
+        "change": "added",
+        "before": null,
+        "after": "460fd76d3468e18e5474b8c77c19cf3061ed934d",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/reviewed_stage_test.go",
+        "change": "added",
+        "before": null,
+        "after": "061ace28c7ae4deb5409454ce46013e90fd5dc2d",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/reviewed_stage.go",
+        "change": "added",
+        "before": null,
+        "after": "0cba8370ed3280aa2cac6fd114b452932911d62f",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/utc_pnl_baseline_test.go",
+        "change": "added",
+        "before": null,
+        "after": "cbf1391fef153799fac378825a9484df3032783e",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/verify_review.go",
+        "change": "added",
+        "before": null,
+        "after": "b86bf9e2db12c0bf2bf8abfa202440fcf7a38292",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/w28h_explicit_history_test.go",
+        "change": "added",
+        "before": null,
+        "after": "f2805c9971cfd1320d3242e6a299ddbe5df0c86c",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/w28h_explicit_history.go",
+        "change": "added",
+        "before": null,
+        "after": "58180da33d2f455b74a9069f6878b113af1abbd8",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/w33b_refused_owner_test.go",
+        "change": "added",
+        "before": null,
+        "after": "53e8f916dab138826503c2b968ee6d85aa4c93ce",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/final_close_review.go",
+        "change": "added",
+        "before": null,
+        "after": "2731b782d0887ac9b8f81bcadd991c27180a5371",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/final_close_submit.go",
+        "change": "added",
+        "before": null,
+        "after": "dc581b6cdc705a9d989dbab7b41f765a23305353",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/next_entry_test.go",
+        "change": "added",
+        "before": null,
+        "after": "955b6b35db5aefc8564102aefebac73beca49371",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/next_entry.go",
+        "change": "added",
+        "before": null,
+        "after": "73e5cd21b006031ad8ee0ca4164afaee64bcb480",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/original_guard_adapter_test.go",
+        "change": "added",
+        "before": null,
+        "after": "0e5a29887e053d1276b69b1ac0d86e543e0bc8e8",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/original_guard_adapter.go",
+        "change": "added",
+        "before": null,
+        "after": "bc64cc6304f7209e93e2b29f8988c62845f9eea6",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/owner_test.go",
+        "change": "added",
+        "before": null,
+        "after": "b6d15c5042b7e661788ba21aab5a42f6614c2fe6",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/owner.go",
+        "change": "added",
+        "before": null,
+        "after": "5ac2405daa3d380213176ec1d2d51d0777512442",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/utc_day_transition_test.go",
+        "change": "added",
+        "before": null,
+        "after": "9d88905e460f9f7b9b09188c23d095b3a9342269",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/valuation_test.go",
+        "change": "added",
+        "before": null,
+        "after": "220bffdabe1d5e4f7e84e6f1445de62fb8c2c3d9",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/valuation.go",
+        "change": "added",
+        "before": null,
+        "after": "f95fdcb85a1fa85396b5372f6b3835e70c888eaf",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/w33c_p10_fourth_sell_pending_test.go",
+        "change": "added",
+        "before": null,
+        "after": "5ceea61891231c8fd903385e76f9be1d00914b5e",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/w33c_p3_owner_review_test.go",
+        "change": "added",
+        "before": null,
+        "after": "c89d3c221c9d63606c60b152198cbe6542169449",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/w33c_p4_close_settlement_test.go",
+        "change": "added",
+        "before": null,
+        "after": "1fc6a08418028b44a9a171fa8bbe725c4e64db47",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperengine/w33c_sell_admission_refusal_test.go",
+        "change": "added",
+        "before": null,
+        "after": "40d7bf55915fc034f240b06da3e926e2f120db2b",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperexit/review_test.go",
+        "change": "added",
+        "before": null,
+        "after": "34b3e43a4e541d3443752db52d9ca0f5f6124033",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperexit/review.go",
+        "change": "added",
+        "before": null,
+        "after": "7163315e8d1fd2c30250b37a9543c83442c8ca0e",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperreconcile/reconcile_test.go",
+        "change": "modified",
+        "before": "b5692a8e706a8989181d2e4605f07aeaa2c98d56",
+        "after": "fb628e9c82ee606859f198fc9d14c6a5e70d2863",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperreconcile/reconcile.go",
+        "change": "modified",
+        "before": "fccbbc574dd4a308e9ea2a30dc8b9237af4abced",
+        "after": "c4822f9fa4548a2d7ffc7d6c6bb1775911926b28",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/paperreconcile/w33c_sell_exit_accounting_test.go",
+        "change": "added",
+        "before": null,
+        "after": "948781aef88e8364024368c27579e75e118509c3",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papertrading/exact_fill_review_test.go",
+        "change": "added",
+        "before": null,
+        "after": "d5faeb06fe19c1df8de85a5495cb01e725c2816f",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papertrading/exact_fill_review.go",
+        "change": "added",
+        "before": null,
+        "after": "1f5e862ee43a62462955fd50a29f6bee0fbf0c82",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papertrading/filled_amounts.go",
+        "change": "added",
+        "before": null,
+        "after": "2c46814fa2514e96cca95aa7e2f021b6532dcc8a",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papertrading/ledger.go",
+        "change": "modified",
+        "before": "d44341253e7d4b51d31b03cea26a77cbbb534f7b",
+        "after": "66527a1d9453b27f4bf55dc271a9cf9333eef5e6",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papertrading/valuation_test.go",
+        "change": "added",
+        "before": null,
+        "after": "e677838d2636261912cf386abffcb9f9ab082abd",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_account_variance_test.go",
+        "change": "added",
+        "before": null,
+        "after": "65a93b3e328c58d18f0a6c575f6c8295ecb5f113",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_account_variance.go",
+        "change": "added",
+        "before": null,
+        "after": "7376d25fa605c57724cc6bb2d0f29ac50e7a3ce0",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_auth_test.go",
+        "change": "added",
+        "before": null,
+        "after": "66e9a46684a67a1f7de097989c002c8621766c94",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_auth.go",
+        "change": "added",
+        "before": null,
+        "after": "0ce4fb6387e1749ab3e0604418c32c872652dad1",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_bounded_open_inventory_test.go",
+        "change": "added",
+        "before": null,
+        "after": "262b4bacb11d504d41e23c2cbbeeb2b704f0dac7",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_bounded_open_inventory.go",
+        "change": "added",
+        "before": null,
+        "after": "690c99b023f02b7d4039439e749e705368a2c3f6",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_cash_history_window_test.go",
+        "change": "added",
+        "before": null,
+        "after": "ef1aeaa8ecbed98ad21477048d55d318ad2cc70e",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_cash_history_window.go",
+        "change": "added",
+        "before": null,
+        "after": "b5630742cde6769d9d51c90b806def9545b29fb1",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_exposure_screen_test.go",
+        "change": "added",
+        "before": null,
+        "after": "4bbc2337ee1ade0a0c007fb4917bb24cf8a7a71f",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_exposure_screen.go",
+        "change": "added",
+        "before": null,
+        "after": "27dec8d8564062e672f7d0ae9032bce782d451ae",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_fill_accounting_test.go",
+        "change": "added",
+        "before": null,
+        "after": "48725f1027ac60b80e490c178216c1eab6a1ef54",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_fill_accounting.go",
+        "change": "added",
+        "before": null,
+        "after": "f5e5274962616266284497e2b6f0d5bf14eb6033",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_fill_custody_test.go",
+        "change": "added",
+        "before": null,
+        "after": "ab2f59f9e59dbb3a1286566937a0e9c2c6164b2d",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_fill_custody.go",
+        "change": "added",
+        "before": null,
+        "after": "661cf440c7d393f74d563aba5cd168d0815e20b0",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_fill_review_test.go",
+        "change": "added",
+        "before": null,
+        "after": "a4f9e549d8998d3bb618be3f372987a661f024e2",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_fill_review.go",
+        "change": "added",
+        "before": null,
+        "after": "3da24aabe785385d2c60a3024d0de9ece2f1975c",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_financial_gap_test.go",
+        "change": "added",
+        "before": null,
+        "after": "80bf53a8c6ef60687f5d9217295526676bf34ae7",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_financial_gap.go",
+        "change": "added",
+        "before": null,
+        "after": "f80c3c15172b83c1fed4207ee89ee540d78d20d1",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_four_read_evidence_test.go",
+        "change": "added",
+        "before": null,
+        "after": "729d866a59a0281982cbaef09ac87d03120fabb6",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_four_read_evidence.go",
+        "change": "added",
+        "before": null,
+        "after": "4f89f38efd85af3ab7e881629fa690f69f21b70f",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_funding_screen_test.go",
+        "change": "added",
+        "before": null,
+        "after": "d923f9bc80733b1ba0a853136924ad8d2facf529",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_funding_screen.go",
+        "change": "added",
+        "before": null,
+        "after": "8c8b974b733ce601be893f2532d532ee30727576",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_local_reservations_test.go",
+        "change": "added",
+        "before": null,
+        "after": "b9cf64f47b7f4ed2159a002d35d7dd81fee1fa7a",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_local_reservations.go",
+        "change": "added",
+        "before": null,
+        "after": "3e1549516106fb6cd6184e12d9ee19e6c3c3a2e5",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_once_test.go",
+        "change": "added",
+        "before": null,
+        "after": "284d599f4ac8045858fba94dc6d4ef2e3443da6c",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_once.go",
+        "change": "added",
+        "before": null,
+        "after": "fb243e5948e72a88269242d4f5f75c72cb5c6eea",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_open_inventory_test.go",
+        "change": "added",
+        "before": null,
+        "after": "4e8bc2cb45513be20cf5e5302ec916b78852e52e",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_open_inventory.go",
+        "change": "added",
+        "before": null,
+        "after": "427114d7c2207604411ae661245bd7e0647657f7",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_open_reconciliation_test.go",
+        "change": "added",
+        "before": null,
+        "after": "44a3070992499474ce8ceef969586a6ba8168f07",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_open_reconciliation.go",
+        "change": "added",
+        "before": null,
+        "after": "ba9f592213f8d614f8605acfaa4b1e1c9232256d",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_open_stability_test.go",
+        "change": "added",
+        "before": null,
+        "after": "9abeb5800e897b3626820c341af53843a381955b",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_open_stability.go",
+        "change": "added",
+        "before": null,
+        "after": "d404d13e2130ac0c3c393ccb393b59f745ccc5ac",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_open_terms_test.go",
+        "change": "added",
+        "before": null,
+        "after": "209396b3c5e9eb80e809f10354b1c4a4ec7bc8e3",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_open_terms.go",
+        "change": "added",
+        "before": null,
+        "after": "ae1a284aa58fd39c0df6f0ef196b33e46c833f5e",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_precision_test.go",
+        "change": "added",
+        "before": null,
+        "after": "515d2f0f3ba5a004b1e9e6ef43439febc0dbfd05",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_readiness_test.go",
+        "change": "added",
+        "before": null,
+        "after": "17f85c78f5f10551822dfaa98bd8d77661173761",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_readiness.go",
+        "change": "added",
+        "before": null,
+        "after": "b88f7f9617d1fcd974ab4c195d11225b36968405",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_cdp_owner_windows_test.go",
+        "change": "added",
+        "before": null,
+        "after": "c63a1dea72bba021c69c090a6da6f223956e7325",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_cdp_readonly_test.go",
+        "change": "added",
+        "before": null,
+        "after": "e4cfc737e8692348edf299c8e72ffcf675da48c5",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_cdp_readonly.go",
+        "change": "added",
+        "before": null,
+        "after": "dc704f52d0acb7b52f1f20366360eadd5577656e",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_collector_custody_test.go",
+        "change": "added",
+        "before": null,
+        "after": "27fa721a2cffba7303282a106645a23576cee29b",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_collector_custody.go",
+        "change": "added",
+        "before": null,
+        "after": "746fd2726f1dae1bbe0aa360f1a81fc540a7b7bd",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_history_candidate_owner_windows_test.go",
+        "change": "added",
+        "before": null,
+        "after": "374f1a7850ed163fa869b1026fbfd8ee1ec90198",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_history_candidate_readonly_test.go",
+        "change": "added",
+        "before": null,
+        "after": "d076785beabdd24b8a8f1d0ddb1007c3853e4b9d",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_history_candidate_readonly.go",
+        "change": "added",
+        "before": null,
+        "after": "aac4bdaf1862de1861021dc6ff3283eb09218142",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_history_pages_test.go",
+        "change": "added",
+        "before": null,
+        "after": "48cd71a569d971369bba34b5c9b56c328e46d3b1",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_history_pages.go",
+        "change": "added",
+        "before": null,
+        "after": "81b60e6d4a778400f131ac4c9cee231f64697892",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_oauth_readonly_collect_test.go",
+        "change": "added",
+        "before": null,
+        "after": "6751127a65505cdd4c5806ab7bc2e6c11e387759",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_oauth_readonly_collect.go",
+        "change": "added",
+        "before": null,
+        "after": "59ee84bef978faadb3164b7dfa2e4b2dfb4481f6",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_provider_tls_test.go",
+        "change": "added",
+        "before": null,
+        "after": "94b264feb3a2ef213b9b2932f4b565a61ee72df2",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_provider_tls.go",
+        "change": "added",
+        "before": null,
+        "after": "5bab5997c79ec9ebab1dafb0b146bf7affb3f6ed",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v2_v3_balance_protocol_owner_windows_test.go",
+        "change": "added",
+        "before": null,
+        "after": "31a41e76920ee5d30dfb3d21b45d97ae8547be21",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v3_balance_owner_windows_test.go",
+        "change": "added",
+        "before": null,
+        "after": "e336ebaaf08c723aa07a4415ece0e4e32c3a5a18",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v3_balance_readonly_test.go",
+        "change": "added",
+        "before": null,
+        "after": "3f61bb39fc8af3da410ad182622b4bf4e929f747",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v3_balance_readonly.go",
+        "change": "added",
+        "before": null,
+        "after": "0801a1f39893ce70e1967d59b1fe6c179a4895b1",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v3_inventory_readonly_test.go",
+        "change": "added",
+        "before": null,
+        "after": "da895a3b1d3dfbdfeddb560971fae17ced47f75e",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v3_inventory_readonly.go",
+        "change": "added",
+        "before": null,
+        "after": "3f9f793b8836b103c518ab726a10cbca0908146d",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_v3_owner_first_use_windows_test.go",
+        "change": "added",
+        "before": null,
+        "after": "6dfd158abc15231db9fa472eb952fcb6e8d6bd07",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_wallet_portfolio_link_review_test.go",
+        "change": "added",
+        "before": null,
+        "after": "edd96a2b366d5372da5be9bac1feb684a3e3ef0c",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_wallet_portfolio_link_review.go",
+        "change": "added",
+        "before": null,
+        "after": "09efece7bcda9cbd867f9ac97a061139374ada53",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_wire_test.go",
+        "change": "added",
+        "before": null,
+        "after": "d0ee149fd2ab47a80695fda0c8f08682b862042d",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_order_wire.go",
+        "change": "added",
+        "before": null,
+        "after": "19abc0369f0dd900ab617d0e0beadad68cbac38b",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/advanced_orders.go",
+        "change": "modified",
+        "before": "63d086a8524b3b845f9c75990e47b0ac9eda506e",
+        "after": "fd7e4737442b5452c3c52722b257a9c8347a1e38",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/apphost/brave_host_test.go",
+        "change": "added",
+        "before": null,
+        "after": "164d27b479c3812e3a8ab77fe3e11f261edd7779",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/apphost/brave_host.go",
+        "change": "added",
+        "before": null,
+        "after": "ecee15637206b4dcb44e77d39c7fbd2e1dd5c491",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/apphost/brave_registry_other.go",
+        "change": "added",
+        "before": null,
+        "after": "7a96230a0edb9dd9bbad12f703b62734f8c7b8fe",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/apphost/brave_registry_windows.go",
+        "change": "added",
+        "before": null,
+        "after": "434e6e37ae27e921abecc020da86acfdc787dac8",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/catalog_rsi_divergence_test.go",
+        "change": "added",
+        "before": null,
+        "after": "af6c70d33119782279f9a4cac6f43d4246145d79",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/catalog_supertrend_inputs_test.go",
+        "change": "added",
+        "before": null,
+        "after": "59a65d316e48034a6e03f18fb9b03e5a0c5932b1",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/catalog_supertrend_numeric_test.go",
+        "change": "added",
+        "before": null,
+        "after": "0aa0b85c6d57c5c72eeaddeca6e7386bdba8b5f9",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/cdp_config_env_test.go",
+        "change": "added",
+        "before": null,
+        "after": "e064f9c31ee7e3653f0a8db4bd8acb9947cb7838",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/cdp_config_sanitized_test.go",
+        "change": "added",
+        "before": null,
+        "after": "c948ee5a9f440f6b6852edd33d92f6a7d340460f",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/cdp_config.go",
+        "change": "modified",
+        "before": "e8a402b71a0389a2c79797153f3ffe519c68f289",
+        "after": "c268fc451bc9644a15b9ae758b835b18659098e9",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18_current_contract_test.go",
+        "change": "added",
+        "before": null,
+        "after": "db9d025d9617aff4deddaa9cf60f8087b74e53b8",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go",
+        "change": "modified",
+        "before": "aea2367405084ee9b56485290033a292e92a73e3",
+        "after": "7a9f650ca950db678d89d608c3b6cb30851a18e1",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18a_closeout_workspace_http_surface_gate_test.go",
+        "change": "modified",
+        "before": "be0bb7757534760f7119a75429c45860cd810ff9",
+        "after": "e8c701b9eeba825a21594bfcad505ad37426f85d",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18a_t05_workspace_http_request_response_contract_test.go",
+        "change": "modified",
+        "before": "ff900bd8950c883d88d5c31eec0a811f529057e2",
+        "after": "7b81982a45f54f83448dc4dbf2cec30f57268644",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go",
+        "change": "modified",
+        "before": "d0b3e5ead49629bab5cece450bfb2491b6345769",
+        "after": "8b8ae807318a26c5ceccd832402ddf72968b308b",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18c_closeout_account_market_data_http_route_acceptance_gate_test.go",
+        "change": "modified",
+        "before": "9b875cafd5134e41fe2b8ea995797636d14c0096",
+        "after": "b51785934fa1fdde6876d7671f6a53f95ae6e0c4",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18c_closeout_account_market_data_http_surface_gate_test.go",
+        "change": "modified",
+        "before": "4d2d1721401746466270c82a8c786d865a18c98f",
+        "after": "0bee8a79b522522fc6b1a152de2bf659d056e944",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18c_t05_account_market_data_http_request_response_contract_test.go",
+        "change": "modified",
+        "before": "f2a33da46e6da49625839af17e68404455a612eb",
+        "after": "d9afe2662c4a620b67409bd5ca873f85b6ce848d",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18c_t06_account_market_data_http_deterministic_surface_contract_test.go",
+        "change": "modified",
+        "before": "f4ef4cc5ba0c1ae3fb5b51011f2004bc7571fb8b",
+        "after": "13bc3b087335ee6b4d17a97997086c6f34fadb67",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18d_closeout_strategy_execution_http_route_acceptance_gate_test.go",
+        "change": "modified",
+        "before": "5be9148efba93ec823e4452ccf10259c854f81ff",
+        "after": "b5e7248696b0b5f7d7171d103fae83275494fcb0",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18d_closeout_strategy_execution_http_surface_gate_test.go",
+        "change": "modified",
+        "before": "718f46a1badf3c87d459f3a7d6e0ee8b78d95bf1",
+        "after": "57e9dd1bf9e86794e8727f2dbe0fc0cad93d6364",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18d_t05_strategy_execution_http_request_response_contract_test.go",
+        "change": "modified",
+        "before": "a178ca84a5980767badc7fcc6bf025d882f45440",
+        "after": "c74f5bb876bf1136e262e50eac6fd3aad74f7979",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18d_t06_strategy_execution_http_deterministic_surface_contract_test.go",
+        "change": "modified",
+        "before": "d78908c22b48d22593069e21f89d258e1a915e54",
+        "after": "10d8721ab0b971695b351fc49d884f74bf95ba56",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p19a_closeout_electron_desktop_surface_gate_test.go",
+        "change": "modified",
+        "before": "85c8f20175ac7b22fe1e84f5e105270f63c8d7fc",
+        "after": "1c0b1184522f0eb81afaf81ab65c1bb4aa2b4277",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p19a_t06_electron_desktop_deterministic_runtime_surface_test.go",
+        "change": "modified",
+        "before": "a22088feb8ec2cb0dd9c7b0a159f2b7aaea7adec",
+        "after": "ae05ce2c32fd9ca7f10f975a359dea39f1fa6582",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p20a_closeout_desktop_packaging_route_acceptance_gate_test.go",
+        "change": "modified",
+        "before": "597aa474cc5a567df0e9e64d7a21508625137eb0",
+        "after": "3eb6ee906afa2cb0a6fde7351f89415ae5158d0c",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p20a_closeout_desktop_packaging_surface_gate_test.go",
+        "change": "modified",
+        "before": "01c41ff4733eea149c6ef5092e8ff200eab3411f",
+        "after": "2ffdc6023a165603e7153acfde0217a0983d4ab4",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p20a_t04_desktop_packaging_entry_contract_test.go",
+        "change": "modified",
+        "before": "cc3afe13fd9bd9287838e1fd8dd0ecdc602141b7",
+        "after": "812318ec6e53377b9ab6802ce8d3524356348672",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p20a_t06_desktop_packaging_deterministic_runtime_surface_test.go",
+        "change": "modified",
+        "before": "56a00f9f9f8083020f580878ea6e40006ba84730",
+        "after": "b33d6450bcdc6e3feb9186bd4afea890570cff2d",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p21a_closeout_desktop_release_update_surface_gate_test.go",
+        "change": "modified",
+        "before": "49114db6d8c45eb15959f8dacd3602451cf04f4c",
+        "after": "d911058dfe6d9dfbf597d8522674392d03262363",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p21a_t04_desktop_release_update_entry_contract_test.go",
+        "change": "modified",
+        "before": "7b8a0903fbac66a208df7ad6a615120a86f34055",
+        "after": "2fa30c84f0d10c73648cd1fa0b8d14be26b25715",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p21a_t06_desktop_release_update_deterministic_surface_test.go",
+        "change": "modified",
+        "before": "abc378e8c5d388b07de1ae0266090c5b75554fb8",
+        "after": "beb8f70e368fa4e8fbfef9bd1c6870732d94e305",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_compile_v2.go",
+        "change": "modified",
+        "before": "baffc6ce970763326adb8797d21259207c6708fb",
+        "after": "4c2965db174e7c3f35e8ec208084176d4bc82016",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_compiler.go",
+        "change": "modified",
+        "before": "6977f12c992971527a6784185e7259a29556ba74",
+        "after": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_finalized_close.go",
+        "change": "added",
+        "before": null,
+        "after": "b87ab96d4f455ab23911d4d5003432ab28c90508",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_input_length_binding_test.go",
+        "change": "added",
+        "before": null,
+        "after": "d2158cbb4679b3a39d06e2178198dbef90234c7b",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_input_overrides_v2_test.go",
+        "change": "added",
+        "before": null,
+        "after": "f8db6797a5c30b29f52cdfdb4dac1cf42a1f3a22",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_input_overrides_v2.go",
+        "change": "added",
+        "before": null,
+        "after": "19dbdbd4bf45c337803a0fd2abea8c82321b7d6c",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_overlay_model_v2.go",
+        "change": "modified",
+        "before": "f94e5a7cf1d830d2a884d0704b9cd3e77ee8624e",
+        "after": "75418d0de81dd3998867c005b0476b311c5a9a5a",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_overlay_model.go",
+        "change": "modified",
+        "before": "a4997024836c8993d906d6352b9c925a3c9fdc59",
+        "after": "bfa81fbdd3c9083fcea6d08b87032bd3b09396b1",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_parser.go",
+        "change": "modified",
+        "before": "f8d5a2792b591e732e56238012462998d0728ab9",
+        "after": "71c9e13054b54217073631d0ea6ef60c98ed9481",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_plotting_advanced.go",
+        "change": "modified",
+        "before": "a040ffb7f045378124b027d0ffd5b054b3d9bce5",
+        "after": "f5b52befb522a260289af0177dfd0c9eda1d4d6b",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/pine_strategy.go",
+        "change": "modified",
+        "before": "84bb70edbc74c90fa56ffdc0916e92cde89f4650",
+        "after": "1d72cd6eaefb843f2c83e0b782922487e1dacd15",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/r25c12_governance_wire_compat_test.go",
+        "change": "modified",
+        "before": "8813b0db1c5591db5b136dc32b568d8773cbc4e6",
+        "after": "755d10f19357b805b57c1af734222df039c64abd",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/r25c12_mixed_phase9_wire_compat_test.go",
+        "change": "modified",
+        "before": "00d8cabd7077f84e8b9d39d36cd5f8eb9b658206",
+        "after": "9c7b6e1b04d9abe7f01267f92e59eb76caabb080",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/r25c12_parent_fixture_line_endings_test.go",
+        "change": "added",
+        "before": null,
+        "after": "b2934adfc097a368b31f38f2b2ccbad3097c024a",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/r25c12_parent_fixture_test.go",
+        "change": "added",
+        "before": null,
+        "after": "1190f06e15fd132ed5c5dafb29dc3874348236a8",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/rb3_w32b_pine_header_test.go",
+        "change": "added",
+        "before": null,
+        "after": "a9d8b5c1304b811bfbf41cee3cc49eafb3d278f6",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/testdata/r25c12/parent-wire.json",
+        "change": "added",
+        "before": null,
+        "after": "d0cd6182c3b6eaa0cb986088e48c3c6041830dba",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/w33c_p3_finalized_close_test.go",
+        "change": "added",
+        "before": null,
+        "after": "ffd87ef4bb166bb9a78c240e6f2275014c5b4264",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/w33c_pine_exit_provenance_test.go",
+        "change": "added",
+        "before": null,
+        "after": "8ec8176e5906b274caab57f7b6ef42e4323022fd",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/w89_catalog_math_test.go",
+        "change": "added",
+        "before": null,
+        "after": "7839b9cfa616c2dfd7036266056ddb0439763d4d",
+        "mode": "100644"
+      },
+      {
+        "path": "scripts/audit_shipped_dependencies.cjs",
+        "change": "added",
+        "before": null,
+        "after": "cf93fbe419f0fd04d1525f16a0d15ae9e903eeb0",
+        "mode": "100644"
+      },
+      {
+        "path": "scripts/capture_r25c12_parent_evidence.py",
+        "change": "added",
+        "before": null,
+        "after": "50ff184b99d384c4cdccb804efb9b399e04f9c6b",
+        "mode": "100644"
+      },
+      {
+        "path": "scripts/probe_brave_chart.cjs",
+        "change": "added",
+        "before": null,
+        "after": "a809c084c11aed265fdb7e62859e6443fe2dc2dd",
+        "mode": "100644"
+      },
+      {
+        "path": "scripts/stage_offline_vendor.cjs",
+        "change": "modified",
+        "before": "c982303a4e454d07f338ee429efb45270b039685",
+        "after": "88fb2b5067c8ca8f05ab8f7ae18a49693776c4ee",
+        "mode": "100644"
+      },
+      {
+        "path": "scripts/vendor-licenses/fancy-canvas-2.1.0.LICENSE",
+        "change": "added",
+        "before": null,
+        "after": "b12ed6dceb5310a7deb6b32bdf85c638458e52bd",
+        "mode": "100644"
+      },
+      {
+        "path": "scripts/wails_w01_source_provenance.cjs",
+        "change": "added",
+        "before": null,
+        "after": "dc024ed05ce3b1b68150b000e5c1a791da17913d",
+        "mode": "100644"
+      },
+      {
+        "path": "static/ktrade_preferences_transfer.js",
+        "change": "added",
+        "before": null,
+        "after": "b340303bc4f54a73e84222cce9c04a8e5913d8d4",
+        "mode": "100644"
+      },
+      {
+        "path": "static/paper_account_review.js",
+        "change": "added",
+        "before": null,
+        "after": "b1bb43318aebccf5c690515d640529cbdffb96b5",
+        "mode": "100644"
+      },
+      {
+        "path": "static/paper_session_controls.js",
+        "change": "added",
+        "before": null,
+        "after": "cbd7b0144fe64a441076074d4e8832b29df54ff1",
+        "mode": "100644"
+      },
+      {
+        "path": "static/paper_strategy_review.js",
+        "change": "added",
+        "before": null,
+        "after": "e3006a58eb0cee677974dd3c39234ccacd739982",
+        "mode": "100644"
+      },
+      {
+        "path": "static/pine_input_settings.js",
+        "change": "added",
+        "before": null,
+        "after": "c7e2d0653575e8b554bbb0333a9411f7c99de3c9",
+        "mode": "100644"
+      },
+      {
+        "path": "static/pine_library_compat.js",
+        "change": "modified",
+        "before": "29dde6ce0b58109c8512ed50dab7af391a7f3707",
+        "after": "0212cd4a65780912ecb9f4377563ada200e8120a",
+        "mode": "100644"
+      },
+      {
+        "path": "static/pine_pane_layout.js",
+        "change": "added",
+        "before": null,
+        "after": "d5ad804f2a949661a4936591793b3f491242eeaf",
+        "mode": "100644"
+      },
+      {
+        "path": "static/pine_plot_renderer.js",
+        "change": "added",
+        "before": null,
+        "after": "202dda592e6dc8826530562548a5f21d6f66bbf4",
+        "mode": "100644"
+      },
+      {
+        "path": "static/trading.html",
+        "change": "modified",
+        "before": "2984db2738c0e4a32f248fb56f6ff06cd4af6b50",
+        "after": "a3fac0adb449394be1f037bd8e0cd0724dcf4dca",
+        "mode": "100644"
+      },
+      {
+        "path": "static/w17d1_chart_favorites.js",
+        "change": "added",
+        "before": null,
+        "after": "b95304a9500dd451a0c8069548cd0ed4d511b944",
+        "mode": "100644"
+      },
+      {
+        "path": "static/w17d4_chart_timeframe.js",
+        "change": "added",
+        "before": null,
+        "after": "59b3fc0a1631641dbc89974a30d7e5d52e50a0d8",
+        "mode": "100644"
+      },
+      {
+        "path": "static/w17d5_pane_layout.js",
+        "change": "added",
+        "before": null,
+        "after": "64960610e4e15481022d3bfb4858ddcb8cb7cdc4",
+        "mode": "100644"
+      },
+      {
+        "path": "static/w17d6_horizontal_lines.js",
+        "change": "added",
+        "before": null,
+        "after": "49994d87fd8e41c5094b67d03575b67bcf43781f",
+        "mode": "100644"
+      },
+      {
+        "path": "static/w17d7_trendlines.js",
+        "change": "added",
+        "before": null,
+        "after": "6327b1340c86a8a5f290eaf8e013d05ac6657cb2",
+        "mode": "100644"
+      },
+      {
+        "path": "static/w28i_chart_probe.js",
+        "change": "added",
+        "before": null,
+        "after": "71839be401b24878cbd94c3d105ccf1a366b4a50",
+        "mode": "100644"
+      },
+      {
+        "path": "static/w28k_real_chart_transfer.js",
+        "change": "added",
+        "before": null,
+        "after": "3e5b644841414aa70c350f31e29f4e7859f58511",
+        "mode": "100644"
+      },
+      {
+        "path": "templates/chart.tmpl",
+        "change": "modified",
+        "before": "49c314c5c6badd6fbbbd65d202d66e2ab7503cea",
+        "after": "04092fd2e9f201620d62d9d86b0443d3deeff199",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/donor-shadow/rb2_pine_authentic_paper_test.go",
+        "change": "added",
+        "before": null,
+        "after": "04cb7be49c7c8cfaf7b503185398a80d791ad2ef",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/fixtures/w28f-original-paper-reader/main.go",
+        "change": "added",
+        "before": null,
+        "after": "d1a2fdb7c687c925d5c4ec8752510cba2292a411",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/historical_pine_editor_chart_wiring.test.cjs",
+        "change": "modified",
+        "before": "be27ecbe6f889a2351b0ebc5fdf07919824be48a",
+        "after": "92724288d40b404dc1d9d13cd55564c4937556da",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/legacy_desktop_launch_contract.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "19c62ee6353e477b84b4903a521ca4ce4a9fb110",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/paper_tradeguard_reconciliation.test.cjs",
+        "change": "modified",
+        "before": "61e93727eb4a98e48b17f73152c14a49694866b4",
+        "after": "e5b3c5d1ebacabebf02a5005aa2297773fc66a30",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/pine_library_compat_browser.test.cjs",
+        "change": "modified",
+        "before": "39a433bbddac59f83c989275c487b80f7e83f15a",
+        "after": "b60460f5f71ff3e8e9c66fa2f1ef687eebd55f0c",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_pine_apply_viewport.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "4276c13445f76ad0359d2c1f7cfccfea37ddf076",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_pine_hline_transport.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "646733230c8e9389f4ac2b4a81ee66295e82f61d",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_pine_input_settings.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "1f2dfab965697431e4603da545186d21d5b43f13",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_pine_label_response_affinity.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "9bec02491a18772cd0730a07d848fd91d56aa344",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_pine_shape_transport.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "a964c55f6c15e467c9d799b66d04844468350d3e",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w28f_original_browser_state.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "5ae9d2f313f6cb132d1e97265a92c44eb05181f0",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w28g_browser_preferences_transfer.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "50330f04eae805fee0758399e31f59984f8afab2",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w28i_desktop_chart_handshake.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "5c55e1cc6ab3bc29a0dbc18f76f182e94f441718",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w28k_real_served_chart_transfer.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "bad34d57491c089b00dc6b2c80a79af727c4f283",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w28l_verifier_startup.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "c2b6048c5d55864510805d0d52ab629ccf9e7f72",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w32a_original_chart_candles.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "8a879efbce002c55e2d0c49626137a6998194934",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w32b_pine_compile.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "3d1cfb85f60128d710b6732934407fa64d63de3b",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w32c_pine_renderer.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "26034e84f09ec7995932340cb580645d5fdd9fd4",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w32d_pine_pane.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "a4ffc76f9ff0f16bb10142bea7c8e6ed1d0b3a0f",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w33a_operator_paper_state.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "495f303b4c399ea7097f788adf0be3a8c5050927",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w39_paper_operator_accessibility.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "7b88eb00c2006cf3c99d4c668480cb15e09d1989",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w85_desktop_operator_shell.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "5bd8e27fe6eaf16945c704829104ec4af1e97e35",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w88_vendor_staging.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "d463c0ae9b42e975ff6a57fe3db435fcb441b451",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/rb3_w90_catalog_actions.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "b12087bb7dddc7d961a2aeb7bd152904751860bc",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17c6_wails_restored_preview.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "31b15d669d05650d4abe0756e2545c42a3d82ccf",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17c8_restored_monaco_cold_cdp.cjs",
+        "change": "added",
+        "before": null,
+        "after": "290b966e2de6d313313d21adfcf6a523d268a121",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17c9_allowlisted_preference_transfer.cjs",
+        "change": "added",
+        "before": null,
+        "after": "66fc83b8fbab9fdbbcf5d8abd3ecb871438487b0",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17c9_allowlisted_preference_transfer.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "723f5301f0fabc289a078499aa69735efb89f7ad",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d1_chart_favorite_continuity.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "26db2f86a2692c457a2fc976efc3f37699c05f3f",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d1_real_webview2_favorites_cdp.cjs",
+        "change": "added",
+        "before": null,
+        "after": "d143f25ea385a5179a0d784b3bd8c9cd819232d2",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d1a_original_chart_uia.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "d5e85e365bee418fca36c4cceb3fa6adc2ca1493",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d2_legacy_favorite_import.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "2a836c9be6057c622e13eba4023f7b64f9546231",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d3_old_origin_fixture.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "6b4382e57e588a3e943d3f9d53fe720fd2d89daf",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d3_prior_origin_http.cjs",
+        "change": "added",
+        "before": null,
+        "after": "3d018e159f90e89dd988b89b6352dee2de002058",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d4_chart_timeframe_continuity.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "fc37558e4628d21ceae83649e2fe204515c07f94",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d5_chart_pane_layout.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "3cee8f4c60d86309974055121087e50387766e80",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d6_chart_horizontal_lines.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "dcb850707f39bd119c91d2aed694910a7adb031b",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d7_original_trendlines.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "20e173b90f0461c5acf23526bec0fd4f6f0a664f",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d8_trendline_geometry.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "ea5be31ffc03760fbfaf98851b490040be3b778b",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w17d9_market_context.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "fde7d45cbf026661f995fbf10bb7a53fe213484d",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w19_paper_failure_feedback.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "f855aa1c99d4902ae0ee87a8e5102024249aff86",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w21_market_readout_integrity.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "35f1f4ef9d973963fbb0b0945d3351fd42642cc0",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/w33c_p7_paper_valuation.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "07d780da174614980975c0612fe744f0e7e16569",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/wails_w01_source_provenance.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "46ba1277a149c3480658f0e488111d458d0c0590",
+        "mode": "100644"
+      },
+      {
+        "path": "tests/wails_w02_boot.test.cjs",
+        "change": "added",
+        "before": null,
+        "after": "84b4e398d3332ec6a9b5ce2983f4de004b6a68fe",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/backend_test.go",
+        "change": "added",
+        "before": null,
+        "after": "a73a55da625019f028d34f6d5aeee3d50fa40ea6",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/backend.go",
+        "change": "added",
+        "before": null,
+        "after": "854e0d1d90b44b851f9c683c918ebd9b1716402f",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/capabilities_test.go",
+        "change": "added",
+        "before": null,
+        "after": "1451b4485e6aef231fa25d5cf5ac2b260dbdf1d1",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/capabilities.go",
+        "change": "added",
+        "before": null,
+        "after": "eea77f7a35a7bb73040ad98120ecd1d36ebf7d34",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/fresh_install_test.go",
+        "change": "added",
+        "before": null,
+        "after": "6fe4d6213139a5d98b4160668430256d6c8c0fc9",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/fresh_install.go",
+        "change": "added",
+        "before": null,
+        "after": "51dd5f9acfcf4465313e7c60dd07dc48b4061fb6",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/fresh_installed_readonly_test.go",
+        "change": "added",
+        "before": null,
+        "after": "432cf8285a9b842563a31d8159ffdd435b8f04c4",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/fresh_installed_readonly.go",
+        "change": "added",
+        "before": null,
+        "after": "8065fbecdbd461bfd7d04790ee51bd06ebe49c0a",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/fresh_launch_test.go",
+        "change": "added",
+        "before": null,
+        "after": "0a650f6b7dd053e7eaf0c227933386a95fe5c154",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/fresh_launch.go",
+        "change": "added",
+        "before": null,
+        "after": "2864bcda3bef215e6678448ecac24f1e9836de9a",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/fresh_uninstall_test.go",
+        "change": "added",
+        "before": null,
+        "after": "45c084099366a5033271098fd175485478c68edc",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/fresh_uninstall.go",
+        "change": "added",
+        "before": null,
+        "after": "d3d77253fdcccd52cf7cb50f7bb1535d87d8df6b",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/installed_readonly_test.go",
+        "change": "added",
+        "before": null,
+        "after": "0f251fc4d223c08ac597884c909fcfaf67d69cdc",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/installed_readonly.go",
+        "change": "added",
+        "before": null,
+        "after": "f98b1cb5c681be0688d01923fbff7358dada507e",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/installed_shortcuts_test.go",
+        "change": "added",
+        "before": null,
+        "after": "1a6933050eb7a184294d97c480a448738803cf1d",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/installed_shortcuts.go",
+        "change": "added",
+        "before": null,
+        "after": "fc2e97df213d0426c1724bdead137e1f554e33dc",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/installed_uninstall_test.go",
+        "change": "added",
+        "before": null,
+        "after": "2ec217eb0aa085541174f0af3597658cc0c0ddef",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/installed_uninstall.go",
+        "change": "added",
+        "before": null,
+        "after": "0a4242ae423c611d2616de6c55768d840044f82d",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/installed_update_test.go",
+        "change": "added",
+        "before": null,
+        "after": "ea8f47a188f832e8dc14d41cab2ec5396801644e",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/installed_update.go",
+        "change": "added",
+        "before": null,
+        "after": "0e04fb7a644f9f27e5f31ebd301e54479cd8e2d8",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/orphan_custody_diagnostic_test.go",
+        "change": "added",
+        "before": null,
+        "after": "d542861e3f6dec4b0a9f6c855dba8e87458a97e9",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/orphan_custody_diagnostic.go",
+        "change": "added",
+        "before": null,
+        "after": "f43165bed8299cd738894c40d0663b84e5962920",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/portable_proof_test.go",
+        "change": "added",
+        "before": null,
+        "after": "e4a6daa0ef3d33b4f47049f601431bc8fd5dfc7c",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/portable_test.go",
+        "change": "added",
+        "before": null,
+        "after": "0e5b73a73290309a9b058f93af3b608cf4926635",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/portable.go",
+        "change": "added",
+        "before": null,
+        "after": "43330e7459dbd449c1752e87043e356e49e7042d",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/process_custody_other.go",
+        "change": "added",
+        "before": null,
+        "after": "506aa5c00f884200016da8a7db7fcc8e7356eb0c",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/process_custody_windows_test.go",
+        "change": "added",
+        "before": null,
+        "after": "937ec161dfabc9f2b9a9aea0ec256abeb278507c",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/process_custody_windows.go",
+        "change": "added",
+        "before": null,
+        "after": "97069481f216c2f4f6d10105072e7cc242471a5e",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/process_test.go",
+        "change": "added",
+        "before": null,
+        "after": "22e6c33f87b9490246ac6853e0175d196ddca40f",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_candidate_test.go",
+        "change": "added",
+        "before": null,
+        "after": "d06bd289012942333fbd5ba68324ab47126953b0",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_candidate.go",
+        "change": "added",
+        "before": null,
+        "after": "552c6809074f9b45b3cf8ba6c8a2d8af4b10cd1c",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_compare_test.go",
+        "change": "added",
+        "before": null,
+        "after": "a4c526c77cd161b9d2c05202811818f6e66f6ec3",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_compare.go",
+        "change": "added",
+        "before": null,
+        "after": "6ba37079c893a993ea825cb97c8e32995c0164e7",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_extract_test.go",
+        "change": "added",
+        "before": null,
+        "after": "97df88f977461ae12b5cca44f2ba532198d57ff9",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_extract.go",
+        "change": "added",
+        "before": null,
+        "after": "2fb85e65946b86e021d5462fb676a2c4bbbc43b1",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_identity_test.go",
+        "change": "added",
+        "before": null,
+        "after": "d1d55d000c9cd0425927199090316e5c14add8a3",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_identity.go",
+        "change": "added",
+        "before": null,
+        "after": "d3a518ed3ae22db46b081e5f88492a8034aedc6e",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_process_lease_test.go",
+        "change": "added",
+        "before": null,
+        "after": "2fbeeec2e8eeca94831771294d995098a118040c",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_process_lease.go",
+        "change": "added",
+        "before": null,
+        "after": "b8e396c0fcd10cfe55e6ac1f272f57f010c29dd7",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_state_escrow_test.go",
+        "change": "added",
+        "before": null,
+        "after": "00ef0e3104fbe437fe5acc698a58e9667bdb80a3",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_state_escrow.go",
+        "change": "added",
+        "before": null,
+        "after": "86c369e6230013b03a0583ba964dc304da0ac822",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_supported_restore_test.go",
+        "change": "added",
+        "before": null,
+        "after": "f2dbd0fd73beb8c861730057d6deb9799a1fdf00",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_supported_restore.go",
+        "change": "added",
+        "before": null,
+        "after": "bd923a294cf1264b7a80dda5725cd93e2924f5fb",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_switch_test.go",
+        "change": "added",
+        "before": null,
+        "after": "480202b9692d4f663ef558f3feec3b126ca0ee95",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/release_switch.go",
+        "change": "added",
+        "before": null,
+        "after": "657ade4e8d88114eb6b2741c2e44d6a24f573b5c",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/setup_bundle_test.go",
+        "change": "added",
+        "before": null,
+        "after": "81c52d9aa9c5315fb1ebd935942f30fa6206a66a",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/setup_bundle.go",
+        "change": "added",
+        "before": null,
+        "after": "cdf3771e08186d0b90a00e96acdac0396eaba3ac",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/setup_window_test.go",
+        "change": "added",
+        "before": null,
+        "after": "48aaaeee3c3ea7da0bcb96b2586cd6c5ad1a977a",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/w17c6_restored_preview_test.go",
+        "change": "added",
+        "before": null,
+        "after": "fa9dea4cff69d1a428e6d789e4c5f929ff3e4f31",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/w17c6_restored_preview.go",
+        "change": "added",
+        "before": null,
+        "after": "0eb4827640281efd0158daa85371acb728a8fe7a",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/w17d0_stable_origin_test.go",
+        "change": "added",
+        "before": null,
+        "after": "a3c7091be26b91fbdee1f7ec126373106cbd695e",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/w17d0_stable_origin.go",
+        "change": "added",
+        "before": null,
+        "after": "c9bd7f46a4b3e937698bd3133b22b97ce0a72f6e",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/w17d2_legacy_favorite_bridge_test.go",
+        "change": "added",
+        "before": null,
+        "after": "351347818f7501ada607e80042ac1b5b7148de50",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/w17d2_legacy_favorite_bridge.go",
+        "change": "added",
+        "before": null,
+        "after": "24fcf0bfca3c97c4c5a6be2553c6393144eb86fc",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/w28j_stopped_history_test.go",
+        "change": "added",
+        "before": null,
+        "after": "a768f8f329c28e17d5d0ae2f458c4d614a7a9229",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/w28j_stopped_history.go",
+        "change": "added",
+        "before": null,
+        "after": "e45f957792f4ba3b807d04eef6205b78d3e7b2ba",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/orphan-custody-report/main_test.go",
+        "change": "added",
+        "before": null,
+        "after": "970a3a779370dd47d7893dda3d018098027d3ae3",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/orphan-custody-report/main.go",
+        "change": "added",
+        "before": null,
+        "after": "4a18dd257b447494152503d733aa5b27d136388f",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-assets-digest/main.go",
+        "change": "added",
+        "before": null,
+        "after": "e2c43d6d1c5c9c8e1f2af081d37afa77651914ae",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-compare/main.go",
+        "change": "added",
+        "before": null,
+        "after": "ecbadfe360e427853815ea3f1577fdd9fec0f7d2",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-extract/main.go",
+        "change": "added",
+        "before": null,
+        "after": "9958f72f41227a2bc3e0d2e7cafb09961df68b27",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-history-preflight/main.go",
+        "change": "added",
+        "before": null,
+        "after": "a070883cf8fff9a638e6a8e92332b85b27992cc3",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-install/main.go",
+        "change": "added",
+        "before": null,
+        "after": "e280a5c555871fd2b0e5ecf4ac1c0ba85ac2274b",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-launch/main.go",
+        "change": "added",
+        "before": null,
+        "after": "be9221707b7b23709f6977fc57b4076054545c08",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-maintain/main.go",
+        "change": "added",
+        "before": null,
+        "after": "497f7c9880ccdb2563ca524160bc58649f613de7",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-setup/main.go",
+        "change": "added",
+        "before": null,
+        "after": "31090208ad715569b9c3af0392455b7e6d2188af",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-state-escrow/main.go",
+        "change": "added",
+        "before": null,
+        "after": "a850c5b7546db252de55cffcae673070b080011f",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-supported-restore/main.go",
+        "change": "added",
+        "before": null,
+        "after": "b36ec0389a9dfde681b2ebf97c457a9e49485ad7",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/release-switch/main.go",
+        "change": "added",
+        "before": null,
+        "after": "48df0ac8fa277860737839d084267e723b2ce0e0",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/setup-window/main_windows.go",
+        "change": "added",
+        "before": null,
+        "after": "8fb5441a2ffe94f59d2c337bb1d4778becbd4cdf",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/w17c6-preview-digest/main.go",
+        "change": "added",
+        "before": null,
+        "after": "ebb020f7c8a2f533b8b9fe8faed1b37586659b8c",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/w17d3-legacy-seed/frontend/boot.js",
+        "change": "added",
+        "before": null,
+        "after": "f489c2e046c5bdb1b0a5c9ae3dcdffaa14978d4d",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/w17d3-legacy-seed/frontend/index.html",
+        "change": "added",
+        "before": null,
+        "after": "8e15c40990898ba81d580a19b5a85a4ffea3f4f4",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/w17d3-legacy-seed/main_windows.go",
+        "change": "added",
+        "before": null,
+        "after": "ce3be05a741c270593415549b67a3365e0bec8b8",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/engine_watch_test.go",
+        "change": "added",
+        "before": null,
+        "after": "f1435c6a27fc208b3de3ea51147c0eb8618576a2",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/engine_watch.go",
+        "change": "added",
+        "before": null,
+        "after": "5f52ee73433706265ae183df3e94749133193ecc",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/frontend/boot.js",
+        "change": "added",
+        "before": null,
+        "after": "2f93204dbdc04aac51dd41f620eafacb67852e5c",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/frontend/desktop_diagnostics.js",
+        "change": "added",
+        "before": null,
+        "after": "5119ac29412833c431e28e47dbbdc4569c7c0880",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/frontend/index.html",
+        "change": "added",
+        "before": null,
+        "after": "be19b611e4967ee309adc24e4e9b86ff0277702a",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/frontend/restored-preview.js",
+        "change": "added",
+        "before": null,
+        "after": "7cf6901e0bfead583bfec22891558be079682ead",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/frontend/style.css",
+        "change": "added",
+        "before": null,
+        "after": "dd667d10b51d97fec465bd976e410da17caa086c",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/frontend/w28i_desktop_verify.js",
+        "change": "added",
+        "before": null,
+        "after": "c194dcc553b874a123a295293e5e1853ff4da062",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/go.mod",
+        "change": "added",
+        "before": null,
+        "after": "ab981bba3fa114c6a58116f7a6b1585826b48055",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/go.sum",
+        "change": "added",
+        "before": null,
+        "after": "418b2bdc75cfa4485051a2af29c84567d9aac3ea",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/main_windows.go",
+        "change": "added",
+        "before": null,
+        "after": "bc79bff40ed7846fff1550014106b531f3ded29a",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/README.md",
+        "change": "added",
+        "before": null,
+        "after": "63098dabfa0df3405535f06124503e03488d1bfb",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Build-KTRADE-FreshInstaller.ps1",
+        "change": "added",
+        "before": null,
+        "after": "3a0744222a49f12bc65dc484cb4b7ca422a162de",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Build-KTRADE-OrphanCustodyReview.ps1",
+        "change": "added",
+        "before": null,
+        "after": "51465d1922c0538de31313a4e70cc0dd7ee8d948",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Build-KTRADE-Portable.ps1",
+        "change": "added",
+        "before": null,
+        "after": "911abcaff145c2bd101826f20007feef78a860ce",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Build-KTRADE-WailsPortable.ps1",
+        "change": "added",
+        "before": null,
+        "after": "1ed6baca3a09f30076564d8eaa22ba34b69b6510",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Go-Toolchain.version",
+        "change": "added",
+        "before": null,
+        "after": "7aa12eed51622fff7b8296ac5da7f8f8de1d2734",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Initialize-KTRADE-W08B-FreshReadOnly.ps1",
+        "change": "added",
+        "before": null,
+        "after": "4041c3930447e53619d9e1f2b53cf3a86c7de09c",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Install-KTRADE-Fresh.ps1",
+        "change": "added",
+        "before": null,
+        "after": "e65062ac026403fb57ebdc8a1c15ff16ae6630e9",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Invoke-KTRADE-W06C-SyntheticVersionSwitch.ps1",
+        "change": "added",
+        "before": null,
+        "after": "dd72f5bf679eabe23c06907013ddfe78051e1ba0",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Invoke-KTRADE-WailsAssetUpdate.ps1",
+        "change": "added",
+        "before": null,
+        "after": "ac5cada7c33e05b9373c6639cbbf8925add97218",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Manage-KTRADE-FreshInstall.ps1",
+        "change": "added",
+        "before": null,
+        "after": "1a4c80e0d46a643010b1897a25b40297305d400b",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Probe-KTRADE-Portable-HTTP.ps1",
+        "change": "added",
+        "before": null,
+        "after": "1f3b42d23b35916ec1c12deba10e189a33d7ea00",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Review-KTRADE-SelectedPaperHistory.ps1",
+        "change": "added",
+        "before": null,
+        "after": "cfb0d8b9ba2f3bb5c3d88f105ce4e55ae22a631f",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Stage-KTRADE-W06A-ReadOnlyFixture.ps1",
+        "change": "added",
+        "before": null,
+        "after": "276ca54cb0e5e8c24ef366c9a50fe73319abadec",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Stage-KTRADE-W08A-FreshCodeRelease.ps1",
+        "change": "added",
+        "before": null,
+        "after": "662694d2610a8d1fc424d3791cca781860b7d5a1",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Start-KTRADE-Portable.ps1",
+        "change": "added",
+        "before": null,
+        "after": "b9451517100b531940616926f594fa9c427c7035",
+        "mode": "100644"
+      }
+    ],
+    "parent_to_tip_all_changed_paths_with_blobs": [
+      {
+        "path": ".github/workflows/ktrade-native-windows.yml",
+        "change": "modified",
+        "before": "067b76ec1b666d01014188167ed2e63ec9bccb86",
+        "after": "d8d82be3b8deb67f414d67d3eccbc890a07051c4",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/main_full.go",
+        "change": "modified",
+        "before": "bfadf7a46cfaf90ad15600e7b820a7f59456563b",
+        "after": "646b13ece306b762b4391562d3ff300c40b725cb",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/pine_hline_transport_full_test.go",
+        "change": "modified",
+        "before": "8d519266616b9f0299170d2a2c5b3c720c183104",
+        "after": "65b1c3bd0e4f55b7f2fe612a192df44daa3471bf",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/pine_shape_transport_full_test.go",
+        "change": "modified",
+        "before": "36199e6920cc682773af2b30cd78561a13409db1",
+        "after": "a83b770c7faff21587a0ad4a9f52b4c446aee899",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_pine_overlay_ingress_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "2f119ce5008d69074928c6ee624cc56152032422",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_w32c_overlay_full_test.go",
+        "change": "modified",
+        "before": "45b5512a189a32d1125c51576588962377984107",
+        "after": "6709219baaed4910747914c2adaebca89b701dd3",
+        "mode": "100644"
+      },
+      {
+        "path": "cmd/ktrade/rb3_workspace_http_ingress_full_test.go",
+        "change": "added",
+        "before": null,
+        "after": "506e96fb9ccfb46424ed828f4dc754659eaa9d8c",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/orphan_lease_observation_test.go",
+        "change": "added",
+        "before": null,
+        "after": "4c71f73737dddc0aa2424441860816e135d3fd17",
+        "mode": "100644"
+      },
+      {
+        "path": "internal/papercustody/orphan_lease_observation.go",
+        "change": "added",
+        "before": null,
+        "after": "6d8296668992599b36049d71c40c2953f552e39c",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go",
+        "change": "modified",
+        "before": "aea2367405084ee9b56485290033a292e92a73e3",
+        "after": "7a9f650ca950db678d89d608c3b6cb30851a18e1",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18a_closeout_workspace_http_surface_gate_test.go",
+        "change": "modified",
+        "before": "be0bb7757534760f7119a75429c45860cd810ff9",
+        "after": "e8c701b9eeba825a21594bfcad505ad37426f85d",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18a_t05_workspace_http_request_response_contract_test.go",
+        "change": "modified",
+        "before": "ff900bd8950c883d88d5c31eec0a811f529057e2",
+        "after": "7b81982a45f54f83448dc4dbf2cec30f57268644",
+        "mode": "100644"
+      },
+      {
+        "path": "pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go",
+        "change": "modified",
+        "before": "d0b3e5ead49629bab5cece450bfb2491b6345769",
+        "after": "8b8ae807318a26c5ceccd832402ddf72968b308b",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/orphan_custody_diagnostic_test.go",
+        "change": "added",
+        "before": null,
+        "after": "d542861e3f6dec4b0a9f6c855dba8e87458a97e9",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/backend/orphan_custody_diagnostic.go",
+        "change": "added",
+        "before": null,
+        "after": "f43165bed8299cd738894c40d0663b84e5962920",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/orphan-custody-report/main_test.go",
+        "change": "added",
+        "before": null,
+        "after": "970a3a779370dd47d7893dda3d018098027d3ae3",
+        "mode": "100644"
+      },
+      {
+        "path": "tools/wails-pilot/cmd/orphan-custody-report/main.go",
+        "change": "added",
+        "before": null,
+        "after": "4a18dd257b447494152503d733aa5b27d136388f",
+        "mode": "100644"
+      },
+      {
+        "path": "windows/Build-KTRADE-OrphanCustodyReview.ps1",
+        "change": "added",
+        "before": null,
+        "after": "51465d1922c0538de31313a4e70cc0dd7ee8d948",
+        "mode": "100644"
+      }
+    ]
+  },
+  "chain": {
+    "count": 17,
+    "all_open_and_draft": true,
+    "all_parent_SHA_links_match": true,
+    "pr_228_to_244": [
+      {
+        "number": 228,
+        "title": "Stage the native KTRADE workstation with automatic Windows PR qualification",
+        "head_sha": "365a7085ccd86c3f917206fe2569aba51f00d8d0",
+        "base_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+        "parent_pr": null
+      },
+      {
+        "number": 229,
+        "title": "Implement real catalog Supertrend recurrence with raw Pine numerical qualification",
+        "head_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+        "base_sha": "365a7085ccd86c3f917206fe2569aba51f00d8d0",
+        "parent_pr": 228
+      },
+      {
+        "number": 230,
+        "title": "Honor named Pine input periods instead of silent fallback lengths",
+        "head_sha": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+        "base_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+        "parent_pr": 229
+      },
+      {
+        "number": 231,
+        "title": "Reconcile PAPER lifetime PnL with original UTC-day risk baselines",
+        "head_sha": "2773c8eb8e840a0eb0a6524820d394f5a35a925f",
+        "base_sha": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+        "parent_pr": 230
+      },
+      {
+        "number": 232,
+        "title": "Bind Supertrend ATR input to its seed and recurrence",
+        "head_sha": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4",
+        "base_sha": "2773c8eb8e840a0eb0a6524820d394f5a35a925f",
+        "parent_pr": 231
+      },
+      {
+        "number": 233,
+        "title": "Implement confirmed RSI divergence and repair causal missing-value handling",
+        "head_sha": "42bf2c698d15da43632540959f9a5eea3999158b",
+        "base_sha": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4",
+        "parent_pr": 232
+      },
+      {
+        "number": 234,
+        "title": "Add native Pine input settings with validated persistence and reset",
+        "head_sha": "db79330ffee632b66c5e17b4a60d29c421febbab",
+        "base_sha": "42bf2c698d15da43632540959f9a5eea3999158b",
+        "parent_pr": 233
+      },
+      {
+        "number": 235,
+        "title": "Restore original Go Pine shape transport and confirmation-candle markers",
+        "head_sha": "3901f737474f8fb5428dbb0d77a14fcb53d68d89",
+        "base_sha": "db79330ffee632b66c5e17b4a60d29c421febbab",
+        "parent_pr": 234
+      },
+      {
+        "number": 236,
+        "title": "Render original Go Pine horizontal guides in their indicator pane",
+        "head_sha": "504b28f07a24882470b847ff014391104f78bd66",
+        "base_sha": "3901f737474f8fb5428dbb0d77a14fcb53d68d89",
+        "parent_pr": 235
+      },
+      {
+        "number": 237,
+        "title": "Show the actual content of guide-only Pine panes",
+        "head_sha": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc",
+        "base_sha": "504b28f07a24882470b847ff014391104f78bd66",
+        "parent_pr": 236
+      },
+      {
+        "number": 238,
+        "title": "Fix original Pine label candle binding before chart mutation",
+        "head_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+        "base_sha": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc",
+        "parent_pr": 237
+      },
+      {
+        "number": 239,
+        "title": "Run native Windows CI automatically on stacked RB3 pull requests",
+        "head_sha": "72f7b5aa75ece04be0d59e6449c052d2753f468d",
+        "base_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+        "parent_pr": 238
+      },
+      {
+        "number": 240,
+        "title": "Preserve chart zoom and pan when applying Pine indicators",
+        "head_sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+        "base_sha": "72f7b5aa75ece04be0d59e6449c052d2753f468d",
+        "parent_pr": 239
+      },
+      {
+        "number": 241,
+        "title": "Fail closed on oversized or cross-origin Pine compile/backtest POSTs",
+        "head_sha": "ae70c58ded58be33d5cb5f156adaf0890cc3457c",
+        "base_sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+        "parent_pr": 240
+      },
+      {
+        "number": 242,
+        "title": "Reject conflicting BUY notional on reused TradeGuard client order IDs",
+        "head_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0",
+        "base_sha": "ae70c58ded58be33d5cb5f156adaf0890cc3457c",
+        "parent_pr": 241
+      },
+      {
+        "number": 243,
+        "title": "Preserve fractional chart bar range across native Pine Apply",
+        "head_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+        "base_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0",
+        "parent_pr": 242
+      },
+      {
+        "number": 244,
+        "title": "Reject cross-origin and oversized legacy workspace imports",
+        "head_sha": "a032956d895b08784f01e293347c76c1d50853dd",
+        "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+        "parent_pr": 243
+      }
+    ]
+  },
+  "qualification": {
+    "current_product_source_windows_run_id": 41916946139,
+    "current_product_source_windows_conclusion": "success",
+    "installed_windows_run_id": 41931801337,
+    "installed_windows_conclusion": "success",
+    "installed_workflow_commit": "dcd85c82e5240077c3a727512cdeb71d35b67c86",
+    "latest_native_receipt": "qualification-receipts/ktrade-pr244-current-installed-pine-overlay-http-negative-20261104.json",
+    "native_prior_failure_run_id": 41924809363,
+    "intermittent_native_root_cause": "UNVERIFIED"
+  },
+  "boundaries": {
+    "git_tree_and_chain_identity_only": true,
+    "cumulative_full_security_admission": "UNVERIFIED",
+    "owner_installed_hidpi": "UNVERIFIED",
+    "final_24_hour_soak": "NOT_EXECUTED",
+    "mainline_ref_update": "NOT_AUTHORIZED",
+    "merge_rebase_squash_changes_identity": "REQUALIFY",
+    "release_sign_live_broker": "NOT_AUTHORIZED",
+    "note": "The full path record does not imply each changed source file was line reviewed or accepted for production."
+  },
+  "source_provenance": "GitHub exact commit tree SHAs via untruncated recursive Git Trees, 17 linked GitHub PR base/head refs, exact original Actions run conclusions; no owner/runtime access"
+}
