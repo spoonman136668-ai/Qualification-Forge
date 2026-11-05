@@ -168,9 +168,9 @@ jobs:
           # other UI lookups, original wait, native pixel/PAPER thresholds.
           $applyUiAnchor='     if($node.Current.IsOffscreen -or !$node.Current.Name.Contains($label)){continue}'
           $applyUiCheck=@'
-     if($label -ceq 'Pine plots applied.' -and
-       $node.Current.Name -cne $label -and
-       !$node.Current.Name.StartsWith('Pine plots applied. ',[StringComparison]::Ordinal)){continue}
+           if($label -ceq 'Pine plots applied.' -and
+             $node.Current.Name -cne $label -and
+             !$node.Current.Name.StartsWith('Pine plots applied. ',[StringComparison]::Ordinal)){continue}
           '@
           Need ($n.Contains($applyUiAnchor) -and $n.IndexOf($applyUiAnchor) -eq $n.LastIndexOf($applyUiAnchor)) 'PR244_PINE_APPLIED_UI_ANCHOR_DRIFT'
           $n=$n.Replace($applyUiAnchor,($applyUiAnchor+[Environment]::NewLine+$applyUiCheck))
