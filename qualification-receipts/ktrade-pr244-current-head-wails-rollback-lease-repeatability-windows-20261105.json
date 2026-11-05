@@ -1,0 +1,93 @@
+{
+  "schema": "ktrade.pr244.current-source.wails-install-rollback-lease-repeated.windows.v1",
+  "verdict": "PASS_EXACT_SHA_SEVEN_ORIGINAL_WAILS_ROLLBACK_LEASE_TESTS_THREE_REPETITIONS",
+  "product": {
+    "repository": "spoonman136668-ai/ktrade",
+    "draft_pr": 244,
+    "head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "tree_sha": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "source_ci_run": 41994140128,
+    "original_source_node_passes": 199
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "draft_pr": 72,
+    "branch": "qualification/ktrade-original-pine-label-response-affinity-20261031",
+    "workflow_path": ".github/workflows/ktrade-w78-original-paper-wails-race-soak-windows.yml",
+    "workflow_commit": "213b43283cc8bc779e4b03cd8719403ba1c0392c",
+    "workflow_blob": "c4a61ae81adea05e96a58e437c538ba1e18d4824",
+    "run_id": 42028584023,
+    "job_id": 127248918464,
+    "run_attempt": 1,
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "all_11_steps_completed_successfully": true,
+    "runner": "github-hosted windows-2022",
+    "toolchain": "go1.26.10",
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42028584023"
+  },
+  "original_tests": {
+    "module": "ktrade-wails-pilot",
+    "package": "ktrade-wails-pilot/backend",
+    "go_command": "go test -json -mod=readonly -count=3 -timeout 18m -run <seven-test-pattern> ./backend",
+    "names": [
+      "TestW30InstalledUpdateAndRollbackRetainVersionsDataAndOriginalReceipts",
+      "TestW30InstalledUpdateRefusalsPreserveCurrentSelection",
+      "TestW30InterruptedCommitKeepsLaunchQuarantineAndOwnerBytes",
+      "TestW30RollbackRejectsAlteredPriorDataAndBackup",
+      "TestW30RollbackRejectsCoordinatedReceiptRewrite",
+      "TestW28CRunningProcessBlocksReleaseSelectionAndRollback",
+      "TestW28CRejectsUnselectedAndOrphanedLease"
+    ],
+    "distinct_tests": 7,
+    "repetitions_per_case": 3,
+    "expected_positive_pass_events": 21,
+    "original_wails_notice": "W78_ORIGINAL_WAILS_ROLLBACK_LEASE_REPEAT=PASS cases=7 repetitions=3",
+    "failed_or_skipped_tests_rejected": true,
+    "cardinality_enforced_by_original_workflow": true,
+    "test_source_git_blobs": {
+      "tools/wails-pilot/backend/installed_update_test.go": "ea8f47a188f832e8dc14d41cab2ec5396801644e",
+      "tools/wails-pilot/backend/release_process_lease_test.go": "2fbeeec2e8eeca94831771294d995098a118040c"
+    },
+    "underlying_wails_backend_differs_from_prior_W78_due_to_new_orphan_custody": true
+  },
+  "immutable_qualifier_inputs": {
+    "source_receipt_blob": "7eb9024615af7a076611caff6306a4749f46bcb0",
+    "paper_race_and_mock_broker_receipt_blob": "94e07ed49197869f77ab9b8ee7933f654c85011f",
+    "engine_and_wails_reachability_receipt_blob": "99f4b3b3b31be09a4817f58feb8c3e1f669fc7e2",
+    "windows_2022_two_session_native_receipt_blob": "6d9d69001c40b2999fb4095652ae55393d2ff70a",
+    "windows_2025_two_session_native_receipt_blob": "e06c0d6613de323480b9b2abc7dbdde709d8b9b2",
+    "funded_paper_crash_quarantine_receipt_blob": "8a3470d33a7413fa5e4270ad94b1d18183fb560e"
+  },
+  "original_log_observations": [
+    "PR244_WAILS_CURRENT_SHA_NATIVE_RISK_SECURITY_CRASH_RECEIPTS_REUSED=PASS",
+    "W78_ORIGINAL_WAILS_ROLLBACK_LEASE_REPEAT=PASS cases=7 repetitions=3",
+    "PR244_WAILS_ISOLATED_WINDOWS_NO_OWNER_INSTALL_NO_BROKER_NO_LIVE_NO_RELEASE_NO_MERGE"
+  ],
+  "historical": {
+    "W78_prior_run_id": 41063369066,
+    "W78_old_product_sha": "0acfae265370b677dfe6de1386de793fb20b2460",
+    "historical_receipt_blob": "f9bb885112e89eca2a1414b3d99a78e4058904d2",
+    "test_cases_unchanged_but_old_result_not_reused_as_current_qualification": true
+  },
+  "scope": {
+    "original_updater_rollback_lease_repeated_tests_passed": true,
+    "real_installed_updated_candidate_covered_separately_in_native_receipt": true,
+    "not_an_actual_24_hour_soak": true,
+    "not_an_operator_windows_11_hidpi_test": true,
+    "not_statistical_cross_host_reliability": true,
+    "source_modified": false,
+    "owner_data_read": false,
+    "broker_orders": false,
+    "live_trading": false,
+    "production_release": "HOLD",
+    "merges": "HOLD",
+    "signing": "HOLD"
+  },
+  "provenance": {
+    "source": "Verified exact GitHub run/job status and original decoded job log, with hard cardinality enforcement from original W78 tests and immutable prior receipts",
+    "logged_utc": "2026-11-05"
+  }
+}
