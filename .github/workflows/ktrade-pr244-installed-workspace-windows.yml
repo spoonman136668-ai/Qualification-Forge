@@ -22,7 +22,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: 98931bed1178019fbc6fee5eab73a395a275e2f1
+      KTRADE_EXPECTED_SOURCE: 671198f2336e410c98ef764603455a51c08d16b0
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 98931bed1178019fbc6fee5eab73a395a275e2f1
+          ref: 671198f2336e410c98ef764603455a51c08d16b0
           path: product
           fetch-depth: 0
           persist-credentials: false
@@ -53,7 +53,7 @@ jobs:
           Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and $env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'PR244_ISOLATED_WINDOWS_REQUIRED'
           $p=Join-Path $env:GITHUB_WORKSPACE 'product'
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
-          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq 'b965d9b0a1ccbd7de15024407e8f9c9a48258f23') 'PR244_EXACT_TREE_DRIFT'
+          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq 'f75c8d45689e68cf2e582fe4679b841e9c9f352e') 'PR244_EXACT_TREE_DRIFT'
           Need (@(& git -C $p status --porcelain).Count -eq 0 -and @(& git -C $w status --porcelain).Count -eq 0 -and !(Test-Path (Join-Path $p '.env'))) 'PR244_DIRTY_OR_CREDENTIAL_SOURCE'
           $config=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
           Need (!$config.api_key.key_name -and !$config.api_key.key_secret -and !$config.account_id -and !$config.ngrok_authtoken) 'PR244_TRACKED_CREDENTIALS_REFUSED'
@@ -61,21 +61,21 @@ jobs:
           $paths=@(& git -C $p diff --name-only 4b401d5f9c3a571c5ad61c4df33a7814120a3a4b HEAD | Sort-Object)
           $wanted=@('.github/workflows/ktrade-native-windows.yml','cmd/ktrade/main_full.go','cmd/ktrade/pine_hline_transport_full_test.go','cmd/ktrade/pine_shape_transport_full_test.go','cmd/ktrade/rb3_pine_editor_ingress_full.go','cmd/ktrade/rb3_pine_editor_ingress_full_test.go','cmd/ktrade/rb3_pine_overlay_ingress_full_test.go','cmd/ktrade/rb3_w32c_overlay_full_test.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','internal/papercustody/orphan_lease_observation.go','internal/papercustody/orphan_lease_observation_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go','tools/wails-pilot/backend/orphan_custody_diagnostic.go','tools/wails-pilot/backend/orphan_custody_diagnostic_test.go','tools/wails-pilot/cmd/orphan-custody-report/main.go','tools/wails-pilot/cmd/orphan-custody-report/main_test.go','templates/chart.tmpl','tests/rb3_pine_marker_attachment_failclosed.test.cjs','windows/Build-KTRADE-OrphanCustodyReview.ps1')|Sort-Object
           Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_22_PATH_DRIFT'
-          $receiptPath='qualification-receipts/ktrade-pr244-pine-marker-attachment-source-windows-20261104.json'
-          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '8c9a774811788d1a161f1ee114a864ff0fd63cf2') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
+          $receiptPath='qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json'
+          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '7eb9024615af7a076611caff6306a4749f46bcb0') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
           $receipt=Get-Content (Join-Path $w $receiptPath) -Raw|ConvertFrom-Json
-          Need ($receipt.verdict -ceq 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -and $receipt.source.head_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.qualification.workflow_run_id -eq 41951563944 -and $receipt.qualification.job_id -eq 126996464875 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.source.tree -ceq 'b965d9b0a1ccbd7de15024407e8f9c9a48258f23' -and $receipt.source.changed_paths_from_pr243 -eq 22 -and $receipt.qualification.node_tests.files -eq 41 -and $receipt.qualification.node_tests.passed -eq 198 -and $receipt.qualification.node_tests.failed -eq 0 -and $receipt.qualification.node_tests.skipped -eq 0) 'PR244_SOURCE_CI_NOT_VERIFIED'
+          Need ($receipt.verdict -ceq 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -and $receipt.source.head_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.qualification.workflow_run_id -eq 41994140128 -and $receipt.qualification.job_id -eq 127133130434 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.source.tree -ceq 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -and $receipt.source.changed_paths_from_pr243 -eq 22 -and $receipt.qualification.node_tests.files -eq 41 -and $receipt.qualification.node_tests.files -eq 41 -and $receipt.qualification.node_tests.passed -eq 199 -and $receipt.qualification.node_tests.failed -eq 0 -and $receipt.qualification.node_tests.skipped -eq 0 -and $receipt.qualification.node_tests.failed -eq 0 -and $receipt.qualification.node_tests.skipped -eq 0) 'PR244_SOURCE_CI_NOT_VERIFIED'
           $builderRel='qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR243.ps1'
           $nativeRel='qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR243.ps1'
           Need ((& git -C $w rev-parse ('HEAD:'+$builderRel)).Trim() -ceq '57adfe95974b14d0be92b1a7f354e119ce44044c' -and (& git -C $w rev-parse ('HEAD:'+$nativeRel)).Trim() -ceq '6bbe4cb1cdc1c14417fbde22d42ec1a1b52d40a4') 'PR244_INHERITED_HARNESS_BLOB_DRIFT'
           $b=Get-Content (Join-Path $w $builderRel) -Raw
           $oldPair="sha='4b401d5f9c3a571c5ad61c4df33a7814120a3a4b';tree='0d8257297d53a8edd4a40b4099f102106619b2a2'"
-          $newPair="sha='98931bed1178019fbc6fee5eab73a395a275e2f1';tree='b965d9b0a1ccbd7de15024407e8f9c9a48258f23'"
+          $newPair="sha='671198f2336e410c98ef764603455a51c08d16b0';tree='f75c8d45689e68cf2e582fe4679b841e9c9f352e'"
           Need ($b.Contains($oldPair)) 'PR244_BUILDER_PIN_MISSING'
           $b=$b.Replace($oldPair,$newPair)
           $n=Get-Content (Join-Path $w $nativeRel) -Raw
           $oldPin='$NewSHA=''4b401d5f9c3a571c5ad61c4df33a7814120a3a4b'''
-          $newPin='$NewSHA=''98931bed1178019fbc6fee5eab73a395a275e2f1'''
+          $newPin='$NewSHA=''671198f2336e410c98ef764603455a51c08d16b0'''
           $start='function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){'
           $insert='  SettingsWarm $shell $origin'
           Need ($n.Contains($oldPin) -and $n.Contains($start) -and $n.Contains($insert)) 'PR244_NATIVE_ANCHORS_MISSING'
@@ -162,6 +162,19 @@ jobs:
           }
           '@
           $n=$n.Replace($oldPin,$newPin).Replace($start,($probe+[Environment]::NewLine+$start)).Replace($insert,($insert+[Environment]::NewLine+'  PR244InstalledIngress $origin'))
+          # Only Pine Apply completion requires exact/prefix status. The
+          # inherited FindUI substring search wrongly accepts the idle
+          # "No Pine plots applied." as "Pine plots applied.". Preserve all
+          # other UI lookups, original wait, native pixel/PAPER thresholds.
+          $applyUiAnchor='     if($node.Current.IsOffscreen -or !$node.Current.Name.Contains($label)){continue}'
+          $applyUiCheck=@'
+     if($label -ceq 'Pine plots applied.' -and
+       $node.Current.Name -cne $label -and
+       !$node.Current.Name.StartsWith('Pine plots applied. ',[StringComparison]::Ordinal)){continue}
+          '@
+          Need ($n.Contains($applyUiAnchor) -and $n.IndexOf($applyUiAnchor) -eq $n.LastIndexOf($applyUiAnchor)) 'PR244_PINE_APPLIED_UI_ANCHOR_DRIFT'
+          $n=$n.Replace($applyUiAnchor,($applyUiAnchor+[Environment]::NewLine+$applyUiCheck))
+          Need ($n.Contains($applyUiCheck)) 'PR244_PINE_SUCCESS_UIA_CONTRACT_NOT_INSTALLED'
           # Observability-only: no relaxation of native UI wait, pixel or PAPER checks.
           $uiAnchor=' throw (''W83_NATIVE_UI_NOT_OBSERVED_''+$label)'
           $uiProbe=@'
