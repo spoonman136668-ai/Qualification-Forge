@@ -1,12 +1,12 @@
 name: KTRADE W87 locked shipping JavaScript advisory and license audit
 on:
   push:
-    branches: [qualification/ktrade-w87-shipping-javascript-audit-20261030]
+    branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
     paths: [.github/workflows/ktrade-w87-shipping-javascript-audit-windows.yml]
 permissions:
   contents: read
 concurrency:
-  group: ktrade-w87-shipping-javascript-audit-20261030
+  group: ktrade-pr244-shipped-js-license-advisory-20261105
   cancel-in-progress: false
 jobs:
   audit:
@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 9fe979ec4b5da128a174b777d658461fd492d46e
+          ref: 671198f2336e410c98ef764603455a51c08d16b0
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -33,7 +33,26 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '9fe979ec4b5da128a174b777d658461fd492d46e' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'W87_INITIAL_CLEAN_SOURCE_REQUIRED'}
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge'){throw 'PR244_W87_HOSTED_WINDOWS_REQUIRED'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '671198f2336e410c98ef764603455a51c08d16b0' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'W87_INITIAL_CLEAN_SOURCE_REQUIRED'}
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if((& git -C $w rev-parse HEAD).Trim() -cne $env:GITHUB_SHA -or @(& git -C $w status --porcelain).Count -ne 0){throw 'PR244_W87_WITNESS_CHANGED'}
+          if(Test-Path (Join-Path $src '.env')){throw 'PR244_W87_OWNER_DOTENV_REFUSED'}
+          $cfg=Get-Content (Join-Path $src 'config.json') -Raw|ConvertFrom-Json
+          if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'PR244_W87_TRACKED_CREDENTIAL_REFUSED'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'PR244_W87_LIVE_GATE_CHANGED'}
+          if((& git -C $w rev-parse 'HEAD:qualification-harness/ktrade-w87/Audit-Shipped-Dependencies.cjs').Trim() -cne 'cf93fbe419f0fd04d1525f16a0d15ae9e903eeb0' -or
+             (& git -C $src rev-parse 'HEAD:package-lock.json').Trim() -cne '594adf1a84906ddc9d9d5e7000881ca2ce9a414d'){throw 'PR244_W87_FROZEN_REVIEW_OR_LOCK_DRIFT'}
+          $sources=@(
+           @{path='qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json';blob='7eb9024615af7a076611caff6306a4749f46bcb0';expected='PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION';source='source'},
+           @{path='qualification-receipts/ktrade-pr244-current-head-wails-rollback-lease-repeatability-windows-20261105.json';blob='6f34de30267f2995346fedff9ae6976c4a2c788a';expected='PASS_EXACT_SHA_SEVEN_ORIGINAL_WAILS_ROLLBACK_LEASE_TESTS_THREE_REPETITIONS';source='product'}
+          )
+          foreach($it in $sources){
+           if((& git -C $w rev-parse ('HEAD:'+$it.path)).Trim() -cne $it.blob){throw 'PR244_W87_INPUT_RECEIPT_BLOB_DRIFT'}
+           $data=Get-Content -LiteralPath (Join-Path $w $it.path) -Raw|ConvertFrom-Json
+           if($data.verdict -cne $it.expected -or $data.($it.source).head_sha -cne '671198f2336e410c98ef764603455a51c08d16b0'){throw 'PR244_W87_INPUT_RECEIPT_CONTENT_DRIFT'}
+          }
+          Write-Host '::notice::PR244_W87_EXACT_SOURCE_FROZEN_REVIEW_LICENSE_WAILS_AND_LIVE_DISARM=PASS'
       - name: Locked public asset install with lifecycle scripts disabled
         shell: pwsh
         env:
@@ -60,7 +79,7 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $src=Join-Path $env:GITHUB_WORKSPACE 'product'
-          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or (& git -C $src rev-parse HEAD).Trim() -cne '9fe979ec4b5da128a174b777d658461fd492d46e' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'ca6c13628f678093ede20831e206800ddbd2d1ec'){throw 'W87_SOURCE_OR_HOST_DRIFT'}
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or (& git -C $src rev-parse HEAD).Trim() -cne '671198f2336e410c98ef764603455a51c08d16b0' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'f75c8d45689e68cf2e582fe4679b841e9c9f352e'){throw 'W87_SOURCE_OR_HOST_DRIFT'}
           if(Test-Path (Join-Path $src '.env')){throw 'W87_DOTENV_REFUSED'}
           & node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w87/Audit-Shipped-Dependencies.cjs') $src
           if($LASTEXITCODE -ne 0){throw 'W87_LOCKED_SHIPPING_JAVASCRIPT_AUDIT_FAILED'}
