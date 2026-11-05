@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664
+          ref: 671198f2336e410c98ef764603455a51c08d16b0
           path: source
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -43,19 +43,32 @@ jobs:
           $src=Join-Path $env:GITHUB_WORKSPACE 'source'
           $q=Join-Path $env:GITHUB_WORKSPACE 'witness'
           if((& git -C $q rev-parse HEAD).Trim() -cne $env:GITHUB_SHA -or
-             (& git -C $src rev-parse HEAD).Trim() -cne '1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664' -or
-             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '7143f2fa49b2027bb60d8d5106c632b2aa0c230d' -or
+             (& git -C $src rev-parse HEAD).Trim() -cne '671198f2336e410c98ef764603455a51c08d16b0' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -or
              @(& git -C $src status --porcelain).Count -ne 0){throw 'PR244_PERF_EXACT_CLEAN_SOURCE_REQUIRED'}
           if((Get-Content (Join-Path $src 'windows/Go-Toolchain.version') -Raw).Trim() -cne 'go1.26.10'){throw 'PR244_PERF_TOOLCHAIN_DRIFT'}
           if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}' -or (Test-Path (Join-Path $src '.env'))){throw 'PR244_PERF_LIVE_OR_SECRET_REFUSED'}
           if((& git -C $src rev-parse 'HEAD:cmd/ktrade/w80_compile_performance_full_test.go').Trim() -cne '27f9892c6961e4d64feac418f53b69074d5267a5'){throw 'PR244_PERF_ORIGINAL_FROZEN_BUDGETS_CHANGED'}
           foreach($obj in @(
-            @{path='qualification-receipts/ktrade-pr244-source-windows-verification-20261103.json';sha='1913e555ab83e49a26a754758011daef17ecb758'},
-            @{path='qualification-receipts/ktrade-pr244-exact-installed-native-windows-20261103.json';sha='a0af626306a31f0c86863cbf77c2b96ca5a2bdef'},
-            @{path='qualification-receipts/ktrade-pr244-exact-risk-matrix-windows-20261104.json';sha='9a630db7c0f258588f01923688a1f4341a4e233c'},
-            @{path='qualification-receipts/ktrade-pr244-current-go-security-scan-windows-20261104.json';sha='6c8c08909a005c3a35cbb9b8b287fb7b5e7ff66b'}
+            @{path='qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json';sha='7eb9024615af7a076611caff6306a4749f46bcb0';verdict='PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION'},
+            @{path='qualification-receipts/ktrade-pr244-pine-cold-reopen-repeatability-windows-20261105.json';sha='6d9d69001c40b2999fb4095652ae55393d2ff70a';verdict='PASS_TWO_NATIVE_CANDIDATE_SESSIONS_WITH_STRICT_PINE_V5_V6_PHYSICAL_MARKERS'},
+            @{path='qualification-receipts/ktrade-pr244-current-head-risk-matrix-windows-20261105.json';sha='94e07ed49197869f77ab9b8ee7933f654c85011f';verdict='PASS_EXACT_HEAD_ORIGINAL_PAPER_AND_MOCK_BROKER_RACE_MATRIX'},
+            @{path='qualification-receipts/ktrade-pr244-current-head-go-reachability-security-20261105.json';sha='99f4b3b3b31be09a4817f58feb8c3e1f669fc7e2';verdict='PASS_EXACT_CURRENT_SHA_GO_ENGINE_AND_WAILS_ZERO_KNOWN_REACHABLE_SYMBOLS'}
           )){
             if((& git -C $q rev-parse ('HEAD:'+$obj.path)).Trim() -cne $obj.sha){throw ('PR244_PERF_PREREQUISITE_RECEIPT_CHANGED_'+$obj.path)}
+            $receipt=Get-Content -LiteralPath (Join-Path $q $obj.path) -Raw|ConvertFrom-Json
+            if($receipt.verdict -cne $obj.verdict -or $receipt.source.head_sha -cne '671198f2336e410c98ef764603455a51c08d16b0'){
+              throw ('PR244_PERF_WRONG_SOURCE_RECEIPT_'+$obj.path)
+            }
+          }
+          $sourceReceipt=Get-Content -LiteralPath (Join-Path $q 'qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json') -Raw|ConvertFrom-Json
+          if($sourceReceipt.source.tree -cne 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -or
+             $sourceReceipt.qualification.workflow_run_id -ne 41994140128 -or
+             $sourceReceipt.qualification.node_tests.passed -ne 199 -or
+             $sourceReceipt.qualification.node_tests.failed -ne 0 -or
+             $sourceReceipt.qualification.node_tests.skipped -ne 0 -or
+             $sourceReceipt.qualification.run_conclusion -cne 'success'){
+             throw 'PR244_PERF_FULL_SOURCE_WINDOWS_BUDGET_FOUNDATION_UNVERIFIED'
           }
           Write-Host '::notice::PR244_PERF_EXACT_SOURCE_ORIGINAL_FROZEN_BUDGETS_AND_PREVIOUS_CI=PASS'
       - uses: actions/setup-go@v5
@@ -104,5 +117,5 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $src=Join-Path $env:GITHUB_WORKSPACE 'source'
-          if((& git -C $src rev-parse HEAD).Trim() -cne '1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664' -or @(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'PR244_PERF_FINAL_SOURCE_CHANGED'}
+          if((& git -C $src rev-parse HEAD).Trim() -cne '671198f2336e410c98ef764603455a51c08d16b0' -or @(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'PR244_PERF_FINAL_SOURCE_CHANGED'}
           Write-Host '::notice::PR244_PERF_NO_OWNER_DATA_BROKER_ORDERS_LIVE_OR_RELEASE'
