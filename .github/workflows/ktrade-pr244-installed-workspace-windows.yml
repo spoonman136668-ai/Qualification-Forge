@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   native-ingress:
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 40
     env:
       GOWORK: 'off'
@@ -51,6 +51,23 @@ jobs:
           $ErrorActionPreference='Stop'
           function Need([bool]$x,[string]$s){if(!$x){throw $s}}
           Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and $env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'PR244_ISOLATED_WINDOWS_REQUIRED'
+          $hostOS=Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+          Need ($hostOS.Caption -match 'Windows Server 2025' -and [int]$hostOS.BuildNumber -ge 26100) 'PR244_SECOND_WINDOWS_IMAGE_NOT_OBSERVED'
+          $dpiApi=@'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class KTradeHostDisplay {
+            [DllImport("user32.dll")] public static extern uint GetDpiForSystem();
+            [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index);
+          }
+          '@
+          Add-Type -TypeDefinition $dpiApi -ErrorAction Stop
+          $dpi=[KTradeHostDisplay]::GetDpiForSystem()
+          $width=[KTradeHostDisplay]::GetSystemMetrics(0)
+          $height=[KTradeHostDisplay]::GetSystemMetrics(1)
+          Need ($dpi -ge 96 -and $dpi -le 480 -and $width -ge 800 -and $height -ge 600) 'PR244_HOST_DISPLAY_CONTEXT_UNAVAILABLE'
+          Write-Host ('PR244_WINDOWS_2025_HOST_CONTEXT='+(@{os_caption=$hostOS.Caption;os_build=[int]$hostOS.BuildNumber;runner_image=$env:ImageOS;system_dpi=[int]$dpi;desktop_width=$width;desktop_height=$height;scope='separate_hosted_Windows_2025_build_and_system_display_context_not_operator_HiDPI'}|ConvertTo-Json -Compress))
+          Write-Host '::notice::PR244_SECOND_WINDOWS_OS_IMAGE_AND_DISPLAY_CONTEXT=PASS'
           $p=Join-Path $env:GITHUB_WORKSPACE 'product'
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
           Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq 'f75c8d45689e68cf2e582fe4679b841e9c9f352e') 'PR244_EXACT_TREE_DRIFT'
@@ -304,4 +321,6 @@ jobs:
           $nativeCold=@($lines|Where-Object {$_ -ceq '::notice::W83_NATIVE_RECHECK_WEBVIEW2_AND_PAPER_STOPPED=PASS'})
           if($markers.Count -ne 2 -or $nativeCold.Count -ne 1){throw 'PR244_TWO_INDEPENDENT_NATIVE_MARKER_SESSIONS_REQUIRED'}
           Write-Host '::notice::PR244_EXACT_COLD_REOPEN_MARKER_V5_V6_REPEATABILITY_TWO_PROCESSES=PASS'
+          if($env:ImageOS -notmatch '^win25'){throw 'PR244_WINDOWS_2025_RUNNER_IMAGE_NOT_RECORDED'}
+          Write-Host '::notice::PR244_SEPARATE_WINDOWS_2025_NATIVE_PINE_AND_PAPER=PASS'
           Write-Host '::notice::PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS'
