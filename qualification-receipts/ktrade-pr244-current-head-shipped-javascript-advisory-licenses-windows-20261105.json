@@ -1,0 +1,289 @@
+{
+  "schema": "ktrade.pr244.current-head-shipped-js-advisory-license-inventory.v1",
+  "verdict": "PASS_EXACT_SOURCE_SHIPPED_JAVASCRIPT_ADVISORIES_ZERO_AND_LICENSE_ASSET_INTEGRITY",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "draft_pr": 244,
+    "head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "tree_sha": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "go_node_full_windows_source_ci": {
+      "run": 41994140128,
+      "node_cases": 199
+    },
+    "source_receipt_blob": "7eb9024615af7a076611caff6306a4749f46bcb0",
+    "wails_repeat_receipt_blob": "6f34de30267f2995346fedff9ae6976c4a2c788a",
+    "product_source_unchanged": true
+  },
+  "qualifier": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "draft_pr": 72,
+    "workflow_path": ".github/workflows/ktrade-w87-shipping-javascript-audit-windows.yml",
+    "workflow_commit": "8eb3bcab7f77f3a3c14d400322c44cd450705842",
+    "workflow_blob": "eec17ef91d0b1e2d604a72581b88e377ace9f8cd",
+    "original_readonly_advisory_reducer_blob": "cf93fbe419f0fd04d1525f16a0d15ae9e903eeb0",
+    "run_id": 42032310783,
+    "job_id": 127261561541,
+    "run_attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "all_reported_steps_successful": true,
+    "url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42032310783",
+    "host": "GitHub-hosted Windows 2022",
+    "node_version": "24"
+  },
+  "original_assets_and_negative_tests": {
+    "locked_npm_ci_ignore_scripts": true,
+    "staging_property_tests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "asset_manifest_stable_across_two_stages": true,
+    "asset_manifest_files": 118,
+    "asset_file_sha256_checks": "PASS",
+    "manifest_self_inclusion_refused": true,
+    "generated_assets_only_tracked_source_clean": true
+  },
+  "actual_public_registry_audit": {
+    "shipping_nodes": [
+      {
+        "key": "node_modules/monaco-editor",
+        "version": "0.45.0"
+      },
+      {
+        "key": "node_modules/lightweight-charts",
+        "version": "4.1.0"
+      },
+      {
+        "key": "node_modules/fancy-canvas",
+        "version": "2.1.0"
+      }
+    ],
+    "shipping_affected": [],
+    "shipping_affected_count": 0,
+    "legacy_build_nonshipping_advisories": {
+      "count": 13,
+      "vulnerability_counts": {
+        "info": 0,
+        "low": 0,
+        "moderate": 3,
+        "high": 9,
+        "critical": 1,
+        "total": 13
+      },
+      "affected_packages": [
+        {
+          "name": "app-builder-lib",
+          "severity": "high",
+          "advisory_ids": [
+            1124279
+          ]
+        },
+        {
+          "name": "builder-util",
+          "severity": "high",
+          "advisory_ids": []
+        },
+        {
+          "name": "builder-util-runtime",
+          "severity": "high",
+          "advisory_ids": [
+            1124278
+          ]
+        },
+        {
+          "name": "config-file-ts",
+          "severity": "moderate",
+          "advisory_ids": []
+        },
+        {
+          "name": "dmg-builder",
+          "severity": "high",
+          "advisory_ids": []
+        },
+        {
+          "name": "electron",
+          "severity": "high",
+          "advisory_ids": [
+            1107272,
+            1116041,
+            1116045,
+            1116049,
+            1116053,
+            1116057,
+            1116060,
+            1116064,
+            1116068,
+            1116072,
+            1116076,
+            1116084,
+            1116088,
+            1116092,
+            1116259,
+            1116320,
+            1117459,
+            1136551,
+            1136552,
+            1136559,
+            1136560,
+            1136567,
+            1136571,
+            1136575,
+            1136579,
+            1136590,
+            1136597,
+            1136607,
+            1136634,
+            1136647,
+            1136651,
+            1136659,
+            1239973,
+            1239977,
+            1239981,
+            1240060,
+            1241657,
+            1242756,
+            1242835,
+            1242839,
+            1242843,
+            1242850,
+            1242854,
+            1242858,
+            1243069
+          ]
+        },
+        {
+          "name": "electron-builder",
+          "severity": "high",
+          "advisory_ids": []
+        },
+        {
+          "name": "electron-builder-squirrel-windows",
+          "severity": "high",
+          "advisory_ids": []
+        },
+        {
+          "name": "electron-publish",
+          "severity": "high",
+          "advisory_ids": []
+        },
+        {
+          "name": "extract-zip",
+          "severity": "high",
+          "advisory_ids": [
+            1139346,
+            1193685
+          ]
+        },
+        {
+          "name": "glob",
+          "severity": "moderate",
+          "advisory_ids": [
+            1244013
+          ]
+        },
+        {
+          "name": "minimatch",
+          "severity": "moderate",
+          "advisory_ids": [
+            1244623
+          ]
+        },
+        {
+          "name": "tar",
+          "severity": "critical",
+          "advisory_ids": [
+            1112659,
+            1113300,
+            1113375,
+            1114200,
+            1114302,
+            1114680,
+            1120782,
+            1123939,
+            1123940,
+            1123941,
+            1123942,
+            1145647
+          ]
+        }
+      ]
+    },
+    "npm_metadata_dependencies": {
+      "prod": 18,
+      "dev": 320,
+      "optional": 33,
+      "peer": 34,
+      "peerOptional": 0,
+      "total": 337
+    }
+  },
+  "actual_registry_tarballs_and_shipped_licenses": {
+    "verified_exact_integrity_locks": true,
+    "inventory": [
+      {
+        "package": "node_modules/monaco-editor",
+        "version": "0.45.0",
+        "licenses": [
+          {
+            "path": "package/LICENSE",
+            "bytes": 1098,
+            "sha256": "33e4ff1a06ef62ba21788ea162564ee8165269a24a9ce6ef301837447eab0ac6"
+          },
+          {
+            "path": "package/ThirdPartyNotices.txt",
+            "bytes": 63064,
+            "sha256": "790537262fc78a764e121e6b92b959bcd3f5c310b47d9d9b9e92e17fe0af5336"
+          }
+        ],
+        "root_notices_shipped": 2,
+        "upstream_fallback": null
+      },
+      {
+        "package": "node_modules/lightweight-charts",
+        "version": "4.1.0",
+        "licenses": [
+          {
+            "path": "package/LICENSE",
+            "bytes": 11347,
+            "sha256": "70c9d5382506dd184465425c08a99ad9bd6d9ac1313c252968ba0b585e5ef823"
+          }
+        ],
+        "root_notices_shipped": 1,
+        "upstream_fallback": null
+      },
+      {
+        "package": "node_modules/fancy-canvas",
+        "version": "2.1.0",
+        "licenses": [],
+        "root_notices_shipped": 0,
+        "upstream_fallback": {
+          "url": "https://raw.githubusercontent.com/tradingview/fancy-canvas/7ece7601f05b624496f485cee65789ad691427df/LICENSE",
+          "sha256": "52d2ba0c8f8f4532bd524358d679693ff3dd9e40c56fe0c0c63061ed0733aa18",
+          "shipped": true,
+          "reason": "published npm2.1.0 omits license"
+        }
+      }
+    ],
+    "source": "Original W87 job output SRI verified npm tarballs and staged license/notice SHA256; no code extraction or executable install scripts"
+  },
+  "scopes": {
+    "shipped_js_security_only": "PASS_SCOPED",
+    "legacy_build_graph_critical_advisory_present": true,
+    "legacy_build_graph_safe": "NOT_CLAIMED",
+    "future_or_unreported_security": "UNVERIFIED",
+    "Windows11_HiDPI": "UNVERIFIED",
+    "final_24h_soak": "DEFERRED",
+    "owner_data_access": false,
+    "real_broker_order": false,
+    "live_trading_armed": false,
+    "main_merge": "HOLD",
+    "production_signing_distribution": "HOLD",
+    "release": "HOLD"
+  },
+  "provenance": {
+    "decoded_original_job_log_bytes": 47549,
+    "run_head_sha": "8eb3bcab7f77f3a3c14d400322c44cd450705842",
+    "source_head": "671198f2336e410c98ef764603455a51c08d16b0",
+    "receipt_only_commit_does_not_replace_executing_workflow_sha": true
+  }
+}
