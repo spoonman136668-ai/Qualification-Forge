@@ -1,0 +1,157 @@
+{
+  "schema": "ktrade.rb3.pr244.current-candidate.17-pr-mainline-integration-readiness.v1",
+  "verdict": "PASS_READ_ONLY_EXACT_STACK_TOPOLOGY_AND_TREE_SCOPE__MERGE_AND_RELEASE_HOLD",
+  "product": {
+    "repository": "spoonman136668-ai/ktrade",
+    "main_commit": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "main_tree": "8b43e35338f9be645a9fbb5a79f14c3c6ab328e3",
+    "main_is_protected": false,
+    "current_candidate_commit": "671198f2336e410c98ef764603455a51c08d16b0",
+    "current_candidate_tree": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "draft_pr": 244,
+    "source_ci_run": 41994140128,
+    "source_ci_job": 127133130434,
+    "source_ci_conclusion": "success",
+    "source_ci_node_tests": 199
+  },
+  "stack": {
+    "first_pr": 228,
+    "last_pr": 244,
+    "count": 17,
+    "all_open": true,
+    "all_draft": true,
+    "all_reported_mergeable": true,
+    "exact_parent_chain_verified": true,
+    "all_prs_tied_to_original_main": true,
+    "entries": [
+      {
+        "pr": 228,
+        "head": "365a7085ccd86c3f917206fe2569aba51f00d8d0",
+        "base": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58"
+      },
+      {
+        "pr": 229,
+        "head": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+        "base": "365a7085ccd86c3f917206fe2569aba51f00d8d0"
+      },
+      {
+        "pr": 230,
+        "head": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+        "base": "cea559a5abc0136d1ca0dff16c313f8dac0477f2"
+      },
+      {
+        "pr": 231,
+        "head": "2773c8eb8e840a0eb0a6524820d394f5a35a925f",
+        "base": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e"
+      },
+      {
+        "pr": 232,
+        "head": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4",
+        "base": "2773c8eb8e840a0eb0a6524820d394f5a35a925f"
+      },
+      {
+        "pr": 233,
+        "head": "42bf2c698d15da43632540959f9a5eea3999158b",
+        "base": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4"
+      },
+      {
+        "pr": 234,
+        "head": "db79330ffee632b66c5e17b4a60d29c421febbab",
+        "base": "42bf2c698d15da43632540959f9a5eea3999158b"
+      },
+      {
+        "pr": 235,
+        "head": "3901f737474f8fb5428dbb0d77a14fcb53d68d89",
+        "base": "db79330ffee632b66c5e17b4a60d29c421febbab"
+      },
+      {
+        "pr": 236,
+        "head": "504b28f07a24882470b847ff014391104f78bd66",
+        "base": "3901f737474f8fb5428dbb0d77a14fcb53d68d89"
+      },
+      {
+        "pr": 237,
+        "head": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc",
+        "base": "504b28f07a24882470b847ff014391104f78bd66"
+      },
+      {
+        "pr": 238,
+        "head": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+        "base": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc"
+      },
+      {
+        "pr": 239,
+        "head": "72f7b5aa75ece04be0d59e6449c052d2753f468d",
+        "base": "fcb9bd0066d2aef1c4aef33f95819c5aea368015"
+      },
+      {
+        "pr": 240,
+        "head": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+        "base": "72f7b5aa75ece04be0d59e6449c052d2753f468d"
+      },
+      {
+        "pr": 241,
+        "head": "ae70c58ded58be33d5cb5f156adaf0890cc3457c",
+        "base": "50651c09f8367e66e2cdb51e69c552c866fc4313"
+      },
+      {
+        "pr": 242,
+        "head": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0",
+        "base": "ae70c58ded58be33d5cb5f156adaf0890cc3457c"
+      },
+      {
+        "pr": 243,
+        "head": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+        "base": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0"
+      },
+      {
+        "pr": 244,
+        "head": "671198f2336e410c98ef764603455a51c08d16b0",
+        "base": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b"
+      }
+    ]
+  },
+  "exact_recursive_git_blobs": {
+    "main": 6983,
+    "candidate": 7381,
+    "added": 398,
+    "modified": 49,
+    "deleted": 0,
+    "truncated": false,
+    "candidate_path_count_delta": 398,
+    "all_447_changed_paths_in_current_tree": true,
+    "source_provenance": "Fetched GitHub main and tip recursive trees; compared exact blob SHA per path without modifying either ref"
+  },
+  "source_qualification_receipts": {
+    "source_windows": "7eb9024615af7a076611caff6306a4749f46bcb0",
+    "windows_2022_native": "6d9d69001c40b2999fb4095652ae55393d2ff70a",
+    "windows_2025_native": "e06c0d6613de323480b9b2abc7dbdde709d8b9b2",
+    "paper_race_and_mock_broker": "94e07ed49197869f77ab9b8ee7933f654c85011f",
+    "go_engine_and_wails_reachability": "99f4b3b3b31be09a4817f58feb8c3e1f669fc7e2",
+    "funded_paper_force_kill": "8a3470d33a7413fa5e4270ad94b1d18183fb560e",
+    "wails_rollback_repeat": "6f34de30267f2995346fedff9ae6976c4a2c788a",
+    "shipped_js_advisory_license": "ffdbc78bf7a959525127bf9b5e0e3f438f8a380c"
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "existing_pr": 72,
+    "qualification_branch": "qualification/ktrade-original-pine-label-response-affinity-20261031",
+    "receipt_parent_qualifier_head": "3b1c8d5263ab5cf25d0e9ecda00c31fd202b090f",
+    "receipt_only": true,
+    "new_engine": false,
+    "new_ci_run": false
+  },
+  "scope": {
+    "integration_witness": "PASS_READ_ONLY",
+    "actual_main_merge": false,
+    "all_final_acceptance": "NOT_ESTABLISHED",
+    "unqualified_windows_11_hidpi": "REQUIRES_OPERATOR_REPRESENTATIVE_NATIVE_HOST",
+    "final_24_hour_soak": "DEFERRED_BY_OWNER_UNTIL_END",
+    "owner_data_migration": "NOT_AUTHORIZED",
+    "production_signing": "NOT_AUTHORIZED",
+    "live_trading": "DISARMED",
+    "source_changes": false,
+    "protection_warning": "Main is unprotected by GitHub; production promotion still requires separate verified authority and owner acceptance",
+    "release": "HOLD"
+  }
+}
