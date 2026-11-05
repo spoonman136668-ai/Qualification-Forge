@@ -175,6 +175,35 @@ jobs:
           Need ($n.Contains($applyUiAnchor) -and $n.IndexOf($applyUiAnchor) -eq $n.LastIndexOf($applyUiAnchor)) 'PR244_PINE_APPLIED_UI_ANCHOR_DRIFT'
           $n=$n.Replace($applyUiAnchor,($applyUiAnchor+[Environment]::NewLine+$applyUiCheck))
           Need ($n.Contains($applyUiCheck)) 'PR244_PINE_SUCCESS_UIA_CONTRACT_NOT_INSTALLED'
+          # Repeat strict v5/v6 chart marker proof after a second physical
+          # installed Wails/WebView2 process launch, post PAPER cold-stop.
+          # The original pixel, geometry and safe capability thresholds stay.
+          $coldAnchor=' SettingsCold $script:active $new.candidate_directory'
+          $pidCapture=@'
+            $firstCandidateShellPid=[int]$script:active.shell.Id
+            $firstCandidateEnginePid=[int]$script:active.enginePid
+          '@
+          $recheckAnchor=' $newHashes=Hashes (Join-Path $new.candidate_directory ''data'')'
+          $recheckProbe=@'
+            $script:active=StartInstalled $newMaint $new 'RECHECK'
+            Require ([int]$script:active.shell.Id -ne $firstCandidateShellPid -and [int]$script:active.enginePid -ne $firstCandidateEnginePid) 'PR244_RECHECK_MUST_BE_NEW_NATIVE_PROCESS'
+            $recheckPorts=@(Get-NetTCPConnection -OwningProcess $script:active.enginePid -State Listen | Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+            Require ($recheckPorts.Count -eq 1) 'PR244_RECHECK_LOOPBACK_PORT_DRIFT'
+            $recheckOrigin='http://127.0.0.1:'+$recheckPorts[0].LocalPort
+            SettingsDisarmed $recheckOrigin
+            MarkerNative $script:active.shell $recheckOrigin
+            SettingsDisarmed $recheckOrigin
+            Write-Host ('PR244_NATIVE_RECHECK_PROCESS_IDENTITY='+(@{new_shell_pid=[int]$script:active.shell.Id;new_engine_pid=[int]$script:active.enginePid;previous_shell_pid=$firstCandidateShellPid;previous_engine_pid=$firstCandidateEnginePid;scope='second_installed_candidate_process_in_same_disposable_runner'}|ConvertTo-Json -Compress))
+            StopInstalled $script:active;$script:active=$null
+            Write-Host '::notice::PR244_REAL_COLD_REOPEN_NATIVE_V5_V6_MARKERS=PASS'
+          '@
+          Need ($n.Contains($coldAnchor) -and $n.IndexOf($coldAnchor) -eq $n.LastIndexOf($coldAnchor) -and
+            $n.Contains($recheckAnchor) -and $n.IndexOf($recheckAnchor) -eq $n.LastIndexOf($recheckAnchor) -and
+            $n.Contains('function MarkerNative([object]$shell,[string]$origin)')) 'PR244_COLD_REOPEN_ANCHOR_DRIFT'
+          $n=$n.Replace($coldAnchor,($pidCapture+[Environment]::NewLine+$coldAnchor))
+          $n=$n.Replace($recheckAnchor,($recheckProbe+[Environment]::NewLine+$recheckAnchor))
+          Need ($n.Contains('PR244_REAL_COLD_REOPEN_NATIVE_V5_V6_MARKERS=PASS') -and
+            $n.Contains('PR244_RECHECK_MUST_BE_NEW_NATIVE_PROCESS')) 'PR244_COLD_REOPEN_WITNESS_NOT_INSTALLED'
           # Observability-only: no relaxation of native UI wait, pixel or PAPER checks.
           $uiAnchor=' throw (''W83_NATIVE_UI_NOT_OBSERVED_''+$label)'
           $uiProbe=@'
@@ -268,7 +297,11 @@ jobs:
           & (Join-Path $env:RUNNER_TEMP 'Build-And-Qualify-PR244.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:RUNNER_TEMP 'Installed-Viewport-Lifecycle-PR244.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1') -CandidateQualifiedBundleRoot $env:BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:BUNDLE_SHA *>&1 | Tee-Object -FilePath $out
           if($LASTEXITCODE -ne 0 -or !$?){throw 'PR244_ORIGINAL_INSTALLED_NATIVE_FAILED'}
           $lines=@(Get-Content $out)
-          foreach($marker in @('::notice::PR244_INSTALLED_WORKSPACE_ORIGIN_LIMIT_STATE_AND_VALID_FORMS=PASS','::notice::PR244_INSTALLED_PINE_OVERLAY_REFUSAL_NO_WORKSPACE_MUTATION=PASS','::notice::PR244_INSTALLED_PINE_EDITOR_REFUSAL_AND_SAME_ORIGIN_VALID=PASS','::notice::W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS','::notice::W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS','::notice::W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS','::notice::PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS')){
+          foreach($marker in @('::notice::PR244_INSTALLED_WORKSPACE_ORIGIN_LIMIT_STATE_AND_VALID_FORMS=PASS','::notice::PR244_INSTALLED_PINE_OVERLAY_REFUSAL_NO_WORKSPACE_MUTATION=PASS','::notice::PR244_INSTALLED_PINE_EDITOR_REFUSAL_AND_SAME_ORIGIN_VALID=PASS','::notice::W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS','::notice::W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS','::notice::W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS','::notice::PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS','::notice::PR244_REAL_COLD_REOPEN_NATIVE_V5_V6_MARKERS=PASS')){
             if(@($lines|Where-Object {$_ -ceq $marker}).Count -ne 1){throw ('PR244_NATIVE_EVIDENCE_MISSING_'+$marker)}
           }
+          $markers=@($lines|Where-Object {$_ -ceq '::notice::PINE_MARKER_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_BOTH_ARROW_COLOR_OBSERVATION=PASS'})
+          $nativeCold=@($lines|Where-Object {$_ -ceq '::notice::W83_NATIVE_RECHECK_WEBVIEW2_AND_PAPER_STOPPED=PASS'})
+          if($markers.Count -ne 2 -or $nativeCold.Count -ne 1){throw 'PR244_TWO_INDEPENDENT_NATIVE_MARKER_SESSIONS_REQUIRED'}
+          Write-Host '::notice::PR244_EXACT_COLD_REOPEN_MARKER_V5_V6_REPEATABILITY_TWO_PROCESSES=PASS'
           Write-Host '::notice::PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS'
