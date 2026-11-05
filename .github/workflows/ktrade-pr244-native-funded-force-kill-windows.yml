@@ -22,7 +22,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: 2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105
+      KTRADE_EXPECTED_SOURCE: 671198f2336e410c98ef764603455a51c08d16b0
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105
+          ref: 671198f2336e410c98ef764603455a51c08d16b0
           path: product
           fetch-depth: 0
           persist-credentials: false
@@ -53,29 +53,29 @@ jobs:
           Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and $env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'PR244_ISOLATED_WINDOWS_REQUIRED'
           $p=Join-Path $env:GITHUB_WORKSPACE 'product'
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
-          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq 'ef368f075cab7ac943582986d8c60d3d3acf4dce') 'PR244_EXACT_TREE_DRIFT'
+          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq 'f75c8d45689e68cf2e582fe4679b841e9c9f352e') 'PR244_EXACT_TREE_DRIFT'
           Need (@(& git -C $p status --porcelain).Count -eq 0 -and @(& git -C $w status --porcelain).Count -eq 0 -and !(Test-Path (Join-Path $p '.env'))) 'PR244_DIRTY_OR_CREDENTIAL_SOURCE'
           $config=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
           Need (!$config.api_key.key_name -and !$config.api_key.key_secret -and !$config.account_id -and !$config.ngrok_authtoken) 'PR244_TRACKED_CREDENTIALS_REFUSED'
           Need ((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw).Contains('func liveBrokerageAuthorized() bool { return false }')) 'PR244_LIVE_DISARM_REQUIRED'
           $paths=@(& git -C $p diff --name-only 4b401d5f9c3a571c5ad61c4df33a7814120a3a4b HEAD | Sort-Object)
-          $wanted=@('cmd/ktrade/main_full.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go','internal/papercustody/orphan_lease_observation.go','internal/papercustody/orphan_lease_observation_test.go','tools/wails-pilot/backend/orphan_custody_diagnostic.go','tools/wails-pilot/backend/orphan_custody_diagnostic_test.go','tools/wails-pilot/cmd/orphan-custody-report/main.go','tools/wails-pilot/cmd/orphan-custody-report/main_test.go')|Sort-Object
-          Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_TWELVE_PATH_EXACT_SOURCE_DRIFT'
-          $receiptPath='qualification-receipts/ktrade-pr244-orphan-operator-report-source-windows-20261104.json'
-          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '3cedad0ce461ff4b34dc2db74b2212b54c21d69f') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
+          $wanted=@('.github/workflows/ktrade-native-windows.yml','cmd/ktrade/main_full.go','cmd/ktrade/pine_hline_transport_full_test.go','cmd/ktrade/pine_shape_transport_full_test.go','cmd/ktrade/rb3_pine_editor_ingress_full.go','cmd/ktrade/rb3_pine_editor_ingress_full_test.go','cmd/ktrade/rb3_pine_overlay_ingress_full_test.go','cmd/ktrade/rb3_w32c_overlay_full_test.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','internal/papercustody/orphan_lease_observation.go','internal/papercustody/orphan_lease_observation_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go','tools/wails-pilot/backend/orphan_custody_diagnostic.go','tools/wails-pilot/backend/orphan_custody_diagnostic_test.go','tools/wails-pilot/cmd/orphan-custody-report/main.go','tools/wails-pilot/cmd/orphan-custody-report/main_test.go','templates/chart.tmpl','tests/rb3_pine_marker_attachment_failclosed.test.cjs','windows/Build-KTRADE-OrphanCustodyReview.ps1')|Sort-Object
+          Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_TWENTY_TWO_PATH_EXACT_SOURCE_DRIFT'
+          $receiptPath='qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json'
+          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '7eb9024615af7a076611caff6306a4749f46bcb0') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
           $receipt=Get-Content (Join-Path $w $receiptPath) -Raw|ConvertFrom-Json
-          Need ($receipt.verdict -ceq 'PASS_SCOPED_EXACT_SHA_SOURCE_NATIVE_WINDOWS_GO_WAILS_NODE_PACKAGE' -and $receipt.product.sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.product.tree -ceq 'ef368f075cab7ac943582986d8c60d3d3acf4dce' -and $receipt.qualification.run_id -eq 41877520793 -and $receipt.qualification.job_id -eq 126740918536 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.qualification.node_tests.passed -eq 193) 'PR244_SOURCE_CI_NOT_VERIFIED'
+          Need ($receipt.verdict -ceq 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -and $receipt.source.head_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.source.tree -ceq 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -and $receipt.qualification.workflow_run_id -eq 41994140128 -and $receipt.qualification.job_id -eq 127133130434 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.qualification.node_tests.passed -eq 199 -and $receipt.qualification.node_tests.failed -eq 0 -and $receipt.qualification.node_tests.skipped -eq 0) 'PR244_SOURCE_CI_NOT_VERIFIED'
           $builderRel='qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR243.ps1'
           $nativeRel='qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR243.ps1'
           Need ((& git -C $w rev-parse ('HEAD:'+$builderRel)).Trim() -ceq '57adfe95974b14d0be92b1a7f354e119ce44044c' -and (& git -C $w rev-parse ('HEAD:'+$nativeRel)).Trim() -ceq '6bbe4cb1cdc1c14417fbde22d42ec1a1b52d40a4') 'PR244_INHERITED_HARNESS_BLOB_DRIFT'
           $b=Get-Content (Join-Path $w $builderRel) -Raw
           $oldPair="sha='4b401d5f9c3a571c5ad61c4df33a7814120a3a4b';tree='0d8257297d53a8edd4a40b4099f102106619b2a2'"
-          $newPair="sha='2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105';tree='ef368f075cab7ac943582986d8c60d3d3acf4dce'"
+          $newPair="sha='671198f2336e410c98ef764603455a51c08d16b0';tree='f75c8d45689e68cf2e582fe4679b841e9c9f352e'"
           Need ($b.Contains($oldPair)) 'PR244_BUILDER_PIN_MISSING'
           $b=$b.Replace($oldPair,$newPair)
           $n=Get-Content (Join-Path $w $nativeRel) -Raw
           $oldPin='$NewSHA=''4b401d5f9c3a571c5ad61c4df33a7814120a3a4b'''
-          $newPin='$NewSHA=''2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105'''
+          $newPin='$NewSHA=''671198f2336e410c98ef764603455a51c08d16b0'''
           $start='function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){'
           $insert='  SettingsWarm $shell $origin'
           Need ($n.Contains($oldPin) -and $n.Contains($start) -and $n.Contains($insert)) 'PR244_NATIVE_ANCHORS_MISSING'
@@ -131,13 +131,32 @@ jobs:
           $helper='qualification-harness/ktrade-pr244-crash/Prepare-Funded-Force-Kill.ps1'
           Need ((& git -C $w rev-parse ('HEAD:'+$helper)).Trim() -ceq '0c1d228e8b4dd5a167c37fee76747069b7ee14cb') 'PR244_CRASH_DERIVATION_HELPER_DRIFT'
           foreach($r in @(
-            @{path='qualification-receipts/ktrade-pr244-exact-risk-matrix-windows-20261104.json';sha='9a630db7c0f258588f01923688a1f4341a4e233c'},
-            @{path='qualification-receipts/ktrade-pr244-current-go-security-scan-windows-20261104.json';sha='6c8c08909a005c3a35cbb9b8b287fb7b5e7ff66b'},
-            @{path='qualification-receipts/ktrade-pr244-original-pine-performance-windows-20261104.json';sha='72bbc1cb5294b062a2b168872cb048464bd311ed'}
+            @{path='qualification-receipts/ktrade-pr244-current-head-risk-matrix-windows-20261105.json';sha='94e07ed49197869f77ab9b8ee7933f654c85011f';verdict='PASS_EXACT_HEAD_ORIGINAL_PAPER_AND_MOCK_BROKER_RACE_MATRIX'},
+            @{path='qualification-receipts/ktrade-pr244-current-head-go-reachability-security-20261105.json';sha='99f4b3b3b31be09a4817f58feb8c3e1f669fc7e2';verdict='PASS_EXACT_CURRENT_SHA_GO_ENGINE_AND_WAILS_ZERO_KNOWN_REACHABLE_SYMBOLS'},
+            @{path='qualification-receipts/ktrade-pr244-pine-cross-windows-2025-native-windows-20261105.json';sha='e06c0d6613de323480b9b2abc7dbdde709d8b9b2';verdict='PASS_EXACT_HEAD_WINDOWS_SERVER_2025_TWO_NATIVE_SESSIONS'}
           )){
             Need ((& git -C $w rev-parse ('HEAD:'+$r.path)).Trim() -ceq $r.sha) ('PR244_CRASH_FINAL_CI_RECEIPT_DRIFT_'+$r.path)
+            $pinned=Get-Content (Join-Path $w $r.path) -Raw|ConvertFrom-Json
+            $pinnedSource=if($null -ne $pinned.source){$pinned.source.head_sha}else{$pinned.product.head_sha}
+            Need ($pinned.verdict -ceq $r.verdict -and $pinnedSource -ceq $env:KTRADE_EXPECTED_SOURCE) ('PR244_CRASH_RECEIPT_WRONG_CANDIDATE_'+$r.path)
           }
-          & (Join-Path $w $helper) -WitnessRoot $w -OutputRoot $env:RUNNER_TEMP
+          # Derive an ephemeral exact-head copy of the immutable original
+          # funded kill helper: change only its source/tree, never its process
+          # kill, PAPER custody checks, refused restart, or authority guards.
+          $originalHelper=(Get-Content -LiteralPath (Join-Path $w $helper) -Raw)
+          $oldHelperSource='$sourceSha=''2cfb0f34d65c4f19d3ed9dc6c29fa5931fd8b105'''
+          $newHelperSource='$sourceSha=''671198f2336e410c98ef764603455a51c08d16b0'''
+          $oldHelperTree="tree='ef368f075cab7ac943582986d8c60d3d3acf4dce'"
+          $newHelperTree="tree='f75c8d45689e68cf2e582fe4679b841e9c9f352e'"
+          Need ($originalHelper.Contains($oldHelperSource) -and $originalHelper.IndexOf($oldHelperSource) -eq $originalHelper.LastIndexOf($oldHelperSource) -and
+            $originalHelper.Contains($oldHelperTree) -and $originalHelper.IndexOf($oldHelperTree) -eq $originalHelper.LastIndexOf($oldHelperTree)) 'PR244_CRASH_DERIVATION_ANCHORS_DRIFT'
+          $derivedHelperText=$originalHelper.Replace($oldHelperSource,$newHelperSource).Replace($oldHelperTree,$newHelperTree)
+          $derivedHelper=Join-Path $env:RUNNER_TEMP 'Prepare-Funded-Force-Kill-PR244-Current.ps1'
+          [IO.File]::WriteAllText($derivedHelper,$derivedHelperText,[Text.UTF8Encoding]::new($false))
+          $tokens=$null;$parseErrors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile($derivedHelper,[ref]$tokens,[ref]$parseErrors)
+          Need ($parseErrors.Count -eq 0) 'PR244_CRASH_DERIVED_HELPER_SYNTAX_INVALID'
+          & $derivedHelper -WitnessRoot $w -OutputRoot $env:RUNNER_TEMP
           if($LASTEXITCODE -ne 0 -or !$?){throw 'PR244_CRASH_ORIGINAL_WITNESS_DERIVATION_FAILED'}
           Write-Host '::notice::PR244_CRASH_PINNED_PR244_NATIVE_SOURCE_AND_BASELINE_RECEIPTS=PASS'
       - uses: actions/setup-go@v5
