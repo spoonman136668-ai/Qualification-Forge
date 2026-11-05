@@ -1,0 +1,134 @@
+{
+  "schema": "ktrade.pr244.pine-marker-status.exact-installed-native-windows.v1",
+  "verdict": "PASS_ONE_EXACT_HEAD_INSTALLED_WINDOWS_WAILS_PAPER_UPDATE_ROLLBACK",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "tree": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "base_pr": 243,
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "changed_paths_from_pr243": 22,
+    "source_receipt_path": "qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json",
+    "source_receipt_blob": "7eb9024615af7a076611caff6306a4749f46bcb0",
+    "source_ci_run_id": 41994140128,
+    "source_ci_job_id": 127133130434,
+    "source_ci_result": "success",
+    "source_ci_node": {
+      "files": 41,
+      "cases": 199,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "qualifier": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "workflow_path": ".github/workflows/ktrade-pr244-installed-workspace-windows.yml",
+    "workflow_commit": "4a43291303a6abac5d8dc92c36c90ceb53a6504d",
+    "workflow_blob": "bf0abc2979f2a7978a2d9b40443494ce57f0bdc7",
+    "run_id": 41997020645,
+    "job_id": 127142577446,
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41997020645",
+    "run_attempt": 1,
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "original_native_child_exit_code": 0,
+    "hosted_platform": "windows-2022"
+  },
+  "original_physical_observations": {
+    "native_go_shape_count_v5": 60,
+    "native_go_shape_count_v6": 60,
+    "v5": {
+      "http_candles": 300,
+      "up_shapes": 30,
+      "down_shapes": 30,
+      "baseline_up_pixels": 0,
+      "baseline_down_pixels": 0,
+      "applied_up_pixels": 3209,
+      "applied_down_pixels": 3279,
+      "baseline_png_sha256": "b75f702948a8a6e8428e11e78c34d937a389b87451dae8f6fef41bf66030e941",
+      "applied_png_sha256": "8996a68943b304c874a0d77ccb6b12e1d8298ed6962172d37ccd956f4ee0f968",
+      "changed_frame": true,
+      "identical_chart_bounds": true
+    },
+    "v6": {
+      "http_candles": 300,
+      "up_shapes": 30,
+      "down_shapes": 30,
+      "baseline_up_pixels": 0,
+      "baseline_down_pixels": 0,
+      "applied_up_pixels": 3209,
+      "applied_down_pixels": 3279,
+      "baseline_png_sha256": "b75f702948a8a6e8428e11e78c34d937a389b87451dae8f6fef41bf66030e941",
+      "applied_png_sha256": "8996a68943b304c874a0d77ccb6b12e1d8298ed6962172d37ccd956f4ee0f968",
+      "changed_frame": true,
+      "identical_chart_bounds": true
+    },
+    "captured_screen_region": {
+      "left": 46,
+      "top": 215,
+      "width": 932,
+      "height": 241
+    },
+    "retained_screenshots": false,
+    "reason": "Logged physical sampled pixels and frame digests of actual native WebView2 chart, no DOM injection or screenshot artifact retained"
+  },
+  "observed_log_markers": {
+    "immutable_source_receipt_and_derived_native_harness": "PASS",
+    "original_unsigned_installer_exact_source_disarmed": "PASS",
+    "previous_native_webview_and_paper_stopped": "PASS",
+    "actual_installed_original_chart_renderer": "PASS",
+    "go_pine_v5_v6_compile_and_reject": "PASS",
+    "native_pine_overlay_editor_workspace_origins_limits_negative_controls": "PASS",
+    "pine_editor_source_clipboard_copyback": "PASS",
+    "pine_v5_v6_http_and_both_arrow_physical_colors": "PASS",
+    "native_pine_labels_guides_and_physical_pane": "PASS",
+    "native_time_axis_pan_zoom_viewport_preservation": "PASS",
+    "native_paper_four_fill_fifo_risk_pnl_dedup_stop": "PASS",
+    "cold_account_no_automatic_rearm": "PASS",
+    "indicator_settings_cold_reopen_and_reset": "PASS",
+    "previous_to_candidate_installed_update_and_rollback": "PASS",
+    "owner_data_live_release": "NONE",
+    "final_marker": "PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS"
+  },
+  "qualifier_contract": {
+    "prior_bug": "FindUI substring match could accept 'No Pine plots applied.' as requested 'Pine plots applied.'",
+    "correction": "Ephemeral installed witness accepts exact Pine success or explicit success-prefix followed by space; leaves original UIA/pixel/PAPER/rollback requirements intact",
+    "product_change": "Original Monaco source change clears prior success status before new async Apply",
+    "claim": "One exact SHA installed-native pass; does not establish deterministic readiness across cold starts"
+  },
+  "preserved_negative_evidence": {
+    "native_run_id": 41954221097,
+    "native_job_id": 127005116721,
+    "source_sha": "98931bed1178019fbc6fee5eab73a395a275e2f1",
+    "verdict": "FAIL_NATIVE_MARKER_PIXELS_ABSENT",
+    "go_shape_count": 60,
+    "v5_up_pixels": 0,
+    "v5_down_pixels": 0,
+    "v5_identical_captures": 5,
+    "native_repeatability_root_cause": "UNVERIFIED",
+    "other_prior_pass_at_older_SHA": {
+      "run_id": 41945460939,
+      "source_sha": "715c211edd1ff22373412868ef556c845ea40d17"
+    }
+  },
+  "scope": {
+    "single_disposable_github_hosted_native_windows_run": "PASS",
+    "source_ci_same_sha": "PASS",
+    "prior_known_fail_retained": true,
+    "deterministic_repeated_cold_start_marker_readiness": "UNVERIFIED",
+    "operator_own_windows_hidpi": "UNVERIFIED",
+    "full_24h_soak": "NOT_EXECUTED",
+    "comprehensive_program_financial_fault_matrix": "UNVERIFIED",
+    "production_install_migration": "NOT_AUTHORIZED",
+    "main_merge": "HOLD",
+    "signing_distribution": "HOLD",
+    "live_broker_orders": "DISARMED_NOT_AUTHORIZED"
+  },
+  "provenance": {
+    "method": "Original decoded Windows job logs, associated exact workflow job metadata, exact protected PR SHA/tree pinned in qualifier, immutable source Windows receipt",
+    "original_log_job_id": 127142577446,
+    "receipt_is_not_production_release": true
+  }
+}
