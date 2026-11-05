@@ -1,0 +1,103 @@
+{
+  "schema": "ktrade.pr244.current-source.paper-race-broker-faults.windows.v2",
+  "verdict": "PASS_EXACT_HEAD_ORIGINAL_PAPER_AND_MOCK_BROKER_RACE_MATRIX",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "tree": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "unmodified": true,
+    "original_source_ci": {
+      "run": 41994140128,
+      "job": 127133130434,
+      "conclusion": "success",
+      "node_cases": 199,
+      "skips": 0,
+      "full_go_wails_vet": "PASS"
+    },
+    "source_receipt_blob": "7eb9024615af7a076611caff6306a4749f46bcb0"
+  },
+  "qualifier": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "branch": "qualification/ktrade-original-pine-label-response-affinity-20261031",
+    "workflow": ".github/workflows/ktrade-pr244-exact-risk-matrix-windows.yml",
+    "workflow_commit": "77a9dfa812a8e8a9e9b3aea15bbf54231a56beaa",
+    "workflow_blob": "ca498a010dc9a9df8c6ef99b11f6b3c41e784afc",
+    "run_id": 42012945921,
+    "job_id": 127196271649,
+    "attempt": 1,
+    "runner": "github-hosted windows-2022",
+    "conclusion": "success",
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42012945921",
+    "all_steps_completed_successfully": true
+  },
+  "inputs": {
+    "windows_2022_installed_two_session": {
+      "run": 42006368574,
+      "commit": "440c7f3e6f0ef818827cd196bbd3e5b2c64f1612",
+      "receipt_blob": "6d9d69001c40b2999fb4095652ae55393d2ff70a"
+    },
+    "windows_2025_installed_two_session": {
+      "run": 42009974415,
+      "commit": "d61165ba58b96e9cdc77ff0dccc7266b856274c3",
+      "receipt_blob": "e06c0d6613de323480b9b2abc7dbdde709d8b9b2"
+    }
+  },
+  "tests": {
+    "go_race_supported_papertrading": {
+      "named_cases": 5,
+      "repetitions": 4,
+      "passes": 20
+    },
+    "go_race_supported_papercustody": {
+      "named_cases": 3,
+      "repetitions": 4,
+      "passes": 12
+    },
+    "go_race_supported_paperengine": {
+      "named_cases": 4,
+      "repetitions": 3,
+      "passes": 12
+    },
+    "paper_and_tradeguard_race_passes": 44,
+    "mock_broker_auth_custody_history": {
+      "pattern": "^TestW(4[1-9]|5[0-9]|6[0-9]|7[0-3]|82)",
+      "discovered_roots": 122,
+      "passed_roots": 122,
+      "go_race": true,
+      "required_specific_contracts_present": true
+    },
+    "failures": 0,
+    "skips": 0
+  },
+  "original_job_log_markers": [
+    "PR244_RISK_EXACT_CURRENT_SOURCE_NATIVE_AND_FULL_CI_REUSED_LIVE_DISABLED=PASS",
+    "PR244_RISK_ORIGINAL_RACE_REPEAT=PASS package=ktrade/internal/papertrading cases=5 repetitions=4",
+    "PR244_RISK_ORIGINAL_RACE_REPEAT=PASS package=ktrade/internal/papercustody cases=3 repetitions=4",
+    "PR244_RISK_ORIGINAL_RACE_REPEAT=PASS package=ktrade/internal/paperengine cases=4 repetitions=3",
+    "PR244_RISK_ALL_ORIGINAL_MOCK_BROKER_CUSTODY_AUTH_HISTORY_ROOTS_RACE=PASS roots=122",
+    "PR244_RISK_CURRENT_SUPPORTED_RUNTIME_ORIGINAL_TESTS_NO_REAL_KEYS_NO_OWNER_DATA_NO_BROKER_ORDERS_NO_LIVE_NO_RELEASE"
+  ],
+  "scope": {
+    "mock_broker_only": true,
+    "real_provider_credentials": false,
+    "owner_data": false,
+    "live_broker_orders": false,
+    "full_repeated_fault_matrix_for_selected_existing_tests": "PASS",
+    "exhaustive_all_possible_financial_faults": "UNVERIFIED",
+    "operator_windows11_hidpi": "UNVERIFIED",
+    "full_soak": "NOT_EXECUTED",
+    "shipping_go_reachability_current_database": "UNVERIFIED_PENDING",
+    "release": "HOLD",
+    "merge": "HOLD",
+    "signing": "HOLD"
+  },
+  "historical": {
+    "old_source_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "old_matrix_run": 41800656552,
+    "old_matrix_receipt_blob": "9a630db7c0f258588f01923688a1f4341a4e233c",
+    "old_result": "PASS_HISTORICAL_NOT_REUSED_FOR_NEW_SHA"
+  }
+}
