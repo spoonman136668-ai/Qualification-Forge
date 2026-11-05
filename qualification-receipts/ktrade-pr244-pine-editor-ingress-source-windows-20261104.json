@@ -1,0 +1,66 @@
+{
+  "schema": "ktrade.pr244.source-windows-full-regression.v2",
+  "verdict": "PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "head_sha": "715c211edd1ff22373412868ef556c845ea40d17",
+    "tree": "11a9d0246b35a17a4f55ac64f5f0d591c596af6d",
+    "base_pr": 243,
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "changed_paths_from_pr243": 20,
+    "changed_paths_untruncated": true
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/ktrade",
+    "workflow_run_id": 41944143276,
+    "job_id": 126972033141,
+    "run_conclusion": "success",
+    "run_attempt": 1,
+    "native_windows_full_go_wails_vet": "PASS",
+    "node_tests": {
+      "files": 40,
+      "passed": 193,
+      "failed": 0,
+      "skipped": 0
+    },
+    "locked_shipping_assets": "PASS",
+    "unsigned_six_binary_installer_scanners": "PASS",
+    "unsigned_installer_zip_sha256": "44a70395cdc2ab0b2e25ef958e6b62c773170fe2615c8dde2b1b44cb97489afb",
+    "optional_orphan_report": "PASS_READONLY_SEPARATE"
+  },
+  "engineering": {
+    "purpose": "Pine IDE cross-origin and body-bounded admission on 10 original POST routes preserving original source contract",
+    "security_commits": [
+      "caeb942270697a6d5aaf7018560c7924abc11ba6",
+      "b9d19207bf1fec62b45a9c8c55e87073034e71d0",
+      "715c211edd1ff22373412868ef556c845ea40d17"
+    ],
+    "preceding_failures": [
+      {
+        "run": 41942226821,
+        "cause": "historical route literal compatibility regression",
+        "result": "FAIL"
+      },
+      {
+        "run": 41943215987,
+        "cause": "new source test CRLF/LF inspection mismatch",
+        "result": "FAIL"
+      }
+    ],
+    "latest_exact_sha": "PASS"
+  },
+  "scope": {
+    "source_ci_only": true,
+    "installed_native_current_head": "UNVERIFIED",
+    "original_main_unchanged": true,
+    "production_installed_data": "NOT_READ",
+    "live_broker_authority": "NONE",
+    "release_authority": "NONE"
+  },
+  "provenance": {
+    "source": "Connected GitHub exact run/job outcome and original decoded job notices and entire untruncated Git tree",
+    "run_url": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41944143276",
+    "receipt_role": "Immutable source-only qualification; does not claim a production-ready workstation"
+  }
+}
