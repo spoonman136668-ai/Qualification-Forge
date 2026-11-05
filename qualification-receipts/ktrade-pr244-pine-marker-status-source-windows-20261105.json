@@ -1,0 +1,77 @@
+{
+  "schema": "ktrade.pr244.pine-marker-status-source-windows-full-regression.v1",
+  "verdict": "PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "tree": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "base_pr": 243,
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "changed_paths_from_pr243": 22,
+    "changed_paths_untruncated": true,
+    "latest_bounded_change_paths": [
+      "templates/chart.tmpl",
+      "tests/rb3_pine_marker_attachment_failclosed.test.cjs"
+    ],
+    "previous_source_sha": "98931bed1178019fbc6fee5eab73a395a275e2f1"
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/ktrade",
+    "workflow_run_id": 41994140128,
+    "job_id": 127133130434,
+    "run_attempt": 1,
+    "run_conclusion": "success",
+    "runner": "github-hosted Windows",
+    "exact_private_clean_disarmed_source": "PASS",
+    "native_windows_full_go_wails_vet": "PASS",
+    "node_tests": {
+      "files": 41,
+      "passed": 199,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "locked_shipping_assets": "PASS",
+    "unsigned_six_binary_installer_scanners": "PASS",
+    "unsigned_installer_zip_sha256": "b9b707aa0200706998732ac81b4dd408684871e275df668986ca7b18cfa3207d",
+    "optional_orphan_report": "PASS_READONLY_SEPARATE",
+    "optional_orphan_zip_sha256": "06c79dd7e1cfae013e6b947d38826ba977f1f315f99b7dc0d3fe5f29921e38ad"
+  },
+  "engineering": {
+    "purpose": "Reject Pine marker false success when chart API unavailable and invalidate prior Apply success on every original Monaco source edit before async Apply",
+    "current_test_regressions": "199 Node cases including original chart method extraction and Monaco editor change listener",
+    "preceding_native_failure": {
+      "source_sha": "98931bed1178019fbc6fee5eab73a395a275e2f1",
+      "qualification_repo": "spoonman136668-ai/Qualification-Forge",
+      "workflow_run_id": 41954221097,
+      "job_id": 127005116721,
+      "run_conclusion": "failure",
+      "native_error": "MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED",
+      "go_marker_count": 60,
+      "strict_arrow_pixels": {
+        "cyan": 0,
+        "yellow": 0
+      },
+      "screen_captures_identical": true,
+      "root_cause": "UNVERIFIED"
+    },
+    "native_witness_bug": "Existing FindUI substring matcher can treat 'No Pine plots applied.' as requested 'Pine plots applied.'; corrective guard separately required"
+  },
+  "scope": {
+    "source_ci_only": true,
+    "installed_native_current_head": "UNVERIFIED",
+    "original_main_unchanged": true,
+    "owner_data": "NOT_READ",
+    "operator_HiDPI": "UNVERIFIED",
+    "production_release": "HOLD",
+    "signing": "NOT_AUTHORIZED",
+    "live_broker_authority": "NONE",
+    "merge_authority": "NONE"
+  },
+  "provenance": {
+    "run_url": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41994140128",
+    "job_log": "Decoded exact-head job output validated source SHA/tree, all suite notice counts and hashes",
+    "witness_role": "Immutable source qualification prerequisite; not installed or release proof"
+  }
+}
