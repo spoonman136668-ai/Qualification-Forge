@@ -22,7 +22,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: a032956d895b08784f01e293347c76c1d50853dd
+      KTRADE_EXPECTED_SOURCE: 715c211edd1ff22373412868ef556c845ea40d17
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -40,7 +40,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: a032956d895b08784f01e293347c76c1d50853dd
+          ref: 715c211edd1ff22373412868ef556c845ea40d17
           path: product
           fetch-depth: 0
           persist-credentials: false
@@ -53,29 +53,29 @@ jobs:
           Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and $env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'PR244_ISOLATED_WINDOWS_REQUIRED'
           $p=Join-Path $env:GITHUB_WORKSPACE 'product'
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
-          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq 'f0272d4ce83d95450f1af416ffa5de2265eceaf4') 'PR244_EXACT_TREE_DRIFT'
+          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq '11a9d0246b35a17a4f55ac64f5f0d591c596af6d') 'PR244_EXACT_TREE_DRIFT'
           Need (@(& git -C $p status --porcelain).Count -eq 0 -and @(& git -C $w status --porcelain).Count -eq 0 -and !(Test-Path (Join-Path $p '.env'))) 'PR244_DIRTY_OR_CREDENTIAL_SOURCE'
           $config=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
           Need (!$config.api_key.key_name -and !$config.api_key.key_secret -and !$config.account_id -and !$config.ngrok_authtoken) 'PR244_TRACKED_CREDENTIALS_REFUSED'
           Need ((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw).Contains('func liveBrokerageAuthorized() bool { return false }')) 'PR244_LIVE_DISARM_REQUIRED'
           $paths=@(& git -C $p diff --name-only 4b401d5f9c3a571c5ad61c4df33a7814120a3a4b HEAD | Sort-Object)
-          $wanted=@('.github/workflows/ktrade-native-windows.yml','cmd/ktrade/main_full.go','cmd/ktrade/pine_hline_transport_full_test.go','cmd/ktrade/pine_shape_transport_full_test.go','cmd/ktrade/rb3_pine_overlay_ingress_full_test.go','cmd/ktrade/rb3_w32c_overlay_full_test.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','internal/papercustody/orphan_lease_observation.go','internal/papercustody/orphan_lease_observation_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go','tools/wails-pilot/backend/orphan_custody_diagnostic.go','tools/wails-pilot/backend/orphan_custody_diagnostic_test.go','tools/wails-pilot/cmd/orphan-custody-report/main.go','tools/wails-pilot/cmd/orphan-custody-report/main_test.go','windows/Build-KTRADE-OrphanCustodyReview.ps1')|Sort-Object
-          Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_18_PATH_DRIFT'
-          $receiptPath='qualification-receipts/ktrade-pr244-current-source-windows-verification-20261104.json'
-          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '32ff688c42976d03c10839427cce15161e92aba6') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
+          $wanted=@('.github/workflows/ktrade-native-windows.yml','cmd/ktrade/main_full.go','cmd/ktrade/pine_hline_transport_full_test.go','cmd/ktrade/pine_shape_transport_full_test.go','cmd/ktrade/rb3_pine_editor_ingress_full.go','cmd/ktrade/rb3_pine_editor_ingress_full_test.go','cmd/ktrade/rb3_pine_overlay_ingress_full_test.go','cmd/ktrade/rb3_w32c_overlay_full_test.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','internal/papercustody/orphan_lease_observation.go','internal/papercustody/orphan_lease_observation_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go','tools/wails-pilot/backend/orphan_custody_diagnostic.go','tools/wails-pilot/backend/orphan_custody_diagnostic_test.go','tools/wails-pilot/cmd/orphan-custody-report/main.go','tools/wails-pilot/cmd/orphan-custody-report/main_test.go','windows/Build-KTRADE-OrphanCustodyReview.ps1')|Sort-Object
+          Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_20_PATH_DRIFT'
+          $receiptPath='qualification-receipts/ktrade-pr244-pine-editor-ingress-source-windows-20261104.json'
+          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq 'bc38a3c860ee5af44569282f858e37bea7c3fe14') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
           $receipt=Get-Content (Join-Path $w $receiptPath) -Raw|ConvertFrom-Json
-          Need ($receipt.verdict -ceq 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -and $receipt.source.head_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.qualification.workflow_run_id -eq 41916946139 -and $receipt.qualification.job_id -eq 126879012258 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.qualification.node_tests.passed -eq 193) 'PR244_SOURCE_CI_NOT_VERIFIED'
+          Need ($receipt.verdict -ceq 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -and $receipt.source.head_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.qualification.workflow_run_id -eq 41944143276 -and $receipt.qualification.job_id -eq 126972033141 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.qualification.node_tests.passed -eq 193) 'PR244_SOURCE_CI_NOT_VERIFIED'
           $builderRel='qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR243.ps1'
           $nativeRel='qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR243.ps1'
           Need ((& git -C $w rev-parse ('HEAD:'+$builderRel)).Trim() -ceq '57adfe95974b14d0be92b1a7f354e119ce44044c' -and (& git -C $w rev-parse ('HEAD:'+$nativeRel)).Trim() -ceq '6bbe4cb1cdc1c14417fbde22d42ec1a1b52d40a4') 'PR244_INHERITED_HARNESS_BLOB_DRIFT'
           $b=Get-Content (Join-Path $w $builderRel) -Raw
           $oldPair="sha='4b401d5f9c3a571c5ad61c4df33a7814120a3a4b';tree='0d8257297d53a8edd4a40b4099f102106619b2a2'"
-          $newPair="sha='a032956d895b08784f01e293347c76c1d50853dd';tree='f0272d4ce83d95450f1af416ffa5de2265eceaf4'"
+          $newPair="sha='715c211edd1ff22373412868ef556c845ea40d17';tree='11a9d0246b35a17a4f55ac64f5f0d591c596af6d'"
           Need ($b.Contains($oldPair)) 'PR244_BUILDER_PIN_MISSING'
           $b=$b.Replace($oldPair,$newPair)
           $n=Get-Content (Join-Path $w $nativeRel) -Raw
           $oldPin='$NewSHA=''4b401d5f9c3a571c5ad61c4df33a7814120a3a4b'''
-          $newPin='$NewSHA=''a032956d895b08784f01e293347c76c1d50853dd'''
+          $newPin='$NewSHA=''715c211edd1ff22373412868ef556c845ea40d17'''
           $start='function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){'
           $insert='  SettingsWarm $shell $origin'
           Need ($n.Contains($oldPin) -and $n.Contains($start) -and $n.Contains($insert)) 'PR244_NATIVE_ANCHORS_MISSING'
@@ -131,6 +131,28 @@ jobs:
             }
             SettingsDisarmed $origin
             Write-Host '::notice::PR244_INSTALLED_PINE_OVERLAY_REFUSAL_NO_WORKSPACE_MUTATION=PASS'
+            # Real installed Go: the original Pine IDE's new single admission
+            # boundary must fail closed without touching saved workspace.
+            $editor=$origin+'/api/pine/lint'
+            $editorValid='{"code":"//@version=6\nindicator(\"Native IDE ingress\")\nplot(close)"}'
+            foreach($case in $bad){
+              $body=$case.body
+              if($case.name -in @('missing-origin','foreign-origin','cross-site','non-json','wrong-method')){$body=$editorValid}
+              $status=0
+              try{
+                $response=Invoke-WebRequest -UseBasicParsing -Method $case.method -Uri $editor -Headers $case.headers -ContentType $case.type -Body $body -TimeoutSec 20
+                $status=[int]$response.StatusCode
+              }catch{
+                if($_.Exception.Response){$status=[int]$_.Exception.Response.StatusCode}else{throw}
+              }
+              Require ($status -eq $case.want) ('PR244_INSTALLED_PINE_EDITOR_REFUSAL_'+$case.name+'_'+$status)
+              $afterEditor=Invoke-RestMethod -Method Post -Uri $save -Headers $trusted -ContentType 'application/json' -Body '{}' -TimeoutSec 12
+              Require ($afterEditor.success -eq $true -and $afterEditor.workspace.code -ceq $code) ('PR244_INSTALLED_PINE_EDITOR_MUTATED_STATE_'+$case.name)
+            }
+            $goodEditor=Invoke-WebRequest -UseBasicParsing -Method Post -Uri $editor -Headers $trusted -ContentType 'application/json' -Body $editorValid -TimeoutSec 20
+            Require ([int]$goodEditor.StatusCode -eq 200) 'PR244_INSTALLED_PINE_EDITOR_TRUSTED_REQUEST_REFUSED'
+            SettingsDisarmed $origin
+            Write-Host '::notice::PR244_INSTALLED_PINE_EDITOR_REFUSAL_AND_SAME_ORIGIN_VALID=PASS'
             $wrapped=Invoke-RestMethod -Method Post -Uri $load -Headers $trusted -ContentType 'application/json' -Body $valid -TimeoutSec 12
             Require ($wrapped.success -eq $true -and $wrapped.workspace.code -ceq 'pr244-trusted-wrapped') 'PR244_INSTALLED_WRAPPED_REFUSED'
             $raw=Invoke-RestMethod -Method Post -Uri $load -Headers $trusted -ContentType 'application/json' -Body '{"code":"pr244-trusted-raw"}' -TimeoutSec 12
@@ -233,7 +255,7 @@ jobs:
           & (Join-Path $env:RUNNER_TEMP 'Build-And-Qualify-PR244.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:RUNNER_TEMP 'Installed-Viewport-Lifecycle-PR244.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1') -CandidateQualifiedBundleRoot $env:BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:BUNDLE_SHA *>&1 | Tee-Object -FilePath $out
           if($LASTEXITCODE -ne 0 -or !$?){throw 'PR244_ORIGINAL_INSTALLED_NATIVE_FAILED'}
           $lines=@(Get-Content $out)
-          foreach($marker in @('::notice::PR244_INSTALLED_WORKSPACE_ORIGIN_LIMIT_STATE_AND_VALID_FORMS=PASS','::notice::PR244_INSTALLED_PINE_OVERLAY_REFUSAL_NO_WORKSPACE_MUTATION=PASS','::notice::W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS','::notice::W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS','::notice::W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS','::notice::PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS')){
+          foreach($marker in @('::notice::PR244_INSTALLED_WORKSPACE_ORIGIN_LIMIT_STATE_AND_VALID_FORMS=PASS','::notice::PR244_INSTALLED_PINE_OVERLAY_REFUSAL_NO_WORKSPACE_MUTATION=PASS','::notice::PR244_INSTALLED_PINE_EDITOR_REFUSAL_AND_SAME_ORIGIN_VALID=PASS','::notice::W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS','::notice::W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS','::notice::W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS','::notice::PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS')){
             if(@($lines|Where-Object {$_ -ceq $marker}).Count -ne 1){throw ('PR244_NATIVE_EVIDENCE_MISSING_'+$marker)}
           }
           Write-Host '::notice::PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS'
