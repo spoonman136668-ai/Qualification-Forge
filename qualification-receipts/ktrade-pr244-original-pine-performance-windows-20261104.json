@@ -1,0 +1,159 @@
+{
+  "schema": "ktrade.pr244.exact-head-w80-original-editor-performance.v1",
+  "verdict": "PASS_EXACT_HEAD_ORIGINAL_PINE_V5_V6_32_512_COMPILE_LATENCY_ALLOCATION_ZERO_NETWORK",
+  "product": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "tree": "7143f2fa49b2027bb60d8d5106c632b2aa0c230d",
+    "original_test_blob": "27f9892c6961e4d64feac418f53b69074d5267a5",
+    "original_test_source_unchanged_since_w82": true,
+    "product_modified_for_test": false
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "workflow": ".github/workflows/ktrade-pr244-original-compile-performance-windows.yml",
+    "workflow_blob": "c69284f4702d132c1abda03534e2b1cf01173c3d",
+    "qualifier_sha": "b5b9b416702516d74db812ab2c3671a7628c65ec",
+    "run_id": 41803473112,
+    "job_id": 126484663450,
+    "run_attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "platform": "GitHub-hosted Windows 2022",
+    "go_version": "go1.26.10",
+    "required_markers": [
+      "PR244_PERF_EXACT_SOURCE_ORIGINAL_FROZEN_BUDGETS_AND_PREVIOUS_CI=PASS",
+      "PR244_PERF_ORIGINAL_V5_V6_32_512_ASSIGNMENTS_P95_ALLOCATION_ZERO_NETWORK=PASS",
+      "PR244_PERF_NO_OWNER_DATA_BROKER_ORDERS_LIVE_OR_RELEASE"
+    ]
+  },
+  "measured": [
+    {
+      "pine_version": "5",
+      "assignments": 32,
+      "p50_ns": 70300,
+      "p95_ns": 665500,
+      "p99_ns": 1487300,
+      "p95_budget_ns": 250000000,
+      "allocated_bytes_per_compile": 184917,
+      "post_gc_heap_growth_bytes": 0,
+      "script_bytes": 905,
+      "schema": "ktrade.performance.original-editor-compile.v1",
+      "go_version": "go1.26.10",
+      "gomaxprocs": 2,
+      "network_requests": 0,
+      "samples": 120,
+      "allocation_budget_bytes": 33554432,
+      "post_gc_heap_growth_budget_bytes": 16777216,
+      "scope": "original HTTP compile handler; hosted Windows; not UI paint or long soak"
+    },
+    {
+      "pine_version": "5",
+      "assignments": 512,
+      "p50_ns": 3824000,
+      "p95_ns": 10133300,
+      "p99_ns": 13592800,
+      "p95_budget_ns": 2000000000,
+      "allocated_bytes_per_compile": 2978633,
+      "post_gc_heap_growth_bytes": 0,
+      "script_bytes": 13238,
+      "schema": "ktrade.performance.original-editor-compile.v1",
+      "go_version": "go1.26.10",
+      "gomaxprocs": 2,
+      "network_requests": 0,
+      "samples": 120,
+      "allocation_budget_bytes": 33554432,
+      "post_gc_heap_growth_budget_bytes": 16777216,
+      "scope": "original HTTP compile handler; hosted Windows; not UI paint or long soak"
+    },
+    {
+      "pine_version": "6",
+      "assignments": 32,
+      "p50_ns": 0,
+      "p95_ns": 1145800,
+      "p99_ns": 10090100,
+      "p95_budget_ns": 250000000,
+      "allocated_bytes_per_compile": 476471,
+      "post_gc_heap_growth_bytes": 0,
+      "script_bytes": 905,
+      "schema": "ktrade.performance.original-editor-compile.v1",
+      "go_version": "go1.26.10",
+      "gomaxprocs": 2,
+      "network_requests": 0,
+      "samples": 120,
+      "allocation_budget_bytes": 33554432,
+      "post_gc_heap_growth_budget_bytes": 16777216,
+      "scope": "original HTTP compile handler; hosted Windows; not UI paint or long soak"
+    },
+    {
+      "pine_version": "6",
+      "assignments": 512,
+      "p50_ns": 3527800,
+      "p95_ns": 10177800,
+      "p99_ns": 12180100,
+      "p95_budget_ns": 2000000000,
+      "allocated_bytes_per_compile": 3363284,
+      "post_gc_heap_growth_bytes": 25288,
+      "script_bytes": 13238,
+      "schema": "ktrade.performance.original-editor-compile.v1",
+      "go_version": "go1.26.10",
+      "gomaxprocs": 2,
+      "network_requests": 0,
+      "samples": 120,
+      "allocation_budget_bytes": 33554432,
+      "post_gc_heap_growth_budget_bytes": 16777216,
+      "scope": "original HTTP compile handler; hosted Windows; not UI paint or long soak"
+    }
+  ],
+  "previous_failed_attempts": [
+    {
+      "run_id": 41802866076,
+      "conclusion": "failure",
+      "cause": "PowerShell wrapper parse error invalid -cjoin; no Go test executed"
+    },
+    {
+      "run_id": 41802991962,
+      "conclusion": "failure",
+      "cause": "wrapper joined expected four named subtests into one string; Go test exited success, but wrapper failed before publishing observations"
+    }
+  ],
+  "prior_receipts": {
+    "source": {
+      "blob": "1913e555ab83e49a26a754758011daef17ecb758",
+      "run_id": 41755443367
+    },
+    "installed": {
+      "blob": "a0af626306a31f0c86863cbf77c2b96ca5a2bdef",
+      "run_id": 41759236968
+    },
+    "risk": {
+      "blob": "9a630db7c0f258588f01923688a1f4341a4e233c",
+      "run_id": 41800656552
+    },
+    "security": {
+      "blob": "6c8c08909a005c3a35cbb9b8b287fb7b5e7ff66b",
+      "run_id": 41802329580
+    }
+  },
+  "limits": {
+    "source_scope": "Original Go HTTP Pine compile handler; WebView UI paint and full app rendering excluded",
+    "baseline_comparison": "Do not infer speedup or slowdown across separate GitHub-hosted runner sessions",
+    "timing_clock": "One measurement p50 reported 0 ns due to hosted clock resolution; p95 and p99 retained unmodified",
+    "full_regression": "REUSED_PREVIOUS_EXACT_SOURCE",
+    "installed_wails": "REUSED_PREVIOUS_EXACT_SOURCE",
+    "owner_pc_hidpi": "UNVERIFIED",
+    "final_24h_soak": "NOT_RUN",
+    "mainline_merge": "HOLD",
+    "live_broker_orders": "NONE",
+    "owner_data": "NOT_TOUCHED",
+    "release_signing_deployment": "HOLD",
+    "release_acceptance": "NOT_GRANTED"
+  },
+  "provenance": {
+    "evidence": "Original Windows run conclusion and all steps + decoded job log 4 actual W80_COMPILE_MEASUREMENT observations with exact SHA receipts",
+    "qualifier_branch_parent": "b5b9b416702516d74db812ab2c3671a7628c65ec"
+  }
+}

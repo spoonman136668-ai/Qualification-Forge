@@ -1,0 +1,345 @@
+{
+  "schema": "ktrade.pr240.installed-native-viewport-qualified.v1",
+  "verdict": "PASS_SCOPE_PINNED_WINDOWS_INSTALLED_PINE_VIEWPORT_AND_PAPER_LIFECYCLE",
+  "product": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 240,
+    "source_sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+    "source_tree": "b81cf9b2711ab2bf7d6ff76aee7238ba3b033b3d",
+    "source_ci_run_id": 41628850571,
+    "source_ci_verdict": "PASS",
+    "source_node_cases": 191,
+    "product_code_changed": false
+  },
+  "qualifier": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "executing_sha": "0ade56aba788b47c98208eed8f2905b737976029",
+    "run_id": 41698404377,
+    "job_id": 126134923942,
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "workflow_blob": "45e41f08bd42c2a4714c6fc5e8f57728643059ab",
+    "native_harness_blob": "89102398ac21afc7dcbf3ffea64d4d03fe1ef959",
+    "focused_real_screenshots_run_id": 41698080849,
+    "focused_executing_sha": "4ed76ef706ece2dba1d2b6cd5646d215629a6a06",
+    "focused_conclusion": "success"
+  },
+  "navigation": {
+    "actual_physical_mouse_wheel_and_drag": true,
+    "before_axis_sha256": "39480f938c7cd1a3e73a116a147a29583942642dacce6be6265f30560aff654d",
+    "panned_axis_sha256": "dc71348966367b8700de1458786620bc48322d964cb2edf8b7c48abdb5c0f739",
+    "physical_navigation_positive_control": "PASS"
+  },
+  "native_applies": [
+    {
+      "version": 5,
+      "overlay": true,
+      "physical_compile_apply": true,
+      "original_go_source_and_response_checked": true,
+      "axis_width_px": 828,
+      "axis_height_px": 18,
+      "time_axis_before_sha256": "dc71348966367b8700de1458786620bc48322d964cb2edf8b7c48abdb5c0f739",
+      "time_axis_after_sha256": "bd9b5c7f8a1ffadcf3af526c18b1afb9c5ec4fef7ebf858f5e65b4c0b54e96c0",
+      "label_pixels": 905,
+      "matched_anchor_tick_count": 8
+    },
+    {
+      "version": 5,
+      "overlay": false,
+      "physical_compile_apply": true,
+      "original_go_source_and_response_checked": true,
+      "axis_width_px": 828,
+      "axis_height_px": 18,
+      "time_axis_before_sha256": "dc71348966367b8700de1458786620bc48322d964cb2edf8b7c48abdb5c0f739",
+      "time_axis_after_sha256": "7078a5af1948225d4dec292df13944e1fe87da6734b190c511b0bd6e0e2df32e",
+      "label_pixels": 893,
+      "matched_anchor_tick_count": 7
+    },
+    {
+      "version": 6,
+      "overlay": true,
+      "physical_compile_apply": true,
+      "original_go_source_and_response_checked": true,
+      "axis_width_px": 828,
+      "axis_height_px": 18,
+      "time_axis_before_sha256": "dc71348966367b8700de1458786620bc48322d964cb2edf8b7c48abdb5c0f739",
+      "time_axis_after_sha256": "bd9b5c7f8a1ffadcf3af526c18b1afb9c5ec4fef7ebf858f5e65b4c0b54e96c0",
+      "label_pixels": 905,
+      "matched_anchor_tick_count": 8
+    },
+    {
+      "version": 6,
+      "overlay": false,
+      "physical_compile_apply": true,
+      "original_go_source_and_response_checked": true,
+      "axis_width_px": 828,
+      "axis_height_px": 18,
+      "time_axis_before_sha256": "dc71348966367b8700de1458786620bc48322d964cb2edf8b7c48abdb5c0f739",
+      "time_axis_after_sha256": "7078a5af1948225d4dec292df13944e1fe87da6734b190c511b0bd6e0e2df32e",
+      "label_pixels": 893,
+      "matched_anchor_tick_count": 7
+    }
+  ],
+  "native_anchor_matches": [
+    {
+      "phase": "V5_OVERLAY",
+      "observed_sha256": "bd9b5c7f8a1ffadcf3af526c18b1afb9c5ec4fef7ebf858f5e65b4c0b54e96c0",
+      "reference_sha256": "dc71348966367b8700de1458786620bc48322d964cb2edf8b7c48abdb5c0f739",
+      "matched_tick_glyphs": 8,
+      "allowable_drift_px": 12,
+      "pairs": [
+        {
+          "before": 0,
+          "after": 0,
+          "drift": 0
+        },
+        {
+          "before": 82,
+          "after": 81,
+          "drift": -1
+        },
+        {
+          "before": 187,
+          "after": 187,
+          "drift": 0
+        },
+        {
+          "before": 295,
+          "after": 294,
+          "drift": -1
+        },
+        {
+          "before": 400,
+          "after": 399,
+          "drift": -1
+        },
+        {
+          "before": 507,
+          "after": 506,
+          "drift": -1
+        },
+        {
+          "before": 720,
+          "after": 719,
+          "drift": -1
+        },
+        {
+          "before": 826,
+          "after": 824,
+          "drift": -2
+        }
+      ]
+    },
+    {
+      "phase": "V5_PANE",
+      "observed_sha256": "7078a5af1948225d4dec292df13944e1fe87da6734b190c511b0bd6e0e2df32e",
+      "reference_sha256": "dc71348966367b8700de1458786620bc48322d964cb2edf8b7c48abdb5c0f739",
+      "matched_tick_glyphs": 7,
+      "allowable_drift_px": 12,
+      "pairs": [
+        {
+          "before": 82,
+          "after": 72,
+          "drift": -10
+        },
+        {
+          "before": 187,
+          "after": 179,
+          "drift": -8
+        },
+        {
+          "before": 295,
+          "after": 287,
+          "drift": -8
+        },
+        {
+          "before": 400,
+          "after": 394,
+          "drift": -6
+        },
+        {
+          "before": 507,
+          "after": 502,
+          "drift": -5
+        },
+        {
+          "before": 720,
+          "after": 717,
+          "drift": -3
+        },
+        {
+          "before": 826,
+          "after": 824,
+          "drift": -2
+        }
+      ]
+    },
+    {
+      "phase": "V6_OVERLAY",
+      "observed_sha256": "bd9b5c7f8a1ffadcf3af526c18b1afb9c5ec4fef7ebf858f5e65b4c0b54e96c0",
+      "reference_sha256": "dc71348966367b8700de1458786620bc48322d964cb2edf8b7c48abdb5c0f739",
+      "matched_tick_glyphs": 8,
+      "allowable_drift_px": 12,
+      "pairs": [
+        {
+          "before": 0,
+          "after": 0,
+          "drift": 0
+        },
+        {
+          "before": 82,
+          "after": 81,
+          "drift": -1
+        },
+        {
+          "before": 187,
+          "after": 187,
+          "drift": 0
+        },
+        {
+          "before": 295,
+          "after": 294,
+          "drift": -1
+        },
+        {
+          "before": 400,
+          "after": 399,
+          "drift": -1
+        },
+        {
+          "before": 507,
+          "after": 506,
+          "drift": -1
+        },
+        {
+          "before": 720,
+          "after": 719,
+          "drift": -1
+        },
+        {
+          "before": 826,
+          "after": 824,
+          "drift": -2
+        }
+      ]
+    },
+    {
+      "phase": "V6_PANE",
+      "observed_sha256": "7078a5af1948225d4dec292df13944e1fe87da6734b190c511b0bd6e0e2df32e",
+      "reference_sha256": "dc71348966367b8700de1458786620bc48322d964cb2edf8b7c48abdb5c0f739",
+      "matched_tick_glyphs": 7,
+      "allowable_drift_px": 12,
+      "pairs": [
+        {
+          "before": 82,
+          "after": 72,
+          "drift": -10
+        },
+        {
+          "before": 187,
+          "after": 179,
+          "drift": -8
+        },
+        {
+          "before": 295,
+          "after": 287,
+          "drift": -8
+        },
+        {
+          "before": 400,
+          "after": 394,
+          "drift": -6
+        },
+        {
+          "before": 507,
+          "after": 502,
+          "drift": -5
+        },
+        {
+          "before": 720,
+          "after": 717,
+          "drift": -3
+        },
+        {
+          "before": 826,
+          "after": 824,
+          "drift": -2
+        }
+      ]
+    }
+  ],
+  "native_bounded_calendar_label_exceptions": [],
+  "artifact": {
+    "id": 13262538437,
+    "name": "pr240-native-time-axis",
+    "zip_sha256": "sha256:978e97b1851519ba9097f8df74743fbd4d48ee5ccb653ce304fdf51f159ccdc7",
+    "size_bytes": 302000,
+    "expires_at": "2026-11-17T19:10:37Z"
+  },
+  "native_ready_startup_measurements": [
+    {
+      "phase": "PREVIOUS",
+      "elapsed_ms": 21185.5187,
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded"
+    },
+    {
+      "phase": "UPDATED",
+      "elapsed_ms": 3367.9278,
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded"
+    },
+    {
+      "phase": "ROLLED_BACK",
+      "elapsed_ms": 2666.9034,
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded"
+    }
+  ],
+  "mandatory_native_guards": [
+    "PR240_EXACT_SOURCE_FULL_SOURCE_CI_RECEIPT_AND_ALL_ORIGINAL_FINANCIAL_FOUNDATIONS=PASS",
+    "PR240_FOCUSED_AUTHENTIC_SCREENSHOT_AND_NEGATIVE_PAN=PASS",
+    "PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS",
+    "PINE_SETTINGS_NATIVE_PHYSICAL_NUMERIC_APPLY_SAVE_VALIDATION_AND_SOURCE_CUSTODY=PASS",
+    "PINE_SETTINGS_NATIVE_COLD_REOPEN_RESTORE_AND_EXPLICIT_DEFAULT_RESET=PASS",
+    "PINE_MARKER_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_BOTH_ARROW_COLOR_OBSERVATION=PASS",
+    "PINE_HLINE_NATIVE_ORIGINAL_V5_V6_RSI_THREE_LEVELS_PHYSICAL_GUIDE_ROWS_AND_REMOVAL=PASS",
+    "PINE_GUIDE_ONLY_NATIVE_ORIGINAL_V5_V6_ZERO_PLOTS_THREE_LEVELS_AND_ACTUAL_PANE_CAPTION=PASS",
+    "PINE_LABEL_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_CYAN_OBSERVATION=PASS",
+    "W83_INSTALLED_CANDIDATE_LEGACY_ORDER_HTTP_423_AND_NO_REARM=PASS",
+    "W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS",
+    "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS",
+    "W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS",
+    "W94B_ACTIVE_PIXEL_AND_WEBVIEW_PROCESS_PROBES_EXECUTED=PASS",
+    "PR240_SOURCE_BUILT_NATIVE_VIEWPORT_AND_ORIGINAL_PAPER_STOP_COLD_ROLLBACK=PASS"
+  ],
+  "first_failed_runs_excluded": [
+    41632082035,
+    41636837266,
+    41638135584,
+    41639442799,
+    41640460184,
+    41663823562,
+    41693648804,
+    41695859703
+  ],
+  "scientific_limits": [
+    "Hosted Windows desktop only; not the owner's workstation/HiDPI system",
+    "Screenshots compare time-axis label anchors, not exact internal logical-range values",
+    "Tolerances are strict anchored same-label glyph shapes after native pane reflow; no independent tick-to-bar financial reference",
+    "No owner financial profile, real broker data, signing, production warm UTC / 24h soak, independent release admission"
+  ],
+  "production": {
+    "release": "HOLD",
+    "live_armed": false,
+    "owner_data_accessed": false,
+    "real_orders_executed": false,
+    "signed": false,
+    "merged": false,
+    "soak": "UNVERIFIED",
+    "acceptance_authority": "none"
+  },
+  "links": {
+    "native_run": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41698404377",
+    "focused_run": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41698080849",
+    "product_pr": "https://github.com/spoonman136668-ai/ktrade/pull/240"
+  }
+}

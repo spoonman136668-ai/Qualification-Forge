@@ -1,0 +1,93 @@
+{
+  "schema": "ktrade.pr244.exact-installed-native-windows-after-diagnostic.v1",
+  "verdict": "PASS_SINGLE_EXACT_HEAD_WINDOWS_INSTALLED_NATIVE_AND_PAPER_WITH_PRIOR_FAILURES",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "a032956d895b08784f01e293347c76c1d50853dd",
+    "tree": "f0272d4ce83d95450f1af416ffa5de2265eceaf4",
+    "source_windows_ci_run_id": 41916946139,
+    "source_windows_ci_job_id": 126879012258,
+    "source_windows_ci_status": "success",
+    "source_node_tests_passed": 193
+  },
+  "qualifier": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "workflow_path": ".github/workflows/ktrade-pr244-installed-workspace-windows.yml",
+    "workflow_sha": "a3a9936ea08b8a7502feb2bb5d56f009b56b68b6",
+    "workflow_blob": "a12bdd2cf88ad3a13f45cad77e4524788cc749dd",
+    "run_id": 41928120519,
+    "job_id": 126917805351,
+    "run_attempt": 1,
+    "run_conclusion": "success",
+    "job_conclusion": "success",
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41928120519"
+  },
+  "observations": {
+    "source_immutable_receipt_and_derived_harness": "PASS",
+    "original_unsigned_six_binary_installer": "PASS",
+    "installed_native_source_identity": "PASS",
+    "installed_wails_webview2": "PASS",
+    "installed_workspace_origin_limit_state_and_valid_forms": "PASS",
+    "v5_marker": {
+      "go_candles": 300,
+      "go_shapes": 60,
+      "go_up": 30,
+      "go_down": 30,
+      "physical_up_pixels": 3125,
+      "physical_down_pixels": 3473,
+      "baseline_up_pixels": 0,
+      "baseline_down_pixels": 0
+    },
+    "v6_marker": {
+      "go_candles": 300,
+      "go_shapes": 60,
+      "go_up": 30,
+      "go_down": 30,
+      "physical_up_pixels": 3145,
+      "physical_down_pixels": 3518,
+      "baseline_up_pixels": 0,
+      "baseline_down_pixels": 0
+    },
+    "pine_hline_label_guide_and_v5_v6_time_axis": "PASS",
+    "native_paper_two_buy_sell_roundtrips_fifo_risk_pnl_dedup_stop": "PASS",
+    "native_paper_cold_four_fill_account_no_auto_rearm": "PASS",
+    "real_installed_update_rollback": "PASS",
+    "original_owner_data_live_release_authority": "NONE",
+    "original_native_child_exit_code": 0,
+    "final_workflow_marker": "PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS"
+  },
+  "historical_failures": {
+    "preserved_receipt": "qualification-receipts/ktrade-pr244-two-native-attempts-fail-and-diagnostic-20261104.json",
+    "attempt_1": {
+      "run_id": 41924809363,
+      "job_id": 126906292018,
+      "error": "MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED",
+      "strict_up_pixels": 0,
+      "strict_down_pixels": 0,
+      "observations": 5
+    },
+    "attempt_2": {
+      "run_id": 41924809363,
+      "job_id": 126911247034,
+      "error": "W83_NATIVE_UI_NOT_OBSERVED_Verify chart UI",
+      "marker_checks": "NOT_REACHED"
+    },
+    "repeatability": "NOT_ESTABLISHED",
+    "causal_root_cause": "UNVERIFIED",
+    "note": "The single passing run does not erase both preceding failures or establish deterministic presentation reliability."
+  },
+  "scope": {
+    "single_exact_sha_installed_windows_gate": "PASS",
+    "repeatability_and_intermitent_rendering": "UNVERIFIED",
+    "owner_windows_acceptance": "NOT_EXECUTED",
+    "release_signing_deployment_live_broker": "NOT_AUTHORIZED",
+    "product_source_or_tradeguard_changed": false,
+    "qualifier_only_read_only_diagnostics": true
+  },
+  "evidence": {
+    "source": "connected GitHub Actions run/job metadata and original decoded Windows runner log",
+    "link": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41928120519"
+  }
+}

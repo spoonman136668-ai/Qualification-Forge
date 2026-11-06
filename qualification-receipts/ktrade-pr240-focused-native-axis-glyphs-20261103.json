@@ -1,0 +1,74 @@
+{
+  "schema": "ktrade.pr240.focused-authentic-native-axis-glyphs.v1",
+  "scope_verdict": "PASS_FOCUSED_AUTHENTIC_SCREENSHOT_COMPARATOR_ONLY",
+  "full_installed_verdict": "UNVERIFIED",
+  "product_release": "HOLD",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 240,
+    "sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+    "tree": "b81cf9b2711ab2bf7d6ff76aee7238ba3b033b3d",
+    "source_ci_run": 41628850571,
+    "source_ci_result": "PASS",
+    "product_changed_in_gate": false
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "focused_run_id": 41698080849,
+    "focused_job_id": 126133808550,
+    "focused_executing_sha": "4ed76ef706ece2dba1d2b6cd5646d215629a6a06",
+    "run_status": "completed",
+    "conclusion": "success",
+    "native_script_blob": "89102398ac21afc7dcbf3ffea64d4d03fe1ef959",
+    "focused_workflow_blob": "f3b2ccd03af093688ea528fc6d229cae4a6ef295"
+  },
+  "custody": {
+    "source_native_run": 41693648804,
+    "artifact_id": 13261020010,
+    "authentic_artifact_sha256": "82a702c55eca6da5998fff350f6754f8037b95e2ad87f16156dd2d60c5bb9476",
+    "original_screenshot_hashes": {
+      "baseline": "f5256b1ec529ea986a41dd79ce418a38398eb158235af18f0aed726e4421daab",
+      "physical_pan": "54e72e043981b960cee90169d66964117555aa88c51d92206d86fecf331b97c0",
+      "overlay": "fa34f6ba01d2e362b59279c596d3a1f429bc6a1c16e2be5a5ea9d54607944aa5",
+      "separate_pane": "dab3ff720b833cc612ac40e497c430f682bc203328401dc3bdf8da9f0c861e0b"
+    }
+  },
+  "observations": {
+    "genuine_pan_negative": "PASS; source is not misclassified as preserved",
+    "single_dynamic_time_label": "PASS; 515 changed native samples confined to one current-session label region",
+    "separate_pane_time_ticks": "PASS; six genuine ordered time-label glyph clusters matched with <=12px drift and one-pixel anti-aliasing tolerance",
+    "measured_tick_drifts_px": [
+      -9,
+      -8,
+      -6,
+      -6,
+      -4,
+      -1
+    ],
+    "strict_phase_identity_and_photo_source": "PASS",
+    "scientific_limit": "Native screenshot glyph equivalence, not full logical-window equality, market-time freeze, real retail hardware or graphical pixel-to-price oracle"
+  },
+  "integration": {
+    "native_run_id": 41698404377,
+    "executing_sha": "0ade56aba788b47c98208eed8f2905b737976029",
+    "status_at_receipt_authoring": "in_progress",
+    "mandatory_outcome": "must be checked independently; receipt grants no pass for it"
+  },
+  "authorization": {
+    "owner_data": false,
+    "live": false,
+    "real_orders": false,
+    "signing": false,
+    "merge": false,
+    "release": false
+  },
+  "prior_failures": [
+    "41695859703: native typed-array receipt emission error; preserved failure",
+    "41693648804: actual pane tick layout shift rejected by previous strict pixel SHA"
+  ],
+  "urls": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41698080849",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41698404377"
+  ]
+}

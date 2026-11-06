@@ -1,0 +1,194 @@
+name: KTRADE PR238 caption and original label response binding full source-owned Windows qualification
+on:
+  push:
+    branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
+    paths: [.github/workflows/ktrade-pr238-final-source-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pr238-final-native-20261031
+  cancel-in-progress: false
+jobs:
+  final-native:
+    runs-on: windows-2022
+    timeout-minutes: 80
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      KTRADE_EXPECTED_SOURCE: 'fcb9bd0066d2aef1c4aef33f95819c5aea368015'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Qualified previous native source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact PR238 final source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: fcb9bd0066d2aef1c4aef33f95819c5aea368015
+          path: product
+          fetch-depth: 20
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Four sparse original baseline readers only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58
+          path: browser-baseline
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /static/watchlist_manager.js
+            /static/layout_manager.js
+            /static/indicator_library.js
+            /static/indicator_browser.js
+      - name: Actual source custody focused original failure proof and unchanged financial scenario
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'EXISTING_QUALIFICATION_HOST_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne 'fcb9bd0066d2aef1c4aef33f95819c5aea368015' -or (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne '84b3318a15488ec943dbb39c60ab4a37f0624e1e'){throw 'EXACT_FINAL_SOURCE_REQUIRED'}
+          & git -C $src merge-base --is-ancestor 56b9036f48e4783d846b7e00d650d7d4b96dd7fc HEAD
+          if($LASTEXITCODE -ne 0){throw 'EXACT_QUALIFIED_PR237_BASE_REQUIRED'}
+          if((& git -C $src rev-parse 'HEAD:internal/originaltradeguard').Trim() -cne '1f894b0a6f8115b8a9d3882fa16fdb289eba510a' -or (& git -C $src rev-parse 'HEAD:internal/paperreconcile').Trim() -cne '9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'){throw 'ORIGINAL_GUARD_OR_LEDGER_TREE_DRIFT'}
+          if((& git -C $src rev-parse 'HEAD:pkg/pine_compiler.go').Trim() -cne '846f9f7f73d801fcb9d71b3da626143dade8e721'){throw 'EXACT_CAUSAL_RSI_COMPILER_REQUIRED'}
+          if((& git -C $src rev-parse 'HEAD:pkg/pine_plotting_advanced.go').Trim() -cne 'f5b52befb522a260289af0177dfd0c9eda1d4d6b'){throw 'EXACT_QUALIFIED_ORIGINAL_GO_NONFINITE_DRAWING_FIX_REQUIRED'}
+          $delta=@(& git -C $src diff --name-only 56b9036f48e4783d846b7e00d650d7d4b96dd7fc HEAD)
+          if($delta.Count -ne 3 -or @($delta|Where-Object {$_ -cnotin @('cmd/ktrade/pine_label_response_affinity_full_test.go','templates/chart.tmpl','tests/rb3_pine_label_response_affinity.test.cjs')}).Count -ne 0){throw 'EXACT_THREE_PATH_GUIDE_ONLY_CAPTION_DELTA_REQUIRED'}
+          foreach($dir in @('previous','product')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(@(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'EXACT_CLEAN_CREDENTIAL_FREE_SOURCE_REQUIRED'}
+            $cfg=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
+            if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'TRACKED_CREDENTIALS_REFUSED'}
+            if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          }
+          if((& git -C $src rev-parse 'HEAD:.github/workflows/ktrade-native-windows.yml').Trim() -cne 'b971da1a5721dc43839dc0e99b22df3ee4e2fa10'){throw 'SOURCE_OWNED_CI_WORKFLOW_DRIFT'}
+          $proof=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41257447767' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($proof.status -cne 'completed' -or $proof.conclusion -cne 'success' -or $proof.head_sha -cne '7ab03745d6493ddaa58901d0cecdcdd43f63e6bb'){throw 'ACTUAL_RAW_RSI_DIVERGENCE_GOLDEN_CAUSALITY_RACE_NEGATIVE_CONTROLS_REQUIRED'}
+          $parent=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41256814500' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($parent.status -cne 'completed' -or $parent.conclusion -cne 'success' -or $parent.head_sha -cne '64565b811ccc1b865ae306e5babc2dcafb7111db'){throw 'QUALIFIED_PR236_PREVIOUS_PRIVATE_NATIVE_ACCEPTANCE_REQUIRED'}
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if((& git -C $w rev-parse 'HEAD:qualification-receipts/ktrade-pr238-original-label-response-affinity-focused-windows-20261031.json').Trim() -cne 'e63814c32d9b3a30914a98a814d3b761c9dc6e10'){throw 'FOCUSED_MARKER_RECEIPT_DRIFT'}
+          $pins=@(
+            @('qualification-harness/ktrade-label-response-affinity/Installed-Label-Lifecycle.ps1','be2c3e69a955ce87d64d68d5fdbc3c6b8237431f'),
+            @('qualification-harness/ktrade-label-response-affinity/Build-And-Qualify.ps1','809d6cc49998f12fab35951397e191e3e74b0f59'),
+            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1')
+          )
+          foreach($pin in $pins){
+            if((& git -C $w rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'IMMUTABLE_NATIVE_OR_ORIGINAL_FINANCIAL_HARNESS_DRIFT'}
+            $tokens=$null;$errors=$null
+            [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $w $pin[0]),[ref]$tokens,[ref]$errors)
+            if($errors.Count -ne 0){throw 'NATIVE_HARNESS_AST_INVALID'}
+          }
+          if((& git -C $w rev-parse 'HEAD:qualification-harness/ktrade-label-response-affinity/Verify-Private-Installer.py').Trim() -cne '88c5dc646a99d8a3b4491130877d15b0395e641b'){throw 'INDEPENDENT_VERIFIER_IDENTITY_DRIFT'}
+          & python -m py_compile (Join-Path $w 'qualification-harness/ktrade-label-response-affinity/Verify-Private-Installer.py')
+          if($LASTEXITCODE -ne 0){throw 'INDEPENDENT_VERIFIER_PYTHON_SYNTAX_INVALID'}
+          if((& git -C $src rev-parse 'HEAD:templates/chart.tmpl').Trim() -cne 'f73fae79e1bc9942e7877ac0a554ed873cb6a413'){throw 'COMPLETE_LOCALLY_TESTED_CHART_BLOB_REQUIRED'}
+          $restoreDelta=@(& git -C $src diff --name-only 86df16b0b13046b47909edd709d978484459de3d HEAD)
+          if($restoreDelta.Count -ne 1 -or $restoreDelta[0] -cne 'templates/chart.tmpl'){throw 'ONLY_COMPLETE_TEMPLATE_RESTORATION_ALLOWED'}
+          foreach($same in @('cmd','pkg','internal','static','tests','go.mod','go.sum','.github')){
+            if((& git -C $src rev-parse ('HEAD:'+$same)).Trim() -cne (& git -C $src rev-parse ('86df16b0b13046b47909edd709d978484459de3d:'+$same)).Trim()){throw 'FOCUSED_RUNTIME_OR_TEST_CORPUS_REUSE_DRIFT'}
+          }
+          $reuse=@'
+          import pathlib,subprocess,sys
+          root=sys.argv[1];old=subprocess.check_output(['git','-C',root,'show','86df16b0b13046b47909edd709d978484459de3d:templates/chart.tmpl']).decode('utf-8').replace('\r\n','\n')
+          current=pathlib.Path(root,'templates/chart.tmpl').read_text(encoding='utf-8').replace('\r\n','\n')
+          def fragment(s,a,b=None):
+              i=s.index(a);return s[i:s.index(b,i)] if b else s[i:]
+          if fragment(old,'applyPineResult(data){','\n};')!=fragment(current,'applyPineResult(data){','\n};') or fragment(old,'// KTRADE_INDICATOR_WIRING_V1')!=fragment(current,'// KTRADE_INDICATOR_WIRING_V1'):
+              raise RuntimeError('FOCUSED_LABEL_APPLY_OR_ORIGINAL_API_CATALOG_FRAGMENT_DRIFT')
+          if 'tokens truncated' in current or 'Warning: truncated' in current:raise RuntimeError('INCOMPLETE_TEMPLATE_REFUSED')
+          print('PR238_IDENTICAL_FOCUSED_LABEL_METHOD_ORIGINAL_GO_CATALOG_AND_RUNTIME_REUSE=PASS')
+          '@
+          & python -c $reuse $src
+          if($LASTEXITCODE -ne 0){throw 'CONTENT_ADDRESSED_FOCUSED_EVIDENCE_REUSE_FAILED'}
+          Write-Host '::notice::PR238_EXACT_INPUT_SETTINGS_ORIGINAL_SHAPE_COMPILER_FINANCIAL_CUSTODY_LIVE_FALSE=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Exact source-owned complete Go tagged app and Wails final regression
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') go) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'pwsh' -or $meta.script_sha256 -cne '7e2782e1049b8d8bd297ebccab761c67be95049c237bbb33b311865938b1e054'){throw 'SOURCE_OWNED_FINAL_CI_BODY_DRIFT'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_FINAL_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Exact source-owned complete Node and browser compatibility
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') node) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'pwsh' -or $meta.script_sha256 -cne '3ba16ab998f391a42c9879de1f1f94f071e526e819078200c5c4657472c7a6a7'){throw 'SOURCE_OWNED_FINAL_CI_BODY_DRIFT'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_FINAL_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Exact source-owned real assets licenses and shipping advisory audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') assets) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'pwsh' -or $meta.script_sha256 -cne '1b29ef7108a4a46b2b5384dab5334cca99a65403c5c43efe166f24d8a0e035ab'){throw 'SOURCE_OWNED_FINAL_CI_BODY_DRIFT'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            & $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_FINAL_CI_EXECUTION_FAILED'}
+          }finally{Pop-Location}
+      - name: Exact source-owned unsigned six-binary package and actual binary scans
+        id: package
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:PSModulePath=Join-Path $PSHOME 'Modules'
+          $meta=((& node (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-final-ci/Extract-Step.cjs') build) -join '')|ConvertFrom-Json
+          if($LASTEXITCODE -ne 0 -or $meta.shell -cne 'powershell' -or $meta.script_sha256 -cne '98eaa9753ac0addeea61d27ccc638868c255b0e47b359221b74da8a2ba8762be'){throw 'SOURCE_OWNED_FINAL_CI_BODY_DRIFT'}
+          Write-Host ('SOURCE_OWNED_CI_STEP='+($meta|ConvertTo-Json -Compress))
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            . $meta.path
+            if($LASTEXITCODE -ne 0){throw 'SOURCE_OWNED_FINAL_CI_EXECUTION_FAILED'}
+            if(!$root -or !(Test-Path (Join-Path $root 'KTRADE-SetupBundle.zip'))){throw 'EXACT_SOURCE_CI_PACKAGE_ROOT_MISSING'}
+            $hash=(Get-FileHash (Join-Path $root 'KTRADE-SetupBundle.zip') -Algorithm SHA256).Hash.ToLowerInvariant()
+            [IO.File]::AppendAllText($env:GITHUB_OUTPUT,('bundle_root='+$root+[Environment]::NewLine+'archive_sha256='+$hash+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          }finally{Pop-Location}
+      - name: Final source custody no owner data or production authority
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($dir in @('previous','product')){
+            if(@(& git -C (Join-Path $env:GITHUB_WORKSPACE $dir) status --porcelain --untracked-files=no).Count -ne 0){throw 'FINAL_TRACKED_SOURCE_CHANGED'}
+          }
+          Write-Host '::notice::NO_OWNER_DATA_NO_REAL_BROKER_NO_SIGNING_NO_PROMOTION_NO_LIVE'

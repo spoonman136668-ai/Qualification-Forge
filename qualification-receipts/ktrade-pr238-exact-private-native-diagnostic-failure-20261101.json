@@ -1,0 +1,26 @@
+{
+  "schema": "ktrade.pr238.exact-private-native.failed.v1",
+  "verdict": "FAIL_NOT_ACCEPTED",
+  "source_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+  "source_tree": "84b3318a15488ec943dbb39c60ab4a37f0624e1e",
+  "run_id": 41291620689,
+  "job_id": 124803868357,
+  "witness_sha": "49acf20c5cea95848d32d8497e84fb533c53371e",
+  "installer_sha256": "a34be54981d1029e58cf7bea938d5b61f595607298ee5010a4754d004751db4c",
+  "package_verification": "PASS; exact source and two changed assets; other178 identical",
+  "partial_native": {
+    "guide_only_v5_v6": "PASS; zero plots, three levels70/30/50 and actual caption",
+    "labels_v5_v6": "PASS; original30labels, zero baseline cyan, 4711/4628 applied cyan pixels; bounded color observation only",
+    "legacy_order_http423": "PASS"
+  },
+  "whole_native": "FAIL; no PAPER/cold/rollback acceptance for these bytes",
+  "observed_error": "Cannot process XML from nested PowerShell Error stream: ANSI ESC0x1B invalid XML; W83_NATIVE_CROSS_VERSION_ACCEPTANCE_FAILED",
+  "underlying_exception": "UNVERIFIED; diagnostic capture correction required",
+  "startup_timer_scope_observation": "StartInstalled stopwatch spans all added candidate probes; prospective120s assertion remains unchanged pending underlying error evidence",
+  "source_changed": false,
+  "installer_rebuilt": false,
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "production_admission": "HOLD",
+  "release_authority": "none"
+}

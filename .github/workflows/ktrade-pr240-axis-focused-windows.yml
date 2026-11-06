@@ -1,0 +1,82 @@
+name: KTRADE PR240 focused actual screenshot axis matcher
+on:
+  push:
+    branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
+    paths: [.github/workflows/ktrade-pr240-axis-focused-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pr240-axis-matcher-only-20261103
+  cancel-in-progress: false
+jobs:
+  axis-matcher:
+    runs-on: windows-2022
+    timeout-minutes: 7
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      KTRADE_LIVE_TRADING: 'false'
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Pinned original screenshot ZIP and actual parser/shape negative controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $ProgressPreference='SilentlyContinue'
+          $scope='qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1'
+          $blob=(& git rev-parse ('HEAD:'+$scope)).Trim()
+          if($LASTEXITCODE -ne 0 -or $blob -cne '89102398ac21afc7dcbf3ffea64d4d03fe1ef959'){throw 'AXIS_FOCUSED_NATIVE_HARNESS_DRIFT'}
+          $source=Get-Content -LiteralPath $scope -Raw
+          $start=$source.IndexOf('function ViewportSingleSessionLabelEquivalent(')
+          $end=$source.IndexOf('function ViewportMouseAway(',$start)
+          if($start -lt 0 -or $end -le $start){throw 'AXIS_FOCUSED_EXACT_HELPERS_NOT_FOUND'}
+          $code=$source.Substring($start,$end-$start)
+          $errors=$null;$tokens=$null
+          [void][Management.Automation.Language.Parser]::ParseInput($code,[ref]$tokens,[ref]$errors)
+          if(@($errors).Count){throw ('AXIS_FOCUSED_POWERSHELL_PARSE_FAILURE '+(($errors|ForEach-Object {$_.ToString()}) -join '; '))}
+          $zip=Join-Path $env:RUNNER_TEMP 'pr240-frozen-original-native-axis.zip'
+          $url='https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/artifacts/13261020010/zip'
+          Invoke-WebRequest -Uri $url -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -OutFile $zip -TimeoutSec 50
+          $digest=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if($digest -cne '82a702c55eca6da5998fff350f6754f8037b95e2ad87f16156dd2d60c5bb9476'){throw 'AXIS_FOCUSED_AUTHENTIC_SCREENSHOT_CUSTODY_DRIFT'}
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive=[IO.Compression.ZipFile]::OpenRead($zip)
+          try{
+           foreach($entry in $archive.Entries){
+            if($entry.FullName -cnotmatch '^pr240-viewport-axis-[A-Z0-9_\-]+(?:-context)?\.png$' -or $entry.Length -gt 90000){throw 'AXIS_FOCUSED_UNEXPECTED_ARCHIVE_ENTRY'}
+           }
+           [IO.Compression.ZipFileExtensions]::ExtractToDirectory($archive,$env:RUNNER_TEMP)
+          }finally{$archive.Dispose()}
+          foreach($check in @(
+           @('BASELINE','f5256b1ec529ea986a41dd79ce418a38398eb158235af18f0aed726e4421daab'),
+           @('PANNED','54e72e043981b960cee90169d66964117555aa88c51d92206d86fecf331b97c0'),
+           @('V5_OVERLAY','fa34f6ba01d2e362b59279c596d3a1f429bc6a1c16e2be5a5ea9d54607944aa5'),
+           @('V5_PANE','dab3ff720b833cc612ac40e497c430f682bc203328401dc3bdf8da9f0c861e0b')
+          )){
+           $file=Join-Path $env:RUNNER_TEMP ('pr240-viewport-axis-'+$check[0]+'.png')
+           if((Get-FileHash $file -Algorithm SHA256).Hash.ToLowerInvariant() -cne $check[1]){throw 'AXIS_FOCUSED_INDIVIDUAL_NATIVE_SCREENSHOT_HASH_DRIFT'}
+          }
+          . ([scriptblock]::Create($code))
+          function Axis([string]$phase,[string]$sha){
+           return [pscustomobject]@{phase=$phase;axis_sha256=$sha;width=828;height=18;chart_width=932;chart_height=241;left=46;top=215}
+          }
+          $baseline=Axis 'BASELINE' 'f5256b1ec529ea986a41dd79ce418a38398eb158235af18f0aed726e4421daab'
+          $panned=Axis 'PANNED' '54e72e043981b960cee90169d66964117555aa88c51d92206d86fecf331b97c0'
+          $overlay=Axis 'V5_OVERLAY' 'fa34f6ba01d2e362b59279c596d3a1f429bc6a1c16e2be5a5ea9d54607944aa5'
+          $pane=Axis 'V5_PANE' 'dab3ff720b833cc612ac40e497c430f682bc203328401dc3bdf8da9f0c861e0b'
+          try{
+           if(ViewportAxisEquivalent $baseline $panned 'NEGATIVE_REAL_PAN'){throw 'AXIS_FOCUSED_FALSE_POSITIVE_REAL_PAN'}
+           Write-Host '::notice::AXIS_FOCUSED_AUTHENTIC_MOUSE_PAN_NEGATIVE=PASS'
+           if(!(ViewportAxisEquivalent $panned $overlay 'V5_OVERLAY')){throw 'AXIS_FOCUSED_ORIGINAL_SINGLE_TIME_LABEL_REFUSED'}
+           Write-Host '::notice::AXIS_FOCUSED_AUTHENTIC_SINGLE_CLOCK_LABEL=PASS'
+           if(!(ViewportAxisEquivalent $panned $pane 'V5_PANE')){throw 'AXIS_FOCUSED_ORIGINAL_PANE_GLYPH_MATCH_REFUSED'}
+           Write-Host '::notice::AXIS_FOCUSED_NATIVE_SIX_ORDERED_LABELS_WITH_12PX_DRIFT=PASS'
+          }catch{
+           Write-Host ('AXIS_FOCUSED_ERROR_TYPE='+$_.Exception.GetType().FullName)
+           Write-Host ('AXIS_FOCUSED_ERROR_MESSAGE='+$_.Exception.Message)
+           Write-Host ('AXIS_FOCUSED_STACK='+$_.ScriptStackTrace)
+           throw
+          }
+          Write-Host '::notice::AXIS_FOCUSED_RETAIN_AUTHENTIC_SCREENSHOT_SOURCE_AND_STRICT_NATIVE_CONTROLS=PASS'

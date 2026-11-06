@@ -1,0 +1,121 @@
+name: KTRADE PR244 original Pine editor exact-source Windows compile budgets
+on:
+  push:
+    branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
+    paths: [.github/workflows/ktrade-pr244-original-compile-performance-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-pr244-exact-original-compile-performance
+  cancel-in-progress: false
+jobs:
+  qualify:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+    steps:
+      - name: Exact independent qualification
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Exact PR244 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 671198f2336e410c98ef764603455a51c08d16b0
+          path: source
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Source fixture budgets and prior qualification custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge'){throw 'PR244_PERF_WINDOWS_SOURCE_REQUIRED'}
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          $q=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if((& git -C $q rev-parse HEAD).Trim() -cne $env:GITHUB_SHA -or
+             (& git -C $src rev-parse HEAD).Trim() -cne '671198f2336e410c98ef764603455a51c08d16b0' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -or
+             @(& git -C $src status --porcelain).Count -ne 0){throw 'PR244_PERF_EXACT_CLEAN_SOURCE_REQUIRED'}
+          if((Get-Content (Join-Path $src 'windows/Go-Toolchain.version') -Raw).Trim() -cne 'go1.26.10'){throw 'PR244_PERF_TOOLCHAIN_DRIFT'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}' -or (Test-Path (Join-Path $src '.env'))){throw 'PR244_PERF_LIVE_OR_SECRET_REFUSED'}
+          if((& git -C $src rev-parse 'HEAD:cmd/ktrade/w80_compile_performance_full_test.go').Trim() -cne '27f9892c6961e4d64feac418f53b69074d5267a5'){throw 'PR244_PERF_ORIGINAL_FROZEN_BUDGETS_CHANGED'}
+          foreach($obj in @(
+            @{path='qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json';sha='7eb9024615af7a076611caff6306a4749f46bcb0';verdict='PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION'},
+            @{path='qualification-receipts/ktrade-pr244-pine-cold-reopen-repeatability-windows-20261105.json';sha='6d9d69001c40b2999fb4095652ae55393d2ff70a';verdict='PASS_TWO_NATIVE_CANDIDATE_SESSIONS_WITH_STRICT_PINE_V5_V6_PHYSICAL_MARKERS'},
+            @{path='qualification-receipts/ktrade-pr244-current-head-risk-matrix-windows-20261105.json';sha='94e07ed49197869f77ab9b8ee7933f654c85011f';verdict='PASS_EXACT_HEAD_ORIGINAL_PAPER_AND_MOCK_BROKER_RACE_MATRIX'},
+            @{path='qualification-receipts/ktrade-pr244-current-head-go-reachability-security-20261105.json';sha='99f4b3b3b31be09a4817f58feb8c3e1f669fc7e2';verdict='PASS_EXACT_CURRENT_SHA_GO_ENGINE_AND_WAILS_ZERO_KNOWN_REACHABLE_SYMBOLS'}
+          )){
+            if((& git -C $q rev-parse ('HEAD:'+$obj.path)).Trim() -cne $obj.sha){throw ('PR244_PERF_PREREQUISITE_RECEIPT_CHANGED_'+$obj.path)}
+            $receipt=Get-Content -LiteralPath (Join-Path $q $obj.path) -Raw|ConvertFrom-Json
+            if($receipt.verdict -cne $obj.verdict -or $receipt.source.head_sha -cne '671198f2336e410c98ef764603455a51c08d16b0'){
+              throw ('PR244_PERF_WRONG_SOURCE_RECEIPT_'+$obj.path)
+            }
+          }
+          $sourceReceipt=Get-Content -LiteralPath (Join-Path $q 'qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json') -Raw|ConvertFrom-Json
+          if($sourceReceipt.source.tree -cne 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -or
+             $sourceReceipt.qualification.workflow_run_id -ne 41994140128 -or
+             $sourceReceipt.qualification.node_tests.passed -ne 199 -or
+             $sourceReceipt.qualification.node_tests.failed -ne 0 -or
+             $sourceReceipt.qualification.node_tests.skipped -ne 0 -or
+             $sourceReceipt.qualification.run_conclusion -cne 'success'){
+             throw 'PR244_PERF_FULL_SOURCE_WINDOWS_BUDGET_FOUNDATION_UNVERIFIED'
+          }
+          Write-Host '::notice::PR244_PERF_EXACT_SOURCE_ORIGINAL_FROZEN_BUDGETS_AND_PREVIOUS_CI=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Original real Pine HTTP compile v5/v6 frozen p95 and allocation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          if((& go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'PR244_PERF_GOVERSION_DRIFT'}
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'source')
+          try{
+            $raw=@(& go test -json -mod=readonly -count=1 -tags ktrade_full,ktrade_performance -run '^TestW80OriginalEditorCompileLatencyAndAllocationBudget$' -timeout 12m ./cmd/ktrade)
+            if($LASTEXITCODE -ne 0){$raw|Select-Object -Last 80|ForEach-Object {Write-Host $_};throw 'PR244_PERF_ORIGINAL_TEST_FAILED'}
+            $events=@($raw|ForEach-Object {$_|ConvertFrom-Json -ErrorAction Stop})
+            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'PR244_PERF_FAILURE_OR_SKIP'}
+            $root='TestW80OriginalEditorCompileLatencyAndAllocationBudget'
+            $cases=@("$($root)/v5_32_assignments","$($root)/v5_512_assignments","$($root)/v6_32_assignments","$($root)/v6_512_assignments")
+            foreach($case in $cases){
+              if(@($events|Where-Object {$_.Action -ceq 'pass' -and $_.Test -ceq $case}).Count -ne 1){throw ('PR244_PERF_CASE_ABSENT_'+$case)}
+            }
+            $observations=@($events|Where-Object {$_.Action -ceq 'output' -and $_.Output -like '*W80_COMPILE_MEASUREMENT=*'}|ForEach-Object {
+              $json=($_.Output -split 'W80_COMPILE_MEASUREMENT=',2)[1].Trim()
+              $json|ConvertFrom-Json -ErrorAction Stop
+            })
+            if($observations.Count -ne 4){throw 'PR244_PERF_FOUR_ORIGINAL_OBSERVATIONS_REQUIRED'}
+            $labels=@()
+            foreach($row in $observations){
+              if($row.schema -cne 'ktrade.performance.original-editor-compile.v1' -or $row.samples -ne 120 -or
+                 $row.go_version -cne 'go1.26.10' -or $row.network_requests -ne 0 -or
+                 $row.p95_ns -gt $row.p95_budget_ns -or $row.allocated_bytes_per_compile -gt $row.allocation_budget_bytes -or
+                 $row.post_gc_heap_growth_bytes -gt $row.post_gc_heap_growth_budget_bytes){throw 'PR244_PERF_ORIGINAL_BUDGET_OR_ZERO_NETWORK_FAILED'}
+              $label='v'+$row.pine_version+'_'+$row.assignments
+              if($labels -ccontains $label){throw 'PR244_PERF_DUPLICATE_OBSERVATION'}
+              $labels+=,$label
+              Write-Host ('PR244_PERF_CURRENT='+($row|ConvertTo-Json -Compress -Depth 4))
+            }
+            if((@($labels|Sort-Object) -join ',') -cne 'v5_32,v5_512,v6_32,v6_512'){throw 'PR244_PERF_INCOMPLETE_MATRIX'}
+            Write-Host '::notice::PR244_PERF_ORIGINAL_V5_V6_32_512_ASSIGNMENTS_P95_ALLOCATION_ZERO_NETWORK=PASS'
+          }finally{Pop-Location}
+      - name: No source changes release or live permission
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'source'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '671198f2336e410c98ef764603455a51c08d16b0' -or @(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'PR244_PERF_FINAL_SOURCE_CHANGED'}
+          Write-Host '::notice::PR244_PERF_NO_OWNER_DATA_BROKER_ORDERS_LIVE_OR_RELEASE'

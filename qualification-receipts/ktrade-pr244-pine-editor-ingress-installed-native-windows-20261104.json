@@ -1,0 +1,75 @@
+{
+  "schema": "ktrade.pr244.pine-editor-ingress.exact-installed-native-windows.v1",
+  "verdict": "PASS_ONE_EXACT_HEAD_INSTALLED_WINDOWS_WAILS_PAPER_UPDATE_ROLLBACK",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "715c211edd1ff22373412868ef556c845ea40d17",
+    "tree": "11a9d0246b35a17a4f55ac64f5f0d591c596af6d",
+    "base_pr": 243,
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "source_receipt_path": "qualification-receipts/ktrade-pr244-pine-editor-ingress-source-windows-20261104.json",
+    "source_receipt_blob": "bc38a3c860ee5af44569282f858e37bea7c3fe14",
+    "source_ci_run_id": 41944143276,
+    "source_ci_job_id": 126972033141,
+    "source_ci_result": "success",
+    "source_ci_node_cases": 193
+  },
+  "qualifier": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "workflow_path": ".github/workflows/ktrade-pr244-installed-workspace-windows.yml",
+    "workflow_commit": "0afd36c428f0512ab729690d3fb42357aa0bef1e",
+    "workflow_blob": "dfe8a139d479b9053bbbb51b2340434ecd85b1a9",
+    "run_id": 41945460939,
+    "job_id": 126976440170,
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41945460939",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "original_native_child_exit_code": 0
+  },
+  "observed_log_markers": {
+    "exact_source_tree": "715c211edd1ff22373412868ef556c845ea40d17 / 11a9d0246b35a17a4f55ac64f5f0d591c596af6d",
+    "immutable_source_receipt_and_derived_native_harness": "PASS",
+    "exact_unsigned_source_built_disarmed": "PASS",
+    "actual_installed_wails_webview2_original_chart_and_pine": "PASS",
+    "pine_overlay_cross_origin_malformed_oversized_refusal_without_workspace_mutation": "PASS",
+    "pine_editor_http_refusal_and_legitimate_same_origin": "PASS",
+    "legacy_workspace_origin_size_valid_forms_state": "PASS",
+    "original_pine_v5_v6_shapes_and_both_physical_arrow_colors": "PASS",
+    "original_pine_v5_v6_pane_guides_labels_physical_viewport": "PASS",
+    "native_paper_two_buy_sell_roundtrips_four_fills_fifo_risk_pnl_dedup_stop": "PASS",
+    "native_paper_cold_reopen_settings_reset_without_auto_rearm": "PASS",
+    "real_installed_previous_candidate_rollback": "PASS",
+    "owner_data_live_release_authority": "NONE",
+    "final_marker": "PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS"
+  },
+  "preserved_prior_failures": {
+    "source_ci_runs": [
+      41942226821,
+      41943215987
+    ],
+    "native_run_id": 41924809363,
+    "native_attempt_1": "FAIL marker pixels absent despite Go shapes",
+    "native_attempt_2": "FAIL previous native UI readiness before marker checks",
+    "native_repeatability_root_cause": "UNVERIFIED"
+  },
+  "scope": {
+    "single_disposable_native_windows_run": "PASS",
+    "full_source_ci_at_same_sha": "PASS",
+    "deterministic_ui_marker_readiness": "UNVERIFIED",
+    "owner_windows_hidpi": "UNVERIFIED",
+    "full_cumulative_security_and_financial_fault_matrix": "UNVERIFIED",
+    "full_24_hour_soak": "NOT_EXECUTED",
+    "production_install_or_migration": "NOT_AUTHORIZED",
+    "main_merge": "HOLD",
+    "signing_distribution": "HOLD",
+    "live_broker_orders": "DISARMED_NOT_AUTHORIZED",
+    "no_product_source_change_from_receipt": true
+  },
+  "provenance": {
+    "method": "Connected GitHub Actions run/job metadata and original decoded Windows job log, plus exact Git-tree and source receipt pin in the qualification workflow",
+    "historical_fails_retained": true,
+    "product_pr_244_remains_draft": true
+  }
+}

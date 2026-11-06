@@ -1,0 +1,57 @@
+{
+  "schema": "ktrade.pr240.pine-apply-viewport.source-windows.v1",
+  "verdict": "PASS_SOURCE_ENGINEERING_NATIVE_VIEWPORT_UNVERIFIED",
+  "product_pr": 240,
+  "source_sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+  "source_tree": "b81cf9b2711ab2bf7d6ff76aee7238ba3b033b3d",
+  "parent_sha": "72f7b5aa75ece04be0d59e6449c052d2753f468d",
+  "changed_paths": [
+    "templates/chart.tmpl",
+    "tests/rb3_pine_apply_viewport.test.cjs"
+  ],
+  "chart_blob": "3fbbce76737cbf1f8865c1a52ed92acb8dd83a81",
+  "test_blob": "dd6ec149d75c8d22822c9cd36e7e8042d13b248e",
+  "complete_chart_readback_byte_identical": true,
+  "behavior": "Remove forced fitContent after Pine Apply; capture main visible time window and restore linked axes after publication or allocation rollback only when the visible window changed. Initial market-load fitting remains unchanged.",
+  "local_focused": {
+    "node_version": "v24.22.1",
+    "cases": 29,
+    "passed": 29,
+    "failed": 0,
+    "skipped": 0,
+    "parent_final_seven_case_reproduction": {
+      "expected_failures": 6,
+      "rejection_control_passes": 1,
+      "confirmed": true
+    },
+    "harness_scope": "Actual chart Apply method and original renderer with controlled chart doubles; not installed WebView2 pixel evidence"
+  },
+  "windows": {
+    "run_id": 41628850571,
+    "job_id": 125893370584,
+    "source_sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+    "status": "completed",
+    "conclusion": "success",
+    "full_original_go_tagged_wails_tests_and_vet": "PASS",
+    "node_files": 40,
+    "node_cases": 191,
+    "node_pass": 191,
+    "original_browser_compatibility": "PASS",
+    "assets_licenses_shipping_advisories": "PASS",
+    "six_unsigned_binaries_and_actual_main_binary_scans": "PASS",
+    "unsigned_installer_sha256": "970bb0096ce40fb3dba4299ebba8defacf6ceff228ad1742d5a7440bff1016ee",
+    "installer_executed": false
+  },
+  "superseded_runs_not_used_for_final_qualification": [
+    41627904444,
+    41628573160
+  ],
+  "original_go_compiler_guard_ledger_and_backend_changed": false,
+  "native_viewport_acceptance": "UNVERIFIED; separate installed Windows qualification still required",
+  "soak": "DEFERRED to final integrated candidate per direct owner instruction; not waived or started",
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

@@ -1,0 +1,109 @@
+{
+  "schema": "ktrade.pr244.exact-head-installed-funded-paper-force-kill-orphan-quarantine.v1",
+  "verdict": "PASS_SCOPED_EXACT_PR244_INSTALLED_ONE_SETTLED_PAPER_BUY_FORCE_KILL_CHILD_TERMINATION_STALE_LEASE_AND_REFUSED_RELAUNCH",
+  "product": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "tree": "7143f2fa49b2027bb60d8d5106c632b2aa0c230d",
+    "product_modified": false
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "branch": "qualification/ktrade-original-pine-label-response-affinity-20261031",
+    "source_qualifier_sha": "4f963eac961476735497c8cdef6ef2387addf061",
+    "workflow": ".github/workflows/ktrade-pr244-native-funded-force-kill-windows.yml",
+    "workflow_blob": "8a03df259a3da282c6a80ec0948855f42de82386",
+    "derived_helper": "qualification-harness/ktrade-pr244-crash/Prepare-Funded-Force-Kill.ps1",
+    "derived_helper_blob": "6b30137952532c037c703e85182ab2107b3ba4f5",
+    "run_id": 41817963186,
+    "job_id": 126533501592,
+    "run_attempt": 1,
+    "run_created_at": "2026-11-04T11:00:16Z",
+    "run_updated_at": "2026-11-04T11:07:16Z",
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "platform": "GitHub-hosted Windows",
+    "log_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41817963186"
+  },
+  "source_bound_simulated_paper_buy": {
+    "fill_count": 1,
+    "source_id": "ktrade-reconcile-64775ddbb2a5bf59daedaed126e925bc",
+    "source_sha256": "f0c218f883d6a66171f0be3d4499ace25da1334da5c4e05707191fd9711d8e25",
+    "cash_after": "580.1831334",
+    "last_ledger_hash": "a31a686ff59d548ced7abe336d70c38905a899f8cc1c21b296f3cf308a40840f",
+    "owned_shell_pid": 1072,
+    "owned_engine_pid": 616,
+    "simulated_fee_bps": 100,
+    "broker_orders": false
+  },
+  "proof": {
+    "original_selected_installed_candidate_and_webview2": true,
+    "prekill_original_risk_bound_sealed_checkpoint": true,
+    "shell_forcibly_terminated": true,
+    "owned_engine_terminated": true,
+    "stale_release_process_lease_retained": true,
+    "financial_checkpoint_hash_unchanged_across_kill_and_refused_restart": true,
+    "durable_paper_history_inventory_identical_after_refused_restart": true,
+    "saved_pine_inventory_identical_after_refused_restart": true,
+    "unauthorized_original_shortcut_restart_refused": true,
+    "live_rearm_refused": true,
+    "native_child_exit_code": 0,
+    "required_exact_notices_each_once": [
+      "PR244_CRASH_PREDECESSOR_COLD_UPDATE_REUSES_EXACT_NATIVE_W83=PASS",
+      "PR244_CRASH_SEALED_CHECKPOINT_PREKILL=PASS",
+      "PR244_CRASH_PRE_KILL_ONE_SETTLED_PAPER_BUY_ACCOUNT_RISK_VERIFIED=PASS",
+      "PR244_CRASH_SEALED_FINANCIAL_AND_PINE_FILES_VERIFIED_POSTKILL=PASS",
+      "PR244_CRASH_ONE_SETTLED_PAPER_BUY_CHILD_TERMINATED_STALE_LEASE_QUARANTINED_NO_REARM=PASS",
+      "PR244_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS",
+      "PR244_EXACT_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS"
+    ]
+  },
+  "immutable_prior_proofs": {
+    "source": {
+      "blob": "1913e555ab83e49a26a754758011daef17ecb758",
+      "run_id": 41755443367
+    },
+    "original_installed": {
+      "blob": "a0af626306a31f0c86863cbf77c2b96ca5a2bdef",
+      "run_id": 41759236968
+    },
+    "risk": {
+      "blob": "9a630db7c0f258588f01923688a1f4341a4e233c",
+      "run_id": 41800656552
+    },
+    "security": {
+      "blob": "6c8c08909a005c3a35cbb9b8b287fb7b5e7ff66b",
+      "run_id": 41802329580
+    },
+    "pine_performance": {
+      "blob": "72bbc1cb5294b062a2b168872cb048464bd311ed",
+      "run_id": 41803473112
+    }
+  },
+  "previous_failed_qualifier_runs": [
+    41805865704,
+    41807665941,
+    41809101308,
+    41812178121
+  ],
+  "limitations": {
+    "claim": "ONE simulated funded PAPER fill followed by original installed shell force-kill; no full historical risk recovery acceptance",
+    "owner_data_touched": false,
+    "real_broker_orders": false,
+    "live_trading_armed": false,
+    "browser_profile_binary_hash": "EXCLUDED_TRANSIENT_LOCKED_WEBVIEW2_ARTIFACTS",
+    "independent_visual_arrow_anomaly": "UNRESOLVED_SEPARATE_RUN_41807665941",
+    "full_regression": "REUSED_ACCEPTED_EXACT_PRODUCT_SOURCE",
+    "inherited_previous_native_path": "REUSED_ACCEPTED_EXACT_SOURCE_41759236968",
+    "owner_pc_hidpi": "UNVERIFIED",
+    "final_24h_soak": "NOT_RUN",
+    "product_main_merge": "HOLD",
+    "live_broker_access": "NONE",
+    "installed_owner_deployment": "HOLD",
+    "signed_release": "HOLD",
+    "release_acceptance": "NOT_GRANTED"
+  }
+}

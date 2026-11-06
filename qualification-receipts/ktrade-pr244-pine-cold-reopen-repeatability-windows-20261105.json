@@ -1,0 +1,178 @@
+{
+  "schema": "ktrade.pr244.installed-pine-cold-reopen-two-processes.windows.v1",
+  "verdict": "PASS_TWO_NATIVE_CANDIDATE_SESSIONS_WITH_STRICT_PINE_V5_V6_PHYSICAL_MARKERS",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "tree_sha": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "changed_paths_from_pr243": 22,
+    "source_ci_run_id": 41994140128,
+    "source_ci_job_id": 127133130434,
+    "source_ci_conclusion": "success",
+    "native_go_wails_vet": "PASS",
+    "node_cases": {
+      "total": 199,
+      "passed": 199,
+      "failed": 0,
+      "skipped": 0
+    },
+    "source_receipt_path": "qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json",
+    "source_receipt_blob": "7eb9024615af7a076611caff6306a4749f46bcb0"
+  },
+  "qualifier": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "workflow_path": ".github/workflows/ktrade-pr244-installed-workspace-windows.yml",
+    "workflow_commit": "440c7f3e6f0ef818827cd196bbd3e5b2c64f1612",
+    "workflow_blob": "ef7d715d9d7ae658d82240ecacdce7cd36371416",
+    "run_id": 42006368574,
+    "job_id": 127174014400,
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42006368574",
+    "run_attempt": 1,
+    "platform": "github-hosted windows-2022",
+    "event": "push",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "child_exit_code": 0,
+    "original_installer_and_security_scans": "PASS",
+    "previous_candidate_update_rollback": "PASS",
+    "original_paper_four_fills_risk_pnl_dedup_cold_stop": "PASS",
+    "source_identity_and_immutable_harness": "PASS",
+    "native_nontrading_and_foreign_origin_negative_controls": "PASS"
+  },
+  "native_sessions": [
+    {
+      "phase": "UPDATED",
+      "kind": "first_real_installed_candidate_session",
+      "startup_elapsed_ms": 2907.9912,
+      "process_pair": {
+        "shell_pid": 6652,
+        "engine_pid": 4396
+      },
+      "physical_markers": [
+        {
+          "pine_version": 5,
+          "go_shapes": 60,
+          "http_candles": 300,
+          "up_shapes": 30,
+          "down_shapes": 30,
+          "cyan_pixels": 2863,
+          "yellow_pixels": 3494,
+          "baseline_cyan_pixels": 0,
+          "baseline_yellow_pixels": 0,
+          "first_capture_pass": true,
+          "identical_chart_bounds": true,
+          "changed_png_digest": true,
+          "baseline_png_sha256": "fa0fe6c127ee159c884427c8fbd0eee0b666055e569051359ca27e8de356925f",
+          "applied_png_sha256": "3dfac7fc9e5c935d56db732ba185b6c2bcc29debcbef0cb4a3af321f0f3d16f9"
+        },
+        {
+          "pine_version": 6,
+          "go_shapes": 60,
+          "http_candles": 300,
+          "up_shapes": 30,
+          "down_shapes": 30,
+          "cyan_pixels": 2999,
+          "yellow_pixels": 3443,
+          "baseline_cyan_pixels": 0,
+          "baseline_yellow_pixels": 0,
+          "first_capture_pass": true,
+          "identical_chart_bounds": true,
+          "changed_png_digest": true,
+          "baseline_png_sha256": "fa0fe6c127ee159c884427c8fbd0eee0b666055e569051359ca27e8de356925f",
+          "applied_png_sha256": "8128f165b4f649eea9ee5f609bb287de1d7d6a4a8004cc2c1306737da61994a2"
+        }
+      ]
+    },
+    {
+      "phase": "RECHECK",
+      "kind": "second_real_installed_candidate_cold_reopen",
+      "startup_elapsed_ms": 2810.4388,
+      "process_pair": {
+        "shell_pid": 340,
+        "engine_pid": 4408
+      },
+      "separate_shell_and_engine_pids": true,
+      "paper_and_live_disarmed": true,
+      "physical_markers": [
+        {
+          "pine_version": 5,
+          "go_shapes": 60,
+          "http_candles": 300,
+          "up_shapes": 30,
+          "down_shapes": 30,
+          "cyan_pixels": 2987,
+          "yellow_pixels": 3475,
+          "baseline_cyan_pixels": 0,
+          "baseline_yellow_pixels": 0,
+          "first_capture_pass": true,
+          "identical_chart_bounds": true,
+          "changed_png_digest": true,
+          "baseline_png_sha256": "4fee6ab599bcae947a3691ac87a70cbff6cfb7960ddf5ce5c27a170b64c470e9",
+          "applied_png_sha256": "2608993776873702f27ac0c6a3ea811088be7161cb1a68903e4a0fe9ff98c7a3"
+        },
+        {
+          "pine_version": 6,
+          "go_shapes": 60,
+          "http_candles": 300,
+          "up_shapes": 30,
+          "down_shapes": 30,
+          "cyan_pixels": 2987,
+          "yellow_pixels": 3475,
+          "baseline_cyan_pixels": 0,
+          "baseline_yellow_pixels": 0,
+          "first_capture_pass": true,
+          "identical_chart_bounds": true,
+          "changed_png_digest": true,
+          "baseline_png_sha256": "34f19f4cd1fdc85e583aecbd32003ae9799d60cb0dbd2d0fd22537cfd7089dc7",
+          "applied_png_sha256": "2608993776873702f27ac0c6a3ea811088be7161cb1a68903e4a0fe9ff98c7a3"
+        }
+      ]
+    }
+  ],
+  "required_original_markers": {
+    "PINE_MARKER_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_BOTH_ARROW_COLOR_OBSERVATION=PASS": 2,
+    "W83_NATIVE_RECHECK_WEBVIEW2_AND_PAPER_STOPPED=PASS": 1,
+    "PR244_REAL_COLD_REOPEN_NATIVE_V5_V6_MARKERS=PASS": 1,
+    "PR244_EXACT_COLD_REOPEN_MARKER_V5_V6_REPEATABILITY_TWO_PROCESSES=PASS": 1,
+    "PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS": 1,
+    "W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS": 1,
+    "W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS": 1,
+    "W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS": 1
+  },
+  "historical_negative_evidence": {
+    "native_failed_run": 41954221097,
+    "native_failed_job": 127005116721,
+    "candidate_sha": "98931bed1178019fbc6fee5eab73a395a275e2f1",
+    "go_shapes": 60,
+    "displayed_marker_pixels": 0,
+    "failed_native_observations": 5,
+    "failure": "MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED",
+    "classification": "PRODUCT_RENDER_UNVERIFIED_BEFORE_STATUS_AND_WITNESS_FIXES; KEEP_NEGATIVE_EVIDENCE",
+    "original_native_single_session_pass_run": 41997020645
+  },
+  "scope": {
+    "two_separate_native_candidate_process_launches_same_hosted_windows_job": "PASS",
+    "deterministic_reliability_across_hosts_or_many_restarts": "UNVERIFIED",
+    "operator_workstation_HiDPI": "UNVERIFIED",
+    "long_24h_soak": "NOT_EXECUTED",
+    "full_financial_fault_matrix": "UNVERIFIED",
+    "unmodified_original_strict_physical_pixel_requirements": true,
+    "no_DOM_or_JS_injection": true,
+    "retained_actual_screenshots": false,
+    "no_owner_data": true,
+    "live_broker_orders": "DISARMED_NOT_AUTHORIZED",
+    "product_head_unchanged": true,
+    "product_main_merge": "HOLD",
+    "signed_distribution": "HOLD",
+    "production_release": "HOLD"
+  },
+  "provenance": {
+    "method": "Exact original GitHub Actions job metadata and decoded native Windows job log, matched source SHA/tree and native workflow blob, four physical render evidence entries and one distinct PID pair",
+    "source_ci_url": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41994140128",
+    "installed_run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42006368574",
+    "does_not_supersede_prior_negative_evidence": true
+  }
+}

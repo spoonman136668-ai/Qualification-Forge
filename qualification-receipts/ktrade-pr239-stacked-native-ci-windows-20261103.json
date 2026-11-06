@@ -1,0 +1,48 @@
+{
+  "schema": "ktrade.rb3.stacked-pr-native-ci.v1",
+  "verdict": "PASS_SOURCE_CI_TRIGGER_AND_FULL_QUALIFICATION",
+  "product_pr": 239,
+  "source_sha": "72f7b5aa75ece04be0d59e6449c052d2753f468d",
+  "source_tree": "c97ba9ca2b64893624f2b4a1cf7f9dd5ffd84ded",
+  "parent_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+  "changed_paths": [
+    ".github/workflows/ktrade-native-windows.yml"
+  ],
+  "change": "PR base branch filter main -> main plus feature/rb3-*",
+  "workflow_blob": "067b76ec1b666d01014188167ed2e63ec9bccb86",
+  "non_trigger_workflow_content_byte_identical": true,
+  "run_id": 41624603951,
+  "job_id": 125878679100,
+  "trigger_event": "pull_request",
+  "manual_dispatch": false,
+  "status": "completed",
+  "conclusion": "success",
+  "full_original_go_tagged_wails_tests_and_vet": "PASS",
+  "node": {
+    "files": 39,
+    "cases": 184,
+    "pass": 184
+  },
+  "original_two_root_browser_compatibility": "PASS",
+  "assets_licenses_shipping_advisories": "PASS",
+  "six_unsigned_binaries_and_actual_main_pair_scans": "PASS",
+  "ci_installer_sha256": "0364962352557809e62026caa97a387f9414427a6df2c23781958ccb2b90903f",
+  "ci_installer_executed": false,
+  "qualified_private_product_candidate": {
+    "source_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+    "installer_sha256": "a34be54981d1029e58cf7bea938d5b61f595607298ee5010a4754d004751db4c",
+    "native_run": 41292935500,
+    "receipt_commit": "046f1a29dbbf4a11d5bcb38fbf3f49802f9fb7a6",
+    "receipt_blob": "fe06bd215eec139573e2c23adcca3bec1d0cb03e"
+  },
+  "scope_limits": [
+    "Trigger fix applies to RB3 PRs containing the workflow change; existing older heads do not gain it retroactively",
+    "Required-check and protected-branch settings were not modified",
+    "CI-built72f installer has not received separate exact-byte native acceptance; qualified private candidate remainsfcb"
+  ],
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

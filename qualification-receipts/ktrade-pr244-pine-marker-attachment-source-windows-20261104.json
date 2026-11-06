@@ -1,0 +1,72 @@
+{
+  "schema": "ktrade.pr244.pine-marker-source-windows-full-regression.v1",
+  "verdict": "PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "head_sha": "98931bed1178019fbc6fee5eab73a395a275e2f1",
+    "tree": "b965d9b0a1ccbd7de15024407e8f9c9a48258f23",
+    "previous_sha": "cedce2155bdd88e7fc13dd11891bac4087f4e54d",
+    "parent_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "changed_paths_from_pr243": 22,
+    "changed_paths_untruncated": true,
+    "change_scope": [
+      "templates/chart.tmpl",
+      "tests/rb3_pine_marker_attachment_failclosed.test.cjs"
+    ]
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/ktrade",
+    "workflow_run_id": 41951563944,
+    "job_id": 126996464875,
+    "run_conclusion": "success",
+    "run_attempt": 1,
+    "runner": "github-hosted Windows 2022",
+    "source_preflight": "PASS_EXACT_CLEAN_PRIVATE_DISARMED",
+    "native_windows_full_go_wails_vet": "PASS",
+    "node_tests": {
+      "files": 41,
+      "passed": 198,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    "locked_shipping_assets": "PASS",
+    "unsigned_six_binary_installer_scanners": "PASS",
+    "unsigned_installer_zip_sha256": "3463dbdea8d82638df45e5e0831dddd694672bcebb5bf024931e35adbcedbeab",
+    "optional_orphan_report": "PASS_READONLY_SEPARATE",
+    "optional_orphan_zip_sha256": "37b43864472b398f228c84c3dcac52b422157a454ec78a385fd022d0b4be7865"
+  },
+  "engineering": {
+    "purpose": "Do not report Pine marker Apply success when a nonempty marker response lacks the chart-series marker API; unchanged marker-free indicators; focused five-case native Node negative controls",
+    "prior_failure": {
+      "run": 41950296913,
+      "job_id": 126992377577,
+      "verdict": "FAIL",
+      "source_sha": "cedce2155bdd88e7fc13dd11891bac4087f4e54d",
+      "cause": "new source-inspection test fixture did not normalize Windows CRLF before extracting inline chart method",
+      "original_go_wails_vet": "PASS",
+      "node_tests_passed": 193,
+      "node_tests_failed": 1,
+      "subsequent_shipping_tests": "NOT_EXECUTED"
+    },
+    "repair_commit": "98931bed1178019fbc6fee5eab73a395a275e2f1",
+    "repair_scope": "one Node test file normalizes CRLF and lone CR; product chart source unchanged",
+    "installed_native_marker_reliability_root_cause": "UNVERIFIED"
+  },
+  "scope": {
+    "source_ci_only": true,
+    "installed_native_current_head": "UNVERIFIED",
+    "original_main_unchanged": true,
+    "owner_windows_HiDPI": "UNVERIFIED",
+    "final_24h_soak": "UNVERIFIED",
+    "signed_release": "NOT_AUTHORIZED",
+    "live_broker_authority": "NONE",
+    "merge_authority": "NONE"
+  },
+  "provenance": {
+    "run_url": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41951563944",
+    "original_decoded_job_logs": "all exact source identity, Go/Wails, Node, assets, package and optional report notices validated",
+    "receipt_role": "Exact-source original Windows prerequisite; not a native installed or production acceptance verdict"
+  }
+}

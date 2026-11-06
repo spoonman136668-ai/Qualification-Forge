@@ -1,0 +1,110 @@
+{
+  "schema": "ktrade.pr244.corrected-workspace-contract-scope.v1",
+  "verdict": "PASS_FULL_GIT_TREE_IDENTITY_AND_LEGACY_CONTRACT_COMPATIBILITY_STATIC__WINDOWS_FULL_CI_PENDING",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "head_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "head_tree": "7143f2fa49b2027bb60d8d5106c632b2aa0c230d",
+    "parent_pr": 243,
+    "parent_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "parent_tree": "0d8257297d53a8edd4a40b4099f102106619b2a2",
+    "main_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "main_tree": "8b43e35338f9be645a9fbb5a79f14c3c6ab328e3"
+  },
+  "exact_trees": {
+    "method": "Independent GitHub recursive Git Trees read of immutable main, PR243 and corrected PR244 trees, truncated=false for all. Compare complete path, blob IDs, file modes and deletion inventory.",
+    "main_blobs": 6983,
+    "pr243_blobs": 7369,
+    "pr244_blobs": 7370,
+    "cumulative": {
+      "total": 436,
+      "added": 387,
+      "modified": 49,
+      "deleted": 0,
+      "mode_changed": 0
+    },
+    "delta_vs_parent": {
+      "paths": 6,
+      "added": 1,
+      "modified": 5,
+      "deleted": 0,
+      "mode_changed": 0,
+      "changes": [
+        {
+          "path": "cmd/ktrade/main_full.go",
+          "status": "modified",
+          "base_blob": "bfadf7a46cfaf90ad15600e7b820a7f59456563b",
+          "head_blob": "0069483dc9b59437a0e39c1b8e9d00e24f2955a1",
+          "mode": "100644"
+        },
+        {
+          "path": "cmd/ktrade/rb3_workspace_http_ingress_full_test.go",
+          "status": "added",
+          "head_blob": "506e96fb9ccfb46424ed828f4dc754659eaa9d8c",
+          "mode": "100644"
+        },
+        {
+          "path": "pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go",
+          "status": "modified",
+          "base_blob": "aea2367405084ee9b56485290033a292e92a73e3",
+          "head_blob": "7a9f650ca950db678d89d608c3b6cb30851a18e1",
+          "mode": "100644"
+        },
+        {
+          "path": "pkg/p18a_closeout_workspace_http_surface_gate_test.go",
+          "status": "modified",
+          "base_blob": "be0bb7757534760f7119a75429c45860cd810ff9",
+          "head_blob": "e8c701b9eeba825a21594bfcad505ad37426f85d",
+          "mode": "100644"
+        },
+        {
+          "path": "pkg/p18a_t05_workspace_http_request_response_contract_test.go",
+          "status": "modified",
+          "base_blob": "ff900bd8950c883d88d5c31eec0a811f529057e2",
+          "head_blob": "7b81982a45f54f83448dc4dbf2cec30f57268644",
+          "mode": "100644"
+        },
+        {
+          "path": "pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go",
+          "status": "modified",
+          "base_blob": "d0b3e5ead49629bab5cece450bfb2491b6345769",
+          "head_blob": "8b8ae807318a26c5ceccd832402ddf72968b308b",
+          "mode": "100644"
+        }
+      ]
+    }
+  },
+  "root_fail_and_repair": {
+    "failed_run_id": 41754370107,
+    "job_id": 126326890594,
+    "failed_at": "Full original Go engine app and Wails tests and vet",
+    "diagnosis": "Five original P18A workspace static source-contract failures pinned the obsolete json.NewDecoder(r.Body).Decode(&raw) statement. This change intentionally uses one bounded decoder for raw JSON plus trailing-content detection.",
+    "correction": "Preserve historical invalid JSON response text; update four existing P18A source contracts to assert method/origin guard, 1 MiB limit, decoder raw and trailing behavior, original default/state-copy/response and cardinality invariants. No assertion deleted merely to suppress failure.",
+    "static_contract_preflight": "PASS all six affected load contract containment/ordering checks against exact source; not a substitute for Go tests."
+  },
+  "qualification": {
+    "run_id": 41755443367,
+    "head_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "status": "in_progress",
+    "conclusion": "UNVERIFIED_AT_RECEIPT_CREATION",
+    "mandatory": "original full tagged Go/Wails tests and vet; Node; locked assets; actual unsigned installer and vulnerability scans"
+  },
+  "boundaries": {
+    "main_merge": "HOLD",
+    "release": "HOLD",
+    "live": "DISARMED",
+    "broker_orders": "NONE",
+    "original_parent_installed_run": 41748868563,
+    "parent_installed_native_not_reused_as_new_head_proof": true,
+    "owner_hidpi": "UNVERIFIED",
+    "complete_cumulative_security_acceptance": "NOT_GRANTED",
+    "required_git_branch_protection": "OPTIONAL"
+  },
+  "refs": {
+    "pr": "https://github.com/spoonman136668-ai/ktrade/pull/244",
+    "old_failed_run": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41754370107",
+    "new_run": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41755443367",
+    "qualifier_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/72"
+  }
+}

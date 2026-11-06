@@ -1,0 +1,95 @@
+{
+  "schema": "ktrade.pr244.current-head-go-shipping-reachability-security.v1",
+  "verdict": "PASS_EXACT_CURRENT_SHA_GO_ENGINE_AND_WAILS_ZERO_KNOWN_REACHABLE_SYMBOLS",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "draft_pr": 244,
+    "head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "tree_sha": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "source_ci_run": 41994140128,
+    "source_ci_job": 127133130434,
+    "source_node_cases": 199,
+    "source_receipt_blob": "7eb9024615af7a076611caff6306a4749f46bcb0"
+  },
+  "qualifier": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "draft_pr": 72,
+    "branch": "qualification/ktrade-original-pine-label-response-affinity-20261031",
+    "workflow_path": ".github/workflows/ktrade-pr244-security-reachability-windows.yml",
+    "workflow_commit": "5a7166d46c2f0e9c38a4925d874af59be2ccd583",
+    "workflow_blob": "33ff7fef984f0f9c1ad2a436ea260585df2ec030",
+    "run_id": 42014108657,
+    "job_id": 127200164181,
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42014108657",
+    "original_step_results": "ALL_SUCCESS"
+  },
+  "preconditions": {
+    "source_receipt_blob": "7eb9024615af7a076611caff6306a4749f46bcb0",
+    "Windows_2022_native_receipt_blob": "6d9d69001c40b2999fb4095652ae55393d2ff70a",
+    "Windows_2025_native_receipt_blob": "e06c0d6613de323480b9b2abc7dbdde709d8b9b2",
+    "current_risk_matrix_receipt_blob": "94e07ed49197869f77ab9b8ee7933f654c85011f",
+    "current_risk_matrix": {
+      "run": 42012945921,
+      "job": 127196271649,
+      "go_race_paper_case_executions": 44,
+      "go_race_mock_broker_test_roots": 122,
+      "verdict": "PASS"
+    }
+  },
+  "vulnerability_scan": {
+    "scanner": "govulncheck",
+    "version": "v1.9.0",
+    "go_version": "go1.26.10",
+    "database": "https://vuln.go.dev",
+    "database_modified_utc": "2026-11-02T22:01:43Z",
+    "scopes": [
+      {
+        "scope": "engine",
+        "go_tags": "ktrade_full",
+        "affected_vulnerability_ids": 2,
+        "reachable_symbol_findings": 0,
+        "zero_reachable_known_vulnerabilities": true,
+        "findings": []
+      },
+      {
+        "scope": "wails",
+        "go_tags": "desktop,production",
+        "affected_vulnerability_ids": 0,
+        "reachable_symbol_findings": 0,
+        "zero_reachable_known_vulnerabilities": true,
+        "findings": []
+      }
+    ],
+    "original_job_notices": [
+      "PR244_SEC_EXACT_PRODUCT_DISARM_PRIOR_NATIVE_RISK_AND_SOURCE=PASS",
+      "PR244_SEC_ENGINE_AND_WAILS_CURRENT_DB_ZERO_REACHABLE_KNOWN_GO_VULNERABILITIES=PASS",
+      "PR244_SEC_NO_BROKER_NO_OWNER_DATA_NO_RELEASE_NO_SOURCE_CHANGES"
+    ],
+    "known_advisory_scope": "Two affected advisory IDs in engine, but zero reachable vulnerable symbols according to pinned scanner and 2026-11-02 database; not zero advisory claims."
+  },
+  "security_scope": {
+    "windows_hosted": "windows-2022",
+    "read_only_code_scan": true,
+    "operator_data": "NOT_READ",
+    "real_broker_keys": "NONE",
+    "broker_orders": "NONE",
+    "live_trading": "DISARMED",
+    "source_unchanged": true,
+    "known_reachable_go_vulnerabilities_in_scanned_scope": "NONE",
+    "future_or_undisclosed_vulnerabilities": "UNVERIFIED",
+    "non_go_dependency_vulnerabilities": "NOT_PROVEN_BY_THIS_RECEIPT",
+    "actual_windows11_owner_hidpi": "UNVERIFIED",
+    "extended_soak": "NOT_EXECUTED",
+    "exhaustive_cumulative_financial_security_matrix": "UNVERIFIED",
+    "merge": "HOLD",
+    "signing": "HOLD",
+    "production_release": "HOLD"
+  },
+  "provenance": {
+    "method": "GitHub original exact-head run, job steps and decoded log, reducer JSON summaries from live job, pinned source/native/risk receipt blobs",
+    "separate_from_live_execution": true
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "schema": "ktrade.pr244.current-head-original-installed-funded-paper-force-kill-windows.v1",
+  "verdict": "PASS_EXACT_SHA_FUNDED_PAPER_FORCE_KILL_ORPHAN_QUARANTINE_NO_REARM",
+  "product": {
+    "repository": "spoonman136668-ai/ktrade",
+    "draft_pr": 244,
+    "head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "tree": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "source_ci_run_id": 41994140128,
+    "source_ci_job_id": 127133130434,
+    "node_cases": 199
+  },
+  "qualifier": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "draft_pr": 72,
+    "branch": "qualification/ktrade-original-pine-label-response-affinity-20261031",
+    "workflow_path": ".github/workflows/ktrade-pr244-native-funded-force-kill-windows.yml",
+    "workflow_commit": "d1d54abece460603f878f8ce8d0ba68f9b508bad",
+    "workflow_blob": "4167311dc2d00edc0dbd20ab5f7292227096f90b",
+    "original_immutable_crash_helper_blob": "0c1d228e8b4dd5a167c37fee76747069b7ee14cb",
+    "run_id": 42015938129,
+    "job_id": 127206375039,
+    "run_attempt": 1,
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "original_native_child_exit_code": 0,
+    "runner": "github-hosted windows-2022",
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42015938129"
+  },
+  "prequalified_pins": {
+    "source_receipt": "7eb9024615af7a076611caff6306a4749f46bcb0",
+    "risk_receipt": "94e07ed49197869f77ab9b8ee7933f654c85011f",
+    "security_receipt": "99f4b3b3b31be09a4817f58feb8c3e1f669fc7e2",
+    "windows_2025_native_receipt": "e06c0d6613de323480b9b2abc7dbdde709d8b9b2",
+    "preserved_windows_2022_native_receipt": "6d9d69001c40b2999fb4095652ae55393d2ff70a"
+  },
+  "observed_original_job_log": {
+    "synthetic_funded_paper_buy": {
+      "fill_count": 1,
+      "source_id": "ktrade-reconcile-a7ae2d000eb10f5657cf6a190bd419ea",
+      "source_sha256": "adc136bb175bae3f6ffc153c98e502666c2d9cec42f865b868a20a52d84aab28",
+      "last_ledger_hash": "57bf6c64a8e8bbde751ac8766da9849fa08fe77e658e2c61e949681516a686b7",
+      "cash_after": "579.74940152",
+      "shell_pid": 2640,
+      "engine_pid": 3220
+    },
+    "notices_each_once": [
+      "PR244_CRASH_PINNED_NATIVE_BUILDER_PAPER_SOURCE_DERIVED_WITHOUT_MUTATING_ORIGINAL=PASS",
+      "PR244_CRASH_PINNED_PR244_NATIVE_SOURCE_AND_BASELINE_RECEIPTS=PASS",
+      "PR244_EXACT_UNSIGNED_SOURCE_BUILT_DISARMED=PASS",
+      "PR244_ORPHAN_EXACT_SOURCE_STANDALONE_TOOL_PREPARED=PASS",
+      "PR244_CRASH_PREDECESSOR_COLD_UPDATE_REUSES_EXACT_NATIVE_W83=PASS",
+      "PR244_CRASH_SEALED_CHECKPOINT_PREKILL=PASS",
+      "PR244_CRASH_PRE_KILL_ONE_SETTLED_PAPER_BUY_ACCOUNT_RISK_VERIFIED=PASS",
+      "PR244_CRASH_BOTH_PAPER_OWNER_LEASES_SURVIVED_FORCE_KILL=PASS",
+      "PR244_CRASH_SEALED_FINANCIAL_AND_PINE_FILES_VERIFIED_POSTKILL=PASS",
+      "PR244_CRASH_OPERATOR_READONLY_QUARANTINE_JSON=PASS",
+      "PR244_CRASH_BOTH_PAPER_OWNER_LEASES_UNCHANGED_AFTER_REFUSED_RELAUNCH=PASS",
+      "PR244_CRASH_OPERATOR_REPORT_REPEATED_NO_MUTATION=PASS",
+      "PR244_CRASH_ONE_SETTLED_PAPER_BUY_CHILD_TERMINATED_STALE_LEASE_QUARANTINED_NO_REARM=PASS",
+      "PR244_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS",
+      "PR244_EXACT_NATIVE_FUNDED_FORCE_KILL_QUARANTINE=PASS"
+    ],
+    "required_original_native_child_exit_code": 0,
+    "original_source_process_identity_checked": true,
+    "original_financial_checkpoint_immutable_across_crash_and_relaunch": true,
+    "original_paper_owner_leases_survived_force_kill": true,
+    "original_operator_quarantine_readonly_repeated_unchanged": true,
+    "original_native_shortcut_unauthorized_relaunch_refused": true,
+    "original_live_auto_rearm_refused": true
+  },
+  "prior_historical_evidence": {
+    "old_source_sha": "1b96c7a39d90a3bcc0485ce39bb6ab3269ab1664",
+    "historical_funded_crash_run": 41817963186,
+    "historical_funded_crash_receipt_blob": "053ba71158e3deadfad9cb05864b358ac7ff67bc",
+    "current_sha_requalified_independently": true
+  },
+  "scope": {
+    "scenario": "One settled synthetic PAPER BUY then original installed owned shell force-kill, engine termination, stale owner lease fail-closed quarantine and read-only diagnostic",
+    "real_broker_orders": false,
+    "credentials_read": false,
+    "owner_data_read": false,
+    "live_trading_armed": false,
+    "scope_of_accepted_recovery": "ONE_FUNDED_CRASH_REFUSAL_CASE",
+    "operator_lease_clear_or_recovery": "NOT_EXECUTED_NOT_AUTHORIZED",
+    "repeated_soak": "NOT_EXECUTED",
+    "Windows11_HiDPI": "UNVERIFIED",
+    "full_financial_chaos_matrix": "UNVERIFIED",
+    "signed_release": "HOLD",
+    "production_merge": "HOLD",
+    "production_release": "HOLD"
+  },
+  "provenance": {
+    "method": "Original decoded job 127206375039 native test log plus exact workflow run/steps; ephemeral derived helper source/tree only; original crash oracle unchanged.",
+    "received_at_utc": "2026-11-05"
+  }
+}

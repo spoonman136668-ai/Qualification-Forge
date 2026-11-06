@@ -1,0 +1,131 @@
+name: KTRADE original Pine label response affinity and pre-mutation validation
+on:
+  push:
+    branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
+    paths: [.github/workflows/ktrade-pine-label-response-affinity-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pine-label-response-affinity-20261031
+  cancel-in-progress: false
+jobs:
+  focused:
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 86df16b0b13046b47909edd709d978484459de3d
+          path: product
+          fetch-depth: 10
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact caption source three paths and identical original Go package custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if($env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'ISOLATED_EXISTING_WINDOWS_QUALIFICATION_REQUIRED'}
+          if((& git -C $p rev-parse HEAD).Trim() -cne '86df16b0b13046b47909edd709d978484459de3d' -or (& git -C $p rev-parse 'HEAD^{tree}').Trim() -cne '60c83a503f65e8c6a5405f1851d887bd2728ccd2' -or @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){throw 'EXACT_CLEAN_SOURCE_REQUIRED'}
+          & git -C $p merge-base --is-ancestor 56b9036f48e4783d846b7e00d650d7d4b96dd7fc HEAD
+          if($LASTEXITCODE -ne 0){throw 'QUALIFIED_PR236_SOURCE_PARENT_REQUIRED'}
+          $delta=@(& git -C $p diff --name-only 56b9036f48e4783d846b7e00d650d7d4b96dd7fc HEAD|Sort-Object)
+          $expected=@('cmd/ktrade/pine_label_response_affinity_full_test.go','templates/chart.tmpl','tests/rb3_pine_label_response_affinity.test.cjs')|Sort-Object
+          if(($delta -join '|') -cne ($expected -join '|')){throw 'EXACT_THREE_PATH_LABEL_BINDING_DELTA_REQUIRED'}
+          if((& git -C $p rev-parse 'HEAD:pkg').Trim() -cne (& git -C $p rev-parse '56b9036f48e4783d846b7e00d650d7d4b96dd7fc:pkg').Trim()){throw 'IDENTICAL_QUALIFIED_ORIGINAL_GO_PACKAGE_REQUIRED'}
+          foreach($pin in @(@('pkg/pine_compiler.go','846f9f7f73d801fcb9d71b3da626143dade8e721'),@('pkg/pine_plotting_advanced.go','f5b52befb522a260289af0177dfd0c9eda1d4d6b'),@('internal/originaltradeguard','1f894b0a6f8115b8a9d3882fa16fdb289eba510a'),@('internal/paperreconcile','9507b1f181b9a82ebbc4fa63f4bc05b27613e25e'))){if((& git -C $p rev-parse ('HEAD:'+$pin[0])).Trim() -cne $pin[1]){throw 'ORIGINAL_RUNTIME_GUARD_LEDGER_DRIFT'}}
+          if((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'LIVE_AUTHORITY_DRIFT'}
+          $run=Invoke-RestMethod -Uri 'https://api.github.com/repos/spoonman136668-ai/Qualification-Forge/actions/runs/41254118077' -Headers @{Authorization=('Bearer '+$env:GITHUB_TOKEN);Accept='application/vnd.github+json'} -TimeoutSec 30
+          if($run.status -cne 'completed' -or $run.conclusion -cne 'success' -or $run.head_sha -cne 'ab6f73989777d51350e8c0906992bd117501b65f'){throw 'QUALIFIED_ACTUAL_PARENT_FULL_SOURCE_NATIVE_REQUIRED'}
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          if((& git -C $w rev-parse 'HEAD:qualification-receipts/ktrade-pr236-full-source-owned-native-windows-20261031.json').Trim() -cne '82d0958fa6897286529fff7c2a0f976c00523b07'){throw 'PARENT_FULL_RECEIPT_DRIFT'}
+          Write-Host '::notice::PR238_EXACT_THREE_PATH_SOURCE_IDENTICAL_ORIGINAL_PKG_PARENT_REAL_FULL_NATIVE_QUALIFICATION=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Current original Go guide-only HTTP plus all prior settings marker and NA API cases
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $env:KTRADE_PINE_MARKER_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-marker-http.json'
+          $env:KTRADE_PINE_HLINE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-http.json'
+          $env:KTRADE_PINE_HLINE_NONFINITE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-nonfinite-http.json'
+          $env:KTRADE_PINE_GUIDE_ONLY_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-guide-only-http.json'
+          $env:KTRADE_PINE_LABEL_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-label-http.json'
+          Push-Location (Join-Path $env:GITHUB_WORKSPACE 'product')
+          try{
+            $out=@(& go test -race -json -mod=readonly -tags=ktrade_full -count=1 -timeout 18m -run '^TestPineInputSettings|^TestPineOverlayTransportsOriginalConfirmedShapes$|^TestPineOverlayTransportsOriginalRSIHorizontalGuides$|^TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots$|^TestPineGuideOnlyOverlayPreservesOriginalLevelsWithoutInventingPlots$|^TestPineLabelResponsePreservesOriginalBarCoordinates$' ./cmd/ktrade)
+            $exit=$LASTEXITCODE
+            foreach($line in $out){Write-Host $line}
+            if($exit -ne 0){throw 'ACTUAL_ORIGINAL_GO_GUIDE_ONLY_OR_PRIOR_API_FAILED'}
+            $events=@($out|ForEach-Object {try{$_|ConvertFrom-Json -ErrorAction Stop}catch{}})
+            foreach($root in @('TestPineInputSettingsPersistCASAndSourceIsolation','TestPineInputSettingsRejectsBadRequestsAndPreservesCorruption','TestPineInputSettingsUnavailableRootIsReadOnly','TestPineOverlayTransportsOriginalConfirmedShapes','TestPineOverlayTransportsOriginalRSIHorizontalGuides','TestPineOverlayNonfiniteHorizontalGuidesPreserveOriginalNAPlots','TestPineGuideOnlyOverlayPreservesOriginalLevelsWithoutInventingPlots','TestPineLabelResponsePreservesOriginalBarCoordinates')){if(@($events|Where-Object {$_.Test -ceq $root -and $_.Action -ceq 'pass'}).Count -ne 1){throw 'REQUIRED_ACTUAL_API_ROOT_NOT_EXECUTED'}}
+            if(@($events|Where-Object {$_.Action -in @('fail','skip')}).Count -ne 0){throw 'CURRENT_API_FAILURE_OR_SKIP'}
+            & go vet -mod=readonly -tags=ktrade_full ./cmd/ktrade
+            if($LASTEXITCODE -ne 0){throw 'CURRENT_TAGGED_APP_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::PR238_ACTUAL_ORIGINAL_GO_V5_V6_GUIDE_ONLY_AND_ALL_PRIOR_API_RACE_VET=PASS'
+      - name: Actual Go label fixtures with original foreign-history and partial-mutation defects reproduced
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:KTRADE_PINE_MARKER_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-marker-http.json'
+          $env:KTRADE_PINE_HLINE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-http.json'
+          $env:KTRADE_PINE_HLINE_NONFINITE_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-hline-nonfinite-http.json'
+          $env:KTRADE_PINE_GUIDE_ONLY_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-guide-only-http.json'
+          $env:KTRADE_PINE_LABEL_FIXTURE_FILE=Join-Path $env:RUNNER_TEMP 'ktrade-pine-label-http.json'
+          foreach($file in @($env:KTRADE_PINE_MARKER_FIXTURE_FILE,$env:KTRADE_PINE_HLINE_FIXTURE_FILE,$env:KTRADE_PINE_HLINE_NONFINITE_FIXTURE_FILE,$env:KTRADE_PINE_GUIDE_ONLY_FIXTURE_FILE,$env:KTRADE_PINE_LABEL_FIXTURE_FILE)){if(!(Test-Path -LiteralPath $file)){throw 'ALL_ACTUAL_ORIGINAL_HTTP_FIXTURES_REQUIRED'}}
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $target=Join-Path $p 'templates/chart.tmpl'
+          $current=[IO.File]::ReadAllBytes($target)
+          Push-Location $p
+          try{
+            try{
+              $old=(& git show '56b9036f48e4783d846b7e00d650d7d4b96dd7fc:templates/chart.tmpl') -join "`n"
+              if($LASTEXITCODE -ne 0){throw 'EXACT_ORIGINAL_PARENT_RENDERER_REQUIRED'}
+              [IO.File]::WriteAllText($target,$old,[Text.UTF8Encoding]::new($false))
+              $proof=@'
+          const fs=require('node:fs'),vm=require('node:vm'),render=require('./static/pine_plot_renderer.js');
+          const html=fs.readFileSync('templates/chart.tmpl','utf8'),a=html.indexOf('applyPineResult(data){'),b=html.indexOf('\n};',a);
+          const fn=html.slice(a,b).trim().replace(/^applyPineResult/,'function');
+          const cases=JSON.parse(fs.readFileSync(process.env.KTRADE_PINE_LABEL_FIXTURE_FILE,'utf8'));if(cases.length!==2)throw Error('Both original Go HTTP label cases required');
+          for(const c of cases){let marks=[],mutated=false;const apply=vm.runInNewContext('('+fn+')',{window:{KTRADE_PinePlots:{shapeMarkers:render.shapeMarkers,apply(){mutated=true;}}},console:{log(){},warn(){}}});const scale={timeScale:()=>({fitContent(){}})},app={s:{candles:c.response.candles.map(x=>({time:x.time+6000000})),cs:{setMarkers(m){marks=m;}},chart:scale,vchart:scale,pchart:scale}};
+          apply.call(app,c.response);if(marks.length!==c.response.candles.length||!marks.every((m,i)=>m.time===c.response.candles[i].time+6000000))throw Error('Original foreign-history label defect not reproduced');
+          mutated=false;let threw=false;try{apply.call(app,{...c.response,labels:[{bar_index:0,style:{}}]});}catch{threw=true;}if(!threw||!mutated)throw Error('Original plot mutation before malformed label refusal not reproduced');}
+          console.log('PR238_ORIGINAL_ACTUAL_V5_V6_LABEL_FOREIGN_HISTORY_AND_PARTIAL_MUTATION_DEFECTS_REPRODUCED=PASS');
+          '@
+              & node -e $proof
+              if($LASTEXITCODE -ne 0){throw 'ACTUAL_PARENT_CAPTION_DEFECT_NOT_REPRODUCED'}
+            }finally{[IO.File]::WriteAllBytes($target,$current)}
+            & node --test tests/rb3_pine_label_response_affinity.test.cjs tests/rb3_pine_hline_transport.test.cjs tests/rb3_pine_shape_transport.test.cjs tests/rb3_pine_input_settings.test.cjs tests/rb3_w32b_pine_compile.test.cjs tests/rb3_w32c_pine_renderer.test.cjs tests/rb3_w90_catalog_actions.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'CURRENT_ACTUAL_GUIDE_ONLY_CAPTION_OR_PRIOR_PRESENTATION_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::PR238_REAL_CHART_LABEL_RESPONSE_AFFINITY_AND_PRIOR_CONTROLS=PASS'
+      - name: Final source and authority custody
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if(@(& git -C (Join-Path $env:GITHUB_WORKSPACE 'product') status --porcelain --untracked-files=no).Count -ne 0){throw 'TRACKED_SOURCE_CHANGED'}
+          Write-Host '::notice::NO_OWNER_DATA_NO_REAL_BROKER_NO_LIVE_NO_SIGNING_NO_PROMOTION'

@@ -1,0 +1,52 @@
+{
+  "schema": "ktrade.pr243.source-windows-verification.v1",
+  "verdict": "PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 243,
+    "head_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "head_tree": "0d8257297d53a8edd4a40b4099f102106619b2a2",
+    "base_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0",
+    "changed_paths": [
+      "templates/chart.tmpl",
+      "tests/rb3_pine_apply_viewport.test.cjs"
+    ],
+    "blob_shas": {
+      "templates/chart.tmpl": "04092fd2e9f201620d62d9d86b0443d3deeff199",
+      "tests/rb3_pine_apply_viewport.test.cjs": "4276c13445f76ad0359d2c1f7cfccfea37ddf076"
+    }
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/ktrade",
+    "run_id": 41747313575,
+    "job_id": 126303454670,
+    "run_attempt": 1,
+    "run_conclusion": "success",
+    "job_conclusion": "success",
+    "all_reported_steps_success": true,
+    "log_observed_node_files": 40,
+    "log_observed_node_cases": 193,
+    "log_observed_vendor_files": 118,
+    "go_tagged_wails_test_and_vet": "PASS",
+    "native_pine_logical_range_positive_and_negative": "PASS",
+    "asset_license_scan": "PASS",
+    "unsigned_installer_and_binary_scans": "PASS",
+    "unsigned_bundle_sha256": "4f6485c2130a5c45a9323425df6c5f9cd17b4b084aed92dac477d1444b23a5d0"
+  },
+  "limits": {
+    "installed_native_logical": "UNVERIFIED",
+    "installed_native_financial_at_new_head": "UNVERIFIED",
+    "release": "HOLD",
+    "live": "DISARMED",
+    "main_merge": "HOLD",
+    "owner_data": "NOT_TOUCHED",
+    "full_24h_soak": "DEFERRED",
+    "branch_protection_not_an_engineering_prerequisite": true
+  },
+  "refs": {
+    "workflow_run": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41747313575",
+    "product_pr": "https://github.com/spoonman136668-ai/ktrade/pull/243",
+    "prior_source_run": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41729717763",
+    "qualifier_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/72"
+  }
+}

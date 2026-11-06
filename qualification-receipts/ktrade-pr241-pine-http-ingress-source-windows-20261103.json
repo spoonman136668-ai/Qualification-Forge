@@ -1,0 +1,114 @@
+{
+  "schema": "ktrade.pr241.pine-http-security-source-windows.v1",
+  "checkpoint": "RB3_PR241_SECURITY_HTTP_INGRESS_EXACT_HEAD_WINDOWS",
+  "verdict": "PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr_number": 241,
+    "base_pr": 240,
+    "base_sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+    "head_sha": "ae70c58ded58be33d5cb5f156adaf0890cc3457c",
+    "head_tree": "4d008fe74aef4311e7fdfe1cebe0275328ff24a5",
+    "head_parent_sha": "d7bab07469aa6ab14670e5a92a6174aec42c1756",
+    "change_commits": 3,
+    "delta_paths": [
+      {
+        "path": "cmd/ktrade/main_full.go",
+        "status": "modified",
+        "additions": 30,
+        "deletions": 2
+      },
+      {
+        "path": "cmd/ktrade/rb2_pine_shared_interpreter_full_test.go",
+        "status": "modified",
+        "additions": 7,
+        "deletions": 0
+      },
+      {
+        "path": "cmd/ktrade/rb3_pine_http_ingress_full_test.go",
+        "status": "added",
+        "additions": 83,
+        "deletions": 0
+      }
+    ]
+  },
+  "qualification": {
+    "run_id": 41721051817,
+    "job_id": 126213589149,
+    "run_attempt": 1,
+    "run_head_sha": "ae70c58ded58be33d5cb5f156adaf0890cc3457c",
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "job_status": "completed",
+    "job_conclusion": "success",
+    "hosted_runner": "windows-2022",
+    "go": "go1.26.10",
+    "node": "24",
+    "all_15_steps_success": true,
+    "markers": [
+      "NATIVE_CI_FULL_ROOT_TAGGED_WAILS_TEST_VET=PASS",
+      "NATIVE_CI_ALL_NODE=PASS files=40 cases=191",
+      "NATIVE_CI_REPEATABLE_LICENSED_SHIPPING_ASSETS=PASS",
+      "NATIVE_CI_ORIGINAL_UNSIGNED_PACKAGE_ACTUAL_BINARY_SCANS_NO_APP_NO_INSTALL_NO_RELEASE=PASS"
+    ],
+    "log_observed_node_cases": 191,
+    "log_observed_node_failed": 0,
+    "log_observed_node_files": 40,
+    "log_observed_vendor_payload_hashes": 118,
+    "source_identity_log_verified": true,
+    "tree_identity_log_verified": true
+  },
+  "guarded_scope": {
+    "compile_limit_bytes": 1048576,
+    "backtest_limit_bytes": 4194304,
+    "legacy_http_requirements": [
+      "loopback client and host",
+      "same document Origin",
+      "Sec-Fetch-Site same-origin or none",
+      "Content-Type application/json"
+    ],
+    "expected_negative_http_status": {
+      "missing_or_cross_origin": 403,
+      "invalid_content_type": 403,
+      "request_over_limit": 413
+    },
+    "existing_interpreter_lock_positive_control": "PASS_AS_PART_OF_FULL_TAGGED_GO_SUITE",
+    "oversize_and_negative_controls": "PASS_AS_PART_OF_FULL_TAGGED_GO_SUITE",
+    "security_repair_only": true
+  },
+  "failed_parent_witness": {
+    "run_id": 41718711196,
+    "source_sha": "d7bab07469aa6ab14670e5a92a6174aec42c1756",
+    "verdict": "FAIL",
+    "cause": "Legacy interpreter-lock positive test used an unauthorized httptest request and exited 403 before shared mutex",
+    "resolution": "Preserved existing mutex assertion; supplied true local JSON request proof; separate cross-origin negatives remain unchanged"
+  },
+  "shipping": {
+    "unsigned_windows_build_and_shipping_binary_scans": "PASS",
+    "shipping_dependencies_affected": 0,
+    "legacy_nonshipping_build_dependencies_with_advisories": "PRESENT_RETAINED_REVIEW_SEPARATELY",
+    "signed": false,
+    "installed_for_owner": false
+  },
+  "scope_limits": [
+    "Full Go/tagged-app/Wails tests+vet, Node, original browser readers, asset/license/advisory and unsigned installer/binary checks passed on hosted Windows at this source; dedicated W01 desktop workflow was skipped, not passed",
+    "No new real installed WebView2 mouse-navigation and PAPER cold/rollback test at PR241; PR240 native tests are parent evidence only and must not be relabeled exact-head acceptance",
+    "Run success does not certify security review of all 429 cumulative changed integration paths, owner hardware/HiDPI, broker custody, signed release, or final soak"
+  ],
+  "release": {
+    "mainline_integration": "HOLD",
+    "merge": false,
+    "live_armed": false,
+    "real_orders": false,
+    "owner_data_accessed": false,
+    "owner_installed_release": "HOLD",
+    "final_24h_soak": "UNVERIFIED",
+    "independent_acceptance": "UNVERIFIED"
+  },
+  "links": {
+    "pr": "https://github.com/spoonman136668-ai/ktrade/pull/241",
+    "run": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41721051817",
+    "failed_attempt": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41718711196",
+    "parent_native": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41698404377"
+  }
+}

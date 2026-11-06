@@ -1,0 +1,190 @@
+{
+  "schema": "ktrade.pr238.exact-private-installer-native.v1",
+  "verdict": "PASS_SCOPED_ENGINEERING_ONLY",
+  "source_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+  "source_tree": "84b3318a15488ec943dbb39c60ab4a37f0624e1e",
+  "run_id": 41292935500,
+  "job_id": 124809607797,
+  "witness_sha": "c929dbfd3c007b09ea8fac2eca0b083cf36912e0",
+  "installer_sha256": "a34be54981d1029e58cf7bea938d5b61f595607298ee5010a4754d004751db4c",
+  "private_artifact": 13064583564,
+  "private_build_run": 41260122170,
+  "private_data_commit": "cc70d10645fcf66619a813a3447c5dbcae9a4026",
+  "full_source_regression": {
+    "run_id": 41259386111,
+    "witness_sha": "980b42cd44ae3181a081ab83912495e6624eda02",
+    "node_tests": 184,
+    "original_go_tagged_wails_tests_vet_build_scans": "PASS; unchanged exact source identity"
+  },
+  "startup": [
+    {
+      "startup_budget_ms": 120000,
+      "shell_engine_resident_bytes": 57032704,
+      "elapsed_ms": 9080.6205,
+      "phase": "PREVIOUS",
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+      "resident_budget_bytes": 1073741824
+    },
+    {
+      "startup_budget_ms": 120000,
+      "shell_engine_resident_bytes": 56741888,
+      "elapsed_ms": 3267.4021,
+      "phase": "UPDATED",
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+      "resident_budget_bytes": 1073741824
+    },
+    {
+      "startup_budget_ms": 120000,
+      "shell_engine_resident_bytes": 56455168,
+      "elapsed_ms": 2850.0368,
+      "phase": "ROLLED_BACK",
+      "scope": "native selected shortcut to verified WebView2 and safe capability; hosted VM; WebView child memory excluded",
+      "resident_budget_bytes": 1073741824
+    }
+  ],
+  "label_observations": [
+    {
+      "scope": "bounded_original_Go_label_metadata_and_native_cyan_observation_not_independent_label_time_price_glyph_or_pane_pixel_oracle",
+      "identical_bounds": true,
+      "baseline_cyan_pixels": 0,
+      "version": 5,
+      "baseline_http": {
+        "labels": 0,
+        "candles": 300,
+        "original_go_bar_style_pane_color_and_text_checked": true
+      },
+      "baseline_sha256": "dbf97f43a1ea7353ca9cdb68b47cba6c4a056b28f0173a19d52794cfd2837499",
+      "physical_editor_compile_and_apply": true,
+      "applied_http": {
+        "labels": 30,
+        "candles": 300,
+        "original_go_bar_style_pane_color_and_text_checked": true
+      },
+      "applied_cyan_pixels": 4586,
+      "applied_sha256": "496b8403a836aba0333e13bd9a9160d21e0333f7aabad426edde3b64e8b69e28"
+    },
+    {
+      "scope": "bounded_original_Go_label_metadata_and_native_cyan_observation_not_independent_label_time_price_glyph_or_pane_pixel_oracle",
+      "identical_bounds": true,
+      "baseline_cyan_pixels": 0,
+      "version": 6,
+      "baseline_http": {
+        "labels": 0,
+        "candles": 300,
+        "original_go_bar_style_pane_color_and_text_checked": true
+      },
+      "baseline_sha256": "aa538f810b0bf6f6abadd3d91e05081114962cefea8ce35cf8f85f2809aba33b",
+      "physical_editor_compile_and_apply": true,
+      "applied_http": {
+        "labels": 30,
+        "candles": 300,
+        "original_go_bar_style_pane_color_and_text_checked": true
+      },
+      "applied_cyan_pixels": 4748,
+      "applied_sha256": "f4094dc946eddaccbe385d4ee4eeee9c7db8a24404654e1ca07a1a2eda617dab"
+    }
+  ],
+  "guide_only_observations": [
+    {
+      "original_go_model_plot_count": 0,
+      "actual_pane_caption": "Pine: Overbought, Oversold, Middle",
+      "native_pane_sha256": "139e3603b6b0b68145199d0e7c1f631b19fd19143a5c3d8665003581227e63b5",
+      "version": 5,
+      "actual_guide_rows": [
+        {
+          "first_row": 46,
+          "last_row": 46,
+          "max_samples": 227,
+          "threshold": 167
+        },
+        {
+          "first_row": 77,
+          "last_row": 77,
+          "max_samples": 228,
+          "threshold": 167
+        },
+        {
+          "first_row": 108,
+          "last_row": 108,
+          "max_samples": 226,
+          "threshold": 167
+        }
+      ],
+      "original_go_levels": [
+        70,
+        30,
+        50
+      ],
+      "physical_editor_compile_and_apply": true,
+      "original_go_plot_count": 0,
+      "scope": "original_Go_guide_only_metadata_actual_native_caption_and_gray_row_presence_not_independent_numeric_to_pixel_oracle"
+    },
+    {
+      "original_go_model_plot_count": 0,
+      "actual_pane_caption": "Pine: Overbought, Oversold, Middle",
+      "native_pane_sha256": "501c24f0788a2f5cda7adac231f735486ed01b71d22913f640c874e492f56667",
+      "version": 6,
+      "actual_guide_rows": [
+        {
+          "first_row": 46,
+          "last_row": 46,
+          "max_samples": 228,
+          "threshold": 167
+        },
+        {
+          "first_row": 77,
+          "last_row": 77,
+          "max_samples": 228,
+          "threshold": 167
+        },
+        {
+          "first_row": 108,
+          "last_row": 108,
+          "max_samples": 227,
+          "threshold": 167
+        }
+      ],
+      "original_go_levels": [
+        70,
+        30,
+        50
+      ],
+      "physical_editor_compile_and_apply": true,
+      "original_go_plot_count": 0,
+      "scope": "original_Go_guide_only_metadata_actual_native_caption_and_gray_row_presence_not_independent_numeric_to_pixel_oracle"
+    }
+  ],
+  "original_paper_four_fills_fees_fifo_risk_stop_cold_no_rearm": "PASS",
+  "numeric_settings_save_cold_restore_reset": "PASS",
+  "retained_history_update_rollback": "PASS",
+  "legacy_order_http423": "PASS",
+  "package_asset_delta_vs_pr236": {
+    "changed": [
+      "static/pine_plot_renderer.js",
+      "templates/chart.tmpl"
+    ],
+    "other178_byte_identical": true
+  },
+  "rejected_runs": [
+    41291620689,
+    41292206827,
+    41292741131
+  ],
+  "harness_repairs": {
+    "child_diagnostics": "Capture original native child stdout stderr exit without implicit CLIXML decoding",
+    "startup": "Measure original120s startup at verified UI/engine/capability readiness; time all subsequent probes separately; original1GiB limit and all functional tests preserved",
+    "collector": "Capture all output streams; require actual native observations"
+  },
+  "limits": [
+    "Bounded color/metadata/guide-row observations; independent pixel position/glyph fidelity not certified",
+    "Actual warm UTC and24h soak pending",
+    "Target hardware and HiDPI pending",
+    "Owner profile and financial custody pending",
+    "Broader security and release enforcement pending"
+  ],
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

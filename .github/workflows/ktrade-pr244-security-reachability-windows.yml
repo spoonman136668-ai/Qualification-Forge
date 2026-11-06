@@ -1,0 +1,139 @@
+name: KTRADE PR244 exact-source shipping Go reachability security
+on:
+  push:
+    branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
+    paths: [.github/workflows/ktrade-pr244-security-reachability-windows.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-pr244-shipping-security-scan-20261104
+  cancel-in-progress: false
+jobs:
+  scan:
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+    steps:
+      - name: Immutable qualifier source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Exact KTRADE PR244 source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 671198f2336e410c98ef764603455a51c08d16b0
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact-source custody disarm and historical accepted qualification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge'){throw 'PR244_SEC_EPHEMERAL_AUTHORIZED_WINDOWS_REQUIRED'}
+          $q=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $q rev-parse HEAD).Trim() -cne $env:GITHUB_SHA -or (& git -C $src rev-parse HEAD).Trim() -cne '671198f2336e410c98ef764603455a51c08d16b0' -or
+             (& git -C $src rev-parse 'HEAD^{tree}').Trim() -cne 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -or @(& git -C $src status --porcelain).Count -ne 0){throw 'PR244_SEC_EXACT_CLEAN_PRODUCT_REQUIRED'}
+          if(Test-Path (Join-Path $src '.env')){throw 'PR244_SEC_DOTENV_REFUSED'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'PR244_SEC_SOURCE_LIVE_GATE_DRIFT'}
+          if((Get-Content (Join-Path $src 'windows/Go-Toolchain.version') -Raw).Trim() -cne 'go1.26.10'){throw 'PR244_SEC_REVIEWED_TOOLCHAIN_DRIFT'}
+          if((& git -C $q rev-parse 'HEAD:qualification-harness/ktrade-w79/main.go').Trim() -cne 'a09f76ecc2d01df01b806fbb15bceae05f36ef20'){throw 'PR244_SEC_ORIGINAL_REDUCER_DRIFT'}
+          $source='qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json'
+          $native='qualification-receipts/ktrade-pr244-pine-cold-reopen-repeatability-windows-20261105.json'
+          $risk='qualification-receipts/ktrade-pr244-current-head-risk-matrix-windows-20261105.json'
+          if((& git -C $q rev-parse ('HEAD:'+$source)).Trim() -cne '7eb9024615af7a076611caff6306a4749f46bcb0' -or
+             (& git -C $q rev-parse ('HEAD:'+$native)).Trim() -cne '6d9d69001c40b2999fb4095652ae55393d2ff70a' -or
+             (& git -C $q rev-parse ('HEAD:'+$risk)).Trim() -cne '94e07ed49197869f77ab9b8ee7933f654c85011f'){throw 'PR244_SEC_PREREQUISITE_RECEIPTS_DRIFT'}
+          $sourceReceipt=Get-Content -LiteralPath (Join-Path $q $source) -Raw|ConvertFrom-Json
+          $nativeReceipt=Get-Content -LiteralPath (Join-Path $q $native) -Raw|ConvertFrom-Json
+          $riskReceipt=Get-Content -LiteralPath (Join-Path $q $risk) -Raw|ConvertFrom-Json
+          $cross='qualification-receipts/ktrade-pr244-pine-cross-windows-2025-native-windows-20261105.json'
+          if((& git -C $q rev-parse ('HEAD:'+$cross)).Trim() -cne 'e06c0d6613de323480b9b2abc7dbdde709d8b9b2'){throw 'PR244_SEC_SECOND_NATIVE_IMAGE_RECEIPT_DRIFT'}
+          $crossReceipt=Get-Content -LiteralPath (Join-Path $q $cross) -Raw|ConvertFrom-Json
+          if($sourceReceipt.verdict -cne 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -or
+             $sourceReceipt.source.head_sha -cne '671198f2336e410c98ef764603455a51c08d16b0' -or
+             $sourceReceipt.source.tree -cne 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -or
+             $sourceReceipt.qualification.run_conclusion -cne 'success' -or
+             $sourceReceipt.qualification.node_tests.passed -ne 199 -or $sourceReceipt.qualification.node_tests.skipped -ne 0 -or
+             $nativeReceipt.verdict -cne 'PASS_TWO_NATIVE_CANDIDATE_SESSIONS_WITH_STRICT_PINE_V5_V6_PHYSICAL_MARKERS' -or
+             $nativeReceipt.source.head_sha -cne '671198f2336e410c98ef764603455a51c08d16b0' -or
+             $nativeReceipt.qualifier.job_conclusion -cne 'success' -or
+             $crossReceipt.verdict -cne 'PASS_EXACT_HEAD_WINDOWS_SERVER_2025_TWO_NATIVE_SESSIONS' -or
+             $crossReceipt.product.head_sha -cne '671198f2336e410c98ef764603455a51c08d16b0' -or
+             $crossReceipt.qualifier.run_id -ne 42009974415 -or
+             $riskReceipt.verdict -cne 'PASS_EXACT_HEAD_ORIGINAL_PAPER_AND_MOCK_BROKER_RACE_MATRIX' -or
+             $riskReceipt.source.head_sha -cne '671198f2336e410c98ef764603455a51c08d16b0' -or
+             $riskReceipt.source.tree -cne 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -or
+             $riskReceipt.qualifier.run_id -ne 42012945921 -or
+             $riskReceipt.qualifier.job_id -ne 127196271649 -or
+             $riskReceipt.qualifier.conclusion -cne 'success' -or
+             $riskReceipt.tests.paper_and_tradeguard_race_passes -ne 44 -or
+             $riskReceipt.tests.mock_broker_auth_custody_history.passed_roots -ne 122 -or
+             $riskReceipt.tests.skips -ne 0 -or $riskReceipt.tests.failures -ne 0){throw 'PR244_SEC_EXACT_SOURCE_NATIVE_AND_RISK_RECEIPTS_INVALID'}
+          Write-Host '::notice::PR244_SEC_EXACT_PRODUCT_DISARM_PRIOR_NATIVE_RISK_AND_SOURCE=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Compile original pinned Go security scanner and immutable reducer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          if((& go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'PR244_SEC_GO_TOOLCHAIN_DRIFT'}
+          & go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          if($LASTEXITCODE -ne 0){throw 'PR244_SEC_SCANNER_BUILD_FAILED'}
+          $scanner=Join-Path ((& go env GOPATH).Trim()) 'bin/govulncheck.exe'
+          if(!(Test-Path $scanner)){throw 'PR244_SEC_SCANNER_NOT_FOUND'}
+          $reducer=Join-Path $env:RUNNER_TEMP 'pr244-sec-reduce.exe'
+          & go build -o $reducer (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w79/main.go')
+          if($LASTEXITCODE -ne 0){throw 'PR244_SEC_REDUCER_BUILD_FAILED'}
+      - name: Current database Go engine and Wails reachable vulnerabilities
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $scanner=Join-Path ((& go env GOPATH).Trim()) 'bin/govulncheck.exe'
+          $reducer=Join-Path $env:RUNNER_TEMP 'pr244-sec-reduce.exe'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $bad=$false
+          foreach($scope in @('engine','wails')){
+            $raw=Join-Path $env:RUNNER_TEMP ('pr244-sec-'+$scope+'-raw.json')
+            $summary=Join-Path $env:RUNNER_TEMP ('pr244-sec-'+$scope+'-summary.json')
+            $dir=$src
+            if($scope -ceq 'wails'){$dir=Join-Path $src 'tools/wails-pilot'}
+            Push-Location $dir
+            try{
+              if($scope -ceq 'engine'){& $scanner -json -tags ktrade_full ./cmd/ktrade > $raw}
+              else{& $scanner -json -tags desktop,production . > $raw}
+              $code=$LASTEXITCODE
+              if($code -ne 0 -and $code -ne 3){throw ('PR244_SEC_SCAN_TOOL_FAILED_'+$scope)}
+              & $reducer $raw $scope $summary
+              if($LASTEXITCODE -ne 0){throw ('PR244_SEC_INVALID_SCAN_OUTPUT_'+$scope)}
+              $result=Get-Content $summary -Raw|ConvertFrom-Json
+              if($result.scope -cne $scope -or $result.go_version -cne 'go1.26.10' -or !$result.database_modified){throw ('PR244_SEC_SCAN_METADATA_UNVERIFIED_'+$scope)}
+              if(!$result.zero_reachable_known_vulnerabilities){$bad=$true}
+            }finally{Pop-Location;Remove-Item $raw -Force -ErrorAction SilentlyContinue}
+          }
+          if($bad){throw 'PR244_SEC_REACHABLE_KNOWN_GO_VULNERABILITY_RELEASE_HOLD'}
+          Write-Host '::notice::PR244_SEC_ENGINE_AND_WAILS_CURRENT_DB_ZERO_REACHABLE_KNOWN_GO_VULNERABILITIES=PASS'
+      - name: Final exact source unchanged and LIVE disarmed
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'product'
+          if((& git -C $src rev-parse HEAD).Trim() -cne '671198f2336e410c98ef764603455a51c08d16b0' -or
+             @(& git -C $src status --porcelain --untracked-files=no).Count -ne 0){throw 'PR244_SEC_FINAL_PRODUCT_DRIFT'}
+          if((Get-Content (Join-Path $src 'pkg/advanced_orders.go') -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'PR244_SEC_FINAL_LIVE_DRIFT'}
+          Write-Host '::notice::PR244_SEC_NO_BROKER_NO_OWNER_DATA_NO_RELEASE_NO_SOURCE_CHANGES'

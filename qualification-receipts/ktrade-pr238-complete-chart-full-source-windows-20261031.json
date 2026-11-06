@@ -1,0 +1,70 @@
+{
+  "schema": "ktrade.final-label-caption.full-source-owned-windows.v1",
+  "verdict": "PASS_SCOPED_FULL_SOURCE_CI_ONLY_EXACT_PRIVATE_NATIVE_PENDING",
+  "source_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+  "source_tree": "84b3318a15488ec943dbb39c60ab4a37f0624e1e",
+  "chart_blob": "f73fae79e1bc9942e7877ac0a554ed873cb6a413",
+  "run_id": 41259386111,
+  "job_id": 124709293024,
+  "witness_sha": "980b42cd44ae3181a081ab83912495e6624eda02",
+  "status": "completed",
+  "conclusion": "success",
+  "original_four_ci_command_bodies_unchanged": true,
+  "go_tagged_wails_all_original_tests_and_vet": "PASS freshly executed",
+  "node": {
+    "files": 39,
+    "cases": 184,
+    "pass": 184,
+    "fail": 0,
+    "skip": 0,
+    "original_four_chart_state_layout_failures_now_pass": true
+  },
+  "shipping_assets": {
+    "asset_files": 180,
+    "vendor_files": 118,
+    "license_and_repeatability": "PASS",
+    "known_shipping_advisory_scan": "PASS"
+  },
+  "go_version": "go1.26.10",
+  "unsigned_binaries": 6,
+  "actual_main_pair_binary_scans": "PASS both actual binaries",
+  "source_ci_installer_archive_sha256": "68ccc5d1cbdb45158b2402c292a7900386f6f6ecbd09b4d6ddccdfb313943e96",
+  "source_ci_package_installed": false,
+  "current_source_native_acceptance": "PENDING exact final private bytes",
+  "focused_reuse": {
+    "run": 41257447767,
+    "witness": "7ab03745d6493ddaa58901d0cecdcdd43f63e6bb",
+    "source": "86df16b0b13046b47909edd709d978484459de3d",
+    "receipt_commit": "1d08818dc86f981cd65ae96a339c5dfaac4068f2",
+    "receipt_blob": "e63814c32d9b3a30914a98a814d3b761c9dc6e10",
+    "api_roots": 8,
+    "api_subtests": 18,
+    "race_and_vet": true,
+    "node_cases": 44,
+    "boundary": "Identical cmd/pkg/internal/static/tests/module/workflow trees, byte-identical label Apply method and original Go catalog tail verified in this Windows preflight. Old whole corrupted chart is not qualified."
+  },
+  "rejected_first_full_source": {
+    "run": 41258552772,
+    "witness": "c5df7c6126a056cb2a1d68de12c5a4458c95c829",
+    "receipt_commit": "fdfe6e6cb748e4ad4675e5bbd05d18e703b36916",
+    "accepted": false
+  },
+  "parent_native": {
+    "source": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc",
+    "run": 41257723807,
+    "witness": "c10f5028773e724eb64b12c38d1d9ef1fc7a70f3",
+    "receipt_commit": "3f9d3f66396d97f37240e7132bdf459301bce9fa",
+    "receipt_blob": "35f8a49c97ae6f59ea6a7a82d9e8aef54b25d6aa",
+    "archive_sha256": "e2a0b4d3fbf911e41123154323b7d0884ffaabbfb239621c28da3b2a9563a648"
+  },
+  "original_compiler_blob": "846f9f7f73d801fcb9d71b3da626143dade8e721",
+  "original_drawing_manager_blob": "717d6bb5737430679d361dda82eafacbe1bb6591",
+  "native_harness_blob": "be2c3e69a955ce87d64d68d5fdbc3c6b8237431f",
+  "builder_blob": "809d6cc49998f12fab35951397e191e3e74b0f59",
+  "hosted_independent_verifier_blob": "88c5dc646a99d8a3b4491130877d15b0395e641b",
+  "product_complete": false,
+  "production_admission": "HOLD",
+  "live_armed": false,
+  "owner_data_accessed": false,
+  "release_authority": "none"
+}

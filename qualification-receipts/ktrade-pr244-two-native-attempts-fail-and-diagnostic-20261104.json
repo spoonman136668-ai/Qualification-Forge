@@ -1,0 +1,70 @@
+{
+  "schema": "ktrade.pr244.two-native-attempt-failures.v1",
+  "verdict": "FAIL_INSTALLED_NATIVE_CURRENT_HEAD__DIAGNOSTIC_GATE_OPEN",
+  "product": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "a032956d895b08784f01e293347c76c1d50853dd",
+    "tree": "f0272d4ce83d95450f1af416ffa5de2265eceaf4",
+    "source_windows_run": 41916946139,
+    "source_windows_conclusion": "success"
+  },
+  "qualifier": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "pr": 72,
+    "original_witness_sha": "de91993e2864ed68d13264f4d4656d5ea94a3ff0",
+    "witness_blob": "f2d442764f71abc6b08f2e7f42d916d7ddf89a42"
+  },
+  "attempts": [
+    {
+      "run_id": 41924809363,
+      "attempt": 1,
+      "job_id": 126906292018,
+      "conclusion": "failure",
+      "failed_step": "Original real installed Wails WebView2 and PAPER lifecycle with PR244 ingress probe",
+      "error": "MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED",
+      "observed_go_markers": 60,
+      "observed_native_aqua_pixels": 0,
+      "observed_native_yellow_pixels": 0,
+      "observed_samples": 5,
+      "installed_workspace_ingress": "PASS",
+      "paper_lifecycle": "NOT_REACHED"
+    },
+    {
+      "run_id": 41924809363,
+      "attempt": 2,
+      "job_id": 126911247034,
+      "conclusion": "failure",
+      "failed_step": "Original real installed Wails WebView2 and PAPER lifecycle with PR244 ingress probe",
+      "error": "W83_NATIVE_UI_NOT_OBSERVED_Verify chart UI",
+      "marker_rendering": "NOT_REACHED",
+      "installed_workspace_ingress": "NOT_REACHED",
+      "paper_lifecycle": "NOT_REACHED"
+    }
+  ],
+  "diagnostic_followup": {
+    "initial_diagnostic_commit": "44f8b6af5ff3a4aa13f3926d9128c55f0ab4a6e0",
+    "initial_workflow_event": 41927985445,
+    "initial_workflow_result": "FAIL_INVALID_YAML_INDENTATION_NO_JOBS_EXECUTED",
+    "corrected_diagnostic_commit": "a3a9936ea08b8a7502feb2bb5d56f009b56b68b6",
+    "corrected_workflow_blob": "a12bdd2cf88ad3a13f45cad77e4524788cc749dd",
+    "new_run_id": 41928120519,
+    "new_run_conclusion": "UNVERIFIED_AT_RECEIPT_CREATION",
+    "diagnostics": [
+      "read_only_visible_UIA_and_WebView_processes_on_verify_UI_failure",
+      "read_only_relaxed_palette_and_pixel_diff_on_marker_failure"
+    ],
+    "original_UI_timeout_pixel_thresholds_PAPER_and_security_checks": "UNCHANGED"
+  },
+  "boundaries": {
+    "final_native_acceptance": "HOLD",
+    "do_not_conflate_different_errors": true,
+    "source_ci_remains_pass": true,
+    "owner_machine": "UNVERIFIED",
+    "main_merge_signing_release_live": "NOT_AUTHORIZED"
+  },
+  "links": [
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41924809363",
+    "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/41928120519"
+  ]
+}

@@ -1,0 +1,135 @@
+{
+  "schema": "ktrade.pr244.native-cross-windows-2025.v1",
+  "verdict": "PASS_EXACT_HEAD_WINDOWS_SERVER_2025_TWO_NATIVE_SESSIONS",
+  "product": {
+    "repo": "spoonman136668-ai/ktrade",
+    "draft_pr": 244,
+    "head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "tree": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "source_ci": {
+      "run": 41994140128,
+      "job": 127133130434,
+      "conclusion": "success",
+      "node_tests": {
+        "passed": 199,
+        "failed": 0,
+        "skipped": 0
+      },
+      "full_go_wails_vet": "PASS"
+    },
+    "source_receipt_blob": "7eb9024615af7a076611caff6306a4749f46bcb0"
+  },
+  "qualifier": {
+    "repo": "spoonman136668-ai/Qualification-Forge",
+    "draft_pr": 72,
+    "workflow_commit": "d61165ba58b96e9cdc77ff0dccc7266b856274c3",
+    "workflow_blob": "33e40f2ad8ed060b322ee462395dad5b5eedf8cd",
+    "run_id": 42009974415,
+    "job_id": 127186194114,
+    "attempt": 1,
+    "conclusion": "success",
+    "child_exit_code": 0,
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42009974415"
+  },
+  "host": {
+    "os_caption": "Microsoft Windows Server 2025 Datacenter",
+    "os_build": 26100,
+    "runner_image": "win25-vs2026",
+    "system_dpi": 96,
+    "desktop_dimensions_px": {
+      "width": 1024,
+      "height": 768
+    },
+    "user_workstation": false,
+    "high_dpi": false
+  },
+  "physical_pine": {
+    "sessions": [
+      {
+        "session": "UPDATED",
+        "startup_ms": 3032.7668,
+        "process": {
+          "shell": 9080,
+          "engine": 8920
+        },
+        "v5": {
+          "up": 3225,
+          "down": 3424,
+          "baseline": "8da47609914cb567e5d4c3b2ba4e1272d4c7de8d82f57c9720a13228f467392f",
+          "render": "1dbcc291780371b54c9cbcaf7d63a00517495d5105572f99bb45f17024674995"
+        },
+        "v6": {
+          "up": 3225,
+          "down": 3424,
+          "baseline": "8da47609914cb567e5d4c3b2ba4e1272d4c7de8d82f57c9720a13228f467392f",
+          "render": "1dbcc291780371b54c9cbcaf7d63a00517495d5105572f99bb45f17024674995"
+        }
+      },
+      {
+        "session": "RECHECK",
+        "startup_ms": 2982.7806,
+        "process": {
+          "shell": 9588,
+          "engine": 2896
+        },
+        "v5": {
+          "up": 2989,
+          "down": 3562,
+          "baseline": "c50d4ee20d82cc76c478b1e48f92b75f28948685cbb3b82b3d2ccbb402a20684",
+          "render": "d6ee9fae9d61ea605160362e2bfda91004cc2d07121420a973d400c5233435dc"
+        },
+        "v6": {
+          "up": 2989,
+          "down": 3562,
+          "baseline": "25d49b2351de300fea19de24edfefd86ac6387e78875553201906d570371cb6a",
+          "render": "d6ee9fae9d61ea605160362e2bfda91004cc2d07121420a973d400c5233435dc"
+        }
+      }
+    ],
+    "versions": [
+      5,
+      6
+    ],
+    "per_version_go_shapes": 60,
+    "per_version_candles": 300,
+    "per_version_shapes_up": 30,
+    "per_version_shapes_down": 30,
+    "baseline_cyan_and_yellow_zero": true,
+    "strict_physical_and_unchanged_bounds_checks": "PASS",
+    "source": "Original decoded GitHub-hosted native job logs; screenshots themselves not retained",
+    "separate_shell_and_engine_pids": true,
+    "original_marker_v5_v6_success_notices": 2
+  },
+  "installed_controls": {
+    "source_harness_and_unsigned_installer": "PASS",
+    "real_installed_Wails_WebView2": "PASS",
+    "Pine_v5_v6_editor_overlay_refusals": "PASS",
+    "workspace_origin_and_size_negative_controls": "PASS",
+    "Pine_labels_guides_panes_pan_zoom": "PASS",
+    "PAPER_two_roundtrips_four_fills_risk_FIFO_PnL_dedup_stop": "PASS",
+    "cold_stop_no_auto_rearm": "PASS",
+    "previous_to_candidate_installed_update_rollback": "PASS",
+    "no_owner_data_no_live_no_release": "PASS"
+  },
+  "prior_evidence": {
+    "Windows_2022_full_native_PAPER_2_session_pass_run": 42006368574,
+    "Windows_2022_receipt_blob": "6d9d69001c40b2999fb4095652ae55393d2ff70a",
+    "preserved_failed_run": 41954221097,
+    "failed_source_sha": "98931bed1178019fbc6fee5eab73a395a275e2f1",
+    "failed_observation": "60 Go shapes, zero physical pixels",
+    "failure_root_cause_not_fully_verified": true
+  },
+  "scope": {
+    "Windows_2022_and_2025_hosted_native_qualified": true,
+    "Windows_11_operator_HiDPI": "UNVERIFIED",
+    "actual_125_150_200_percent_display_scaling": "UNVERIFIED",
+    "broader_restart_reliability": "UNVERIFIED",
+    "day_long_soak": "NOT_EXECUTED",
+    "full_security_financial_fault_matrix": "UNVERIFIED",
+    "production_readiness": "UNVERIFIED",
+    "production_release": "HOLD",
+    "merging_PRs": "HOLD",
+    "live_broker": "DISARMED_NOT_AUTHORIZED",
+    "signed_distribution": "HOLD"
+  }
+}

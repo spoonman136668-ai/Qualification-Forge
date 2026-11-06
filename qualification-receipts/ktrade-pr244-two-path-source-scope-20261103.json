@@ -1,0 +1,95 @@
+{
+  "schema": "ktrade.pr244.independent-full-tree-security-scope.v1",
+  "verdict": "PASS_EXACT_FULL_TREE_AND_2_PATH_BOUNDED_WORKSPACE_FIX__SOURCE_CI_PENDING",
+  "source": {
+    "repo": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "sha": "45b8a4dd5893b8818094092e79da1a824a196ca5",
+    "tree": "e08eaff22224e8f94635992c209b6021a6ee1c7a",
+    "base_pr": 243,
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+    "base_tree": "0d8257297d53a8edd4a40b4099f102106619b2a2",
+    "main_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "main_tree": "8b43e35338f9be645a9fbb5a79f14c3c6ab328e3"
+  },
+  "tree_evidence": {
+    "method": "Independent GitHub recursive Git Trees immutable SHA comparison for main, PR243 and PR244, all three untruncated.",
+    "main_blobs": 6983,
+    "base_blobs": 7369,
+    "tip_blobs": 7370,
+    "full_mainline_scope": {
+      "added": 387,
+      "modified": 45,
+      "deleted": 0,
+      "mode_changed": 0,
+      "total_changed_paths": 432
+    },
+    "delta_vs_qualified_PR243": {
+      "changed_paths": 2,
+      "added": 1,
+      "modified": 1,
+      "deleted": 0,
+      "mode_changed": 0,
+      "files": [
+        {
+          "path": "cmd/ktrade/main_full.go",
+          "status": "modified",
+          "old_blob": "bfadf7a46cfaf90ad15600e7b820a7f59456563b",
+          "head_blob": "1e05e6965333d6c843566524c2b16fefad47a6e7",
+          "mode": "100644"
+        },
+        {
+          "path": "cmd/ktrade/rb3_workspace_http_ingress_full_test.go",
+          "status": "added",
+          "head_blob": "506e96fb9ccfb46424ed828f4dc754659eaa9d8c",
+          "mode": "100644"
+        }
+      ]
+    },
+    "pr243_parent_receipt": {
+      "path": "qualification-receipts/ktrade-pr243-independent-mainline-431-path-reconciliation-20261103.json",
+      "blob": "0e7695be01340015f53327d816ffa62f417d9fc0",
+      "other_430_paths_unchanged": true
+    }
+  },
+  "repair_review": {
+    "prior_gap": "POST /api/workspace/load did not enforce local same-origin JSON POST or a request body limit; client could change lastWorkspace when server was reachable from unrelated origin.",
+    "current_guard": "Requires POST and existing localJSONWriteAllowed plus MaxBytesReader(1MiB), malformed/trailing JSON refusal, HTTP 413 oversized.",
+    "real_data_effects": "No real owner file, broker intent, account, TradeGuard or PAPER source changed.",
+    "negative_test_scopes": [
+      "missing/foreign origin",
+      "simple cross-site request",
+      "fetch metadata",
+      "forged Host",
+      "remote not loopback",
+      "wrong method",
+      "non-JSON content",
+      "oversized and trailing JSON must not modify stored workspace"
+    ],
+    "real_HTTP_end_to_end": "PENDING_EXACT_SHA_CI"
+  },
+  "qualification": {
+    "source_windows_run_id": 41754370107,
+    "source_windows_status": "in_progress",
+    "source_windows_conclusion": "UNVERIFIED_AT_RECEIPT_CREATION",
+    "required": "Exact-head original full Go/tagged Wails and Node regressions, original assets/binaries/unsigned installer scans. Focused TestRB3WorkspaceLoadOriginBodyAndStateCustody must pass.",
+    "prior_native_installed_pr243_run": 41748868563,
+    "prior_installed_parent_only": "PASS_HISTORICAL_NOT_EXACT_NEW_PR244"
+  },
+  "limits": {
+    "complete_432_path_security_signoff": "NOT_GRANTED",
+    "source_windows_final": "PENDING",
+    "installed_http_real_webview2": "UNVERIFIED",
+    "signing": "HOLD",
+    "main_merge": "HOLD",
+    "release": "HOLD",
+    "live": "DISARMED",
+    "owner_data": "UNTOUCHED",
+    "final_24_hour_soak": "DEFERRED"
+  },
+  "refs": {
+    "pr": "https://github.com/spoonman136668-ai/ktrade/pull/244",
+    "source_run": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41754370107",
+    "qualifier_pr": "https://github.com/spoonman136668-ai/Qualification-Forge/pull/72"
+  }
+}

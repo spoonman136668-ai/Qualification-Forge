@@ -1,0 +1,40 @@
+{
+  "schema": "ktrade.pr244.current-source-windows-verification.v1",
+  "verdict": "PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "pr": 244,
+    "head_sha": "a032956d895b08784f01e293347c76c1d50853dd",
+    "tree": "f0272d4ce83d95450f1af416ffa5de2265eceaf4",
+    "base_pr": 243,
+    "base_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b"
+  },
+  "qualification": {
+    "repository": "spoonman136668-ai/ktrade",
+    "workflow_run_id": 41916946139,
+    "job_id": 126879012258,
+    "run_conclusion": "success",
+    "native_windows_full_go_wails_vet": "PASS",
+    "node_tests": {
+      "files": 40,
+      "passed": 193,
+      "failed": 0,
+      "skipped": 0
+    },
+    "locked_shipping_assets": "PASS",
+    "unsigned_six_binary_installer_scanners": "PASS",
+    "unsigned_installer_zip_sha256": "204ee525cb5035286e0bb725ff923addaf75b3d14c0443c6e3d1abc10730f9bc"
+  },
+  "scope": {
+    "source_ci_only": true,
+    "installed_native_current_head": "UNVERIFIED",
+    "product_source_changed_by_receipt": false,
+    "live_broker_authority": "NONE",
+    "release_authority": "NONE"
+  },
+  "provenance": {
+    "source": "connected_GitHub_Actions_job_and_original_decoded_logs",
+    "workflow_url": "https://github.com/spoonman136668-ai/ktrade/actions/runs/41916946139",
+    "receipt_is": "source_qualification_observation_not_installed_release_acceptance"
+  }
+}

@@ -1,0 +1,326 @@
+name: KTRADE PR244 exact installed workspace ingress and native PAPER qualification
+on:
+  push:
+    branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
+    paths: [.github/workflows/ktrade-pr244-installed-workspace-windows.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pr244-installed-ingress-20261103
+  cancel-in-progress: false
+jobs:
+  native-ingress:
+    runs-on: windows-2025
+    timeout-minutes: 40
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      KTRADE_EXPECTED_SOURCE: 671198f2336e410c98ef764603455a51c08d16b0
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 671198f2336e410c98ef764603455a51c08d16b0
+          path: product
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Exact-head source and immutable inherited native witness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          function Need([bool]$x,[string]$s){if(!$x){throw $s}}
+          Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and $env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted') 'PR244_ISOLATED_WINDOWS_REQUIRED'
+          $hostOS=Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction Stop
+          Need ($hostOS.Caption -match 'Windows Server 2025' -and [int]$hostOS.BuildNumber -ge 26100) 'PR244_SECOND_WINDOWS_IMAGE_NOT_OBSERVED'
+          $dpiApi=@'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class KTradeHostDisplay {
+            [DllImport("user32.dll")] public static extern uint GetDpiForSystem();
+            [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index);
+          }
+          '@
+          Add-Type -TypeDefinition $dpiApi -ErrorAction Stop
+          $dpi=[KTradeHostDisplay]::GetDpiForSystem()
+          $width=[KTradeHostDisplay]::GetSystemMetrics(0)
+          $height=[KTradeHostDisplay]::GetSystemMetrics(1)
+          Need ($dpi -ge 96 -and $dpi -le 480 -and $width -ge 800 -and $height -ge 600) 'PR244_HOST_DISPLAY_CONTEXT_UNAVAILABLE'
+          Write-Host ('PR244_WINDOWS_2025_HOST_CONTEXT='+(@{os_caption=$hostOS.Caption;os_build=[int]$hostOS.BuildNumber;runner_image=$env:ImageOS;system_dpi=[int]$dpi;desktop_width=$width;desktop_height=$height;scope='separate_hosted_Windows_2025_build_and_system_display_context_not_operator_HiDPI'}|ConvertTo-Json -Compress))
+          Write-Host '::notice::PR244_SECOND_WINDOWS_OS_IMAGE_AND_DISPLAY_CONTEXT=PASS'
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          Need ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq 'f75c8d45689e68cf2e582fe4679b841e9c9f352e') 'PR244_EXACT_TREE_DRIFT'
+          Need (@(& git -C $p status --porcelain).Count -eq 0 -and @(& git -C $w status --porcelain).Count -eq 0 -and !(Test-Path (Join-Path $p '.env'))) 'PR244_DIRTY_OR_CREDENTIAL_SOURCE'
+          $config=Get-Content (Join-Path $p 'config.json') -Raw|ConvertFrom-Json
+          Need (!$config.api_key.key_name -and !$config.api_key.key_secret -and !$config.account_id -and !$config.ngrok_authtoken) 'PR244_TRACKED_CREDENTIALS_REFUSED'
+          Need ((Get-Content (Join-Path $p 'pkg/advanced_orders.go') -Raw).Contains('func liveBrokerageAuthorized() bool { return false }')) 'PR244_LIVE_DISARM_REQUIRED'
+          $paths=@(& git -C $p diff --name-only 4b401d5f9c3a571c5ad61c4df33a7814120a3a4b HEAD | Sort-Object)
+          $wanted=@('.github/workflows/ktrade-native-windows.yml','cmd/ktrade/main_full.go','cmd/ktrade/pine_hline_transport_full_test.go','cmd/ktrade/pine_shape_transport_full_test.go','cmd/ktrade/rb3_pine_editor_ingress_full.go','cmd/ktrade/rb3_pine_editor_ingress_full_test.go','cmd/ktrade/rb3_pine_overlay_ingress_full_test.go','cmd/ktrade/rb3_w32c_overlay_full_test.go','cmd/ktrade/rb3_workspace_http_ingress_full_test.go','internal/papercustody/orphan_lease_observation.go','internal/papercustody/orphan_lease_observation_test.go','pkg/p18a_closeout_workspace_http_route_acceptance_gate_test.go','pkg/p18a_closeout_workspace_http_surface_gate_test.go','pkg/p18a_t05_workspace_http_request_response_contract_test.go','pkg/p18a_t06_workspace_http_deterministic_state_contract_test.go','tools/wails-pilot/backend/orphan_custody_diagnostic.go','tools/wails-pilot/backend/orphan_custody_diagnostic_test.go','tools/wails-pilot/cmd/orphan-custody-report/main.go','tools/wails-pilot/cmd/orphan-custody-report/main_test.go','templates/chart.tmpl','tests/rb3_pine_marker_attachment_failclosed.test.cjs','windows/Build-KTRADE-OrphanCustodyReview.ps1')|Sort-Object
+          Need (($paths -join '|') -ceq ($wanted -join '|')) 'PR244_22_PATH_DRIFT'
+          $receiptPath='qualification-receipts/ktrade-pr244-pine-marker-status-source-windows-20261105.json'
+          Need ((& git -C $w rev-parse ('HEAD:'+$receiptPath)).Trim() -ceq '7eb9024615af7a076611caff6306a4749f46bcb0') 'PR244_SOURCE_RECEIPT_BLOB_DRIFT'
+          $receipt=Get-Content (Join-Path $w $receiptPath) -Raw|ConvertFrom-Json
+          Need ($receipt.verdict -ceq 'PASS_SOURCE_OWNED_EXACT_HEAD_WINDOWS_FULL_REGRESSION' -and $receipt.source.head_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and $receipt.qualification.workflow_run_id -eq 41994140128 -and $receipt.qualification.job_id -eq 127133130434 -and $receipt.qualification.run_conclusion -ceq 'success' -and $receipt.source.tree -ceq 'f75c8d45689e68cf2e582fe4679b841e9c9f352e' -and $receipt.source.changed_paths_from_pr243 -eq 22 -and $receipt.qualification.node_tests.files -eq 41 -and $receipt.qualification.node_tests.files -eq 41 -and $receipt.qualification.node_tests.passed -eq 199 -and $receipt.qualification.node_tests.failed -eq 0 -and $receipt.qualification.node_tests.skipped -eq 0 -and $receipt.qualification.node_tests.failed -eq 0 -and $receipt.qualification.node_tests.skipped -eq 0) 'PR244_SOURCE_CI_NOT_VERIFIED'
+          $builderRel='qualification-harness/ktrade-pine-viewport/Build-And-Qualify-PR243.ps1'
+          $nativeRel='qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle-PR243.ps1'
+          Need ((& git -C $w rev-parse ('HEAD:'+$builderRel)).Trim() -ceq '57adfe95974b14d0be92b1a7f354e119ce44044c' -and (& git -C $w rev-parse ('HEAD:'+$nativeRel)).Trim() -ceq '6bbe4cb1cdc1c14417fbde22d42ec1a1b52d40a4') 'PR244_INHERITED_HARNESS_BLOB_DRIFT'
+          $b=Get-Content (Join-Path $w $builderRel) -Raw
+          $oldPair="sha='4b401d5f9c3a571c5ad61c4df33a7814120a3a4b';tree='0d8257297d53a8edd4a40b4099f102106619b2a2'"
+          $newPair="sha='671198f2336e410c98ef764603455a51c08d16b0';tree='f75c8d45689e68cf2e582fe4679b841e9c9f352e'"
+          Need ($b.Contains($oldPair)) 'PR244_BUILDER_PIN_MISSING'
+          $b=$b.Replace($oldPair,$newPair)
+          $n=Get-Content (Join-Path $w $nativeRel) -Raw
+          $oldPin='$NewSHA=''4b401d5f9c3a571c5ad61c4df33a7814120a3a4b'''
+          $newPin='$NewSHA=''671198f2336e410c98ef764603455a51c08d16b0'''
+          $start='function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){'
+          $insert='  SettingsWarm $shell $origin'
+          Need ($n.Contains($oldPin) -and $n.Contains($start) -and $n.Contains($insert)) 'PR244_NATIVE_ANCHORS_MISSING'
+          $probe=@'
+          function PR244InstalledIngress([string]$origin){
+            $load=$origin+'/api/workspace/load'
+            $save=$origin+'/api/workspace/save'
+            $trusted=@{Origin=$origin}
+            $before=Invoke-RestMethod -Method Post -Uri $save -Headers $trusted -ContentType 'application/json' -Body '{}' -TimeoutSec 12
+            Require ($before.success -eq $true -and ![string]::IsNullOrWhiteSpace([string]$before.workspace.code)) 'PR244_INSTALLED_STATE_REQUIRED'
+            $code=[string]$before.workspace.code
+            $valid='{"workspace":{"code":"pr244-trusted-wrapped"}}'
+            $bad=@(
+              @{name='missing-origin';headers=@{};body=$valid;type='application/json';method='Post';want=403},
+              @{name='foreign-origin';headers=@{Origin='https://attacker.invalid'};body=$valid;type='application/json';method='Post';want=403},
+              @{name='cross-site';headers=@{Origin=$origin;'Sec-Fetch-Site'='cross-site'};body=$valid;type='application/json';method='Post';want=403},
+              @{name='non-json';headers=$trusted;body=$valid;type='text/plain';method='Post';want=403},
+              @{name='wrong-method';headers=$trusted;body=$valid;type='application/json';method='Put';want=405},
+              @{name='malformed';headers=$trusted;body='{';type='application/json';method='Post';want=400},
+              @{name='trailing-json';headers=$trusted;body='{"code":"bad"} {"code":"second"}';type='application/json';method='Post';want=400},
+              @{name='oversized';headers=$trusted;body=((' ' * ((1 -shl 20)+1))+'{"code":"bad"}');type='application/json';method='Post';want=413}
+            )
+            foreach($case in $bad){
+              $status=0
+              try {
+                $response=Invoke-WebRequest -UseBasicParsing -Method $case.method -Uri $load -Headers $case.headers -ContentType $case.type -Body $case.body -TimeoutSec 20
+                $status=[int]$response.StatusCode
+              }catch{
+                if($_.Exception.Response){$status=[int]$_.Exception.Response.StatusCode}else{throw}
+              }
+              Require ($status -eq $case.want) ('PR244_INSTALLED_HTTP_REFUSAL_'+$case.name+'_'+$status)
+              $after=Invoke-RestMethod -Method Post -Uri $save -Headers $trusted -ContentType 'application/json' -Body '{}' -TimeoutSec 12
+              Require ($after.success -eq $true -and $after.workspace.code -ceq $code) ('PR244_INSTALLED_MUTATED_STATE_'+$case.name)
+            }
+            # New PR244 Pine overlay admission must reject cross-site/malformed
+            # requests before public market fetch, Pine eval or workspace writes.
+            # Run against the actual installed Go engine, not a test stub.
+            $pine=$origin+'/api/pine/overlay'
+            $pineValid='{"code":"//@version=6\nindicator(\"Rejected Pine ingress\",overlay=true)\nplot(close)","symbol":"BTC-USD","timeframe":"1m","limit":300}'
+            foreach($case in $bad){
+              $body=$case.body
+              if($case.name -in @('missing-origin','foreign-origin','cross-site','non-json','wrong-method')){$body=$pineValid}
+              $status=0
+              try{
+                $response=Invoke-WebRequest -UseBasicParsing -Method $case.method -Uri $pine -Headers $case.headers -ContentType $case.type -Body $body -TimeoutSec 20
+                $status=[int]$response.StatusCode
+              }catch{
+                if($_.Exception.Response){$status=[int]$_.Exception.Response.StatusCode}else{throw}
+              }
+              Require ($status -eq $case.want) ('PR244_INSTALLED_PINE_OVERLAY_REFUSAL_'+$case.name+'_'+$status)
+              $afterPine=Invoke-RestMethod -Method Post -Uri $save -Headers $trusted -ContentType 'application/json' -Body '{}' -TimeoutSec 12
+              Require ($afterPine.success -eq $true -and $afterPine.workspace.code -ceq $code) ('PR244_INSTALLED_PINE_OVERLAY_MUTATED_STATE_'+$case.name)
+            }
+            SettingsDisarmed $origin
+            Write-Host '::notice::PR244_INSTALLED_PINE_OVERLAY_REFUSAL_NO_WORKSPACE_MUTATION=PASS'
+            # Real installed Go: the original Pine IDE's new single admission
+            # boundary must fail closed without touching saved workspace.
+            $editor=$origin+'/api/pine/lint'
+            $editorValid='{"code":"//@version=6\nindicator(\"Native IDE ingress\")\nplot(close)"}'
+            foreach($case in $bad){
+              $body=$case.body
+              if($case.name -in @('missing-origin','foreign-origin','cross-site','non-json','wrong-method')){$body=$editorValid}
+              $status=0
+              try{
+                $response=Invoke-WebRequest -UseBasicParsing -Method $case.method -Uri $editor -Headers $case.headers -ContentType $case.type -Body $body -TimeoutSec 20
+                $status=[int]$response.StatusCode
+              }catch{
+                if($_.Exception.Response){$status=[int]$_.Exception.Response.StatusCode}else{throw}
+              }
+              Require ($status -eq $case.want) ('PR244_INSTALLED_PINE_EDITOR_REFUSAL_'+$case.name+'_'+$status)
+              $afterEditor=Invoke-RestMethod -Method Post -Uri $save -Headers $trusted -ContentType 'application/json' -Body '{}' -TimeoutSec 12
+              Require ($afterEditor.success -eq $true -and $afterEditor.workspace.code -ceq $code) ('PR244_INSTALLED_PINE_EDITOR_MUTATED_STATE_'+$case.name)
+            }
+            $goodEditor=Invoke-WebRequest -UseBasicParsing -Method Post -Uri $editor -Headers $trusted -ContentType 'application/json' -Body $editorValid -TimeoutSec 20
+            Require ([int]$goodEditor.StatusCode -eq 200) 'PR244_INSTALLED_PINE_EDITOR_TRUSTED_REQUEST_REFUSED'
+            SettingsDisarmed $origin
+            Write-Host '::notice::PR244_INSTALLED_PINE_EDITOR_REFUSAL_AND_SAME_ORIGIN_VALID=PASS'
+            $wrapped=Invoke-RestMethod -Method Post -Uri $load -Headers $trusted -ContentType 'application/json' -Body $valid -TimeoutSec 12
+            Require ($wrapped.success -eq $true -and $wrapped.workspace.code -ceq 'pr244-trusted-wrapped') 'PR244_INSTALLED_WRAPPED_REFUSED'
+            $raw=Invoke-RestMethod -Method Post -Uri $load -Headers $trusted -ContentType 'application/json' -Body '{"code":"pr244-trusted-raw"}' -TimeoutSec 12
+            Require ($raw.success -eq $true -and $raw.workspace.code -ceq 'pr244-trusted-raw') 'PR244_INSTALLED_RAW_REFUSED'
+            SettingsDisarmed $origin
+            Write-Host '::notice::PR244_INSTALLED_WORKSPACE_ORIGIN_LIMIT_STATE_AND_VALID_FORMS=PASS'
+          }
+          '@
+          $n=$n.Replace($oldPin,$newPin).Replace($start,($probe+[Environment]::NewLine+$start)).Replace($insert,($insert+[Environment]::NewLine+'  PR244InstalledIngress $origin'))
+          # Only Pine Apply completion requires exact/prefix status. The
+          # inherited FindUI substring search wrongly accepts the idle
+          # "No Pine plots applied." as "Pine plots applied.". Preserve all
+          # other UI lookups, original wait, native pixel/PAPER thresholds.
+          $applyUiAnchor='     if($node.Current.IsOffscreen -or !$node.Current.Name.Contains($label)){continue}'
+          $applyUiCheck=@'
+           if($label -ceq 'Pine plots applied.' -and
+             $node.Current.Name -cne $label -and
+             !$node.Current.Name.StartsWith('Pine plots applied. ',[StringComparison]::Ordinal)){continue}
+          '@
+          Need ($n.Contains($applyUiAnchor) -and $n.IndexOf($applyUiAnchor) -eq $n.LastIndexOf($applyUiAnchor)) 'PR244_PINE_APPLIED_UI_ANCHOR_DRIFT'
+          $n=$n.Replace($applyUiAnchor,($applyUiAnchor+[Environment]::NewLine+$applyUiCheck))
+          Need ($n.Contains($applyUiCheck)) 'PR244_PINE_SUCCESS_UIA_CONTRACT_NOT_INSTALLED'
+          # Repeat strict v5/v6 chart marker proof after a second physical
+          # installed Wails/WebView2 process launch, post PAPER cold-stop.
+          # The original pixel, geometry and safe capability thresholds stay.
+          $coldAnchor=' SettingsCold $script:active $new.candidate_directory'
+          $pidCapture=@'
+            $firstCandidateShellPid=[int]$script:active.shell.Id
+            $firstCandidateEnginePid=[int]$script:active.enginePid
+          '@
+          $recheckAnchor=' $newHashes=Hashes (Join-Path $new.candidate_directory ''data'')'
+          $recheckProbe=@'
+            $script:active=StartInstalled $newMaint $new 'RECHECK'
+            Require ([int]$script:active.shell.Id -ne $firstCandidateShellPid -and [int]$script:active.enginePid -ne $firstCandidateEnginePid) 'PR244_RECHECK_MUST_BE_NEW_NATIVE_PROCESS'
+            $recheckPorts=@(Get-NetTCPConnection -OwningProcess $script:active.enginePid -State Listen | Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+            Require ($recheckPorts.Count -eq 1) 'PR244_RECHECK_LOOPBACK_PORT_DRIFT'
+            $recheckOrigin='http://127.0.0.1:'+$recheckPorts[0].LocalPort
+            SettingsDisarmed $recheckOrigin
+            MarkerNative $script:active.shell $recheckOrigin
+            SettingsDisarmed $recheckOrigin
+            Write-Host ('PR244_NATIVE_RECHECK_PROCESS_IDENTITY='+(@{new_shell_pid=[int]$script:active.shell.Id;new_engine_pid=[int]$script:active.enginePid;previous_shell_pid=$firstCandidateShellPid;previous_engine_pid=$firstCandidateEnginePid;scope='second_installed_candidate_process_in_same_disposable_runner'}|ConvertTo-Json -Compress))
+            StopInstalled $script:active;$script:active=$null
+            Write-Host '::notice::PR244_REAL_COLD_REOPEN_NATIVE_V5_V6_MARKERS=PASS'
+          '@
+          Need ($n.Contains($coldAnchor) -and $n.IndexOf($coldAnchor) -eq $n.LastIndexOf($coldAnchor) -and
+            $n.Contains($recheckAnchor) -and $n.IndexOf($recheckAnchor) -eq $n.LastIndexOf($recheckAnchor) -and
+            $n.Contains('function MarkerNative([object]$shell,[string]$origin)')) 'PR244_COLD_REOPEN_ANCHOR_DRIFT'
+          $n=$n.Replace($coldAnchor,($pidCapture+[Environment]::NewLine+$coldAnchor))
+          $n=$n.Replace($recheckAnchor,($recheckProbe+[Environment]::NewLine+$recheckAnchor))
+          Need ($n.Contains('PR244_REAL_COLD_REOPEN_NATIVE_V5_V6_MARKERS=PASS') -and
+            $n.Contains('PR244_RECHECK_MUST_BE_NEW_NATIVE_PROCESS')) 'PR244_COLD_REOPEN_WITNESS_NOT_INSTALLED'
+          # Observability-only: no relaxation of native UI wait, pixel or PAPER checks.
+          $uiAnchor=' throw (''W83_NATIVE_UI_NOT_OBSERVED_''+$label)'
+          $uiProbe=@'
+           if($label -ceq 'Verify chart UI'){
+            try{
+             $shell.Refresh()
+             $uiRoot=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+             $uiNodes=$uiRoot.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+             $sample=@()
+             foreach($uiNode in $uiNodes){
+              if($sample.Count -ge 40){break}
+              try{
+               $uiName=[string]$uiNode.Current.Name
+               if([string]::IsNullOrWhiteSpace($uiName) -or $uiNode.Current.IsOffscreen){continue}
+               $sample+=@{name=$uiName.Substring(0,[Math]::Min(96,$uiName.Length));type=[string]$uiNode.Current.ControlType.ProgrammaticName;enabled=[bool]$uiNode.Current.IsEnabled}
+              }catch{}
+             }
+             $web=@(Get-CimInstance Win32_Process -ErrorAction Stop | Where-Object {$_.Name -ceq 'msedgewebview2.exe'} | Select-Object -First 16 ProcessId,ParentProcessId)
+             Write-Host ('W83_VERIFY_CHART_UI_FAILURE_DIAGNOSTIC='+(@{shell_pid=[int]$shell.Id;shell_window_handle=$shell.MainWindowHandle.ToInt64();uia_total=$uiNodes.Count;visible_named_sample=$sample;webview_processes=$web;scope='ephemeral_Windows_UIA_and_processes_no_owner_data'}|ConvertTo-Json -Compress -Depth 6))
+            }catch{Write-Host ('W83_VERIFY_CHART_UI_DIAGNOSTIC_UNAVAILABLE='+$_.Exception.GetType().Name)}
+           }
+          '@
+          $pixelAnchor='   Require $renderVerified ''MARKER_BOTH_PHYSICAL_ARROW_COLORS_NOT_OBSERVED'''
+          $pixelProbe=@'
+             if(!$renderVerified){
+              $aquaRelaxed=0;$yellowRelaxed=0;$diff=0;$sampled=0
+              for($py=0;$py -lt $after.bitmap.Height;$py+=4){
+               for($px=0;$px -lt $after.bitmap.Width;$px+=4){
+                $ap=$after.bitmap.GetPixel($px,$py);$bp=$baseline.bitmap.GetPixel($px,$py);$sampled++
+                if($ap.R -le 100 -and $ap.G -ge 160 -and $ap.B -ge 160){$aquaRelaxed++}
+                if($ap.R -ge 160 -and $ap.G -ge 160 -and $ap.B -le 100){$yellowRelaxed++}
+                if([Math]::Abs([int]$ap.R-[int]$bp.R) -ge 12 -or [Math]::Abs([int]$ap.G-[int]$bp.G) -ge 12 -or [Math]::Abs([int]$ap.B-[int]$bp.B) -ge 12){$diff++}
+               }
+              }
+              Write-Host ('W83_MARKER_FAILED_PHYSICAL_PALETTE_DIAGNOSTIC='+(@{version=$version;sampled_pixels=$sampled;changed_pixels=$diff;relaxed_aqua_samples=$aquaRelaxed;relaxed_yellow_samples=$yellowRelaxed;strict_up_pixels=$markedColors[0];strict_down_pixels=$markedColors[1];go_marker_count=$markedHTTP.shapes;chart_width=$after.rect.Width;chart_height=$after.rect.Height;scope='read_only_diagnostic_not_qualification_or_release'}|ConvertTo-Json -Compress))
+             }
+          '@
+          Need ($n.Contains($uiAnchor) -and $n.Contains($pixelAnchor)) 'PR244_NATIVE_DIAGNOSTIC_ANCHORS_DRIFT'
+          $n=$n.Replace($uiAnchor,($uiProbe+[Environment]::NewLine+$uiAnchor)).Replace($pixelAnchor,($pixelProbe+[Environment]::NewLine+$pixelAnchor))
+          Need ($n.Contains('W83_VERIFY_CHART_UI_FAILURE_DIAGNOSTIC') -and $n.Contains('W83_MARKER_FAILED_PHYSICAL_PALETTE_DIAGNOSTIC') -and
+            $n.Contains($uiAnchor) -and $n.Contains($pixelAnchor)) 'PR244_NATIVE_DIAGNOSTIC_INSTALLATION_FAILED'
+          $buildPath=Join-Path $env:RUNNER_TEMP 'Build-And-Qualify-PR244.ps1'
+          $nativePath=Join-Path $env:RUNNER_TEMP 'Installed-Viewport-Lifecycle-PR244.ps1'
+          [IO.File]::WriteAllText($buildPath,$b,[Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllText($nativePath,$n,[Text.UTF8Encoding]::new($false))
+          foreach($file in @($buildPath,$nativePath)){
+            $tokens=$null;$errors=$null
+            [void][Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]$errors)
+            Need ($errors.Count -eq 0) ('PR244_GENERATED_WITNESS_SYNTAX '+(($errors|ForEach-Object {$_.ToString()}) -join '; '))
+          }
+          Write-Host '::notice::PR244_IMMUTABLE_SOURCE_RECEIPT_AND_DERIVED_NATIVE_HARNESS=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Original unsigned installer from exact source
+        id: package
+        shell: powershell
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:PSModulePath=Join-Path $PSHOME 'Modules'
+          $env:TEMP=$env:RUNNER_TEMP; $env:TMP=$env:RUNNER_TEMP
+          & npm.cmd ci --ignore-scripts --no-audit --no-fund
+          if($LASTEXITCODE -ne 0){throw 'PR244_NPM_LOCKED_INSTALL_FAILED'}
+          & node scripts/stage_offline_vendor.cjs
+          if($LASTEXITCODE -ne 0){throw 'PR244_OFFLINE_ASSETS_FAILED'}
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
+          & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $root -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE
+          if($LASTEXITCODE -ne 0){throw 'PR244_ORIGINAL_INSTALLER_BUILD_FAILED'}
+          $m=Get-Content (Join-Path $root 'KTRADE-SetupBundle/installer-manifest.json') -Raw|ConvertFrom-Json
+          if($m.source_sha -cne $env:KTRADE_EXPECTED_SOURCE -or $m.signature_status -cne 'unsigned' -or $m.live_armed -or $m.release_authority -cne 'none'){throw 'PR244_PACKAGE_AUTHORITY_DRIFT'}
+          $executables=@(Get-ChildItem $root -Filter '*.exe' -Recurse -File)
+          if($executables.Count -ne 6){throw 'PR244_SIX_SHIPPING_BINARIES_REQUIRED'}
+          foreach($exe in $executables){if((Get-AuthenticodeSignature $exe.FullName).Status -cne 'NotSigned'){throw 'PR244_UNEXPECTED_SIGNATURE'}}
+          $hash=(Get-FileHash (Join-Path $root 'KTRADE-SetupBundle.zip') -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::AppendAllText($env:GITHUB_OUTPUT,('bundle_root='+$root+[Environment]::NewLine+'archive_sha256='+$hash+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          Write-Host '::notice::PR244_EXACT_UNSIGNED_SOURCE_BUILT_DISARMED=PASS'
+      - name: Original real installed Wails WebView2 and PAPER lifecycle with PR244 ingress probe
+        shell: pwsh
+        env:
+          BUNDLE_ROOT: ${{ steps.package.outputs.bundle_root }}
+          BUNDLE_SHA: ${{ steps.package.outputs.archive_sha256 }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          $out=Join-Path $env:RUNNER_TEMP 'pr244-installed-native.log'
+          & (Join-Path $env:RUNNER_TEMP 'Build-And-Qualify-PR244.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'product') -WitnessScript (Join-Path $env:RUNNER_TEMP 'Installed-Viewport-Lifecycle-PR244.ps1') -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1') -CandidateQualifiedBundleRoot $env:BUNDLE_ROOT -ExpectedCandidateArchiveSha256 $env:BUNDLE_SHA *>&1 | Tee-Object -FilePath $out
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'PR244_ORIGINAL_INSTALLED_NATIVE_FAILED'}
+          $lines=@(Get-Content $out)
+          foreach($marker in @('::notice::PR244_INSTALLED_WORKSPACE_ORIGIN_LIMIT_STATE_AND_VALID_FORMS=PASS','::notice::PR244_INSTALLED_PINE_OVERLAY_REFUSAL_NO_WORKSPACE_MUTATION=PASS','::notice::PR244_INSTALLED_PINE_EDITOR_REFUSAL_AND_SAME_ORIGIN_VALID=PASS','::notice::W83_PREVIOUS_TO_CANDIDATE_REAL_INSTALLED_UPDATE_ROLLBACK=PASS','::notice::W83_NO_OWNER_DATA_NO_LIVE_NO_RELEASE=PASS','::notice::W83_REAL_UPDATED_INSTALL_NATIVE_SAVE_FOUR_CURRENT_FILLS_STOP_COLD_ACCOUNT=PASS','::notice::PINE_VIEWPORT_NATIVE_V5_V6_OVERLAY_AND_PANE_PHYSICAL_PAN_ZOOM_TIME_AXIS_PRESERVED=PASS','::notice::PR244_REAL_COLD_REOPEN_NATIVE_V5_V6_MARKERS=PASS')){
+            if(@($lines|Where-Object {$_ -ceq $marker}).Count -ne 1){throw ('PR244_NATIVE_EVIDENCE_MISSING_'+$marker)}
+          }
+          $markers=@($lines|Where-Object {$_ -ceq '::notice::PINE_MARKER_NATIVE_ORIGINAL_V5_V6_HTTP_AND_PHYSICAL_BOTH_ARROW_COLOR_OBSERVATION=PASS'})
+          $nativeCold=@($lines|Where-Object {$_ -ceq '::notice::W83_NATIVE_RECHECK_WEBVIEW2_AND_PAPER_STOPPED=PASS'})
+          if($markers.Count -ne 2 -or $nativeCold.Count -ne 1){throw 'PR244_TWO_INDEPENDENT_NATIVE_MARKER_SESSIONS_REQUIRED'}
+          Write-Host '::notice::PR244_EXACT_COLD_REOPEN_MARKER_V5_V6_REPEATABILITY_TWO_PROCESSES=PASS'
+          if($env:ImageOS -notmatch '^win25'){throw 'PR244_WINDOWS_2025_RUNNER_IMAGE_NOT_RECORDED'}
+          Write-Host '::notice::PR244_SEPARATE_WINDOWS_2025_NATIVE_PINE_AND_PAPER=PASS'
+          Write-Host '::notice::PR244_EXACT_INSTALLED_WORKSPACE_NATIVE_AND_PAPER=PASS'
