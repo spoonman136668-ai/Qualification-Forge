@@ -1,0 +1,90 @@
+name: KTRADE PR244 exact delivered installer isolated native admission once
+on:
+  push:
+    branches: [qualification/ktrade-original-pine-label-response-affinity-20261031]
+    paths: [.github/workflows/ktrade-pr244-exact-delivered-installer-native-admission-once.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pr244-delivered-exact-installer-one-shot-20261106
+  cancel-in-progress: false
+jobs:
+  isolated-native-fresh-install:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      EXPECTED_SOURCE: 671198f2336e410c98ef764603455a51c08d16b0
+      EXPECTED_ARCHIVE_HASH: 81a5ebcb7697fd14951456e35cc4ef0ece25c882f99af1fa6a102f3ab52a19de
+    steps:
+      - name: Download already built, verified private unsigned installer
+        uses: actions/download-artifact@v4
+        with:
+          name: ktrade-private-unsigned-installer-671198f2336e410c98ef764603455a51c08d16b0
+          path: ${{ runner.temp }}/ktrade-artifact
+          run-id: 42197424839
+          github-token: ${{ github.token }}
+      - name: Verify exact downloaded ZIP and exercise original installer on isolated ephemeral Windows
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          function Need([bool]$ok,[string]$err){if(-not $ok){throw $err}}
+          Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
+            $env:GITHUB_EVENT_NAME -ceq 'push' -and
+            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-original-pine-label-response-affinity-20261031' -and
+            $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
+            $env:RUNNER_OS -ceq 'Windows' -and $env:KTRADE_LIVE_TRADING -ceq 'false') 'KTRADE_DELIVERED_ISOLATION_REFUSED'
+          $hostOS=Get-CimInstance Win32_OperatingSystem
+          Need ($hostOS.Caption -match 'Windows Server 2022') 'KTRADE_DELIVERED_HOST_OS_MISMATCH'
+          Need (@(Get-Process -Name 'ktrade','ktrade-engine' -ErrorAction SilentlyContinue).Count -eq 0) 'KTRADE_DELIVERED_EXISTING_APP_REFUSED'
+          $archive=Join-Path $env:RUNNER_TEMP 'ktrade-artifact/KTRADE-SetupBundle.zip'
+          Need (Test-Path -LiteralPath $archive -PathType Leaf) 'KTRADE_DELIVERED_ARCHIVE_MISSING'
+          $sha=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          Need ($sha -ceq $env:EXPECTED_ARCHIVE_HASH) 'KTRADE_DELIVERED_ARCHIVE_SHA_DRIFT'
+          $nonce=[guid]::NewGuid().ToString('N')
+          $source=Join-Path $env:RUNNER_TEMP ('ktrade-dist-'+$nonce)
+          $install=Join-Path $env:RUNNER_TEMP ('ktrade-install-'+$nonce)
+          $shortcuts=Join-Path $env:RUNNER_TEMP ('ktrade-shortcuts-'+$nonce)
+          New-Item -ItemType Directory -Path $source,$shortcuts|Out-Null
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::ExtractToDirectory($archive,$source)
+          $manifest=Get-Content (Join-Path $source 'installer-manifest.json') -Raw|ConvertFrom-Json
+          Need ($manifest.schema -ceq 'ktrade.setup-bundle.v2' -and
+            $manifest.source_sha -ceq $env:EXPECTED_SOURCE -and
+            $manifest.live_armed -eq $false -and
+            $manifest.signature_status -ceq 'unsigned' -and
+            $manifest.release_authority -ceq 'none' -and @($manifest.files).Count -eq 7) 'KTRADE_DELIVERED_MANIFEST_REFUSED'
+          foreach($f in $manifest.files){
+            $p=Join-Path $source $f.name
+            Need ((Test-Path -LiteralPath $p -PathType Leaf) -and
+              (Get-Item -LiteralPath $p).Length -eq $f.size -and
+              (Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $f.sha256) 'KTRADE_DELIVERED_MANIFEST_HASH_REFUSED'
+          }
+          Need (!(Test-Path $install)) 'KTRADE_DELIVERED_INSTALL_ROOT_ALREADY_PRESENT'
+          & (Join-Path $source 'KTRADE-Setup.ps1') -Action Install -InstallRoot $install -ShortcutParent $shortcuts|Out-Null
+          Need ($LASTEXITCODE -eq 0) 'KTRADE_DELIVERED_ORIGINAL_SETUP_SCRIPT_INSTALL_FAILED'
+          $inspected=@(& (Join-Path $source 'release-setup.exe') inspect $install)
+          Need ($LASTEXITCODE -eq 0 -and $inspected.Count -ge 1) 'KTRADE_DELIVERED_INSPECT_FAILED'
+          $r=($inspected -join [Environment]::NewLine)|ConvertFrom-Json
+          Need ($r.schema -ceq 'ktrade.fresh-installation.v1' -and
+            $r.source_sha -ceq $env:EXPECTED_SOURCE -and $r.fresh_only -eq $true -and
+            $r.app_launched -eq $false -and $r.orders_enabled -eq $false -and $r.live_armed -eq $false) 'KTRADE_DELIVERED_INSTALLED_AUTHORITY_NOT_DISARMED'
+          Need (@(Get-Process -Name 'ktrade','ktrade-engine' -ErrorAction SilentlyContinue).Count -eq 0) 'KTRADE_DELIVERED_UNEXPECTED_APP_LAUNCH'
+          $links=@(Get-ChildItem -LiteralPath $shortcuts -Recurse -Filter 'KTRADE.lnk' -File)
+          Need ($links.Count -eq 1) 'KTRADE_DELIVERED_SHORTCUT_NOT_SCOPED'
+          $checkpoint=($inspected -join [Environment]::NewLine)
+          $refused=$false
+          try{
+            $retry=@(& (Join-Path $source 'release-setup.exe') install $source $install 2>&1)
+            if($LASTEXITCODE -ne 0){$refused=$true}
+          }catch{$refused=$true}
+          Need $refused 'KTRADE_DELIVERED_DUPLICATE_INSTALL_NOT_REFUSED'
+          $after=@(& (Join-Path $source 'release-setup.exe') inspect $install)
+          Need ($LASTEXITCODE -eq 0 -and ($after -join [Environment]::NewLine) -ceq $checkpoint) 'KTRADE_DELIVERED_NEGATIVE_CONTROL_CHANGED_INSTALL'
+          Write-Host ('KTRADE_DELIVERED_EXACT_SHA256='+$sha)
+          Write-Host ('KTRADE_DELIVERED_NATIVE_ISOLATED_INSTALL='+(@{source_sha=$r.source_sha;schema=$r.schema;fresh_only=$r.fresh_only;app_launched=$r.app_launched;orders_enabled=$r.orders_enabled;live_armed=$r.live_armed;shortcut_count=$links.Count;duplicate_install_refused=$refused;runner='windows-2022';scope='disposable_native_fresh_install_no_running_application'}|ConvertTo-Json -Compress))
+          Write-Host '::notice::KTRADE_PR244_EXACT_DELIVERED_INSTALLER_NATIVE_FRESH_INSTALL_NEGATIVE_CONTROL=PASS'
+          Write-Host '::notice::KTRADE_PR244_NO_OWNER_DATA_NO_BROKER_NO_LIVE_NO_PRODUCTION_NO_INSTALL_ON_OWNER'
