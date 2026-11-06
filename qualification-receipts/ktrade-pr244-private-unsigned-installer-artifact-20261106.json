@@ -60,12 +60,14 @@
     "windows11_native_125pct_editor": "PASS",
     "windows11_native_125pct_pine_compile_apply": "UNVERIFIED_FOCUS_BLOCK",
     "release_acceptance": "HOLD",
-    "production_deployment": "NOT_AUTHORIZED",
+    "production_deployment": "HOLD",
     "owner_install": "NOT_EXECUTED",
     "owner_data_cutover": "NOT_AUTHORIZED",
     "live_trading": "DISARMED",
     "final_24_hour_soak": "DEFERRED_BY_OWNER",
-    "signing": "NOT_AUTHORIZED"
+    "signing": "NOT_AUTHORIZED",
+    "exact_delivered_installer_native_fresh_install": "PASS",
+    "exact_delivered_installer_native_launch_and_full_paper": "NOT_REEXECUTED_EXISTING_SOURCE_EQUIVALENT_WINDOWS2022_2025_EVIDENCE"
   },
   "provenance": "Source identity, validation, and artifact upload directly verified against run 42197424839, job 127824056579, GitHub Actions logs and artifact metadata. ZIP content hashes are builder-run witnesses; assistant has not separately downloaded the private artifact to inspect its bytes.",
   "next": "The owner can retrieve the private unsigned installer artifact for review before expiry. Do not install over existing owner data without separate acceptance. No other workflows or source changes required for this gate.",
@@ -92,5 +94,29 @@
     "manifest_signature_status": "unsigned",
     "result": "PASS_INDEPENDENT_DOWNLOADED_ARTIFACT_AND_INNER_ORIGINAL_INSTALLER_BYTE_VALIDATION",
     "limitations": "Static package/hash/archive inspection only, no Windows installed acceptance, signature, owner-data migration, trading activation or 24-hour soak"
+  },
+  "exact_downloaded_installer_isolated_windows_native_test": {
+    "run_id": 42200068250,
+    "job_id": 127832862415,
+    "workflow_commit_sha": "88e5e46f9ba669ae2a58a2aafa78490a9c0998d2",
+    "run_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42200068250",
+    "conclusion": "success",
+    "host": "GitHub-hosted Windows Server 2022 ephemeral runner",
+    "input_github_artifact_id": 13492318954,
+    "input_installer_archive_sha256": "81a5ebcb7697fd14951456e35cc4ef0ece25c882f99af1fa6a102f3ab52a19de",
+    "install_method": "original packaged KTRADE-Setup.ps1 -Action Install into unique RUNNER_TEMP root, isolated temp shortcut parent",
+    "original_installer_install_result": "PASS",
+    "installed_receipt_schema": "ktrade.fresh-installation.v1",
+    "installed_source_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "fresh_only": true,
+    "orders_enabled": false,
+    "live_armed": false,
+    "app_launched": false,
+    "owned_shortcut_count": 1,
+    "duplicate_install_refused": true,
+    "installed_receipt_unchanged_after_negative_control": true,
+    "tests_not_repeated": "Full existing PAPER lifecycle, cold account persistence, update/rollback, Pine and full regression; qualifying source equivalent previously tested on hosted Windows 2022 and 2025.",
+    "limitations": "This focused gate did not launch or operate the app, perform a rollback on this specific ZIP, migrate real owner data, authorize signing/deployment, or run the deferred 24-hour soak.",
+    "verdict": "PASS_EXACT_DELIVERED_INSTALLER_NATIVE_FRESH_INSTALL_AND_FAIL_CLOSED_EXISTING_ROOT"
   }
 }
