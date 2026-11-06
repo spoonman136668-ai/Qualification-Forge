@@ -68,5 +68,29 @@
     "signing": "NOT_AUTHORIZED"
   },
   "provenance": "Source identity, validation, and artifact upload directly verified against run 42197424839, job 127824056579, GitHub Actions logs and artifact metadata. ZIP content hashes are builder-run witnesses; assistant has not separately downloaded the private artifact to inspect its bytes.",
-  "next": "The owner can retrieve the private unsigned installer artifact for review before expiry. Do not install over existing owner data without separate acceptance. No other workflows or source changes required for this gate."
+  "next": "The owner can retrieve the private unsigned installer artifact for review before expiry. Do not install over existing owner data without separate acceptance. No other workflows or source changes required for this gate.",
+  "independent_download_byte_verification": {
+    "method": "read-only downloaded actual GitHub Actions artifact bytes; no executable launched or installed",
+    "github_actions_artifact_id": 13492318954,
+    "outer_artifact_sha256": "97fa3f5e52d303dfde9371f305eac1a6e97e28e1b3022224ee229879515818dd",
+    "nested_original_installer_filename": "KTRADE-SetupBundle.zip",
+    "nested_original_installer_sha256": "81a5ebcb7697fd14951456e35cc4ef0ece25c882f99af1fa6a102f3ab52a19de",
+    "manifest_sha256": "67d4d8452c464866d468ac3cbcc0d2c814ef5c16b7d3b8a48614c0eaaa2d9251",
+    "manifest_files_count": 7,
+    "manifest_entries_all_size_and_sha256_match": true,
+    "installer_zip_crc": "PASS",
+    "nested_payload_zip_crc": "PASS",
+    "nested_payload_entries": 294,
+    "zip_safe_paths_unique_no_parent_traversal_or_symlinks": true,
+    "manifest_source_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "release_candidate_proof_schema": "ktrade.fresh-release-candidate.v2",
+    "release_candidate_proof_source_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "manifest_live_armed": false,
+    "release_candidate_proof_live_armed": false,
+    "manifest_release_authority": "none",
+    "release_candidate_proof_release_authority": "none",
+    "manifest_signature_status": "unsigned",
+    "result": "PASS_INDEPENDENT_DOWNLOADED_ARTIFACT_AND_INNER_ORIGINAL_INSTALLER_BYTE_VALIDATION",
+    "limitations": "Static package/hash/archive inspection only, no Windows installed acceptance, signature, owner-data migration, trading activation or 24-hour soak"
+  }
 }
