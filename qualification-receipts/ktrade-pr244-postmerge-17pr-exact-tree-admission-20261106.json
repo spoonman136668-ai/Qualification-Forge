@@ -166,8 +166,25 @@
     "new_ci_on_merge_sha": "NO_DIRECT_MAIN_CHECKS_REPORTED",
     "automatically_triggered_tip_pr_head_ci": {
       "run_id": 42193701161,
-      "status_as_of_record": "IN_PROGRESS",
-      "no_claim_of_pass": true
+      "job_id": 127811599195,
+      "run_attempt": 1,
+      "run_status": "completed",
+      "conclusion": "success",
+      "head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+      "actual_tree_sha": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+      "verified_in_original_job_log": true,
+      "full_original_go_tagged_wails_test_vet": "PASS",
+      "node_tests": {
+        "cases": 199,
+        "files": 41,
+        "failed": 0
+      },
+      "locked_shipping_asset_and_licenses": "PASS",
+      "unsigned_installer_binary_scans": "PASS",
+      "unsigned_installer_sha256": "656d5f74ef975990e1bc8c44d0da85a2e58bd4196d677c436aedf73961763185",
+      "optional_orphan_review_bundle": "PASS",
+      "job_conclusion": "success",
+      "url": "https://github.com/spoonman136668-ai/ktrade/actions/runs/42193701161"
     },
     "windows11_native_pine_v5_v6_compile_apply": "UNVERIFIED_FOCUS_ADMISSION_NOT_COMPLETED",
     "windows11_150_200_percent": "NOT_TESTED_OWNER_DECLINED",
@@ -177,7 +194,18 @@
     "engineering_integration": "PASS",
     "release_acceptance": "HOLD",
     "deployment": "HOLD",
-    "live_trading": "DISARMED"
+    "live_trading": "DISARMED",
+    "postmerge_ci_admission": "PASS_NEW_COMPLETED_EXACT_SEMANTIC_SOURCE_TREE_CI",
+    "production_limitations": {
+      "windows11_real_native_125pct_editor": "PASS",
+      "windows11_same_session_compile_apply": "UNVERIFIED",
+      "signed_distribution": "NOT_AUTHORIZED_UNSIGNED",
+      "owner_installed_data_migration": "NOT_AUTHORIZED",
+      "soak_24_hour": "DEFERRED",
+      "full_product_acceptance": "NOT_CLAIMED",
+      "deployment": "HOLD",
+      "live": "DISARMED"
+    }
   },
   "governance": {
     "source_integration_owner_approved": true,
@@ -186,5 +214,5 @@
     "no_release_promotion_or_broker_operation": true,
     "record_only_commit": true
   },
-  "next": "Reconcile existing automatically triggered final exact-source Windows CI; do not dispatch duplicate full suite. Check remaining release candidate controls including operator original-data migration and signing scope separately from source integration."
+  "next": "Exact-source Windows CI completed SUCCESS with 199/199 Node and full Go/Wails vet, unsigned installer and shipping security scans PASS. Preserve separate release acceptance; proceed with remaining bounded operator functional negative-controls or final soak only under existing scope, no redundant repeat of this exact-tree regression."
 }
