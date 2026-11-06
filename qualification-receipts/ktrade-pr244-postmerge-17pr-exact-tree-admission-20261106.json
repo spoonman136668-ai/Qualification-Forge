@@ -1,0 +1,190 @@
+{
+  "schema": "ktrade.rb3.postmerge.17pr-exact-tree-admission.v1",
+  "record_date_utc": "2026-11-06",
+  "classification": "POSTMERGE_READONLY_RECONCILIATION_SOURCE_AND_EXISTING_INDEPENDENT_QUALIFICATION",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "initial_main_sha": "a359e86d05e5ba24b71a1f4bdd8a5e36ebd31b58",
+    "merged_main_sha": "7de16c7171a25918925a08826e292a1130c91be2",
+    "merged_main_tree_sha": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "qualified_pr244_source_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "qualified_pr244_tree_sha": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "full_tree_identity_match": true,
+    "release_branch_main": true
+  },
+  "integration": {
+    "owner_authorized_source_merge": true,
+    "ckb_plane_not_required_by_updated_owner_direction": true,
+    "pr_range": "#228-#244",
+    "count": 17,
+    "merge_method": "merge",
+    "all_prs_merged_closed": true,
+    "each_merge_first_parent_previous_main_second_parent_pinned_head": true,
+    "each_merge_tree_equals_qualified_source_stage": true,
+    "merge_evidence": [
+      {
+        "pr": 228,
+        "source_head_sha": "365a7085ccd86c3f917206fe2569aba51f00d8d0",
+        "merge_commit_sha": "a520892270e98f0288d50e98508e2e15ed1c65ed"
+      },
+      {
+        "pr": 229,
+        "source_head_sha": "cea559a5abc0136d1ca0dff16c313f8dac0477f2",
+        "merge_commit_sha": "e79011c49776ae319f16c67844b0352ccbec218e"
+      },
+      {
+        "pr": 230,
+        "source_head_sha": "9c12ea7eab02d34e0f2de35b9e45e9486145fa0e",
+        "merge_commit_sha": "7af4bb50f35717be1f46bdff7c1e396a92c4dcb4"
+      },
+      {
+        "pr": 231,
+        "source_head_sha": "2773c8eb8e840a0eb0a6524820d394f5a35a925f",
+        "merge_commit_sha": "7aeef6a4ce33d0f4f4c326209f53b32362406fc3"
+      },
+      {
+        "pr": 232,
+        "source_head_sha": "2e81b8c4a170a5537e973d59de0de1713fd6c5d4",
+        "merge_commit_sha": "2539446e636804bd5ef6598ff2a8b0cc7ed49400"
+      },
+      {
+        "pr": 233,
+        "source_head_sha": "42bf2c698d15da43632540959f9a5eea3999158b",
+        "merge_commit_sha": "b1c506c23069e95dc494a5b18355e298b3a778f9"
+      },
+      {
+        "pr": 234,
+        "source_head_sha": "db79330ffee632b66c5e17b4a60d29c421febbab",
+        "merge_commit_sha": "994293357def8e8e4a46457757ef81b4e3574446"
+      },
+      {
+        "pr": 235,
+        "source_head_sha": "3901f737474f8fb5428dbb0d77a14fcb53d68d89",
+        "merge_commit_sha": "1612c755c52955b71d5aef0305889a39c6a3eaa8"
+      },
+      {
+        "pr": 236,
+        "source_head_sha": "504b28f07a24882470b847ff014391104f78bd66",
+        "merge_commit_sha": "88564c4b79e960a231653d3935ade567c97fdff7"
+      },
+      {
+        "pr": 237,
+        "source_head_sha": "56b9036f48e4783d846b7e00d650d7d4b96dd7fc",
+        "merge_commit_sha": "832e9805207f084b4e7f4d28c6cd8f43558e1515"
+      },
+      {
+        "pr": 238,
+        "source_head_sha": "fcb9bd0066d2aef1c4aef33f95819c5aea368015",
+        "merge_commit_sha": "42c5e55606df31f0aaa2e4e23ad44f5f4a4f84ee"
+      },
+      {
+        "pr": 239,
+        "source_head_sha": "72f7b5aa75ece04be0d59e6449c052d2753f468d",
+        "merge_commit_sha": "934818bb5ad36ed9677959043f707f96fec0da5f"
+      },
+      {
+        "pr": 240,
+        "source_head_sha": "50651c09f8367e66e2cdb51e69c552c866fc4313",
+        "merge_commit_sha": "6fc7096152c56733cb62c95254f30ec6a1e2df6f"
+      },
+      {
+        "pr": 241,
+        "source_head_sha": "ae70c58ded58be33d5cb5f156adaf0890cc3457c",
+        "merge_commit_sha": "a919906a2062642db6dc0e900a9ecde775d6e06c"
+      },
+      {
+        "pr": 242,
+        "source_head_sha": "3a1754aea9aeb733216489c25fcb585c0e9ef4e0",
+        "merge_commit_sha": "dc6bd7f2dbd3bc61f1ad6719c0f98325c6d0ea13"
+      },
+      {
+        "pr": 243,
+        "source_head_sha": "4b401d5f9c3a571c5ad61c4df33a7814120a3a4b",
+        "merge_commit_sha": "c5b90f351d0a41f8464dac61f6268e0557de8b69"
+      },
+      {
+        "pr": 244,
+        "source_head_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+        "merge_commit_sha": "7de16c7171a25918925a08826e292a1130c91be2"
+      }
+    ]
+  },
+  "qualification": {
+    "source_owned_full_windows_regression": {
+      "run_id": 41994140128,
+      "expected_source_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+      "conclusion": "success",
+      "reuse": "EXACT_SEMANTIC_GIT_TREE"
+    },
+    "installed_native_windows_server_2022": {
+      "run_id": 42006368574,
+      "conclusion": "success",
+      "reuse": "EXACT_PR244_SOURCE"
+    },
+    "installed_native_windows_server_2025": {
+      "run_id": 42009974415,
+      "conclusion": "success",
+      "reuse": "EXACT_PR244_SOURCE"
+    },
+    "paper_race_and_mock_broker_fault_matrix": {
+      "run_id": 42012945921,
+      "conclusion": "success"
+    },
+    "shipping_go_reachability": {
+      "run_id": 42014108657,
+      "conclusion": "success"
+    },
+    "funded_paper_kill_quarantine": {
+      "run_id": 42015938129,
+      "conclusion": "success"
+    },
+    "wails_update_rollback_repeatability": {
+      "run_id": 42028584023,
+      "conclusion": "success"
+    },
+    "shipped_js_lock_graph_audit": {
+      "run_id": 42032310783,
+      "conclusion": "success"
+    },
+    "original_pine_compile_performance": {
+      "run_id": 42059775896,
+      "conclusion": "success"
+    },
+    "actual_windows11_owner_125pct_native_app_smoke": {
+      "run_id": 42185306886,
+      "conclusion": "success"
+    },
+    "actual_windows11_owner_125pct_pine_editor_open_collapse": {
+      "run_id": 42188008634,
+      "conclusion": "success"
+    }
+  },
+  "verdict": {
+    "integration": "PASS_MERGED_ALL_17_PRS_EXACT_SOURCE_TREE",
+    "premerge_source_regression": "PASS",
+    "compositional_postmerge_reuse": "PASS_SOURCE_TREE_IDENTITY_NO_SEMANTIC_DELTA",
+    "new_ci_on_merge_sha": "NO_DIRECT_MAIN_CHECKS_REPORTED",
+    "automatically_triggered_tip_pr_head_ci": {
+      "run_id": 42193701161,
+      "status_as_of_record": "IN_PROGRESS",
+      "no_claim_of_pass": true
+    },
+    "windows11_native_pine_v5_v6_compile_apply": "UNVERIFIED_FOCUS_ADMISSION_NOT_COMPLETED",
+    "windows11_150_200_percent": "NOT_TESTED_OWNER_DECLINED",
+    "owner_installed_data_migration": "NOT_AUTHORIZED",
+    "signing": "NOT_AUTHORIZED",
+    "release_24_hour_soak": "DEFERRED_BY_OWNER_UNTIL_END",
+    "engineering_integration": "PASS",
+    "release_acceptance": "HOLD",
+    "deployment": "HOLD",
+    "live_trading": "DISARMED"
+  },
+  "governance": {
+    "source_integration_owner_approved": true,
+    "original_local_ckb_plane_bypass_owner_direction": true,
+    "do_not_conflate_source_merge_with_deployment": true,
+    "no_release_promotion_or_broker_operation": true,
+    "record_only_commit": true
+  },
+  "next": "Reconcile existing automatically triggered final exact-source Windows CI; do not dispatch duplicate full suite. Check remaining release candidate controls including operator original-data migration and signing scope separately from source integration."
+}
