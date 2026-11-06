@@ -1,0 +1,72 @@
+{
+  "schema": "ktrade.pr244.private-unsigned-installer-artifact.v1",
+  "source": {
+    "repository": "spoonman136668-ai/ktrade",
+    "qualified_original_source_sha": "671198f2336e410c98ef764603455a51c08d16b0",
+    "merged_main_commit_sha": "7de16c7171a25918925a08826e292a1130c91be2",
+    "source_tree_sha": "f75c8d45689e68cf2e582fe4679b841e9c9f352e",
+    "source_tree_exact_match_to_integrated_main": true
+  },
+  "execution": {
+    "repository": "spoonman136668-ai/Qualification-Forge",
+    "branch": "qualification/ktrade-original-pine-label-response-affinity-20261031",
+    "workflow_file": ".github/workflows/ktrade-pr244-private-unsigned-installer-artifact-once.yml",
+    "workflow_commit_sha": "265cf91fd94a46fbe6a4bc9678fd949ac354d825",
+    "workflow_blob_sha": "587553cf1706a77f9f382d0658af0a899d710959",
+    "run_id": 42197424839,
+    "job_id": 127824056579,
+    "run_attempt": 1,
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "job_conclusion": "success",
+    "runner": "github-hosted windows-2022",
+    "url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42197424839",
+    "git_submitted_ref": "qualification/ktrade-original-pine-label-response-affinity-20261031"
+  },
+  "result": {
+    "build_and_verify": "PASS",
+    "source_checkout_and_tree_guard": "PASS",
+    "locked_asset_staging": "PASS",
+    "original_wails_portable_packaging": "PASS",
+    "seven_manifest_file_hashes": "PASS",
+    "six_executables_go1_26_10_unsigned": "PASS",
+    "builder_receipt_hashes_match": "PASS",
+    "live_armed": false,
+    "release_authority": "none",
+    "signature_status": "unsigned",
+    "no_install": true,
+    "no_signing": true,
+    "no_broker_orders": true,
+    "no_owner_data": true,
+    "no_full_regression_rerun": true
+  },
+  "artifact": {
+    "id": 13492318954,
+    "name": "ktrade-private-unsigned-installer-671198f2336e410c98ef764603455a51c08d16b0",
+    "download_url": "https://github.com/spoonman136668-ai/Qualification-Forge/actions/runs/42197424839/artifacts/13492318954",
+    "size_bytes": 38499807,
+    "created_at": "2026-11-06T09:47:33Z",
+    "expires_at": "2026-11-13T09:47:30Z",
+    "expired": false,
+    "internal_filename": "KTRADE-SetupBundle.zip",
+    "inner_installer_zip_sha256": "81a5ebcb7697fd14951456e35cc4ef0ece25c882f99af1fa6a102f3ab52a19de",
+    "internal_manifest_sha256": "67d4d8452c464866d468ac3cbcc0d2c814ef5c16b7d3b8a48614c0eaaa2d9251",
+    "outer_github_artifact_archive_sha256": "97fa3f5e52d303dfde9371f305eac1a6e97e28e1b3022224ee229879515818dd"
+  },
+  "qualification_boundary": {
+    "engineering_build_and_private_artifact_delivery": "PASS",
+    "existing_full_original_windows_regression_run": 42193701161,
+    "existing_full_regression_conclusion": "success",
+    "windows11_native_125pct_editor": "PASS",
+    "windows11_native_125pct_pine_compile_apply": "UNVERIFIED_FOCUS_BLOCK",
+    "release_acceptance": "HOLD",
+    "production_deployment": "NOT_AUTHORIZED",
+    "owner_install": "NOT_EXECUTED",
+    "owner_data_cutover": "NOT_AUTHORIZED",
+    "live_trading": "DISARMED",
+    "final_24_hour_soak": "DEFERRED_BY_OWNER",
+    "signing": "NOT_AUTHORIZED"
+  },
+  "provenance": "Source identity, validation, and artifact upload directly verified against run 42197424839, job 127824056579, GitHub Actions logs and artifact metadata. ZIP content hashes are builder-run witnesses; assistant has not separately downloaded the private artifact to inspect its bytes.",
+  "next": "The owner can retrieve the private unsigned installer artifact for review before expiry. Do not install over existing owner data without separate acceptance. No other workflows or source changes required for this gate."
+}
