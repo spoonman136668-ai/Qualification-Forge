@@ -438,6 +438,53 @@ function W41-Stop([object]$run){
 # layout/render may lag behind the installed chart's DOM-ready handshake.
 # Bound retries to transient missing label ink only. Any real geometry,
 # process, layout, or viewport mismatch remains a hard failure.
+# Bounded, read-only localStorage LevelDB marker observation on this runner's
+# new synthetic installed profile. A hit indicates encoded key presence only;
+# missing markers are diagnostic, never a standalone data-loss conclusion.
+function W41-ObserveProfileKeys([string]$candidate){
+ $profile=Join-Path $candidate 'data/webview2-profile'
+ if(!(Test-Path -LiteralPath $profile -PathType Container)){
+  Write-Host 'W41_PROFILE_MARKER_SCAN=UNAVAILABLE_NO_PROFILE';return
+ }
+ Ordinary $profile $true
+ $roots=@(
+  (Join-Path $profile 'EBWebView/Default/Local Storage/leveldb'),
+  (Join-Path $profile 'Default/Local Storage/leveldb')
+ )
+ $keys=@('ktrade_chart_viewport_v1:BTC-USD:1h','ktrade_chart_timeframe')
+ $patterns=@()
+ foreach($key in $keys){
+  $patterns+=,[pscustomobject]@{
+   ascii=[Text.Encoding]::Latin1.GetString([Text.Encoding]::UTF8.GetBytes($key));
+   utf16=[Text.Encoding]::Latin1.GetString([Text.Encoding]::Unicode.GetBytes($key))
+  }
+ }
+ $hit=@($false,$false);$scanned=0;$unreadable=0
+ foreach($root in $roots){
+  if(!(Test-Path -LiteralPath $root -PathType Container)){continue}
+  Ordinary $root $true
+  $files=@(Get-ChildItem -LiteralPath $root -File -ErrorAction Stop |
+   Where-Object {$_.Extension -in @('.ldb','.sst','.log') -and
+    $_.Length -le 16777216 -and
+    !$_.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)} |
+   Sort-Object FullName | Select-Object -First 96)
+  foreach($file in $files){
+   if($scanned -ge 96){break}
+   try{$text=[Text.Encoding]::Latin1.GetString([IO.File]::ReadAllBytes($file.FullName))}
+   catch{$unreadable++;continue}
+   $scanned++
+   for($i=0;$i -lt $keys.Count;$i++){
+    if(!$hit[$i] -and ($text.Contains($patterns[$i].ascii) -or
+      $text.Contains($patterns[$i].utf16))){$hit[$i]=$true}
+   }
+  }
+ }
+ Write-Host ('W41_COLD_PROFILE_STORAGE_MARKERS='+(@{
+  scanned_files=$scanned;unreadable_files=$unreadable;
+  viewport_key_present=$hit[0];timeframe_key_present=$hit[1];
+  semantic_proof=$false;scope='test-owned profile, key bytes only, no values'
+ }|ConvertTo-Json -Compress))
+}
 function W41-WaitColdAxis([object]$shell){
  $deadline=(Get-Date).AddSeconds(18)
  $attempt=0
@@ -518,7 +565,23 @@ try{
   $beforeClose.first -eq $firstCandles.first -and
   $beforeClose.last -eq $firstCandles.last) 'W41_CANDLE_HISTORY_DRIFTED_DURING_NAVIGATION'
  W41-Stop $active;$active=$null
+ W41-ObserveProfileKeys $installed.candidate_directory
  $active=W41-Start $installed.candidate_directory
+ # Read-only UIA metadata can distinguish a lost timeframe preference from
+ # viewport-only restoration failure; it cannot substitute for the pixel oracle.
+ $reopenTimeframe=FindUI $active.shell '1h' $true 15
+ $pressed='UNAVAILABLE'
+ try{
+  $property=[System.Windows.Automation.AutomationElement]::AriaPropertiesProperty
+  if($null -ne $property){
+   $props=$reopenTimeframe.GetCurrentPropertyValue($property,$true)
+   if($props -is [string]){
+    if($props -match '(?:^|;)\\s*pressed=true(?:;|$)'){$pressed='TRUE'}
+    elseif($props -match '(?:^|;)\\s*pressed=false(?:;|$)'){$pressed='FALSE'}
+   }
+  }
+ }catch{}
+ Write-Host ('W41_COLD_REOPEN_1H_ARIA_PRESSED='+$pressed)
  Require ($active.origin -ceq $firstOrigin) 'W41_INSTALLED_ORIGIN_NOT_STABLE_ACROSS_RESTART'
  $afterRestart=W41-Candles $active.origin
  Require ($afterRestart.count -eq $firstCandles.count -and
