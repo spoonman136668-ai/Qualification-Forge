@@ -29,15 +29,15 @@ jobs:
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_PAPER_SESSION_ROOT: ''
       KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
-      W01_EXPECTED_SHA: 'bc7c640f64e4d57203cdb5a27793e394d939e02d'
-      W01_EXPECTED_TREE: '6789ecda99e1e9fa87795309a816df02da1b2f4a'
+      W01_EXPECTED_SHA: 'bd921b9ecdf565e48bf053bfd3fa810e770bef77'
+      W01_EXPECTED_TREE: '58dcfbf3617956c71ffaa7bc24b04ca65bd1215d'
       KTRADE_QFORGE_W40_PINNED: '1'
     steps:
       - name: Checkout immutable private KTRADE source without persisting credentials
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: bc7c640f64e4d57203cdb5a27793e394d939e02d
+          ref: bd921b9ecdf565e48bf053bfd3fa810e770bef77
           fetch-depth: 0
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -694,6 +694,16 @@ jobs:
               if(-not [W39NativeMouse]::Click($pineButton.X,$pineButton.Y)){
                 throw 'W40_NATIVE_PINE_PANEL_OPEN_CLICK_FAILED'
               }
+              # A previously open panel can close on the first OS click.
+              # Try a second real native click only if the observer did not
+              # record the editor geometry after the first click.
+              Start-Sleep -Milliseconds 1450
+              if(-not (Test-Path -LiteralPath $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT -PathType Leaf)){
+                Write-Host 'W40_PINE_OPEN_SECOND_NATIVE_CLICK=ATTEMPTED'
+                if(-not [W39NativeMouse]::Click($pineButton.X,$pineButton.Y)){
+                  throw 'W40_NATIVE_PINE_PANEL_REOPEN_FAILED'
+                }
+              }
               $editorTarget=Read-W40Point $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT
               if(-not [W39NativeMouse]::Click($editorTarget.X,$editorTarget.Y)){
                 throw 'W40_NATIVE_EDITOR_CLICK_FAILED'
@@ -757,6 +767,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   native-windows:
+    needs: isolated-wails-window
     name: native-windows
     runs-on: windows-2022
     timeout-minutes: 45
@@ -769,7 +780,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: 'bc7c640f64e4d57203cdb5a27793e394d939e02d'
+      KTRADE_EXPECTED_SOURCE: 'bd921b9ecdf565e48bf053bfd3fa810e770bef77'
       KTRADE_HEAD_REPOSITORY: 'spoonman136668-ai/ktrade'
       KTRADE_REPOSITORY_PRIVATE: 'true'
     steps:
@@ -777,7 +788,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: bc7c640f64e4d57203cdb5a27793e394d939e02d
+          ref: bd921b9ecdf565e48bf053bfd3fa810e770bef77
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
