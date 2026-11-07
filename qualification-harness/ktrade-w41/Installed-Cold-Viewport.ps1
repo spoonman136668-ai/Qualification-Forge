@@ -441,8 +441,78 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 [IO.Compression.ZipFile]::ExtractToDirectory($zip,$distribution)
 $null=Bundle $distribution $NewSHA
 $installed=Setup (Join-Path $distribution 'KTRADE-Setup.ps1') 'Install'
-Require ($installed.source_sha -ceq $NewSHA -and $installed.app_launched -eq $false -and
- $installed.live_armed -eq $false -and $installed.action -ceq 'install') 'W41_FRESH_INSTALL_NOT_DISARMED'
+# W29 Install returns a ktrade.fresh-installation.v1 receipt, never an
+# action field (that field belongs to W30 installation transitions). Verify
+# all of W29's explicit disarm/ownership fields instead of weakening custody.
+Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
+ $installed.source_sha -ceq $NewSHA -and $installed.root -ceq $script:installedRoot -and
+ $installed.candidate_directory -cmatch '^[A-Za-z]:[\\/]' -and
+ $installed.selection_digest -cmatch '^[a-f0-9]{64}
+$active=$null
+try{
+ $active=W41-Start $installed.candidate_directory
+ $firstOrigin=$active.origin
+ $firstCandles=W41-Candles $firstOrigin
+ $baseline=ViewportStableAxis $active.shell 'COLD_BASELINE'
+ $node=FindUI $active.shell 'Price chart drawing surface' $false 20
+ $rect=$node.Current.BoundingRectangle
+ [void][W83Native]::SetForegroundWindow($active.shell.MainWindowHandle)
+ Require ([W83Native]::GetForegroundWindow() -eq $active.shell.MainWindowHandle) 'W41_CHART_NOT_FOREGROUND'
+ $x=[int]($rect.Left+$rect.Width*0.45);$y=[int]($rect.Top+$rect.Height*0.40)
+ Require ([W83Native]::SetCursorPos($x,$y)) 'W41_MOUSE_GEOMETRY_REFUSED'
+ [W83Native]::mouse_event(0x0800,0,0,360,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 450
+ [W83Native]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+ try{
+  for($i=1;$i -le 8;$i++){
+   Require ([W83Native]::SetCursorPos(($x+[int]($rect.Width*0.22*$i/8)),$y)) 'W41_PHYSICAL_DRAG_REFUSED'
+   Start-Sleep -Milliseconds 35
+  }
+ }finally{[W83Native]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)}
+ Start-Sleep -Milliseconds 800
+ $panned=ViewportStableAxis $active.shell 'COLD_PANNED'
+ Require ($baseline.axis_sha256 -cne $panned.axis_sha256 -and
+  !(ViewportAxisEquivalent $baseline $panned 'NEGATIVE_USER_NAVIGATION')) 'W41_NATIVE_CHART_NOT_CHANGED_BY_REAL_INPUT'
+ $beforeClose=W41-Candles $firstOrigin
+ Require ($beforeClose.count -eq $firstCandles.count -and
+  $beforeClose.first -eq $firstCandles.first -and
+  $beforeClose.last -eq $firstCandles.last) 'W41_CANDLE_HISTORY_DRIFTED_DURING_NAVIGATION'
+ W41-Stop $active;$active=$null
+ $active=W41-Start $installed.candidate_directory
+ Require ($active.origin -ceq $firstOrigin) 'W41_INSTALLED_ORIGIN_NOT_STABLE_ACROSS_RESTART'
+ $afterRestart=W41-Candles $active.origin
+ Require ($afterRestart.count -eq $firstCandles.count -and
+  $afterRestart.first -eq $firstCandles.first -and
+  $afterRestart.last -eq $firstCandles.last) 'W41_CANDLE_HISTORY_CHANGED_SAFE_FALLBACK_NOT_COLD_RESTORE_CASE'
+ $restored=ViewportStableAxis $active.shell 'COLD_REOPENED'
+ Require (!(ViewportAxisEquivalent $baseline $restored 'NEGATIVE_FIT_CONTENT')) 'W41_REOPEN_RESET_TO_FIT_CONTENT'
+ Require (ViewportAxisEquivalent $panned $restored 'COLD_REOPENED_PRESERVES_FRACTIONAL_VIEWPORT') 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
+ $cap=Invoke-RestMethod -Method Get -Uri ($active.origin+'/api/operator/capabilities') -TimeoutSec 10
+ Require ($cap.mode -ceq 'PAPER_STOPPED' -and
+  $cap.live_orders_enabled -eq $false -and $cap.paper_orders_enabled -eq $false) 'W41_INSTALLED_REOPEN_CHANGED_TRADING_AUTHORITY'
+ Write-Host ('W41_REAL_INSTALLED_COLD_AXIS_EVIDENCE='+(@{
+  source_sha=$NewSHA;origin_stable=$true;exact_history_reused=$true;
+  first=$firstCandles.first;last=$firstCandles.last;count=$firstCandles.count;
+  baseline_axis_sha256=$baseline.axis_sha256;after_native_navigation_sha256=$panned.axis_sha256;
+  cold_reopened_axis_sha256=$restored.axis_sha256;
+  native_input=$true;restarted_selected_shortcut=$true;
+  mode='PAPER_STOPPED';live_armed=$false;
+  oracle='bounded six-glyph native time-axis matching, not exact DOM logical range';
+  scope='ephemeral installed Wails/WebView2, no user profile, no broker'
+ }|ConvertTo-Json -Compress))
+ Write-Host '::notice::W41_INSTALLED_COLD_FRACTIONAL_CHART_VIEWPORT=PASS'
+ W41-Stop $active;$active=$null
+ Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
+}finally{
+ if($null -ne $active){
+  try{[void][W83Native]::PostMessage($active.shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)}catch{}
+  Write-Warning 'W41_ABORTED_WITH_OWNED_TEST_PROCESS; hosted ephemeral runner is discarded; no replay or owner takeover'
+ }
+}
+ -and
+ $installed.fresh_only -eq $true -and $installed.app_launched -eq $false -and
+ $installed.owner_data_imported -eq $false -and $installed.orders_enabled -eq $false -and
+ $installed.live_armed -eq $false -and $installed.release_accepted -eq $false) 'W41_FRESH_INSTALL_NOT_DISARMED'
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
