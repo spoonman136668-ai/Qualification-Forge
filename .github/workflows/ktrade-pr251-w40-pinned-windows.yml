@@ -1,0 +1,903 @@
+name: KTRADE PR251 W40 exact-source isolated Windows qualification
+
+on:
+  push:
+    branches:
+      - qualification/ktrade-pr251-w40-pinned-20261107
+    paths:
+      - .github/workflows/ktrade-pr251-w40-pinned-windows.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ktrade-pr251-w40-qforge-exact-source-20261107
+  cancel-in-progress: false
+
+jobs:
+  isolated-wails-window:
+    name: Build and smoke authentic Wails WebView2 on hosted Windows
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr251-w40-pinned-20261107'
+    runs-on: windows-2022
+    timeout-minutes: 55
+    env:
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+      KTRADE_RECOVERY_ISOLATED: '1'
+      KTRADE_PORTABLE_DISARMED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+      W01_EXPECTED_SHA: '9f3b809c86603af9ca432db85c7c19c8cacdd0dd'
+      W01_EXPECTED_TREE: ''
+      KTRADE_QFORGE_W40_PINNED: '1'
+    steps:
+      - name: Checkout immutable private KTRADE source without persisting credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9f3b809c86603af9ca432db85c7c19c8cacdd0dd
+          fetch-depth: 0
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+
+      - name: Set up build-time-only Node for original locked Monaco/chart assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Verify exact event source, tree and immutable pilot ancestry
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows'){throw 'W01_HOSTED_WINDOWS_REQUIRED'}
+          & node --test tests/wails_w01_source_provenance.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'W01_SOURCE_PROVENANCE_TEST_FAILED'}
+          & node --test tests/wails_w02_boot.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'W02_NAVIGATION_STATE_UNIT_REGRESSION_FAILED'}
+          Write-Host 'W02_NAVIGATION_STATE_UNIT_REGRESSION=PASS'
+          $receipt=@(& node scripts/wails_w01_source_provenance.cjs)
+          if($LASTEXITCODE -ne 0){throw 'W01_EXACT_SOURCE_PROVENANCE_FAILED'}
+          $receipt | Write-Output
+          $receipt | Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'w01-source.json') -Encoding utf8
+          $receipt | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          Write-Host 'W01_EXACT_SOURCE_SHA_TREE_AND_PILOT_ANCESTRY=PASS'
+          Write-Host 'W01_PROTECTED_BRANCHES_AND_OWNER_DATA_UNTOUCHED=PASS'
+
+      - name: Set up hosted Windows Go and build-time vendor tooling
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+
+      - name: Compile, launch, observe window and enforce disarmed backend
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          if((& go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'W01_REVIEWED_WINDOWS_GO_TOOLCHAIN_DRIFT'}
+          # Match the successful native-Windows test's temporary fixture root.
+          # These paths are ephemeral and contain no owner-installed profile.
+          $env:TEMP=$env:RUNNER_TEMP
+          $env:TMP=$env:RUNNER_TEMP
+          $root=$env:GITHUB_WORKSPACE
+          $log=Join-Path $env:RUNNER_TEMP 'w01-private-compile.log'
+          $sandboxRoot=Join-Path ([IO.Path]::GetTempPath()) ('ktrade-w01-'+[Guid]::NewGuid().ToString('N'))
+          $stage=Join-Path $sandboxRoot 'KTRADE-WailsPilot'
+          $buildRoot=Join-Path $sandboxRoot 'source'
+          $archive=Join-Path $sandboxRoot 'source.tar'
+          $parent=$null
+          $child=$null
+          $http=$null
+          New-Item -ItemType Directory -Path $stage -Force | Out-Null
+          New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
+          try {
+            Push-Location $root
+            try {
+              & node scripts/wails_w01_source_provenance.cjs
+              if($LASTEXITCODE -ne 0){throw 'W01_PRE_BUILD_SOURCE_DRIFT'}
+              & git archive --format=tar --output $archive $env:W01_EXPECTED_SHA
+              if($LASTEXITCODE -ne 0){throw 'W01_PINNED_SOURCE_ARCHIVE_FAILED'}
+              & tar -xf $archive -C $buildRoot
+              if($LASTEXITCODE -ne 0){throw 'W01_PINNED_SOURCE_EXTRACT_FAILED'}
+            } finally {Pop-Location}
+            Push-Location $buildRoot
+            try {
+              & go build -mod=readonly -tags=ktrade_full -o (Join-Path $stage 'ktrade-engine.exe') ./cmd/ktrade *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_ORIGINAL_ENGINE_BUILD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              Write-Host 'W01_ORIGINAL_GO_BACKEND_BUILD=PASS'
+              & npm ci --ignore-scripts --no-audit --no-fund --silent *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_LOCKED_FRONTEND_VENDOR_INSTALL_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              & node scripts/stage_offline_vendor.cjs *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_ORIGINAL_OFFLINE_MONACO_ASSET_STAGING_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              foreach($name in @('static','templates','strategies')){
+                Copy-Item -LiteralPath (Join-Path $buildRoot $name) -Destination (Join-Path $stage $name) -Recurse -Force
+              }
+              foreach($file in @('static/vendor/monaco/vs/loader.js','static/vendor/lightweight-charts/lightweight-charts.standalone.production.js')){
+                if(-not (Test-Path -LiteralPath (Join-Path $stage $file) -PathType Leaf)){throw 'W01_ORIGINAL_CHART_EDITOR_ASSET_MISSING'}
+              }
+              Write-Host 'W01_OFFLINE_MONACO_AND_CHART_ASSETS=PASS'
+              # W36 is staging-only and restricted to this exact PR head.
+              if($env:GITHUB_EVENT_NAME -ceq 'pull_request' -and
+                 $env:GITHUB_HEAD_REF -ceq 'feature/rb3-w36-wails-candle-pine-render-20261106') {
+                & node --check tests/w36_wails_render_bridge.js
+                if($LASTEXITCODE -ne 0){throw 'W36_STAGED_RENDER_SCRIPT_SYNTAX_INVALID'}
+                $source=Join-Path $buildRoot 'tests/w36_wails_render_bridge.js'
+                $target=Join-Path $stage 'static/w36_wails_render_bridge.js'
+                if(-not (Test-Path -LiteralPath $source -PathType Leaf) -or
+                   (Test-Path -LiteralPath $target)){throw 'W36_SOURCE_COLLISION'}
+                Copy-Item -LiteralPath $source -Destination $target
+                $chartPath=Join-Path $stage 'templates/chart.tmpl'
+                $chartText=[IO.File]::ReadAllText($chartPath)
+                if(([regex]::Matches($chartText,'</body>')).Count -ne 1 -or
+                   $chartText.Contains('w36_wails_render_bridge')){throw 'W36_STAGED_CHART_DRIFT'}
+                $tag='<script src="/static/w36_wails_render_bridge.js"></script>'
+                [IO.File]::WriteAllText($chartPath,
+                   $chartText.Replace('</body>',$tag+[Environment]::NewLine+'</body>'),
+                   [Text.UTF8Encoding]::new($false))
+                Write-Host 'W36_TEST_ONLY_STAGED_ORIGINAL_CHART=PASS'
+              }
+              # W37 test-only stage of original chart; never shipping source.
+              if($env:KTRADE_QFORGE_W40_PINNED -ceq '1') {
+                & node --check tests/w37_wails_sync_bridge.js
+                if($LASTEXITCODE -ne 0){throw 'W37_SCRIPT_SYNTAX_INVALID'}
+                $w37Source=Join-Path $buildRoot 'tests/w37_wails_sync_bridge.js'
+                $w37Target=Join-Path $stage 'static/w37_wails_sync_bridge.js'
+                if(-not (Test-Path -LiteralPath $w37Source -PathType Leaf) -or
+                   (Test-Path -LiteralPath $w37Target)){throw 'W37_STAGED_SCRIPT_COLLISION'}
+                Copy-Item -LiteralPath $w37Source -Destination $w37Target
+                $w37Path=Join-Path $stage 'templates/chart.tmpl'
+                $w37Chart=[IO.File]::ReadAllText($w37Path)
+                # Exact shipping navigation guard (W38 Pine allocation fence).
+                # Fail closed on source drift rather than accepting arbitrary matching text.
+                $syncAnchor='    if(syncing||this._chartSyncSuspended>0||!r) return;'
+                if($w37Chart.Split([string[]]@($syncAnchor),[StringSplitOptions]::None).Count -ne 2 -or
+                   ([regex]::Matches($w37Chart,'</body>')).Count -ne 1 -or
+                   $w37Chart.Contains('w37_wails_sync_bridge')){throw 'W37_ORIGINAL_CHART_SYNC_ANCHOR_DRIFT'}
+                $w37Guard="    if(window.__KTRADE_W37_SYNC_MODE==='all_off' || " +
+                  "(window.__KTRADE_W37_SYNC_MODE==='follower_off' && src!==this.s.chart))return;"
+                $w37Chart=$w37Chart.Replace($syncAnchor,$w37Guard+[Environment]::NewLine+$syncAnchor)
+                $w37Tag='<script src="/static/w37_wails_sync_bridge.js"></script>'
+                # W40: synthetic-only real chart observer, never shipped.
+                & node --check tests/w40_wails_native_chart_bridge.js
+                if($LASTEXITCODE -ne 0){throw 'W40_STAGED_OBSERVER_SYNTAX_FAILED'}
+                $w40Source=Join-Path $buildRoot 'tests/w40_wails_native_chart_bridge.js'
+                $w40Target=Join-Path $stage 'static/w40_wails_native_chart_bridge.js'
+                if(-not (Test-Path -LiteralPath $w40Source -PathType Leaf) -or
+                   (Test-Path -LiteralPath $w40Target)){throw 'W40_STAGED_OBSERVER_SOURCE_COLLISION'}
+                Copy-Item -LiteralPath $w40Source -Destination $w40Target
+                $w40Tag='<script src="/static/w40_wails_native_chart_bridge.js"></script>'
+                $w37Chart=$w37Chart.Replace('</body>',$w40Tag+[Environment]::NewLine+'</body>')
+                [IO.File]::WriteAllText($w37Path,
+                  $w37Chart.Replace('</body>',$w37Tag+[Environment]::NewLine+'</body>'),
+                  [Text.UTF8Encoding]::new($false))
+                Write-Host 'W37_DISPOSABLE_ORIGINAL_SYNC_INSTRUMENTATION=PASS'
+              }
+              # W35 runs only for the exact PR branch in a disposable
+              # staged copy. It does not alter the shipping chart template.
+              if($env:GITHUB_EVENT_NAME -ceq 'pull_request' -and
+                 $env:GITHUB_HEAD_REF -ceq 'feature/rb3-w35-real-wails-iframe-compile-20261106') {
+                & node --check tests/w35_wails_compile_bridge.js
+                if($LASTEXITCODE -ne 0){throw 'W35_STAGED_SCRIPT_SYNTAX_INVALID'}
+                $sourceScript=Join-Path $buildRoot 'tests/w35_wails_compile_bridge.js'
+                $stagedScript=Join-Path $stage 'static/w35_wails_compile_bridge.js'
+                if(-not (Test-Path -LiteralPath $sourceScript -PathType Leaf) -or
+                   (Test-Path -LiteralPath $stagedScript)){throw 'W35_STAGED_SCRIPT_SOURCE_DRIFT'}
+                Copy-Item -LiteralPath $sourceScript -Destination $stagedScript
+                $chartFile=Join-Path $stage 'templates/chart.tmpl'
+                $chartText=[IO.File]::ReadAllText($chartFile)
+                if(([regex]::Matches($chartText,'</body>')).Count -ne 1 -or
+                   $chartText.Contains('w35_wails_compile_bridge')){throw 'W35_STAGED_CHART_IDENTITY_DRIFT'}
+                $insert='<script src="/static/w35_wails_compile_bridge.js"></script>'
+                [IO.File]::WriteAllText($chartFile,$chartText.Replace('</body>',$insert+[Environment]::NewLine+'</body>'),[Text.UTF8Encoding]::new($false))
+                Write-Host 'W35_ORIGINAL_CHART_TEST_ONLY_STAGE=PASS'
+              }
+            } finally {Pop-Location}
+            Push-Location (Join-Path $buildRoot 'tools/wails-pilot')
+            try {
+              & go mod verify *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_WAILS_DEPENDENCY_VERIFICATION_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              & go test -mod=readonly -count=1 ./backend *> $log
+              if($LASTEXITCODE -ne 0){
+                # Only deterministic Go test identifiers are public. Keep
+                # private compiler/test output out of Actions logs and artifacts.
+                $failedNames=@(Get-Content -LiteralPath $log | ForEach-Object {
+                  if($_ -match '^--- FAIL: ([A-Za-z][A-Za-z0-9_]{0,120}) '){$Matches[1]}
+                } | Sort-Object -Unique)
+                if($failedNames.Count -gt 0){
+                  Write-Host ('W01_FAILED_TEST_NAMES='+($failedNames -join ','))
+                }else{Write-Host 'W01_BACKEND_FAILURE_DETAIL_WITHHELD'}
+                throw 'W01_BACKEND_FOCUSED_TEST_FAILED_PRIVATE_OUTPUT_WITHHELD'
+              }
+              & go vet -mod=readonly ./backend *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_BACKEND_VET_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              Write-Host 'W01_BACKEND_TESTS_AND_VET=PASS'
+              & go build -mod=readonly -tags desktop,production,w01probe -o (Join-Path $stage 'ktrade-wails-pilot.exe') . *> $log
+              if($LASTEXITCODE -ne 0){throw 'W01_WAILS_WINDOWS_BUILD_FAILED_PRIVATE_OUTPUT_WITHHELD'}
+              Write-Host 'W01_WAILS_WEBVIEW2_EXE_BUILT=PASS'
+            } finally {Pop-Location}
+            foreach($binary in @('ktrade-engine.exe','ktrade-wails-pilot.exe')){
+              $hash=(Get-FileHash -LiteralPath (Join-Path $stage $binary) -Algorithm SHA256).Hash.ToLowerInvariant()
+              Write-Host ('W01_BINARY_SHA256 '+$binary+'='+$hash)
+            }
+            $exe=Join-Path $stage 'ktrade-wails-pilot.exe'
+            # W01-only binary receives an explicit disarmed test admission
+            # and writes one fixed receipt under the isolated runner TEMP.
+            # Normal production Wails build excludes this probe completely.
+            if($env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS){throw 'W01_WEBVIEW2_PREEXISTING_FLAGS_REFUSED'}
+            if($env:KTRADE_W01_DOM_PROBE -or $env:KTRADE_W01_DOM_RECEIPT){throw 'W01_PREEXISTING_PROBE_ENV_REFUSED'}
+            $env:KTRADE_W01_DOM_PROBE='1'
+            $env:KTRADE_W01_DOM_RECEIPT=Join-Path $env:RUNNER_TEMP 'w01-runtime-probe.txt'
+            if(Test-Path -LiteralPath $env:KTRADE_W01_DOM_RECEIPT){throw 'W01_PREEXISTING_PROBE_RECEIPT_REFUSED'}
+            if($env:GITHUB_EVENT_NAME -ceq 'pull_request' -and
+               $env:GITHUB_HEAD_REF -ceq 'feature/rb3-w36-wails-candle-pine-render-20261106') {
+              if($env:KTRADE_W36_RENDER_PROBE -or $env:KTRADE_W36_RENDER_RECEIPT) {
+                throw 'W36_PREEXISTING_TEST_ENV_REFUSED'
+              }
+              $env:KTRADE_W36_RENDER_PROBE='1'
+              $env:KTRADE_W36_RENDER_RECEIPT=Join-Path $env:RUNNER_TEMP 'w36-runtime-render.txt'
+              if(Test-Path -LiteralPath $env:KTRADE_W36_RENDER_RECEIPT) {
+                throw 'W36_PREEXISTING_RECEIPT_REFUSED'
+              }
+            }
+            # W37 reuses the W01 disarmed native pilot and nonce receipt.
+            if($env:KTRADE_QFORGE_W40_PINNED -ceq '1') {
+              if($env:KTRADE_W36_RENDER_PROBE -or $env:KTRADE_W36_RENDER_RECEIPT){throw 'W37_PREEXISTING_ENV_REFUSED'}
+              $env:KTRADE_W36_RENDER_PROBE='1'
+              $env:KTRADE_W36_RENDER_RECEIPT=Join-Path $env:RUNNER_TEMP 'w36-runtime-render.txt'
+              if(Test-Path -LiteralPath $env:KTRADE_W36_RENDER_RECEIPT){throw 'W37_PREEXISTING_RECEIPT_REFUSED'}
+              # Single-use native mouse observer. All receipts live in the disposable runner TEMP.
+              if($env:KTRADE_W39_NATIVE_INPUT_PROBE -or $env:KTRADE_W39_GEOMETRY_RECEIPT -or
+                 $env:KTRADE_W39_CLOSED_RECEIPT -or $env:KTRADE_W39_REOPENED_RECEIPT){
+                throw 'W39_PREEXISTING_TEST_ENV_REFUSED'
+              }
+              $env:KTRADE_W39_NATIVE_INPUT_PROBE='1'
+              if($env:KTRADE_W40_DIAG_RECEIPT){throw 'W40_PREEXISTING_DIAGNOSTIC_REFUSED'}
+              $env:KTRADE_W40_DIAG_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-diagnostic.txt'
+              if(Test-Path -LiteralPath $env:KTRADE_W40_DIAG_RECEIPT){throw 'W40_EXISTING_DIAGNOSTIC_REFUSED'}
+              if($env:KTRADE_W40_NATIVE_CHART_PROBE -or $env:KTRADE_W40_CHART_GEOMETRY_RECEIPT -or
+                 $env:KTRADE_W40_CHART_ZOOMED_RECEIPT -or $env:KTRADE_W40_CHART_PANNED_RECEIPT -or
+                 $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT -or $env:KTRADE_W40_EDITOR_FOCUSED_RECEIPT){
+                throw 'W40_PREEXISTING_TEST_ENV_REFUSED'
+              }
+              $env:KTRADE_W40_NATIVE_CHART_PROBE='1'
+              $env:KTRADE_W40_CHART_GEOMETRY_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-chart-geometry.txt'
+              $env:KTRADE_W40_CHART_ZOOMED_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-chart-zoomed.txt'
+              $env:KTRADE_W40_CHART_PANNED_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-chart-panned.txt'
+              $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-editor-geometry.txt'
+              $env:KTRADE_W40_EDITOR_FOCUSED_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-editor-focused.txt'
+              foreach($receipt in @($env:KTRADE_W40_CHART_GEOMETRY_RECEIPT,
+                  $env:KTRADE_W40_CHART_ZOOMED_RECEIPT,$env:KTRADE_W40_CHART_PANNED_RECEIPT,
+                  $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT,$env:KTRADE_W40_EDITOR_FOCUSED_RECEIPT)){
+                if(Test-Path -LiteralPath $receipt){throw 'W40_RECEIPT_ALREADY_EXISTS'}
+              }
+              $env:KTRADE_W39_GEOMETRY_RECEIPT=Join-Path $env:RUNNER_TEMP 'w39-native-geometry.txt'
+              $env:KTRADE_W39_CLOSED_RECEIPT=Join-Path $env:RUNNER_TEMP 'w39-native-closed.txt'
+              $env:KTRADE_W39_REOPENED_RECEIPT=Join-Path $env:RUNNER_TEMP 'w39-native-reopened.txt'
+              foreach($file in @($env:KTRADE_W39_GEOMETRY_RECEIPT,$env:KTRADE_W39_CLOSED_RECEIPT,$env:KTRADE_W39_REOPENED_RECEIPT)){
+                if(Test-Path -LiteralPath $file){throw 'W39_PREEXISTING_RECEIPT_REFUSED'}
+              }
+            }
+            if($env:GITHUB_EVENT_NAME -ceq 'pull_request' -and
+               $env:GITHUB_HEAD_REF -ceq 'feature/rb3-w35-real-wails-iframe-compile-20261106') {
+              if($env:KTRADE_W35_COMPILE_PROBE -or $env:KTRADE_W35_COMPILE_RECEIPT) {
+                throw 'W35_PREEXISTING_TEST_ENV_REFUSED'
+              }
+              $env:KTRADE_W35_COMPILE_PROBE='1'
+              $env:KTRADE_W35_COMPILE_RECEIPT=Join-Path $env:RUNNER_TEMP 'w35-runtime-compile.txt'
+              if(Test-Path -LiteralPath $env:KTRADE_W35_COMPILE_RECEIPT) {
+                throw 'W35_PREEXISTING_RECEIPT_REFUSED'
+              }
+            }
+            $parent=Start-Process -FilePath $exe -WorkingDirectory $stage -PassThru
+            $window=$false
+            $deadline=(Get-Date).AddSeconds(45)
+            while((Get-Date) -lt $deadline){
+              Start-Sleep -Milliseconds 750
+              $parent.Refresh()
+              if($parent.HasExited){throw 'W01_WAILS_PROCESS_EXITED_BEFORE_WINDOW'}
+              if($parent.MainWindowHandle -ne [IntPtr]::Zero){$window=$true;break}
+            }
+            if(-not $window){throw 'W01_GENUINE_WEBVIEW2_WINDOW_NOT_VISIBLE'}
+            Write-Host 'W01_REAL_WINDOWS_DESKTOP_WINDOW=PASS'
+            # Read the actual native Wails window DPI without modifying host
+            # display settings. This does NOT qualify the 125/150/200% matrix.
+            Add-Type -TypeDefinition 'using System; using System.Runtime.InteropServices; public static class W01NativeDisplay { [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr hWnd); }'
+            $windowDpi=[W01NativeDisplay]::GetDpiForWindow($parent.MainWindowHandle)
+            if($windowDpi -lt 96 -or $windowDpi -gt 384){throw 'W01_NATIVE_WINDOW_DPI_INVALID'}
+            Write-Host ('W01_NATIVE_WINDOW_REPORTED_DPI='+$windowDpi)
+            Write-Host 'W01_INTERACTIVE_EDITOR_CHART_AND_DPI_MATRIX_NOT_YET_QUALIFIED'
+            $backendPath=(Join-Path $stage 'ktrade-engine.exe')
+            $deadline=(Get-Date).AddSeconds(12)
+            while((Get-Date) -lt $deadline){
+              $child=@(Get-CimInstance Win32_Process -Filter "name='ktrade-engine.exe'" | Where-Object {
+                $_.ExecutablePath -ieq $backendPath -and $_.ParentProcessId -eq $parent.Id
+              })
+              if($child.Count -eq 1){break}
+              Start-Sleep -Milliseconds 400
+            }
+            if($child.Count -ne 1){throw 'W01_ORIGINAL_GO_CHILD_MISSING'}
+            $listener=@(Get-NetTCPConnection -State Listen -OwningProcess $child[0].ProcessId -ErrorAction SilentlyContinue)
+            if($listener.Count -ne 1 -or $listener[0].LocalAddress -cne '127.0.0.1'){throw 'W01_EXACTLY_ONE_LOOPBACK_LISTENER_REQUIRED'}
+            $base='http://127.0.0.1:'+$listener[0].LocalPort
+            $http=[System.Net.Http.HttpClient]::new()
+            $http.Timeout=[TimeSpan]::FromSeconds(12)
+            $caps=$http.GetAsync($base+'/api/operator/capabilities').GetAwaiter().GetResult()
+            if([int]$caps.StatusCode -ne 200){throw 'W01_CAPABILITY_HTTP_NOT_OK'}
+            $c=($caps.Content.ReadAsStringAsync().GetAwaiter().GetResult() | ConvertFrom-Json)
+            if($c.schema -cne 'ktrade.operator.capabilities.v1' -or $c.mode -cne 'PAPER_STOPPED' -or
+              $c.paper_orders_enabled -ne $false -or $c.live_orders_enabled -ne $false -or
+              $c.strategy_execution_enabled -ne $false -or $c.paper_accounting_enabled -ne $false -or
+              $c.requires_review -ne $true){throw 'W01_APP_DID_NOT_PROVE_DISARMED'}
+            Write-Host 'W01_ORIGINAL_GO_CAPABILITIES_FAIL_CLOSED=PASS'
+            $chart=$http.GetAsync($base+'/chart').GetAwaiter().GetResult()
+            if([int]$chart.StatusCode -ne 200 -or
+               -not ($chart.Content.ReadAsStringAsync().GetAwaiter().GetResult()).Contains('pine-editor-main')){throw 'W01_ORIGINAL_CHART_HTTP_MISSING'}
+            foreach($asset in @('/static/vendor/monaco/vs/loader.js','/static/vendor/lightweight-charts/lightweight-charts.standalone.production.js')){
+              $result=$http.GetAsync($base+$asset).GetAwaiter().GetResult()
+              if([int]$result.StatusCode -ne 200){throw 'W01_ORIGINAL_OFFLINE_ASSET_HTTP_FAILED'}
+            }
+            Write-Host 'W01_ORIGINAL_CHART_AND_EDITOR_HTTP_ASSETS=PASS'
+            $body=[System.Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')
+            $locked=$http.PostAsync($base+'/api/paper/session/start',$body).GetAwaiter().GetResult()
+            if([int]$locked.StatusCode -ne 423){throw 'W01_PAPER_START_NOT_LOCKED'}
+            $lockedOrder=$http.PostAsync($base+'/api/orders/place',[System.Net.Http.StringContent]::new('{}',[Text.Encoding]::UTF8,'application/json')).GetAwaiter().GetResult()
+            if([int]$lockedOrder.StatusCode -ne 423){throw 'W01_LEGACY_ORDERS_NOT_LOCKED'}
+            Write-Host 'W01_PAPER_AND_LEGACY_LIVE_ORDER_ROUTES_LOCKED=PASS'
+            # W34 uses an independent disposable installed Chromium profile
+            # against the exact already-disarmed original Go /chart listener.
+            # It never reaches an owner profile, installs an app or starts trades.
+            if($env:GITHUB_EVENT_NAME -ceq 'pull_request' -and
+               $env:GITHUB_HEAD_REF -ceq 'feature/rb3-w34-real-browser-compile-20261106') {
+              $edgeCandidates=@(
+                (Join-Path ([Environment]::GetEnvironmentVariable('ProgramFiles(x86)')) 'Microsoft\Edge\Application\msedge.exe'),
+                (Join-Path $env:ProgramFiles 'Microsoft\Edge\Application\msedge.exe')
+              )
+              $edgeExe=@($edgeCandidates | Where-Object {Test-Path -LiteralPath $_ -PathType Leaf} | Select-Object -First 1)
+              if($edgeExe.Count -ne 1){throw 'W34_ISOLATED_INSTALLED_CHROMIUM_NOT_AVAILABLE'}
+              $browserProfile=Join-Path $env:RUNNER_TEMP ('ktrade-w34-compile-'+[Guid]::NewGuid().ToString('N'))
+              if(Test-Path -LiteralPath $browserProfile){throw 'W34_DISPOSABLE_CHROMIUM_PROFILE_NOT_FRESH'}
+              try {
+                & node --check tests/ktrade_real_browser_chart_cdp.cjs
+                if($LASTEXITCODE -ne 0){throw 'W34_ORIGINAL_BROWSER_TEST_SCRIPT_SYNTAX_FAILED'}
+                & node tests/ktrade_real_browser_chart_cdp.cjs $base 'pipe' $edgeExe[0] $browserProfile 'compile-only'
+                if($LASTEXITCODE -ne 0){throw 'W34_REAL_BROWSER_PINE_COMPILE_ACCEPTANCE_FAILED'}
+                Write-Host 'W34_REAL_BROWSER_ISOLATED_COMPILE_ACCEPTANCE=PASS'
+              } finally {
+                Remove-Item -LiteralPath $browserProfile -Recurse -Force -ErrorAction SilentlyContinue
+              }
+            }
+            $upgrade=[System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get,$base+'/ws/chart?product=BTC-USD')
+            try {
+              $upgrade.Headers.TryAddWithoutValidation('Connection','Upgrade') | Out-Null
+              $upgrade.Headers.TryAddWithoutValidation('Upgrade','websocket') | Out-Null
+              $upgrade.Headers.TryAddWithoutValidation('Sec-WebSocket-Version','13') | Out-Null
+              $upgrade.Headers.TryAddWithoutValidation('Sec-WebSocket-Key','dGhlIHNhbXBsZSBub25jZQ==') | Out-Null
+              $upgrade.Headers.TryAddWithoutValidation('Origin','http://hostile.example') | Out-Null
+              $denied=$http.SendAsync($upgrade).GetAwaiter().GetResult()
+              try {
+                if([int]$denied.StatusCode -ne 403){throw 'W01_CROSS_ORIGIN_WS_NOT_FORBIDDEN'}
+              } finally {$denied.Dispose()}
+            } finally {$upgrade.Dispose()}
+            $websocket=[System.Net.WebSockets.ClientWebSocket]::new()
+            $wsConnected=$false
+            $wsTimeout=[Threading.CancellationTokenSource]::new([TimeSpan]::FromSeconds(12))
+            try {
+              $websocket.Options.SetRequestHeader('Origin','http://hostile.example')
+              $websocket.ConnectAsync([Uri]('ws://127.0.0.1:'+$listener[0].LocalPort+'/ws/chart?product=BTC-USD'),$wsTimeout.Token).GetAwaiter().GetResult()
+              $wsConnected=$true
+            } catch {
+              $wsConnected=$websocket.State -eq [System.Net.WebSockets.WebSocketState]::Open
+            } finally {$websocket.Dispose();$wsTimeout.Dispose()}
+            if($wsConnected){throw 'W01_CROSS_ORIGIN_WS_CONNECTED'}
+            Write-Host 'W01_CROSS_ORIGIN_WEBSOCKET_DENIED=PASS'
+            if(Test-Path -LiteralPath (Join-Path $stage 'data')){throw 'W01_SOURCE_CREATED_UNEXPECTED_PAPER_DATA'}
+            Write-Host 'W01_NO_INSTALLED_PROFILE_OR_PAPER_DATA=PASS'
+            # This test-only OnDomReady hook invokes the REAL bundled Wails
+            # Diagnostics and Verify UI buttons through the active WebView2
+            # renderer. The original chart still supplies a strict nonce-
+            # bound cross-origin response; no mock iframe or debugger.
+            $w01Receipt=$env:KTRADE_W01_DOM_RECEIPT
+            $w01ReceiptDeadline=(Get-Date).AddSeconds(39)
+            while((Get-Date) -lt $w01ReceiptDeadline){
+              if(Test-Path -LiteralPath $w01Receipt -PathType Leaf){break}
+              $parent.Refresh()
+              if($parent.HasExited){throw 'W01_TEST_ONLY_WAILS_PROBE_PROCESS_EXITED'}
+              Start-Sleep -Milliseconds 300
+            }
+            if(-not (Test-Path -LiteralPath $w01Receipt -PathType Leaf)){throw 'W01_TEST_ONLY_WAILS_PROBE_NO_RECEIPT'}
+            $w01ReceiptValue=(Get-Content -LiteralPath $w01Receipt -Raw).Trim()
+            if($w01ReceiptValue -cne 'W01_TEST_ONLY_REAL_WAILS_CHART_DOM_HANDSHAKE=PASS'){
+              if($w01ReceiptValue -cmatch '^W01_TEST_ONLY_DOM_PROBE_FAIL_(MISSING|TOGGLE|VERIFY_UNAVAILABLE|CHART_NOT_READY_[01]{4}|HANDSHAKE_TIMEOUT|JS_ERROR|TIMEOUT|RANDOM)$'){
+                Write-Host $w01ReceiptValue
+              }
+              throw 'W01_TEST_ONLY_WAILS_REAL_DOM_PROBE_FAILED'
+            }
+            Write-Host 'W01_TEST_ONLY_REAL_WAILS_CHART_DOM_HANDSHAKE=PASS'
+            if($env:GITHUB_EVENT_NAME -ceq 'pull_request' -and
+               $env:GITHUB_HEAD_REF -ceq 'feature/rb3-w36-wails-candle-pine-render-20261106') {
+              $w36Receipt=$env:KTRADE_W36_RENDER_RECEIPT
+              $w36Deadline=(Get-Date).AddSeconds(79)
+              while((Get-Date) -lt $w36Deadline) {
+                if(Test-Path -LiteralPath $w36Receipt -PathType Leaf){break}
+                $parent.Refresh()
+                if($parent.HasExited){throw 'W36_WAILS_EXITED_BEFORE_RECEIPT'}
+                Start-Sleep -Milliseconds 250
+              }
+              if(-not (Test-Path -LiteralPath $w36Receipt -PathType Leaf)) {
+                throw 'W36_REAL_WAILS_RENDER_RECEIPT_MISSING'
+              }
+              $w36Value=(Get-Content -LiteralPath $w36Receipt -Raw).Trim()
+              if($w36Value -cne 'W36_REAL_WAILS_CANDLE_AND_PINE_RASTER_FRACTIONAL_VIEWPORT=PASS' -and
+                 $w36Value -cne 'W36_REAL_WAILS_CANDLE_AND_PINE_RASTER_INTEGER_VIEWPORT=PASS') {
+                if($w36Value -cmatch '^W36_TEST_ONLY_FAIL_(NONCE|RENDER|TIMEOUT|INIT|EMPTY|CANDLES|ZOOM|ZOOM_FITTED|ZOOM_SET|ZOOM_READ|ZOOM_UNCHANGED|ZOOM_WIDTH|ZOOM_INTEGER|APPLY|PANE|PLOT_PIXELS|VIEWPORT|VIEWPORT_APPLY_ZOOM|VIEWPORT_APPLY_PAN|VIEWPORT_SETTLE_ZOOM|VIEWPORT_SETTLE_PAN|REJECTION|PRESERVE)$') {
+                  Write-Host $w36Value
+                }
+                throw 'W36_ACTUAL_WAILS_RENDER_QUALIFICATION_FAILED'
+              }
+              Write-Host $w36Value
+              if($w36Value -ceq 'W36_REAL_WAILS_CANDLE_AND_PINE_RASTER_INTEGER_VIEWPORT=PASS'){
+                Write-Host 'W36_REAL_WAILS_FRACTIONAL_VIEWPORT_UNVERIFIED'
+              }
+              Write-Host 'W36_SYNTHETIC_RENDERER_ONLY_NO_BROKER=PASS'
+            }
+            if($env:KTRADE_QFORGE_W40_PINNED -ceq '1') {
+              $w37Receipt=$env:KTRADE_W36_RENDER_RECEIPT
+              $w37Deadline=(Get-Date).AddSeconds(79)
+              while((Get-Date) -lt $w37Deadline) {
+                if(Test-Path -LiteralPath $w37Receipt -PathType Leaf){break}
+                $parent.Refresh()
+                if($parent.HasExited){throw 'W37_WAILS_EXITED_BEFORE_RECEIPT'}
+                Start-Sleep -Milliseconds 250
+              }
+              if(-not (Test-Path -LiteralPath $w37Receipt -PathType Leaf)){throw 'W37_RECEIPT_MISSING'}
+              $w37Value=(Get-Content -LiteralPath $w37Receipt -Raw).Trim()
+              if($w37Value -cnotmatch '^W37_DIAGNOSTIC_(FOLLOWER_SIGNAL|ALL_OFF_SIGNAL|NO_CHANGE|BASELINE_FRACTIONAL)=PASS$'){
+                if($w37Value -cmatch '^W36_TEST_ONLY_FAIL_(W37_BASELINE|W37_FOLLOWER|W37_ALIGNMENT|W37_NEGATIVE|W37_REPEAT|ZOOM_FITTED|ZOOM_SET|ZOOM_READ|ZOOM_UNCHANGED|ZOOM_WIDTH|ZOOM_INTEGER|APPLY|PANE|PLOT_PIXELS|VIEWPORT|VIEWPORT_APPLY_ZOOM|VIEWPORT_APPLY_PAN|VIEWPORT_SETTLE_ZOOM|VIEWPORT_SETTLE_PAN|REJECTION|PRESERVE|INIT|EMPTY|CANDLES)$'){Write-Host $w37Value}
+                throw 'W37_DIAGNOSTIC_NEGATIVE_OR_RENDERING_GATE_FAILED'
+              }
+              if($w37Value -cne 'W37_DIAGNOSTIC_BASELINE_FRACTIONAL=PASS'){
+                Write-Host $w37Value
+                throw 'W38_REAL_WEBVIEW2_PRODUCTION_BIDIRECTIONAL_FRACTIONAL_UNVERIFIED'
+              }
+              Write-Host 'W38_REAL_WEBVIEW2_BIDIRECTIONAL_FRACTIONAL_VIEWPORT=PASS'
+              Write-Host $w37Value
+              Write-Host 'W37_DISARMED_REAL_WEBVIEW2_EXPERIMENT=PASS'
+              Write-Host 'W37_OPERATOR_FRACTIONAL_ZOOM_NOT_ACCEPTED_FROM_DIAGNOSTIC'
+            }
+            if($env:GITHUB_EVENT_NAME -ceq 'pull_request' -and
+               $env:GITHUB_HEAD_REF -ceq 'feature/rb3-w35-real-wails-iframe-compile-20261106') {
+              $w35Receipt=$env:KTRADE_W35_COMPILE_RECEIPT
+              $w35Deadline=(Get-Date).AddSeconds(70)
+              while((Get-Date) -lt $w35Deadline) {
+                if(Test-Path -LiteralPath $w35Receipt -PathType Leaf){break}
+                $parent.Refresh()
+                if($parent.HasExited){throw 'W35_WAILS_EXITED_BEFORE_COMPILE_RECEIPT'}
+                Start-Sleep -Milliseconds 250
+              }
+              if(-not (Test-Path -LiteralPath $w35Receipt -PathType Leaf)) {
+                throw 'W35_WAILS_COMPILE_RECEIPT_MISSING'
+              }
+              $w35Value=(Get-Content -LiteralPath $w35Receipt -Raw).Trim()
+              if($w35Value -cne 'W35_REAL_WAILS_IFRAME_GO_PINE_V5_V6_AND_INVALID=PASS') {
+                if($w35Value -cmatch '^W35_TEST_ONLY_FAIL_(TIMEOUT|COMPILE|RENDERER|NONCE)$') {
+                  Write-Host $w35Value
+                }
+                throw 'W35_REAL_WAILS_IFRAME_PINE_COMPILER_FAILED'
+              }
+              Write-Host 'W35_REAL_WAILS_IFRAME_GO_PINE_V5_V6_AND_INVALID=PASS'
+              Write-Host 'W35_DISPOSABLE_CHART_NO_PLOTS_NO_ORDER_SUBMISSION=PASS'
+            }
+            # W39: Real Win32 cursor/mouse input against the original Wails
+            # control. The test-only observer reads DOM geometry/state but
+            # NEVER dispatches input. No UIA provider dependency and no owner data.
+            if($env:KTRADE_QFORGE_W40_PINNED -ceq '1') {
+              if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $c.mode -cne 'PAPER_STOPPED' -or
+                 $c.paper_orders_enabled -ne $false -or $c.live_orders_enabled -ne $false -or
+                 $child.Count -ne 1){throw 'W39_DISARMED_HOST_CUSTODY_REQUIRED'}
+              Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          using System.Threading;
+          public static class W39NativeMouse {
+            [StructLayout(LayoutKind.Sequential)] public struct RECT { public int L,T,R,B; }
+            [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X,Y; }
+            [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+            [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+            [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd,int command);
+            [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+            [DllImport("user32.dll")] public static extern int GetSystemMetrics(int index);
+            [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr hWnd,out RECT r);
+            [DllImport("user32.dll")] public static extern bool ClientToScreen(IntPtr hWnd,ref POINT p);
+            [DllImport("user32.dll")] static extern void mouse_event(uint flags,uint x,uint y,uint data,UIntPtr extra);
+            public static bool Click(int x,int y){
+              if(!SetCursorPos(x,y))return false;
+              Thread.Sleep(75);
+              mouse_event(0x0002,0,0,0,UIntPtr.Zero);
+              Thread.Sleep(50);
+              mouse_event(0x0004,0,0,0,UIntPtr.Zero);
+              return true;
+            }
+          }
+          '@
+              $parent.Refresh()
+              if($parent.HasExited -or $parent.MainWindowHandle -eq [IntPtr]::Zero){throw 'W39_NATIVE_WINDOW_LOST'}
+              $handle=$parent.MainWindowHandle
+              [W39NativeMouse]::ShowWindow($handle,9) | Out-Null
+              [W39NativeMouse]::SetForegroundWindow($handle) | Out-Null
+              Start-Sleep -Milliseconds 450
+              if([W39NativeMouse]::GetForegroundWindow() -ne $handle){throw 'W39_WINDOW_NOT_FOREGROUND'}
+              $geometryReceipt=$env:KTRADE_W39_GEOMETRY_RECEIPT
+              $deadline=(Get-Date).AddSeconds(9)
+              while((Get-Date) -lt $deadline){
+                if(Test-Path -LiteralPath $geometryReceipt -PathType Leaf){break}
+                $parent.Refresh()
+                if($parent.HasExited){throw 'W39_WINDOW_EXITED_BEFORE_OBSERVER'}
+                Start-Sleep -Milliseconds 100
+              }
+              if(-not (Test-Path -LiteralPath $geometryReceipt -PathType Leaf)){throw 'W39_ORIGINAL_DOM_GEOMETRY_MISSING'}
+              $parts=@((Get-Content -LiteralPath $geometryReceipt -Raw).Trim().Split(','))
+              if($parts.Count -ne 4){throw 'W39_ORIGINAL_DOM_GEOMETRY_INVALID'}
+              $values=@()
+              foreach($part in $parts){
+                [int]$num=0
+                if(-not [int]::TryParse($part,[ref]$num)){throw 'W39_ORIGINAL_DOM_GEOMETRY_INVALID'}
+                $values+= $num
+              }
+              $cssX=$values[0];$cssY=$values[1];$cssW=$values[2];$cssH=$values[3]
+              if($cssW -lt 200 -or $cssH -lt 200 -or $cssX -lt 12 -or
+                 $cssX -ge $cssW-12 -or $cssY -lt 7 -or $cssY -gt $cssH/4){
+                throw 'W39_ORIGINAL_DOM_GEOMETRY_OUT_OF_BOUNDS'
+              }
+              $rect=New-Object W39NativeMouse+RECT
+              if(-not [W39NativeMouse]::GetClientRect($handle,[ref]$rect)){throw 'W39_NATIVE_CLIENT_RECT_MISSING'}
+              $clientW=$rect.R-$rect.L;$clientH=$rect.B-$rect.T
+              if($clientW -lt 200 -or $clientH -lt 200){throw 'W39_NATIVE_CLIENT_RECT_INVALID'}
+              $point=New-Object W39NativeMouse+POINT
+              $point.X=[int][Math]::Round($cssX*$clientW/$cssW)
+              $point.Y=[int][Math]::Round($cssY*$clientH/$cssH)
+              if(-not [W39NativeMouse]::ClientToScreen($handle,[ref]$point)){throw 'W39_NATIVE_SCREEN_MAPPING_FAILED'}
+              if($point.X -lt 0 -or $point.Y -lt 0 -or
+                 $point.X -ge [W39NativeMouse]::GetSystemMetrics(0) -or
+                 $point.Y -ge [W39NativeMouse]::GetSystemMetrics(1)){
+                throw 'W39_NATIVE_INPUT_COORDINATES_OFFSCREEN'
+              }
+              if(-not [W39NativeMouse]::Click($point.X,$point.Y)){throw 'W39_NATIVE_MOUSE_INJECTION_FAILED'}
+              $deadline=(Get-Date).AddSeconds(6)
+              while((Get-Date) -lt $deadline){
+                if(Test-Path -LiteralPath $env:KTRADE_W39_CLOSED_RECEIPT -PathType Leaf){break}
+                Start-Sleep -Milliseconds 100
+              }
+              if(-not (Test-Path -LiteralPath $env:KTRADE_W39_CLOSED_RECEIPT -PathType Leaf) -or
+                 (Get-Content -LiteralPath $env:KTRADE_W39_CLOSED_RECEIPT -Raw).Trim() -cne 'W39_NATIVE_DIAGNOSTICS_CLOSED=PASS'){
+                throw 'W39_NATIVE_CLOSE_NOT_OBSERVED'
+              }
+              if(-not [W39NativeMouse]::Click($point.X,$point.Y)){throw 'W39_NATIVE_REOPEN_INJECTION_FAILED'}
+              $deadline=(Get-Date).AddSeconds(6)
+              while((Get-Date) -lt $deadline){
+                if(Test-Path -LiteralPath $env:KTRADE_W39_REOPENED_RECEIPT -PathType Leaf){break}
+                Start-Sleep -Milliseconds 100
+              }
+              if(-not (Test-Path -LiteralPath $env:KTRADE_W39_REOPENED_RECEIPT -PathType Leaf) -or
+                 (Get-Content -LiteralPath $env:KTRADE_W39_REOPENED_RECEIPT -Raw).Trim() -cne 'W39_NATIVE_DIAGNOSTICS_REOPENED=PASS'){
+                throw 'W39_NATIVE_REOPEN_NOT_OBSERVED'
+              }
+              Write-Host 'W39_NATIVE_WIN32_MOUSE_DIAGNOSTICS_TOGGLE=PASS'
+              Write-Host 'W39_DISARMED_NATIVE_INPUT_NO_BROKER=PASS'
+              # W40 original chart native wheel, drag, and Monaco focus.
+              # Only native user32 mouse events can cause the required changes;
+              # test-only JS is read-only and cannot invoke chart/editor setters.
+              Add-Type -TypeDefinition @'
+          public static class W40NativeMouse {
+            [System.Runtime.InteropServices.DllImport("user32.dll")]
+            static extern void mouse_event(uint flags,uint x,uint y,uint data,System.UIntPtr extra);
+            [System.Runtime.InteropServices.DllImport("user32.dll")]
+            public static extern bool SetCursorPos(int x,int y);
+            public static bool Wheel(int x,int y){
+              if(!SetCursorPos(x,y))return false;
+              System.Threading.Thread.Sleep(120);
+              // Multiple genuine Windows wheel detents after cursor settles.
+              for(int i=0;i<3;i++){
+                mouse_event(0x0800,0,0,120,System.UIntPtr.Zero);
+                System.Threading.Thread.Sleep(85);
+              }
+              return true;
+            }
+            public static bool Drag(int x,int y,int toX){
+              if(!SetCursorPos(x,y))return false;
+              System.Threading.Thread.Sleep(100);
+              mouse_event(0x0002,0,0,0,System.UIntPtr.Zero);
+              for(int i=1;i<=14;i++){
+                SetCursorPos(x+(toX-x)*i/14,y);
+                System.Threading.Thread.Sleep(25);
+              }
+              mouse_event(0x0004,0,0,0,System.UIntPtr.Zero);
+              return true;
+            }
+          }
+          '@
+              function Wait-W40([string]$path,[string]$expected,[int]$seconds=10){
+                $deadline=(Get-Date).AddSeconds($seconds)
+                while((Get-Date) -lt $deadline){
+                  if(Test-Path -LiteralPath $path -PathType Leaf){
+                    $value=(Get-Content -LiteralPath $path -Raw).Trim()
+                    if(-not $expected -or $value -ceq $expected){return $value}
+                    throw 'W40_UNEXPECTED_RECEIPT'
+                  }
+                  $parent.Refresh()
+                  if($parent.HasExited){throw 'W40_WAILS_EXITED'}
+                  Start-Sleep -Milliseconds 100
+                }
+                if(Test-Path -LiteralPath $env:KTRADE_W40_DIAG_RECEIPT -PathType Leaf){
+                  $safe=@(Get-Content -LiteralPath $env:KTRADE_W40_DIAG_RECEIPT |
+                    Where-Object {$_ -cmatch '^W40_DIAG_[A-Z_]{3,48}$'} | Select-Object -Unique -Last 16)
+                  if($safe.Count){Write-Host ('W40_DIAGNOSTIC_STAGES='+($safe -join ','))}
+                }
+                $receiptName=[IO.Path]::GetFileName($path)
+                if($receiptName -cnotmatch '^w40-(?:chart-(?:geometry|zoomed|panned)|editor-(?:geometry|focused))\.txt$'){
+                  throw 'W40_UNEXPECTED_RECEIPT_PATH'
+                }
+                throw ('W40_EXPECTED_OBSERVER_RECEIPT_MISSING_'+$receiptName)
+              }
+              function Read-W40Point([string]$path){
+                $raw=Wait-W40 $path '' 14
+                $fields=@($raw.Split(','))
+                if($fields.Count -ne 4){throw 'W40_BAD_GEOMETRY_RECEIPT'}
+                $nums=@()
+                foreach($field in $fields){
+                  [int]$v=0
+                  if(-not [int]::TryParse($field,[ref]$v)){throw 'W40_BAD_GEOMETRY_RECEIPT'}
+                  $nums+=$v
+                }
+                $cssX=$nums[0];$cssY=$nums[1];$cssW=$nums[2];$cssH=$nums[3]
+                if($cssW -lt 200 -or $cssH -lt 200 -or $cssX -lt 18 -or $cssX -ge $cssW-18 -or
+                   $cssY -lt 18 -or $cssY -ge $cssH-18){throw 'W40_GEOMETRY_OFFSCREEN'}
+                $pt=New-Object W39NativeMouse+POINT
+                $pt.X=[int][Math]::Round($cssX*$clientW/$cssW)
+                $pt.Y=[int][Math]::Round($cssY*$clientH/$cssH)
+                if(-not [W39NativeMouse]::ClientToScreen($handle,[ref]$pt)){
+                  throw 'W40_NATIVE_CLIENT_SCREEN_MAPPING_FAILED'
+                }
+                if($pt.X -lt 18 -or $pt.Y -lt 18 -or
+                   $pt.X -ge [W39NativeMouse]::GetSystemMetrics(0)-18 -or
+                   $pt.Y -ge [W39NativeMouse]::GetSystemMetrics(1)-18){
+                  throw 'W40_NATIVE_INPUT_OFFSCREEN'
+                }
+                return $pt
+              }
+              $chartTarget=Read-W40Point $env:KTRADE_W40_CHART_GEOMETRY_RECEIPT
+              # Focus the real chart with an OS click; never use script-click.
+              if(-not [W39NativeMouse]::Click($chartTarget.X,$chartTarget.Y)){
+                throw 'W40_NATIVE_CHART_FOCUS_CLICK_FAILED'
+              }
+              Start-Sleep -Milliseconds 200
+              if(-not [W40NativeMouse]::Wheel($chartTarget.X,$chartTarget.Y)){
+                throw 'W40_NATIVE_CHART_WHEEL_INJECTION_FAILED'
+              }
+              Wait-W40 $env:KTRADE_W40_CHART_ZOOMED_RECEIPT 'W40_NATIVE_CHART_WHEEL_ZOOM=PASS' 10 | Out-Null
+              Start-Sleep -Milliseconds 950
+              $dragTo=$chartTarget.X+85
+              if($dragTo -ge [W39NativeMouse]::GetSystemMetrics(0)-18){$dragTo=$chartTarget.X-85}
+              if($dragTo -lt 18 -or -not [W40NativeMouse]::Drag($chartTarget.X,$chartTarget.Y,$dragTo)){
+                throw 'W40_NATIVE_CHART_DRAG_INJECTION_FAILED'
+              }
+              Wait-W40 $env:KTRADE_W40_CHART_PANNED_RECEIPT 'W40_NATIVE_CHART_DRAG_PAN=PASS' 10 | Out-Null
+              $editorTarget=Read-W40Point $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT
+              if(-not [W39NativeMouse]::Click($editorTarget.X,$editorTarget.Y)){
+                throw 'W40_NATIVE_EDITOR_CLICK_FAILED'
+              }
+              Wait-W40 $env:KTRADE_W40_EDITOR_FOCUSED_RECEIPT 'W40_NATIVE_MONACO_EDITOR_FOCUS=PASS' 10 | Out-Null
+              Write-Host 'W40_NATIVE_CHART_WHEEL_ZOOM=PASS'
+              Write-Host 'W40_NATIVE_CHART_DRAG_PAN=PASS'
+              Write-Host 'W40_NATIVE_MONACO_EDITOR_FOCUS=PASS'
+              Write-Host 'W40_DISARMED_REAL_WEBVIEW2_INPUT=PASS'
+            }
+            Write-Host 'W01_PHYSICAL_MOUSE_PINE_COMPILE_CANDLE_PIXELS_AND_DPI_MATRIX_UNVERIFIED'
+            if(Test-Path -LiteralPath (Join-Path $stage 'data')){throw 'W01_REAL_DOM_PROBE_CREATED_PAPER_DATA'}
+            if(-not $parent.CloseMainWindow()){throw 'W01_WINDOW_CLOSE_REQUEST_FAILED'}
+            if(-not $parent.WaitForExit(15000)){throw 'W01_WAILS_GRACEFUL_SHUTDOWN_TIMEOUT'}
+            if($parent.ExitCode -ne 0){throw 'W01_WAILS_SHUTDOWN_FAILED'}
+            $ownedChild=Get-Process -Id $child[0].ProcessId -ErrorAction SilentlyContinue
+            if($ownedChild -and -not $ownedChild.WaitForExit(5000)){throw 'W01_BACKEND_SURVIVED_WINDOW_CLOSE'}
+            Write-Host 'W01_WINDOW_CLOSE_AND_OWNED_BACKEND_SHUTDOWN=PASS'
+            Push-Location $root
+            try {
+              & node scripts/wails_w01_source_provenance.cjs
+              if($LASTEXITCODE -ne 0){throw 'W01_POST_BUILD_SOURCE_DRIFT'}
+            } finally {Pop-Location}
+          } finally {
+            if($http){$http.Dispose()}
+            if($parent){
+              try {if(-not $parent.HasExited){Stop-Process -Id $parent.Id -Force -ErrorAction SilentlyContinue}} catch {}
+            }
+            if($child -and $child.Count -gt 0){
+              try {Stop-Process -Id $child[0].ProcessId -Force -ErrorAction SilentlyContinue} catch {}
+            }
+            Remove-Item Env:\KTRADE_W35_COMPILE_PROBE -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W35_COMPILE_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W36_RENDER_PROBE -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W36_RENDER_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W40_DIAG_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W40_NATIVE_CHART_PROBE -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W40_CHART_GEOMETRY_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W40_CHART_ZOOMED_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W40_CHART_PANNED_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W40_EDITOR_GEOMETRY_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W40_EDITOR_FOCUSED_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W39_NATIVE_INPUT_PROBE -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W39_GEOMETRY_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W39_CLOSED_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W39_REOPENED_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W01_DOM_PROBE -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W01_DOM_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $sandboxRoot -Force -Recurse -ErrorAction SilentlyContinue
+          }
+          Write-Host 'W01_TEST_ONLY_NO_RELEASE_NO_LIVE=PASS'
+
+      - name: Retain source provenance independently of runtime outcome
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: w01-source-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/w01-source.json
+          if-no-files-found: warn
+          retention-days: 14
+  native-windows:
+    name: native-windows
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      KTRADE_EXPECTED_SOURCE: '9f3b809c86603af9ca432db85c7c19c8cacdd0dd'
+      KTRADE_HEAD_REPOSITORY: 'spoonman136668-ai/ktrade'
+      KTRADE_REPOSITORY_PRIVATE: 'true'
+    steps:
+      - name: Exact PR source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 9f3b809c86603af9ca432db85c7c19c8cacdd0dd
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Only four original browser readers from the PR baseline
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 7ded42d92ff0d0808ada5202b5a3282d0d9ddd53
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+          path: browser-baseline
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /static/watchlist_manager.js
+            /static/layout_manager.js
+            /static/indicator_library.js
+            /static/indicator_browser.js
+      - name: Source identity private repository and disarmed authority
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:KTRADE_HEAD_REPOSITORY -cne 'spoonman136668-ai/ktrade' -or $env:KTRADE_REPOSITORY_PRIVATE -cne 'true'){throw 'NATIVE_CI_REPOSITORY_OR_RUNNER_REFUSED'}
+          if($env:KTRADE_EXPECTED_SOURCE -cnotmatch '^[0-9a-f]{40}$' -or (& git rev-parse HEAD).Trim() -cne $env:KTRADE_EXPECTED_SOURCE -or @(& git status --porcelain).Count -ne 0){throw 'NATIVE_CI_EXACT_CLEAN_HEAD_REQUIRED'}
+          if(Test-Path '.env'){throw 'NATIVE_CI_DOTENV_REFUSED'}
+          $cfg=Get-Content config.json -Raw|ConvertFrom-Json
+          if($cfg.api_key.key_name -or $cfg.api_key.key_secret -or $cfg.account_id -or $cfg.ngrok_authtoken){throw 'NATIVE_CI_TRACKED_CREDENTIALS_REFUSED'}
+          if((Get-Content pkg/advanced_orders.go -Raw) -notmatch 'func liveBrokerageAuthorized\(\) bool \{ return false \}'){throw 'NATIVE_CI_LIVE_AUTHORITY_DRIFT'}
+          if((Get-Content windows/Go-Toolchain.version -Raw).Trim() -cne 'go1.26.10'){throw 'NATIVE_CI_REVIEWED_TOOLCHAIN_PIN_CHANGED'}
+          $baseline=Join-Path $env:GITHUB_WORKSPACE 'browser-baseline'
+          $files=@(Get-ChildItem (Join-Path $baseline 'static') -File)
+          if($files.Count -ne 4 -or (Test-Path (Join-Path $baseline 'config.json')) -or (Test-Path (Join-Path $baseline '.env'))){throw 'NATIVE_CI_BROWSER_BASELINE_SCOPE_DRIFT'}
+          Write-Host ('NATIVE_CI_SOURCE_SHA='+$env:KTRADE_EXPECTED_SOURCE)
+          Write-Host ('NATIVE_CI_SOURCE_TREE='+(& git rev-parse 'HEAD^{tree}').Trim())
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Full original Go engine app and Wails tests and vet
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          if((& go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'NATIVE_CI_COMPILER_DRIFT'}
+          & go test -mod=readonly -count=1 ./...
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_ROOT_TESTS_FAILED'}
+          & go vet -mod=readonly ./...
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_ROOT_VET_FAILED'}
+          & go test -mod=readonly -count=1 -tags ktrade_full ./cmd/ktrade
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_FULL_APP_TESTS_FAILED'}
+          & go vet -mod=readonly -tags ktrade_full ./cmd/ktrade
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_FULL_APP_VET_FAILED'}
+          Push-Location tools/wails-pilot
+          try{
+            & go test -mod=readonly -count=1 ./...
+            if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_WAILS_TESTS_FAILED'}
+            & go vet -mod=readonly ./...
+            if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_WAILS_VET_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::NATIVE_CI_FULL_ROOT_TAGGED_WAILS_TEST_VET=PASS'
+      - name: All current Node cases and original two-root browser compatibility
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          $files=@(Get-ChildItem tests -Filter '*.test.cjs' -File|Sort-Object Name|ForEach-Object{$_.FullName})
+          if($files.Count -lt 35){throw 'NATIVE_CI_CURRENT_NODE_FILE_COVERAGE_MISSING'}
+          $special=Join-Path (Get-Location) 'tests/rb3_w28f_original_browser_state.test.cjs'
+          if($files -cnotcontains $special){throw 'NATIVE_CI_ORIGINAL_BROWSER_TEST_MISSING'}
+          & node $special (Join-Path $env:GITHUB_WORKSPACE 'browser-baseline') (Get-Location).Path
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_ORIGINAL_TWO_ROOT_BROWSER_COMPAT_FAILED'}
+          $batch=@($files|Where-Object{$_ -cne $special})
+          $tap=@(& node --test --test-reporter=tap @batch)
+          $exit=$LASTEXITCODE;$tap|ForEach-Object{Write-Host $_}
+          $counts=@($tap|Where-Object{$_ -match '^# tests (\d+)$'})
+          $passed=@($tap|Where-Object{$_ -match '^# pass (\d+)$'})
+          if($exit -ne 0 -or $counts.Count -ne 1 -or $passed.Count -ne 1){throw 'NATIVE_CI_NODE_SUITE_FAILED'}
+          $n=[int]([regex]::Match($counts[0],'\d+$').Value);$ok=[int]([regex]::Match($passed[0],'\d+$').Value)
+          if($n -lt 158 -or $ok -ne $n){throw 'NATIVE_CI_NODE_CASE_COVERAGE_MISSING'}
+          foreach($line in @('# fail 0','# skipped 0','# cancelled 0')){if($tap -cnotcontains $line){throw 'NATIVE_CI_NODE_FAILURE_SKIP_OR_CANCEL'}}
+          Write-Host ('::notice::NATIVE_CI_ALL_NODE=PASS files='+$files.Count+' cases='+$n)
+      - name: Locked assets repeatability shipping advisories and exact notices
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          & npm.cmd ci --ignore-scripts --no-audit --no-fund
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_LOCKED_ASSET_INSTALL_FAILED'}
+          & node scripts/stage_offline_vendor.cjs
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_FIRST_ASSET_STAGE_FAILED'}
+          $first=(Get-FileHash static/vendor/assets-manifest.json -Algorithm SHA256).Hash
+          & node scripts/stage_offline_vendor.cjs
+          if($LASTEXITCODE -ne 0 -or (Get-FileHash static/vendor/assets-manifest.json -Algorithm SHA256).Hash -cne $first){throw 'NATIVE_CI_ASSET_RESTAGE_CHANGED'}
+          & node -e "const fs=require('node:fs'),c=require('node:crypto');const m=JSON.parse(fs.readFileSync('static/vendor/assets-manifest.json'));if(m.files.some(f=>f.path==='assets-manifest.json'))throw Error('self inclusion');for(const f of m.files)if(c.createHash('sha256').update(fs.readFileSync('static/vendor/'+f.path)).digest('hex')!==f.sha256)throw Error('asset hash');console.log('NATIVE_CI_VENDOR_PAYLOAD_HASHES=PASS files='+m.files.length);"
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_VENDOR_PAYLOAD_HASH_INVALID'}
+          & node scripts/audit_shipped_dependencies.cjs .
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_SHIPPED_ADVISORY_OR_NOTICE_AUDIT_FAILED'}
+          Write-Host '::notice::NATIVE_CI_REPEATABLE_LICENSED_SHIPPING_ASSETS=PASS'
+      - name: Fresh original unsigned Windows installer and actual shipping binary scans
+        shell: powershell
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:PSModulePath=Join-Path $PSHOME 'Modules'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
+          & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $root -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_ORIGINAL_UNSIGNED_SETUP_BUILD_FAILED'}
+          $manifest=Get-Content (Join-Path $root 'KTRADE-SetupBundle/installer-manifest.json') -Raw|ConvertFrom-Json
+          if($manifest.source_sha -cne $env:KTRADE_EXPECTED_SOURCE -or $manifest.signature_status -cne 'unsigned' -or $manifest.live_armed -or $manifest.release_authority -cne 'none'){throw 'NATIVE_CI_PACKAGE_AUTHORITY_DRIFT'}
+          $exes=@(Get-ChildItem $root -Filter '*.exe' -Recurse -File)
+          if($exes.Count -ne 6){throw 'NATIVE_CI_SIX_ORIGINAL_BINARIES_REQUIRED'}
+          foreach($exe in $exes){
+            $version=(& go version $exe.FullName)-join ''
+            if($LASTEXITCODE -ne 0 -or !$version.Trim().EndsWith(': go1.26.10',[StringComparison]::Ordinal) -or (Get-AuthenticodeSignature $exe.FullName).Status -cne 'NotSigned'){throw 'NATIVE_CI_BINARY_COMPILER_OR_SIGNATURE_DRIFT'}
+          }
+          & go install golang.org/x/vuln/cmd/govulncheck@v1.9.0
+          if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_PINNED_SCANNER_UNAVAILABLE'}
+          $scanner=Join-Path ((& go env GOPATH).Trim()) 'bin/govulncheck.exe'
+          $payload=@(Get-ChildItem $root -Filter 'KTRADE-WailsPortable' -Directory -Recurse)
+          if($payload.Count -ne 1){throw 'NATIVE_CI_PAYLOAD_AMBIGUOUS'}
+          foreach($name in @('ktrade.exe','ktrade-engine.exe')){
+            & $scanner -mode=binary (Join-Path $payload[0].FullName $name)
+            if($LASTEXITCODE -ne 0){throw 'NATIVE_CI_SHIPPING_BINARY_VULNERABILITY_FOUND'}
+          }
+          $changes=@(& git status --porcelain)
+          if(@($changes|Where-Object{$_ -cnotin @('?? node_modules/','?? static/vendor/')}).Count -ne 0){throw 'NATIVE_CI_UNEXPECTED_SOURCE_OR_OUTPUT_CHANGE'}
+          Write-Host ('NATIVE_CI_UNSIGNED_INSTALLER_SHA256='+((Get-FileHash (Join-Path $root 'KTRADE-SetupBundle.zip') -Algorithm SHA256).Hash.ToLowerInvariant()))
+          Write-Host '::notice::NATIVE_CI_ORIGINAL_UNSIGNED_PACKAGE_ACTUAL_BINARY_SCANS_NO_APP_NO_INSTALL_NO_RELEASE=PASS'
