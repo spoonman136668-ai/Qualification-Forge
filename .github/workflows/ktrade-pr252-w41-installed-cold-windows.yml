@@ -1,0 +1,114 @@
+name: KTRADE W41 exact-source installed WebView2 cold-reopen acceptance
+
+on:
+  push:
+    branches:
+      - qualification/ktrade-pr252-w41-cold-viewport-20261107
+    paths:
+      - qualification-harness/ktrade-w41/Installed-Cold-Viewport.ps1
+      - .github/workflows/ktrade-pr252-w41-installed-cold-windows.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ktrade-pr252-w41-installed-cold-acceptance-20261107
+  cancel-in-progress: false
+
+jobs:
+  installed-cold:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
+    runs-on: windows-2022
+    timeout-minutes: 40
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_EXPECTED_SOURCE: '832539050671739bb07fa8c41a4815f31ea638f3'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - name: Checkout exact qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout private exact KTRADE product
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 832539050671739bb07fa8c41a4815f31ea638f3
+          fetch-depth: 0
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Pin exact clean product and qualified installed harness
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted' -or $env:RUNNER_OS -cne 'Windows' -or
+             $env:GITHUB_REPOSITORY -cne 'spoonman136668-ai/Qualification-Forge' -or $env:KTRADE_LIVE_TRADING -cne 'false'){
+            throw 'W41_DISARMED_EPHEMERAL_WINDOWS_ONLY'
+          }
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          $source=(& git -C $p rev-parse HEAD).Trim()
+          $tree=(& git -C $p rev-parse 'HEAD^{tree}').Trim()
+          if($source -cne '832539050671739bb07fa8c41a4815f31ea638f3' -or $tree -cne '90c2d412cdaf5a47773c0b7055dfc330a1298cda' -or
+             @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){
+            throw 'W41_INSTALLED_EXACT_CLEAN_SOURCE_REQUIRED'
+          }
+          $delta=@(& git -C $p diff --name-only '5a35dea7822c34ee18cafa5486671a8d72eef87e' HEAD|Sort-Object)
+          if(($delta -join '|') -cne 'static/chart_viewport_state.js|templates/chart.tmpl|tests/rb3_w38_chart_logical_sync.test.cjs|tests/rb3_w41_chart_viewport_persistence.test.cjs'){
+            throw 'W41_INSTALLED_FOUR_SOURCE_PATHS_REQUIRED'
+          }
+          $h=(& git -C $w rev-parse HEAD).Trim()
+          if($h -cne $env:GITHUB_SHA -or
+             (& git -C $w rev-parse 'HEAD:qualification-harness/ktrade-pine-viewport/Installed-Viewport-Lifecycle.ps1').Trim() -cne '36bb0a7dac5cca866a2fe0bd018faa365fdeeb7c'){
+            throw 'W41_QUALIFIED_ORIGINAL_W83_HELPER_IDENTITY_DRIFT'
+          }
+          $tokens=$null;$errors=$null
+          $script=Join-Path $w 'qualification-harness\ktrade-w41\Installed-Cold-Viewport.ps1'
+          [void][Management.Automation.Language.Parser]::ParseFile($script,[ref]$tokens,[ref]$errors)
+          if($errors.Count -ne 0){throw ('W41_TEST_WITNESS_POWERSHELL_SYNTAX_INVALID '+($errors -join '; '))}
+          Write-Host '::notice::W41_INSTALLED_EXACT_SOURCE_W83_NATIVE_WITNESS=PASS'
+      - name: Setup pinned Go and build-time-only Node
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: Setup Node for original bundled assets
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: false
+      - name: Build unsigned original Wails installer from exact qualified candidate
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $product=Join-Path $env:GITHUB_WORKSPACE 'product'
+          Push-Location $product
+          try{
+            & npm ci --ignore-scripts --no-audit --no-fund --silent
+            if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_NPM_REFUSED'}
+            & node scripts/stage_offline_vendor.cjs
+            if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_VENDOR_REFUSED'}
+            $dest=Join-Path $env:RUNNER_TEMP 'w41-native-installed-package'
+            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '832539050671739bb07fa8c41a4815f31ea638f3'
+            if($LASTEXITCODE -ne 0){throw 'W41_REAL_NATIVE_INSTALLER_BUILD_FAILED'}
+            $zip=Join-Path $dest 'KTRADE-SetupBundle.zip'
+            if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W41_REAL_NATIVE_INSTALLER_MISSING'}
+            Write-Host ('W41_EXACT_UNSIGNED_NATIVE_BUNDLE_SHA256='+(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant())
+            "W41_PACKAGE_PATH=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          }finally{Pop-Location}
+      - name: Real installed Wails cold-reopen physical chart acceptance
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          if([string]::IsNullOrEmpty($env:W41_PACKAGE_PATH)){throw 'W41_PACKAGE_CUSTODY_LOST'}
+          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w41/Installed-Cold-Viewport.ps1') -PackageZip $env:W41_PACKAGE_PATH
+          if(!$?){throw 'W41_REAL_INSTALLED_COLD_ACCEPTANCE_FAILED'}

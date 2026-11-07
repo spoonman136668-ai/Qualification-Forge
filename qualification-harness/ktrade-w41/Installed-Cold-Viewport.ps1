@@ -1,0 +1,506 @@
+# KTRADE W41 installed cold-reopen proof. Derived verbatim native UI/pixel
+# helpers from the W83 qualified witness blob 36bb0a7dac5cca866a2fe0bd018faa365fdeeb7c.
+# Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
+# No owner data, no broker interaction, no live authority, no UI JS injection.
+[CmdletBinding()]
+param([Parameter(Mandatory=$true)][string]$PackageZip)
+$ErrorActionPreference='Stop'
+Set-StrictMode -Version Latest
+$NewSHA='832539050671739bb07fa8c41a4815f31ea638f3'
+function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
+Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
+ $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
+ $env:KTRADE_LIVE_TRADING -ceq 'false') 'W41_INSTALLED_HOSTED_DISARMED_ONLY'
+Require (![string]::IsNullOrEmpty($env:RUNNER_TEMP) -and (Test-Path -LiteralPath $env:RUNNER_TEMP -PathType Container)) 'W41_RUNNER_TEMP_REQUIRED'
+$temp=[IO.Path]::GetFullPath($env:RUNNER_TEMP).TrimEnd('\')
+$zip=[IO.Path]::GetFullPath($PackageZip)
+Require ($zip.StartsWith(($temp+'\'),[StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $zip -PathType Leaf)) 'W41_UNTRUSTED_INSTALLER_PATH'
+$QualificationRoot=Join-Path $temp ('W41-installed-'+[guid]::NewGuid().ToString('N'))
+$null=New-Item -ItemType Directory -Path $QualificationRoot
+$script:installedRoot=Join-Path $QualificationRoot 'KTRADE-W41 installed with spaces'
+$script:shortcuts=Join-Path $QualificationRoot 'Shortcuts'
+$null=New-Item -ItemType Directory -Path $script:shortcuts
+$script:ps51=Join-Path $env:WINDIR 'System32/WindowsPowerShell/v1.0/powershell.exe'
+Require (Test-Path -LiteralPath $script:ps51) 'W41_WINDOWS_POWERSHELL_REQUIRED'
+
+function Hash([string]$f){return (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant()}
+function Ordinary([string]$f,[bool]$dir){
+ $obj=Get-Item -LiteralPath $f -Force -ErrorAction Stop
+ Require ($obj.PSIsContainer -eq $dir -and !$obj.Attributes.HasFlag([IO.FileAttributes]::ReparsePoint)) 'W83_NONORDINARY_ASSET'
+}
+function Bundle([string]$root,[string]$sha){
+ Ordinary $root $true
+ $path=Join-Path $root 'installer-manifest.json'
+ Ordinary $path $false
+ Require ((Get-Item -LiteralPath $path).Length -le 16384) 'W83_MANIFEST_SIZE_INVALID'
+ $m=Get-Content -LiteralPath $path -Raw|ConvertFrom-Json
+ Require ($m.schema -ceq 'ktrade.setup-bundle.v2' -and $m.source_sha -ceq $sha -and
+  $m.live_armed -eq $false -and $m.release_authority -ceq 'none' -and
+  $m.signature_status -ceq 'unsigned') 'W83_BUNDLE_AUTHORITY_MISMATCH'
+ $wanted=@('KTRADE-Setup.ps1','Manage-KTRADE-FreshInstall.ps1','release-setup.exe',
+  'release-launch.exe','release-maintain.exe','KTRADE-Setup.exe','KTRADE-Payload.zip')
+ Require (@($m.files).Count -eq $wanted.Count) 'W83_BUNDLE_FILE_COUNT_CHANGED'
+ $seen=@{}
+ foreach($row in @($m.files)){
+  Require ($wanted -ccontains $row.name -and !$seen.ContainsKey($row.name) -and
+   $row.sha256 -cmatch '^[a-f0-9]{64}$' -and $row.size -gt 0) 'W83_BUNDLE_ITEM_INVALID'
+  $seen[$row.name]=$true
+  $p=Join-Path $root $row.name
+  Ordinary $p $false
+  Require ((Get-Item -LiteralPath $p).Length -eq $row.size -and (Hash $p) -ceq $row.sha256) 'W83_BUNDLE_BYTES_CHANGED'
+ }
+ return $m
+}
+
+function Setup([string]$scriptPath,[string]$action,[bool]$shouldPass=$true){
+ $log=Join-Path $QualificationRoot ([guid]::NewGuid().ToString('N')+'.out')
+ $errors=Join-Path $QualificationRoot ([guid]::NewGuid().ToString('N')+'.err')
+ $arguments=@('-NoProfile','-ExecutionPolicy','Bypass','-File',('"'+$scriptPath+'"'),'-Action',$action,
+  '-InstallRoot',('"'+$script:installedRoot+'"'),'-ShortcutParent',('"'+$script:shortcuts+'"'))
+ # PS7's inherited module paths cannot supply PS5.1 core cmdlets.
+ # Bridge only this original installer child, then restore the PS7 host.
+ $modulePathBefore=$env:PSModulePath
+ try{
+  $env:PSModulePath=Join-Path (Split-Path -Parent $script:ps51) 'Modules'
+  Require (Test-Path -LiteralPath $env:PSModulePath -PathType Container) 'W83_WINDOWS_POWERSHELL_CORE_MODULES_REQUIRED'
+  $proc=Start-Process -FilePath $script:ps51 -ArgumentList $arguments -Wait -PassThru -RedirectStandardOutput $log -RedirectStandardError $errors
+ }finally{$env:PSModulePath=$modulePathBefore}
+ $output=Get-Content -LiteralPath $log -Raw -ErrorAction SilentlyContinue
+ $errorText=Get-Content -LiteralPath $errors -Raw -ErrorAction SilentlyContinue
+ Remove-Item -LiteralPath $log,$errors -Force -ErrorAction SilentlyContinue
+ if(!$shouldPass){Require ($proc.ExitCode -ne 0) ('W83_EXPECTED_'+$action+'_REFUSAL_MISSING');return $null}
+ Require ($proc.ExitCode -eq 0) ('W83_'+$action+'_FAILED_'+$errorText)
+ try{return ($output|ConvertFrom-Json)}catch{throw ('W83_'+$action+'_INVALID_RECEIPT')}
+}
+
+Add-Type -AssemblyName UIAutomationClient
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class W83Native {
+ [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+ [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+ [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
+ [DllImport("user32.dll")] public static extern void mouse_event(uint f,uint x,uint y,uint z,UIntPtr u);
+ [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h,uint m,IntPtr w,IntPtr l);
+ [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr h,System.Text.StringBuilder s,int n);
+ [DllImport("user32.dll")] public static extern bool IsChild(IntPtr parent,IntPtr child);
+}
+'@
+function FindUI([object]$shell,[string]$label,[bool]$isButton,[int]$seconds=35){
+ $until=(Get-Date).AddSeconds($seconds)
+ do{
+  $shell.Refresh()
+  Require (!$shell.HasExited) 'W83_SHELL_EXITED_BEFORE_UI_READY'
+  if($shell.MainWindowHandle -ne [IntPtr]::Zero){
+   $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+   $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+   foreach($node in $nodes){
+    try{
+     if($node.Current.IsOffscreen -or !$node.Current.Name.Contains($label)){continue}
+     if(!$isButton){return $node}
+     if($node.Current.Name -cne $label -or !$node.Current.IsEnabled){continue}
+     $h=[IntPtr]$node.Current.NativeWindowHandle
+     $native=$false
+     if($h -ne [IntPtr]::Zero -and [W83Native]::IsChild($shell.MainWindowHandle,$h)){
+      $sb=New-Object Text.StringBuilder(512)
+      if([W83Native]::GetClassName($h,$sb,512) -gt 0){$native=($sb.ToString() -match '^(?:WindowsForms10\.)?BUTTON(?:\.|$)')}
+     }
+     if($native -or $node.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button){return $node}
+    }catch{}
+   }
+  }
+  Start-Sleep -Milliseconds 350
+ }while((Get-Date) -lt $until)
+ if($label -ceq 'Indicator settings'){
+  try{
+   $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+   $condition=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,$label)
+   $targets=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
+   $rows=@()
+   foreach($target in $targets){
+    $r=$target.Current.BoundingRectangle
+    $rows+=@{name=$target.Current.Name;type=$target.Current.ControlType.ProgrammaticName;enabled=$target.Current.IsEnabled;offscreen=$target.Current.IsOffscreen;left=$r.Left;top=$r.Top;width=$r.Width;height=$r.Height}
+   }
+   Write-Host ('SETTINGS_NATIVE_BUTTON_DIAGNOSTIC='+(@{count=$targets.Count;controls=$rows}|ConvertTo-Json -Compress -Depth 5))
+  }catch{}
+ }
+ throw ('W83_NATIVE_UI_NOT_OBSERVED_'+$label)
+}
+function ClickUI([object]$shell,[string]$label){
+ $node=FindUI $shell $label $true
+ $rect=$node.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$rect.IsEmpty -and $rect.Width -gt 8 -and $rect.Height -gt 8 -and
+  $rect.Left -ge $outer.Left -and $rect.Right -le $outer.Right -and
+  $rect.Top -ge $outer.Top -and $rect.Bottom -le $outer.Bottom) 'W83_FOREIGN_CONTROL'
+ [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+ Start-Sleep -Milliseconds 200
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W83_FOREIGN_FOCUS'
+ Require ([W83Native]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))) 'W83_NATIVE_POINTER_REFUSED'
+ [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+}
+
+function MarkerCaptureChart([object]$shell,[string]$phase){
+ $node=FindUI $shell 'Price chart drawing surface' $false 20
+ $r=$node.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$r.IsEmpty -and $r.Width -ge 220 -and $r.Height -ge 140 -and
+  $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W94B_PRICE_CHART_UIA_GEOMETRY_INVALID'
+ $rect=[System.Drawing.Rectangle]::new([int][Math]::Ceiling($r.Left),[int][Math]::Ceiling($r.Top),[int][Math]::Floor($r.Width),[int][Math]::Floor($r.Height))
+ Require ($rect.Width -ge 220 -and $rect.Height -ge 140 -and $rect.Width -le 3840 -and $rect.Height -le 2160) 'W94B_CHART_SCREEN_RECT_OUT_OF_SCOPE'
+ $bmp=[System.Drawing.Bitmap]::new($rect.Width,$rect.Height,[System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+ try{
+  $g=[System.Drawing.Graphics]::FromImage($bmp)
+  try{$g.CopyFromScreen($rect.Location,[System.Drawing.Point]::Empty,$rect.Size)}finally{$g.Dispose()}
+  $stream=[IO.MemoryStream]::new()
+  try{
+   $bmp.Save($stream,[System.Drawing.Imaging.ImageFormat]::Png)
+   $digest=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($stream.ToArray())).ToLowerInvariant()
+  }finally{$stream.Dispose()}
+  Write-Host ('PINE_MARKER_SCREEN_CAPTURE='+(@{phase=$phase;left=$rect.Left;top=$rect.Top;width=$rect.Width;height=$rect.Height;png_sha256=$digest;scope='captured_original_visible_Price_chart_drawing_surface';retained_screenshot=$false}|ConvertTo-Json -Compress))
+  return [pscustomobject]@{bitmap=$bmp;rect=$rect;digest=$digest}
+ }catch{$bmp.Dispose();throw}
+}
+
+function ViewportAxis([object]$shell,[string]$phase){
+ $frame=MarkerCaptureChart $shell ('VIEWPORT_'+$phase)
+ $strip=$null
+ try{
+  $crop=[System.Drawing.Rectangle]::new(8,$frame.bitmap.Height-20,$frame.bitmap.Width-104,18)
+  Require ($crop.Width -ge 120 -and $crop.Y -gt 0) 'VIEWPORT_AXIS_CAPTURE_BOUNDS_INVALID'
+  $strip=$frame.bitmap.Clone($crop,[System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+  $ink=0
+  for($y=0;$y -lt $strip.Height;$y++){
+   for($x=0;$x -lt $strip.Width;$x++){
+    $p=$strip.GetPixel($x,$y)
+    if($p.R -ge 110 -and $p.R -le 240 -and $p.G -ge 110 -and $p.G -le 240 -and $p.B -ge 110 -and $p.B -le 240 -and [Math]::Abs([int]$p.R-[int]$p.G) -le 40 -and [Math]::Abs([int]$p.G-[int]$p.B) -le 40){$ink++}
+   }
+  }
+  $frame.bitmap.Save((Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$phase+'-context.png')),[System.Drawing.Imaging.ImageFormat]::Png)
+  Require ($ink -ge 8) 'VIEWPORT_AXIS_LABEL_PIXELS_NOT_OBSERVED'
+  $file=Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$phase+'.png')
+  $strip.Save($file,[System.Drawing.Imaging.ImageFormat]::Png)
+  $hash=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
+  return @{phase=$phase;axis_sha256=$hash;label_pixels=$ink;width=$crop.Width;height=$crop.Height;left=$frame.rect.Left;top=$frame.rect.Top;chart_width=$frame.rect.Width;chart_height=$frame.rect.Height}
+ }finally{if($null -ne $strip){$strip.Dispose()};$frame.bitmap.Dispose()}
+}
+
+# Real time-axis screenshot equality, with one narrowly bounded current-session
+# calendar/last-bar label region. All other tick labels remain byte-for-byte
+# identical, unlike real pan/zoom, which must change multiple separated ticks.
+# This does not certify logical-range equality or relax the independent navigation
+# positive control. It records every allowed single-label exception.
+function ViewportSingleSessionLabelEquivalent([object]$reference,[object]$candidate,[string]$phase){
+ if($reference.width -ne $candidate.width -or $reference.height -ne $candidate.height -or
+    $reference.chart_width -ne $candidate.chart_width -or $reference.chart_height -ne $candidate.chart_height -or
+    $reference.left -ne $candidate.left -or $reference.top -ne $candidate.top){return $false}
+ if($reference.axis_sha256 -ceq $candidate.axis_sha256){return $true}
+ $beforePath=Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$reference.phase+'.png')
+ $afterPath=Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$candidate.phase+'.png')
+ $before=[System.Drawing.Bitmap]::new($beforePath);$after=[System.Drawing.Bitmap]::new($afterPath)
+ try{
+  if($before.Width -ne $after.Width -or $before.Height -ne $after.Height -or $before.Width -ne $reference.width -or $before.Height -ne 18){return $false}
+  $minX=$before.Width;$maxX=-1;$changes=0
+  for($y=0;$y -lt $before.Height;$y++){
+   for($x=0;$x -lt $before.Width;$x++){
+    $a=$before.GetPixel($x,$y);$b=$after.GetPixel($x,$y)
+    if([Math]::Abs([int]$a.R-[int]$b.R) -ge 8 -or
+       [Math]::Abs([int]$a.G-[int]$b.G) -ge 8 -or
+       [Math]::Abs([int]$a.B-[int]$b.B) -ge 8){
+      $changes++;if($x -lt $minX){$minX=$x};if($x -gt $maxX){$maxX=$x}
+    }
+   }
+  }
+  # The observed original current-session date/time label is at 68-80%
+  # of the axis. Moving the chart or changing other tick labels fails closed.
+  if($changes -lt 1 -or $changes -gt 900 -or $minX -lt [Math]::Floor($before.Width*0.65) -or
+     $maxX -gt [Math]::Ceiling($before.Width*0.84) -or
+     ($maxX-$minX+1) -gt [Math]::Ceiling($before.Width*0.14)){return $false}
+  # Count unchanged, separated actual text-label clusters outside the date
+  # label, using the same ink predicate as the original ViewportAxis.
+  $runs=0;$last=-100;$inkCols=0
+  for($x=0;$x -lt $before.Width;$x++){
+   if($x -ge ($minX-7) -and $x -le ($maxX+7)){continue}
+   $ink=$false
+   for($y=0;$y -lt $before.Height;$y++){
+    $p=$before.GetPixel($x,$y)
+    if($p.R -ge 110 -and $p.R -le 240 -and
+       $p.G -ge 110 -and $p.G -le 240 -and
+       $p.B -ge 110 -and $p.B -le 240 -and
+       [Math]::Abs([int]$p.R-[int]$p.G) -le 40 -and
+       [Math]::Abs([int]$p.G-[int]$p.B) -le 40){$ink=$true;break}
+   }
+   if($ink){
+    if(($x-$last) -gt 6){$runs++}
+    $inkCols++;$last=$x
+   }
+  }
+  if($runs -lt 6 -or $inkCols -lt 60){return $false}
+  Write-Host ('PINE_VIEWPORT_BOUNDED_SESSION_LABEL='+(@{phase=$phase;reference_sha256=$reference.axis_sha256;observed_sha256=$candidate.axis_sha256;changed_pixels=$changes;left=$minX;right=$maxX;axis_width=$before.Width;unchanged_label_clusters=$runs;outside_single_label_pixels_identical=$true;scope='single_original_native_session_calendar_label_only_not_pixel_to_logical_range_oracle'}|ConvertTo-Json -Compress))
+  return $true
+ }finally{$before.Dispose();$after.Dispose()}
+}
+
+
+# The original trading chart can slightly respace ticks when the independent
+# Pine price scale is first shown. Prove that SIX distinct actual time-label
+# glyph clusters survive in order and move no farther than twelve pixels.
+# Do not infer text from OCR or accept only hashes or a generic color match.
+function ViewportIsInk([System.Drawing.Color]$p){
+ return ($p.R -ge 110 -and $p.R -le 240 -and
+   $p.G -ge 110 -and $p.G -le 240 -and
+   $p.B -ge 110 -and $p.B -le 240 -and
+   [Math]::Abs([int]$p.R-[int]$p.G) -le 40 -and
+   [Math]::Abs([int]$p.G-[int]$p.B) -le 40)
+}
+function ViewportLabelRuns([System.Drawing.Bitmap]$bitmap){
+ $ranges=New-Object 'System.Collections.Generic.List[object]'
+ $last=-1000
+ for($x=0;$x -lt $bitmap.Width;$x++){
+  $ink=$false
+  for($y=0;$y -lt $bitmap.Height;$y++){
+   if(ViewportIsInk ($bitmap.GetPixel($x,$y))){$ink=$true;break}
+  }
+  if(!$ink){continue}
+  if($x-$last -gt 6){$ranges.Add([pscustomobject]@{start=$x;end=$x})}
+  else{$ranges[$ranges.Count-1].end=$x}
+  $last=$x
+ }
+ return @($ranges.ToArray())
+}
+function ViewportGlyphCoverage([System.Drawing.Bitmap]$source,[object]$a,[System.Drawing.Bitmap]$target,[object]$b){
+ $inkCount=0;$matched=0
+ for($y=0;$y -lt $source.Height;$y++){
+  for($x=[int]$a.start;$x -le [int]$a.end;$x++){
+   if(!(ViewportIsInk ($source.GetPixel($x,$y)))){continue}
+   $inkCount++
+   $relative=$x-[int]$a.start
+   $found=$false
+   foreach($dy in @(-1,0,1)){
+    $yy=$y+$dy
+    if($yy -lt 0 -or $yy -ge $target.Height){continue}
+    foreach($dx in @(-1,0,1)){
+     $xx=[int]$b.start+$relative+$dx
+     if($xx -lt [int]$b.start-1 -or $xx -gt [int]$b.end+1 -or $xx -lt 0 -or $xx -ge $target.Width){continue}
+     if(ViewportIsInk ($target.GetPixel($xx,$yy))){$found=$true;break}
+    }
+    if($found){break}
+   }
+   if($found){$matched++}
+  }
+ }
+ return ($inkCount -ge 8 -and ($matched/$inkCount) -ge 0.90)
+}
+function ViewportGlyphAnchors([object]$reference,[object]$candidate,[string]$phase){
+ if($reference.width -ne $candidate.width -or $reference.height -ne $candidate.height -or
+   $reference.chart_width -ne $candidate.chart_width -or $reference.chart_height -ne $candidate.chart_height -or
+   $reference.left -ne $candidate.left -or $reference.top -ne $candidate.top){return $false}
+ $before=[System.Drawing.Bitmap]::new((Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$reference.phase+'.png')))
+ $after=[System.Drawing.Bitmap]::new((Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$candidate.phase+'.png')))
+ try{
+  if($before.Width -ne $after.Width -or $before.Height -ne $after.Height -or $before.Height -ne 18){return $false}
+  $runsA=@(ViewportLabelRuns $before);$runsB=@(ViewportLabelRuns $after)
+  $pairs=New-Object 'System.Collections.Generic.List[object]'
+  $lastEnd=-1
+  foreach($a in $runsA){
+   foreach($b in $runsB){
+    if($b.start -le $lastEnd -or
+      [Math]::Abs([int]$a.start-[int]$b.start) -gt 12 -or
+      [Math]::Abs(([int]$a.end-[int]$a.start)-([int]$b.end-[int]$b.start)) -gt 3){continue}
+    if(!(ViewportGlyphCoverage $before $a $after $b)){continue}
+    if(!(ViewportGlyphCoverage $after $b $before $a)){continue}
+    $pairs.Add([pscustomobject]@{before=[int]$a.start;after=[int]$b.start;drift=[int]$b.start-[int]$a.start})
+    $lastEnd=[int]$b.end
+    break
+   }
+  }
+  if($pairs.Count -lt 6){return $false}
+  # Original view changed by physical pan, not Apply: six genuine matching
+  # same-glyph time ticks within twelve pixels must not be found by accident.
+  Write-Host ('PINE_VIEWPORT_NATIVE_ANCHORED_TICKS='+(@{phase=$phase;reference_sha256=$reference.axis_sha256;observed_sha256=$candidate.axis_sha256;matched_tick_glyphs=$pairs.Count;max_allowed_drift_pixels=12;one_pixel_shape_tolerance=$true;pairs=@($pairs.ToArray());scope='bounded_actual_native_unchanged_ordered_time_label_glyphs_after_pane_reflow_not_full_logical_range_oracle'}|ConvertTo-Json -Compress -Depth 6))
+  return $true
+ }finally{$before.Dispose();$after.Dispose()}
+}
+function ViewportAxisEquivalent([object]$reference,[object]$candidate,[string]$phase){
+ if(ViewportSingleSessionLabelEquivalent $reference $candidate $phase){return $true}
+ return (ViewportGlyphAnchors $reference $candidate $phase)
+}
+
+function ViewportMouseAway([object]$shell){
+ $r=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require ([W83Native]::SetCursorPos([int]($r.Left+12),[int]($r.Top+10))) 'VIEWPORT_MOUSE_AWAY_FAILED'
+ Start-Sleep -Milliseconds 600
+}
+function ViewportStableAxis([object]$shell,[string]$phase){
+ ViewportMouseAway $shell
+ $a=ViewportAxis $shell ($phase+'_A')
+ Start-Sleep -Milliseconds 350
+ $b=ViewportAxis $shell $phase
+ Require ($a.axis_sha256 -ceq $b.axis_sha256 -and $a.width -eq $b.width -and $a.height -eq $b.height) 'VIEWPORT_AXIS_NOT_STABLE_BEFORE_COMPARISON'
+ return $b
+}
+function ViewportWaitStableLayout([object]$shell,[int]$expectedLeft,[int]$expectedWidth){
+ # Pane height may legitimately change, but price time-axis width/left may not.
+ # Wait until layout has stopped moving rather than comparing animation frames.
+ $until=[DateTime]::UtcNow.AddSeconds(12);$stable=0;$previousHeight=-1
+ do{
+  $node=FindUI $shell 'Price chart drawing surface' $false 2
+  $r=$node.Current.BoundingRectangle
+  $left=[int][Math]::Ceiling($r.Left);$width=[int][Math]::Floor($r.Width);$height=[int][Math]::Floor($r.Height)
+  if($left -eq $expectedLeft -and $width -eq $expectedWidth -and $height -eq $previousHeight){$stable++}else{$stable=0}
+  if($stable -ge 3){return}
+  $previousHeight=$height
+  Start-Sleep -Milliseconds 160
+ }while([DateTime]::UtcNow -lt $until)
+ throw 'VIEWPORT_ORIGINAL_NATIVE_LAYOUT_DID_NOT_STABILIZE_AT_BASELINE_WIDTH'
+}
+
+
+# All screenshot pixels stay on this isolated runner. Log only measurement hashes.
+Add-Type -AssemblyName System.Drawing
+function W41-Candles([string]$origin){
+ $data=Invoke-RestMethod -Method Get -Uri ($origin+'/api/candles?product=BTC-USD&tf=1m') -TimeoutSec 20
+ $rows=@($data.candles)
+ Require ($data.success -eq $true -and $rows.Count -ge 30 -and
+  [long]$rows[0].time -gt 0 -and [long]$rows[$rows.Count-1].time -gt [long]$rows[0].time) 'W41_REAL_CANDLE_DATA_UNAVAILABLE'
+ return [pscustomobject]@{count=$rows.Count;first=[long]$rows[0].time;last=[long]$rows[$rows.Count-1].time}
+}
+function W41-Start([string]$candidate){
+ $chosen=Join-Path $script:installedRoot '.ktrade-w29-install.json'
+ Require (Test-Path -LiteralPath $chosen -PathType Leaf) 'W41_INSTALLED_SELECTION_ABSENT'
+ $receipt=Get-Content -LiteralPath $chosen -Raw|ConvertFrom-Json
+ Require ($receipt.source_sha -ceq $NewSHA -and $receipt.live_armed -eq $false -and
+  $receipt.selection_digest -cmatch '^[a-f0-9]{64}$') 'W41_INSTALLED_SOURCE_OR_AUTHORITY_CHANGED'
+ $selected=[IO.Path]::GetFullPath($receipt.candidate_directory)
+ Require ($selected -ceq [IO.Path]::GetFullPath($candidate) -and
+  $selected.StartsWith(([IO.Path]::GetFullPath($script:installedRoot)+'\'),[StringComparison]::OrdinalIgnoreCase)) 'W41_INSTALLED_DIRECTORY_UNTRUSTED'
+ $exe=Join-Path $selected 'ktrade.exe'
+ Ordinary $exe $false
+ $shortcutDir=Join-Path $script:shortcuts ('KTRADE-'+$receipt.selection_digest.Substring(0,16))
+ $shortcut=Join-Path $shortcutDir 'KTRADE.lnk'
+ $proof=Join-Path $shortcutDir '.ktrade-shortcut-receipt.json'
+ Ordinary $shortcut $false
+ Ordinary $proof $false
+ $owned=Get-Content -LiteralPath $proof -Raw|ConvertFrom-Json
+ Require ($owned.schema -ceq 'ktrade.windows-shortcut.v1' -and
+  $owned.source_sha -ceq $NewSHA -and $owned.selection_digest -ceq $receipt.selection_digest -and
+  $owned.root -ceq $script:installedRoot -and
+  $owned.target -ceq $exe -and (Hash $shortcut) -ceq $owned.link_sha256) 'W41_INSTALLED_SHORTCUT_IDENTITY_INVALID'
+ $lease=Join-Path $script:installedRoot '.ktrade-w28c-active-process.lock'
+ Require (!(Test-Path -LiteralPath $lease)) 'W41_STALE_ACTIVE_LEASE'
+ Start-Process -FilePath $shortcut
+ $owner=$null
+ $limit=(Get-Date).AddSeconds(48)
+ do{
+  if(Test-Path -LiteralPath $lease){
+   try{$value=Get-Content -LiteralPath $lease -Raw|ConvertFrom-Json
+    if($value.pid -gt 0){$owner=$value;break}}catch{}
+  }
+  Start-Sleep -Milliseconds 250
+ }while((Get-Date) -lt $limit)
+ Require ($null -ne $owner -and $owner.source_sha -ceq $NewSHA -and $owner.live_armed -eq $false) 'W41_NO_VERIFIED_INSTALLED_PROCESS_LEASE'
+ $shell=Get-Process -Id ([int]$owner.pid) -ErrorAction Stop
+ $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
+ Require ([string]::Equals($cim.ExecutablePath,$exe,[StringComparison]::OrdinalIgnoreCase)) 'W41_FOREIGN_PROCESS_SOURCE'
+ ClickUI $shell 'Desktop diagnostics'
+ ClickUI $shell 'Verify chart UI'
+ $null=FindUI $shell 'Original chart DOM, Monaco editor and preferences controls observed.' $false 28
+ $null=FindUI $shell 'Price chart drawing surface' $false 25
+ $children=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|
+  Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+ Require ($children.Count -eq 1) 'W41_INSTALLED_BACKEND_OWNER_CHANGED'
+ $ports=@(Get-NetTCPConnection -OwningProcess $children[0].ProcessId -State Listen|
+  Where-Object {$_.LocalAddress -ceq '127.0.0.1'})
+ Require ($ports.Count -eq 1) 'W41_INSTALLED_LOOPBACK_AUTHORITY_CHANGED'
+ $origin='http://127.0.0.1:'+$ports[0].LocalPort
+ $cap=Invoke-RestMethod -Method Get -Uri ($origin+'/api/operator/capabilities') -TimeoutSec 10
+ Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and
+  $cap.live_orders_enabled -eq $false -and $cap.strategy_execution_enabled -eq $false -and
+  $cap.requires_review -eq $true) 'W41_COLD_NATIVE_TRADING_NOT_DISARMED'
+ $html=(Invoke-WebRequest -UseBasicParsing -Uri ($origin+'/chart') -TimeoutSec 12).Content
+ Require ($html.Contains('/static/chart_viewport_state.js') -and
+  $html.Contains('scheduleViewportSave()')) 'W41_SHIPPING_CHART_NOT_SERVED'
+ $js=Invoke-WebRequest -UseBasicParsing -Uri ($origin+'/static/chart_viewport_state.js') -TimeoutSec 12
+ Require ($js.StatusCode -eq 200 -and $js.Content.Contains('ktrade.chart-viewport.v1')) 'W41_VIEWPORT_MODULE_NOT_SERVED'
+ return [pscustomobject]@{shell=$shell;enginePid=[int]$children[0].ProcessId;origin=$origin}
+}
+function W41-Stop([object]$run){
+ Require ([W83Native]::PostMessage($run.shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)) 'W41_NATIVE_CLOSE_REFUSED'
+ Require ($run.shell.WaitForExit(30000)) 'W41_NATIVE_SHELL_NOT_STOPPED'
+ Require (!(Get-Process -Id $run.enginePid -ErrorAction SilentlyContinue)) 'W41_NATIVE_ENGINE_ORPHAN'
+ $lease=Join-Path $script:installedRoot '.ktrade-w28c-active-process.lock'
+ Require (!(Test-Path -LiteralPath $lease)) 'W41_LEASE_NOT_RELEASED_ON_COLD_STOP'
+}
+Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
+$distribution=Join-Path $QualificationRoot 'unsigned-distribution'
+$null=New-Item -ItemType Directory -Path $distribution
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[IO.Compression.ZipFile]::ExtractToDirectory($zip,$distribution)
+$null=Bundle $distribution $NewSHA
+$installed=Setup (Join-Path $distribution 'KTRADE-Setup.ps1') 'Install'
+Require ($installed.source_sha -ceq $NewSHA -and $installed.app_launched -eq $false -and
+ $installed.live_armed -eq $false -and $installed.action -ceq 'install') 'W41_FRESH_INSTALL_NOT_DISARMED'
+$active=$null
+try{
+ $active=W41-Start $installed.candidate_directory
+ $firstOrigin=$active.origin
+ $firstCandles=W41-Candles $firstOrigin
+ $baseline=ViewportStableAxis $active.shell 'COLD_BASELINE'
+ $node=FindUI $active.shell 'Price chart drawing surface' $false 20
+ $rect=$node.Current.BoundingRectangle
+ [void][W83Native]::SetForegroundWindow($active.shell.MainWindowHandle)
+ Require ([W83Native]::GetForegroundWindow() -eq $active.shell.MainWindowHandle) 'W41_CHART_NOT_FOREGROUND'
+ $x=[int]($rect.Left+$rect.Width*0.45);$y=[int]($rect.Top+$rect.Height*0.40)
+ Require ([W83Native]::SetCursorPos($x,$y)) 'W41_MOUSE_GEOMETRY_REFUSED'
+ [W83Native]::mouse_event(0x0800,0,0,360,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 450
+ [W83Native]::mouse_event(0x0002,0,0,0,[UIntPtr]::Zero)
+ try{
+  for($i=1;$i -le 8;$i++){
+   Require ([W83Native]::SetCursorPos(($x+[int]($rect.Width*0.22*$i/8)),$y)) 'W41_PHYSICAL_DRAG_REFUSED'
+   Start-Sleep -Milliseconds 35
+  }
+ }finally{[W83Native]::mouse_event(0x0004,0,0,0,[UIntPtr]::Zero)}
+ Start-Sleep -Milliseconds 800
+ $panned=ViewportStableAxis $active.shell 'COLD_PANNED'
+ Require ($baseline.axis_sha256 -cne $panned.axis_sha256 -and
+  !(ViewportAxisEquivalent $baseline $panned 'NEGATIVE_USER_NAVIGATION')) 'W41_NATIVE_CHART_NOT_CHANGED_BY_REAL_INPUT'
+ $beforeClose=W41-Candles $firstOrigin
+ Require ($beforeClose.count -eq $firstCandles.count -and
+  $beforeClose.first -eq $firstCandles.first -and
+  $beforeClose.last -eq $firstCandles.last) 'W41_CANDLE_HISTORY_DRIFTED_DURING_NAVIGATION'
+ W41-Stop $active;$active=$null
+ $active=W41-Start $installed.candidate_directory
+ Require ($active.origin -ceq $firstOrigin) 'W41_INSTALLED_ORIGIN_NOT_STABLE_ACROSS_RESTART'
+ $afterRestart=W41-Candles $active.origin
+ Require ($afterRestart.count -eq $firstCandles.count -and
+  $afterRestart.first -eq $firstCandles.first -and
+  $afterRestart.last -eq $firstCandles.last) 'W41_CANDLE_HISTORY_CHANGED_SAFE_FALLBACK_NOT_COLD_RESTORE_CASE'
+ $restored=ViewportStableAxis $active.shell 'COLD_REOPENED'
+ Require (!(ViewportAxisEquivalent $baseline $restored 'NEGATIVE_FIT_CONTENT')) 'W41_REOPEN_RESET_TO_FIT_CONTENT'
+ Require (ViewportAxisEquivalent $panned $restored 'COLD_REOPENED_PRESERVES_FRACTIONAL_VIEWPORT') 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
+ $cap=Invoke-RestMethod -Method Get -Uri ($active.origin+'/api/operator/capabilities') -TimeoutSec 10
+ Require ($cap.mode -ceq 'PAPER_STOPPED' -and
+  $cap.live_orders_enabled -eq $false -and $cap.paper_orders_enabled -eq $false) 'W41_INSTALLED_REOPEN_CHANGED_TRADING_AUTHORITY'
+ Write-Host ('W41_REAL_INSTALLED_COLD_AXIS_EVIDENCE='+(@{
+  source_sha=$NewSHA;origin_stable=$true;exact_history_reused=$true;
+  first=$firstCandles.first;last=$firstCandles.last;count=$firstCandles.count;
+  baseline_axis_sha256=$baseline.axis_sha256;after_native_navigation_sha256=$panned.axis_sha256;
+  cold_reopened_axis_sha256=$restored.axis_sha256;
+  native_input=$true;restarted_selected_shortcut=$true;
+  mode='PAPER_STOPPED';live_armed=$false;
+  oracle='bounded six-glyph native time-axis matching, not exact DOM logical range';
+  scope='ephemeral installed Wails/WebView2, no user profile, no broker'
+ }|ConvertTo-Json -Compress))
+ Write-Host '::notice::W41_INSTALLED_COLD_FRACTIONAL_CHART_VIEWPORT=PASS'
+ W41-Stop $active;$active=$null
+ Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
+}finally{
+ if($null -ne $active){
+  try{[void][W83Native]::PostMessage($active.shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)}catch{}
+  Write-Warning 'W41_ABORTED_WITH_OWNED_TEST_PROCESS; hosted ephemeral runner is discarded; no replay or owner takeover'
+ }
+}
