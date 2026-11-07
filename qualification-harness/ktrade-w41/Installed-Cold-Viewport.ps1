@@ -434,6 +434,28 @@ function W41-Stop([object]$run){
  $lease=Join-Path $script:installedRoot '.ktrade-w28c-active-process.lock'
  Require (!(Test-Path -LiteralPath $lease)) 'W41_LEASE_NOT_RELEASED_ON_COLD_STOP'
 }
+# Do not accept an unpainted time axis as a viewport result. Cold WebView2
+# layout/render may lag behind the installed chart's DOM-ready handshake.
+# Bound retries to transient missing label ink only. Any real geometry,
+# process, layout, or viewport mismatch remains a hard failure.
+function W41-WaitColdAxis([object]$shell){
+ $deadline=(Get-Date).AddSeconds(18)
+ $attempt=0
+ while($true){
+  $attempt++
+  try{
+   $axis=ViewportStableAxis $shell 'COLD_REOPENED'
+   Write-Host ('W41_INSTALLED_COLD_AXIS_RENDER_READY_ATTEMPTS='+$attempt)
+   return $axis
+  }catch{
+   if($_.Exception.Message -cne 'VIEWPORT_AXIS_LABEL_PIXELS_NOT_OBSERVED' -or
+      (Get-Date) -ge $deadline){throw}
+   $shell.Refresh()
+   Require (!$shell.HasExited) 'W41_SHELL_EXITED_BEFORE_COLD_AXIS_RENDER'
+   Start-Sleep -Milliseconds 350
+  }
+ }
+}
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -484,7 +506,7 @@ try{
  Require ($afterRestart.count -eq $firstCandles.count -and
   $afterRestart.first -eq $firstCandles.first -and
   $afterRestart.last -eq $firstCandles.last) 'W41_CANDLE_HISTORY_CHANGED_SAFE_FALLBACK_NOT_COLD_RESTORE_CASE'
- $restored=ViewportStableAxis $active.shell 'COLD_REOPENED'
+ $restored=W41-WaitColdAxis $active.shell
  Require (!(ViewportAxisEquivalent $baseline $restored 'NEGATIVE_FIT_CONTENT')) 'W41_REOPEN_RESET_TO_FIT_CONTENT'
  Require (ViewportAxisEquivalent $panned $restored 'COLD_REOPENED_PRESERVES_FRACTIONAL_VIEWPORT') 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
  $cap=Invoke-RestMethod -Method Get -Uri ($active.origin+'/api/operator/capabilities') -TimeoutSec 10
