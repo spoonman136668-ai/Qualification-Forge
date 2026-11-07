@@ -362,7 +362,7 @@ function ViewportWaitStableLayout([object]$shell,[int]$expectedLeft,[int]$expect
 # All screenshot pixels stay on this isolated runner. Log only measurement hashes.
 Add-Type -AssemblyName System.Drawing
 function W41-Candles([string]$origin){
- $data=Invoke-RestMethod -Method Get -Uri ($origin+'/api/candles?product=BTC-USD&tf=1m') -TimeoutSec 20
+ $data=Invoke-RestMethod -Method Get -Uri ($origin+'/api/candles?product=BTC-USD&tf=1h') -TimeoutSec 20
  $rows=@($data.candles)
  Require ($data.success -eq $true -and $rows.Count -ge 30 -and
   [long]$rows[0].time -gt 0 -and [long]$rows[$rows.Count-1].time -gt [long]$rows[0].time) 'W41_REAL_CANDLE_DATA_UNAVAILABLE'
@@ -473,6 +473,24 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ # 1h is supported end-to-end by the original Coinbase candle backend.
+ # A 2h button exists but currently falls through to 1m backend granularity;
+ # do not misrepresent that as a stable two-hour historical fixture.
+ # If near an hour boundary, admit the next full-hour window so the sealed
+ # candle identity cannot roll over during the physical restart check.
+ $utc=[DateTime]::UtcNow
+ if($utc.Minute -ge 58){
+  $nextHour=$utc.AddHours(1)
+  $after=[DateTime]::new($nextHour.Year,$nextHour.Month,$nextHour.Day,
+   $nextHour.Hour,1,0,[DateTimeKind]::Utc)
+  $wait=[int][Math]::Ceiling(($after-$utc).TotalSeconds)
+  Require ($wait -gt 0 -and $wait -le 180) 'W41_COLD_HOURLY_WINDOW_ADMISSION_INVALID'
+  Write-Host ('W41_HOURLY_CANDLE_ADMISSION_WAIT_SECONDS='+$wait)
+  Start-Sleep -Seconds $wait
+ }
+ ClickUI $active.shell '1h'
+ Write-Host 'W41_REAL_NATIVE_1H_TIMEFRAME_CLICKED=PASS'
+ Start-Sleep -Milliseconds 1300
  $firstOrigin=$active.origin
  $firstCandles=W41-Candles $firstOrigin
  $baseline=ViewportStableAxis $active.shell 'COLD_BASELINE'
@@ -514,7 +532,7 @@ try{
   $cap.live_orders_enabled -eq $false -and $cap.paper_orders_enabled -eq $false) 'W41_INSTALLED_REOPEN_CHANGED_TRADING_AUTHORITY'
  Write-Host ('W41_REAL_INSTALLED_COLD_AXIS_EVIDENCE='+(@{
   source_sha=$NewSHA;origin_stable=$true;exact_history_reused=$true;
-  first=$firstCandles.first;last=$firstCandles.last;count=$firstCandles.count;
+  tf='1h';first=$firstCandles.first;last=$firstCandles.last;count=$firstCandles.count;
   baseline_axis_sha256=$baseline.axis_sha256;after_native_navigation_sha256=$panned.axis_sha256;
   cold_reopened_axis_sha256=$restored.axis_sha256;
   native_input=$true;restarted_selected_shortcut=$true;
