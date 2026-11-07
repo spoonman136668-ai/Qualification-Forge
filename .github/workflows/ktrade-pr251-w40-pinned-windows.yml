@@ -29,15 +29,15 @@ jobs:
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_PAPER_SESSION_ROOT: ''
       KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
-      W01_EXPECTED_SHA: '9f3b809c86603af9ca432db85c7c19c8cacdd0dd'
-      W01_EXPECTED_TREE: ''
+      W01_EXPECTED_SHA: 'bc7c640f64e4d57203cdb5a27793e394d939e02d'
+      W01_EXPECTED_TREE: '6789ecda99e1e9fa87795309a816df02da1b2f4a'
       KTRADE_QFORGE_W40_PINNED: '1'
     steps:
       - name: Checkout immutable private KTRADE source without persisting credentials
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 9f3b809c86603af9ca432db85c7c19c8cacdd0dd
+          ref: bc7c640f64e4d57203cdb5a27793e394d939e02d
           fetch-depth: 0
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -260,6 +260,7 @@ jobs:
               if(Test-Path -LiteralPath $env:KTRADE_W40_DIAG_RECEIPT){throw 'W40_EXISTING_DIAGNOSTIC_REFUSED'}
               if($env:KTRADE_W40_NATIVE_CHART_PROBE -or $env:KTRADE_W40_CHART_GEOMETRY_RECEIPT -or
                  $env:KTRADE_W40_CHART_ZOOMED_RECEIPT -or $env:KTRADE_W40_CHART_PANNED_RECEIPT -or
+                 $env:KTRADE_W40_PINE_GEOMETRY_RECEIPT -or
                  $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT -or $env:KTRADE_W40_EDITOR_FOCUSED_RECEIPT){
                 throw 'W40_PREEXISTING_TEST_ENV_REFUSED'
               }
@@ -267,10 +268,12 @@ jobs:
               $env:KTRADE_W40_CHART_GEOMETRY_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-chart-geometry.txt'
               $env:KTRADE_W40_CHART_ZOOMED_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-chart-zoomed.txt'
               $env:KTRADE_W40_CHART_PANNED_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-chart-panned.txt'
+              $env:KTRADE_W40_PINE_GEOMETRY_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-pine-button-geometry.txt'
               $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-editor-geometry.txt'
               $env:KTRADE_W40_EDITOR_FOCUSED_RECEIPT=Join-Path $env:RUNNER_TEMP 'w40-editor-focused.txt'
               foreach($receipt in @($env:KTRADE_W40_CHART_GEOMETRY_RECEIPT,
                   $env:KTRADE_W40_CHART_ZOOMED_RECEIPT,$env:KTRADE_W40_CHART_PANNED_RECEIPT,
+                  $env:KTRADE_W40_PINE_GEOMETRY_RECEIPT,
                   $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT,$env:KTRADE_W40_EDITOR_FOCUSED_RECEIPT)){
                 if(Test-Path -LiteralPath $receipt){throw 'W40_RECEIPT_ALREADY_EXISTS'}
               }
@@ -637,7 +640,7 @@ jobs:
                   if($safe.Count){Write-Host ('W40_DIAGNOSTIC_STAGES='+($safe -join ','))}
                 }
                 $receiptName=[IO.Path]::GetFileName($path)
-                if($receiptName -cnotmatch '^w40-(?:chart-(?:geometry|zoomed|panned)|editor-(?:geometry|focused))\.txt$'){
+                if($receiptName -cnotmatch '^w40-(?:chart-(?:geometry|zoomed|panned)|pine-button-geometry|editor-(?:geometry|focused))\.txt$'){
                   throw 'W40_UNEXPECTED_RECEIPT_PATH'
                 }
                 throw ('W40_EXPECTED_OBSERVER_RECEIPT_MISSING_'+$receiptName)
@@ -685,6 +688,12 @@ jobs:
                 throw 'W40_NATIVE_CHART_DRAG_INJECTION_FAILED'
               }
               Wait-W40 $env:KTRADE_W40_CHART_PANNED_RECEIPT 'W40_NATIVE_CHART_DRAG_PAN=PASS' 10 | Out-Null
+              # The original Pine editor starts offscreen. Open the panel
+              # with real Windows mouse input before measuring Monaco.
+              $pineButton=Read-W40Point $env:KTRADE_W40_PINE_GEOMETRY_RECEIPT
+              if(-not [W39NativeMouse]::Click($pineButton.X,$pineButton.Y)){
+                throw 'W40_NATIVE_PINE_PANEL_OPEN_CLICK_FAILED'
+              }
               $editorTarget=Read-W40Point $env:KTRADE_W40_EDITOR_GEOMETRY_RECEIPT
               if(-not [W39NativeMouse]::Click($editorTarget.X,$editorTarget.Y)){
                 throw 'W40_NATIVE_EDITOR_CLICK_FAILED'
@@ -725,6 +734,7 @@ jobs:
             Remove-Item Env:\KTRADE_W40_CHART_GEOMETRY_RECEIPT -ErrorAction SilentlyContinue
             Remove-Item Env:\KTRADE_W40_CHART_ZOOMED_RECEIPT -ErrorAction SilentlyContinue
             Remove-Item Env:\KTRADE_W40_CHART_PANNED_RECEIPT -ErrorAction SilentlyContinue
+            Remove-Item Env:\KTRADE_W40_PINE_GEOMETRY_RECEIPT -ErrorAction SilentlyContinue
             Remove-Item Env:\KTRADE_W40_EDITOR_GEOMETRY_RECEIPT -ErrorAction SilentlyContinue
             Remove-Item Env:\KTRADE_W40_EDITOR_FOCUSED_RECEIPT -ErrorAction SilentlyContinue
             Remove-Item Env:\KTRADE_W39_NATIVE_INPUT_PROBE -ErrorAction SilentlyContinue
@@ -759,7 +769,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: '9f3b809c86603af9ca432db85c7c19c8cacdd0dd'
+      KTRADE_EXPECTED_SOURCE: 'bc7c640f64e4d57203cdb5a27793e394d939e02d'
       KTRADE_HEAD_REPOSITORY: 'spoonman136668-ai/ktrade'
       KTRADE_REPOSITORY_PRIVATE: 'true'
     steps:
@@ -767,7 +777,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 9f3b809c86603af9ca432db85c7c19c8cacdd0dd
+          ref: bc7c640f64e4d57203cdb5a27793e394d939e02d
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
