@@ -447,7 +447,10 @@ $installed=Setup (Join-Path $distribution 'KTRADE-Setup.ps1') 'Install'
 Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
  $installed.source_sha -ceq $NewSHA -and $installed.root -ceq $script:installedRoot -and
  $installed.candidate_directory -cmatch '^[A-Za-z]:[\\/]' -and
- $installed.selection_digest -cmatch '^[a-f0-9]{64}
+ $installed.selection_digest -cmatch '^[a-f0-9]{64}$' -and
+ $installed.fresh_only -eq $true -and $installed.app_launched -eq $false -and
+ $installed.owner_data_imported -eq $false -and $installed.orders_enabled -eq $false -and
+ $installed.live_armed -eq $false -and $installed.release_accepted -eq $false) 'W41_FRESH_INSTALL_NOT_DISARMED'
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
