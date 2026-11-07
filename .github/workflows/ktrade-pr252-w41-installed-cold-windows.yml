@@ -96,7 +96,7 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_NPM_REFUSED'}
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_VENDOR_REFUSED'}
-            $dest=Join-Path $env:RUNNER_TEMP 'w41-native-installed-package'
+            $dest=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
             & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '832539050671739bb07fa8c41a4815f31ea638f3'
             if($LASTEXITCODE -ne 0){throw 'W41_REAL_NATIVE_INSTALLER_BUILD_FAILED'}
             $zip=Join-Path $dest 'KTRADE-SetupBundle.zip'
