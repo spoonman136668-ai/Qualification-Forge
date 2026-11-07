@@ -29,15 +29,15 @@ jobs:
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_PAPER_SESSION_ROOT: ''
       KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
-      W01_EXPECTED_SHA: '832539050671739bb07fa8c41a4815f31ea638f3'
-      W01_EXPECTED_TREE: '90c2d412cdaf5a47773c0b7055dfc330a1298cda'
+      W01_EXPECTED_SHA: '83a84024fc0165d63bcfb2d6c9954d4cc4a7da64'
+      W01_EXPECTED_TREE: 'ee93d0b64b082b4dd0f958f30ccb0f01a4377d02'
       KTRADE_QFORGE_W40_PINNED: '1'
     steps:
       - name: Checkout immutable private KTRADE source without persisting credentials
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 832539050671739bb07fa8c41a4815f31ea638f3
+          ref: 83a84024fc0165d63bcfb2d6c9954d4cc4a7da64
           fetch-depth: 0
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -780,7 +780,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: '832539050671739bb07fa8c41a4815f31ea638f3'
+      KTRADE_EXPECTED_SOURCE: '83a84024fc0165d63bcfb2d6c9954d4cc4a7da64'
       KTRADE_HEAD_REPOSITORY: 'spoonman136668-ai/ktrade'
       KTRADE_REPOSITORY_PRIVATE: 'true'
     steps:
@@ -788,7 +788,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 832539050671739bb07fa8c41a4815f31ea638f3
+          ref: 83a84024fc0165d63bcfb2d6c9954d4cc4a7da64
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
