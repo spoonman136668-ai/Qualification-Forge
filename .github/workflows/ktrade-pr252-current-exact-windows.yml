@@ -14,12 +14,14 @@ concurrency:
   cancel-in-progress: false
 jobs:
   native-regression:
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
+    # This follow-up only classifies W41's cold-reopen failure. Preserve the
+    # independent native regression running on its prior exact source.
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107' && !contains(github.event.head_commit.message, 'wails-only')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '87659b67e70684cb0e25403d31cebca72e1e59e3'
-      KTRADE_EXPECTED_TREE: '5e52dd38bc87987d9920cb4cd020447beadcf3df'
+      KTRADE_EXPECTED_SOURCE: '43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9'
+      KTRADE_EXPECTED_TREE: '649ac9a60e141318c7c95851029150bd268d36d9'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -34,7 +36,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 87659b67e70684cb0e25403d31cebca72e1e59e3
+          ref: 43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -107,9 +109,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '87659b67e70684cb0e25403d31cebca72e1e59e3'
-      KTRADE_EXPECTED_TREE: '5e52dd38bc87987d9920cb4cd020447beadcf3df'
-      W01_EXPECTED_SHA: '87659b67e70684cb0e25403d31cebca72e1e59e3'
+      KTRADE_EXPECTED_SOURCE: '43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9'
+      KTRADE_EXPECTED_TREE: '649ac9a60e141318c7c95851029150bd268d36d9'
+      W01_EXPECTED_SHA: '43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -124,7 +126,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 87659b67e70684cb0e25403d31cebca72e1e59e3
+          ref: 43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -159,7 +161,7 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_LOCKED_VENDOR_FAILED'}
             & node scripts/stage_offline_vendor.cjs *> $log
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_VENDOR_STAGE_FAILED'}
-            & node --test tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w41_cold_bridge_pane_visibility.test.cjs tests/rb3_w41_cold_restart_harness.test.cjs *> $log
+            & node --test tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w41_cold_bridge_pane_visibility.test.cjs tests/rb3_w41_cold_bridge_diagnostic.test.cjs tests/rb3_w41_cold_restart_harness.test.cjs *> $log
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_CHART_FOCUSED_TEST_FAILED'}
             & ./windows/Test-KTRADE-W41-ColdReopen.ps1 -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE
             if($LASTEXITCODE -ne 0 -or !$?){throw 'QFORGE_WAILS_REAL_TWO_LAUNCH_ACCEPTANCE_FAILED'}
