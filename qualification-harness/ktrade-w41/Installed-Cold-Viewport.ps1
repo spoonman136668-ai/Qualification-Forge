@@ -329,6 +329,44 @@ function ViewportAxisEquivalent([object]$reference,[object]$candidate,[string]$p
  return (ViewportGlyphAnchors $reference $candidate $phase)
 }
 
+# Diagnostic only: compare the exact native time-axis strip already
+# captured by the strict acceptance oracle. Never export screenshot pixels,
+# change scoring or infer a semantic viewport pass from this measurement.
+function W41-AxisDifference([object]$reference,[object]$candidate){
+ $ap=Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$reference.phase+'.png')
+ $bp=Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$candidate.phase+'.png')
+ $a=[System.Drawing.Bitmap]::new($ap)
+ $b=[System.Drawing.Bitmap]::new($bp)
+ try{
+  Require ($a.Width -eq $b.Width -and $a.Height -eq $b.Height -and
+   $a.Width -eq $reference.width -and $b.Width -eq $candidate.width -and
+   $a.Height -eq 18) 'W41_DIAG_AXIS_DIMENSION_DRIFT'
+  $changed=0;$lo=$a.Width;$hi=-1;$perBand=@(0,0,0,0)
+  for($y=0;$y -lt $a.Height;$y++){
+   for($x=0;$x -lt $a.Width;$x++){
+    $p=$a.GetPixel($x,$y);$q=$b.GetPixel($x,$y)
+    if([Math]::Abs([int]$p.R-[int]$q.R) -ge 8 -or
+       [Math]::Abs([int]$p.G-[int]$q.G) -ge 8 -or
+       [Math]::Abs([int]$p.B-[int]$q.B) -ge 8){
+     $changed++;$lo=[Math]::Min($lo,$x);$hi=[Math]::Max($hi,$x)
+     $band=[Math]::Min(3,[int][Math]::Floor(4.0*$x/$a.Width))
+     $perBand[$band]++
+    }
+   }
+  }
+  $ra=@(ViewportLabelRuns $a);$rb=@(ViewportLabelRuns $b)
+  Write-Host ('W41_NATIVE_AXIS_STRIP_DIFFERENCE='+(@{
+   changed_pixels=$changed;first_changed_x=if($changed){$lo}else{-1};
+   last_changed_x=$hi;per_quarter_changed_pixels=$perBand;
+   before_label_clusters=$ra.Count;after_label_clusters=$rb.Count;
+   width=$a.Width;height=$a.Height;
+   same_capture_geometry=($reference.chart_width -eq $candidate.chart_width -and
+    $reference.chart_height -eq $candidate.chart_height -and
+    $reference.left -eq $candidate.left -and $reference.top -eq $candidate.top);
+   scope='test_owned_native_axis_only_no_screenshot_export_no_acceptance_relaxation'
+  }|ConvertTo-Json -Compress))
+ }finally{$a.Dispose();$b.Dispose()}
+}
 function ViewportMouseAway([object]$shell){
  $r=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
  Require ([W83Native]::SetCursorPos([int]($r.Left+12),[int]($r.Top+10))) 'VIEWPORT_MOUSE_AWAY_FAILED'
@@ -736,6 +774,7 @@ try{
    if($name -cmatch 'viewport:([a-z-]{3,40})'){$lateStage=$Matches[1]}
   }catch{}
   Write-Host ('W41_NATIVE_CHART_POST_LAYOUT_STAGE='+$lateStage)
+  W41-AxisDifference $panned $restored
  }
  Require $sameViewport 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
  $cap=Invoke-RestMethod -Method Get -Uri ($active.origin+'/api/operator/capabilities') -TimeoutSec 10
