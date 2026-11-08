@@ -1228,6 +1228,8 @@ try{
   scope='ephemeral installed Wails/WebView2, no user profile, no broker'
  }|ConvertTo-Json -Compress))
  Write-Host '::notice::W41_INSTALLED_COLD_FRACTIONAL_CHART_VIEWPORT=PASS'
+ ClickUI $active.shell 'Desktop diagnostics'
+ Write-Host 'W41_LAYOUT_DESKTOP_DIAGNOSTICS_COLLAPSED=PASS'
  W41-LayoutStress $active
  W41-Stop $active;$active=$null
  Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
