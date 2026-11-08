@@ -1126,6 +1126,7 @@ try{
   if($chartName -match 'viewport:([a-z-]{3,40})'){$nativeStage=$Matches[1]}
  }catch{}
  Write-Host ('W41_DESIGN_PRE_CLOSE_NATIVE_VIEWPORT_STAGE='+$nativeStage)
+ W41-SpectrumVisual $active.shell
  W41-Stop $active;$active=$null
  W41-ObserveProfileKeys $installed.candidate_directory $beforeClose
  $active=W41-Start $installed.candidate_directory
@@ -1320,7 +1321,6 @@ try{
  Write-Host '::notice::W41_INSTALLED_COLD_FRACTIONAL_CHART_VIEWPORT=PASS'
  ClickUI $active.shell 'Desktop diagnostics'
  Write-Host 'W41_LAYOUT_DESKTOP_DIAGNOSTICS_COLLAPSED=PASS'
- W41-SpectrumVisual $active.shell
  W41-LayoutStress $active
  W41-Stop $active;$active=$null
  Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'

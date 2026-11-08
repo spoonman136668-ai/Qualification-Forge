@@ -133,7 +133,7 @@ jobs:
           & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w41/Installed-Cold-Viewport.ps1') -PackageZip $env:W41_PACKAGE_PATH
           if(!$?){throw 'W41_REAL_INSTALLED_COLD_ACCEPTANCE_FAILED'}
       - name: Retain test-owned native Spectrum Desk image for UX inspection
-        if: success()
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ktrade-spectrum-native-ui-b5439a9fb7ea0162920177cf18e3c0513c05f44e
