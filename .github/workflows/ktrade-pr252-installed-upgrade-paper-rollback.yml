@@ -1,3 +1,4 @@
+# Single fresh hosted-VM retry: prior isolated predecessor shell exited before candidate update (run 42501889001); no persistent effect or owner data.
 name: KTRADE PR252 exact-source installed upgrade PAPER rollback
 on:
   push:
