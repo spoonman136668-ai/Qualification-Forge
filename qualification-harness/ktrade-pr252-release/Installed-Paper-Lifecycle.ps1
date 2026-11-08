@@ -208,6 +208,29 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   # Genuine owned WebView2 UIA and physical-pointer catalog interaction.
   # Inspect disabled aliases; never inject DOM code or issue a trading command.
   ClickUI $shell 'Indicators'
+  # Legacy W83 click can hit an occluded compact-toolbar target. Distinguish
+  # a visible indicator dialog from an unhandled native click before
+  # interpreting a missing catalog category as a product feature failure.
+  $dialogVisible=$false
+  try{$null=FindUI $shell 'Indicators, metrics, and strategies' $false 7;$dialogVisible=$true}catch{}
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+  $cats=@()
+  foreach($item in $nodes){
+    try{
+      $name=[string]$item.Current.Name
+      if($name -ceq 'Indicators' -or $name -ceq 'Technicals' -or
+         $name -ceq 'Indicators, metrics, and strategies' -or $name -ceq 'Search indicator catalog'){
+        $cats+=@{name=$name;visible=(!$item.Current.IsOffscreen);enabled=$item.Current.IsEnabled;
+          control_type=[string]$item.Current.ControlType.ProgrammaticName}
+      }
+    }catch{}
+  }
+  Write-Host ('PR252_NATIVE_INDICATORS_MODAL_DIAGNOSTIC='+(@{
+    modal_visible=$dialogVisible;allowlisted_controls=$cats;
+    scope='original_accessibility_tree_only_no_DOM_injection_no_profile_data'
+  }|ConvertTo-Json -Compress -Depth 4))
+  Require $dialogVisible 'PR252_NATIVE_INDICATORS_MODAL_NOT_OPENED_BY_TRUSTED_CLICK'
   ClickUI $shell 'Technicals'
   $null=FindUI $shell 'Apply Relative Strength Index' $true 35
   $uiRoot=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
