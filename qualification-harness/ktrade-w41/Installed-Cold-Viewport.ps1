@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='613dee9d9ddb7d9227c5d36bda94e4c8a311275a'
+$NewSHA='9dd512139fb8db573c2991c5d01113d8137d2eb4'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -971,6 +971,46 @@ function W41-ObserveProfileKeys([string]$candidate,[object]$expected){
   semantic_proof=$false;scope='test-owned profile, key bytes only, no values'
  }|ConvertTo-Json -Compress))
 }
+
+# A single visual specimen of the self-owned synthetic Windows install.
+# Not an acceptance oracle. Never includes owner data or credentials: the
+# installed profile is created fresh under RUNNER_TEMP and LIVE is disarmed.
+function W41-SpectrumVisual([object]$shell){
+ if($env:KTRADE_SPECTRUM_PREVIEW -cne '1'){return}
+ try{
+  $shell.Refresh()
+  if($shell.HasExited -or $shell.MainWindowHandle -eq [IntPtr]::Zero){return}
+  $windowHandle=$shell.MainWindowHandle
+  [void][W83Native]::SetForegroundWindow($windowHandle)
+  Start-Sleep -Milliseconds 180
+  if([W83Native]::GetForegroundWindow() -ne $windowHandle){
+   Write-Host 'W41_SPECTRUM_VISUAL=SKIPPED_FOREGROUND_NOT_OWNED';return
+  }
+  $rect=[System.Windows.Automation.AutomationElement]::FromHandle($windowHandle).Current.BoundingRectangle
+  if($rect.IsEmpty -or $rect.Width -lt 700 -or $rect.Height -lt 430 -or
+     $rect.Width -gt 2400 -or $rect.Height -gt 1600){
+   Write-Host 'W41_SPECTRUM_VISUAL=SKIPPED_OUT_OF_BOUNDS';return
+  }
+  $image=[System.Drawing.Bitmap]::new([int][Math]::Floor($rect.Width),
+   [int][Math]::Floor($rect.Height),[System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+  try{
+   $g=[System.Drawing.Graphics]::FromImage($image)
+   try{
+    $g.CopyFromScreen([System.Drawing.Point]::new([int]$rect.Left,[int]$rect.Top),
+      [System.Drawing.Point]::Empty,$image.Size)
+   }finally{$g.Dispose()}
+   $output=Join-Path $env:RUNNER_TEMP 'ktrade-pr253-spectrum-native-workstation.png'
+   $image.Save($output,[System.Drawing.Imaging.ImageFormat]::Png)
+   Write-Host ('W41_SPECTRUM_VISUAL='+(@{scope='self_owned_ephemeral_native_window_only';
+    width=$image.Width;height=$image.Height;live_armed=$false;owner_profile_used=$false;
+    screenshot_sha256=(Get-FileHash -LiteralPath $output -Algorithm SHA256).Hash.ToLowerInvariant();
+    pass_authority=$false}|ConvertTo-Json -Compress))
+  }finally{$image.Dispose()}
+ }catch{
+  Write-Host ('W41_SPECTRUM_VISUAL=UNAVAILABLE_'+$_.Exception.GetType().Name)
+ }
+}
+
 function W41-WaitColdAxis([object]$shell){
  $deadline=(Get-Date).AddSeconds(18)
  $attempt=0
@@ -1280,6 +1320,7 @@ try{
  Write-Host '::notice::W41_INSTALLED_COLD_FRACTIONAL_CHART_VIEWPORT=PASS'
  ClickUI $active.shell 'Desktop diagnostics'
  Write-Host 'W41_LAYOUT_DESKTOP_DIAGNOSTICS_COLLAPSED=PASS'
+ W41-SpectrumVisual $active.shell
  W41-LayoutStress $active
  W41-Stop $active;$active=$null
  Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
