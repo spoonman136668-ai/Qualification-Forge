@@ -28,7 +28,7 @@ jobs:
       GOTOOLCHAIN: 'local'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
-      KTRADE_EXPECTED_SOURCE: '9a5787ccea34cb6a803b29cff95fe8cb3d798216'
+      KTRADE_EXPECTED_SOURCE: 'a6e7bb734466bcec08bf17e59671dc259f5c3c64'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
       - name: Checkout exact qualification witness
@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 9a5787ccea34cb6a803b29cff95fe8cb3d798216
+          ref: a6e7bb734466bcec08bf17e59671dc259f5c3c64
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -58,7 +58,7 @@ jobs:
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
           $source=(& git -C $p rev-parse HEAD).Trim()
           $tree=(& git -C $p rev-parse 'HEAD^{tree}').Trim()
-          if($source -cne '9a5787ccea34cb6a803b29cff95fe8cb3d798216' -or $tree -cne 'c14821abde693d9f3df9f9d2f346590174dc0489' -or
+          if($source -cne 'a6e7bb734466bcec08bf17e59671dc259f5c3c64' -or $tree -cne 'eebffa33a5f463a0b59577423da315e1ae2df82a' -or
              @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){
             throw 'W41_INSTALLED_EXACT_CLEAN_SOURCE_REQUIRED'
           }
@@ -99,7 +99,7 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_VENDOR_REFUSED'}
             $dest=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
-            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '9a5787ccea34cb6a803b29cff95fe8cb3d798216'
+            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha 'a6e7bb734466bcec08bf17e59671dc259f5c3c64'
             if($LASTEXITCODE -ne 0){throw 'W41_REAL_NATIVE_INSTALLER_BUILD_FAILED'}
             $zip=Join-Path $dest 'KTRADE-SetupBundle.zip'
             if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W41_REAL_NATIVE_INSTALLER_MISSING'}
