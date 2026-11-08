@@ -385,6 +385,71 @@ function W41-AxisDifference([object]$reference,[object]$candidate){
   }|ConvertTo-Json -Compress))
  }finally{$a.Dispose();$b.Dispose()}
 }
+# Read-only native pixel witness: identify the original LightweightCharts
+# up/down candle colors at each chart-plot X column. Unlike the time axis,
+# candle-column positions should survive time-label formatting changes.
+# No UI injection, price values, screenshot uploads or pass substitution.
+function W41-CandleColorColumns([string]$phase){
+ $file=Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$phase+'-context.png')
+ Require (Test-Path -LiteralPath $file -PathType Leaf) 'W41_CANDLE_PIXEL_CONTEXT_MISSING'
+ $bmp=[System.Drawing.Bitmap]::new($file)
+ try{
+  $left=20;$right=$bmp.Width-114;$top=25;$bottom=$bmp.Height-40
+  Require ($right-$left -ge 240 -and $bottom-$top -ge 120) 'W41_CANDLE_PIXEL_ROI_INVALID'
+  $tags=[Collections.Generic.List[int]]::new()
+  for($x=$left;$x -lt $right;$x+=2){
+   $up=0;$down=0
+   for($y=$top;$y -lt $bottom;$y+=2){
+    $p=$bmp.GetPixel($x,$y)
+    if([Math]::Abs([int]$p.R-38) -le 18 -and
+       [Math]::Abs([int]$p.G-166) -le 18 -and
+       [Math]::Abs([int]$p.B-154) -le 18){$up++}
+    if([Math]::Abs([int]$p.R-239) -le 18 -and
+       [Math]::Abs([int]$p.G-83) -le 18 -and
+       [Math]::Abs([int]$p.B-80) -le 18){$down++}
+   }
+   $tag=0
+   if($up -ge 2 -and $up -gt $down*2){$tag=1}
+   elseif($down -ge 2 -and $down -gt $up*2){$tag=-1}
+   $tags.Add($tag)
+  }
+  $active=0;$runs=0;$prior=0
+  foreach($tag in $tags){
+   if($tag -ne 0){$active++;if($tag -ne $prior){$runs++}}
+   $prior=$tag
+  }
+  return [pscustomobject]@{
+   phase=$phase;tags=[int[]]$tags.ToArray();
+   active_columns=$active;color_runs=$runs;plot_width=$right-$left
+  }
+ }finally{$bmp.Dispose()}
+}
+function W41-CompareCandleColumns([object]$first,[object]$second){
+ Require ($first.tags.Length -eq $second.tags.Length) 'W41_CANDLE_PIXEL_COLUMN_DIMENSION_DRIFT'
+ $hitFirst=0;$hitSecond=0;$both=0
+ for($i=0;$i -lt $first.tags.Length;$i++){
+  $a=[int]$first.tags[$i];$b=[int]$second.tags[$i]
+  if($a -ne 0){
+   for($j=[Math]::Max(0,$i-1);$j -le [Math]::Min($first.tags.Length-1,$i+1);$j++){
+    if([int]$second.tags[$j] -eq $a){$hitFirst++;break}
+   }
+  }
+  if($b -ne 0){
+   for($j=[Math]::Max(0,$i-1);$j -le [Math]::Min($second.tags.Length-1,$i+1);$j++){
+    if([int]$first.tags[$j] -eq $b){$hitSecond++;break}
+   }
+  }
+  if($a -ne 0 -and $a -eq $b){$both++}
+ }
+ return @{from=$first.phase;to=$second.phase;
+   active_from=$first.active_columns;active_to=$second.active_columns;
+   runs_from=$first.color_runs;runs_to=$second.color_runs;
+   same_x_same_color=$both;
+   matched_from_within_2px=$hitFirst;matched_to_within_2px=$hitSecond;
+   directed_pct_from=if($first.active_columns){[Math]::Round(100.0*$hitFirst/$first.active_columns,1)}else{0};
+   directed_pct_to=if($second.active_columns){[Math]::Round(100.0*$hitSecond/$second.active_columns,1)}else{0}
+ }
+}
 function ViewportMouseAway([object]$shell){
  $r=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
  Require ([W83Native]::SetCursorPos([int]($r.Left+12),[int]($r.Top+10))) 'VIEWPORT_MOUSE_AWAY_FAILED'
@@ -793,6 +858,15 @@ try{
   }catch{}
   Write-Host ('W41_NATIVE_CHART_POST_LAYOUT_STAGE='+$lateStage)
   W41-AxisDifference $panned $restored
+  $columnsFit=W41-CandleColorColumns 'COLD_BASELINE'
+  $columnsSaved=W41-CandleColorColumns 'COLD_PANNED'
+  $columnsReopen=W41-CandleColorColumns 'COLD_REOPENED'
+  Write-Host ('W41_NATIVE_CANDLE_X_ANCHOR_DIAGNOSTIC='+(@{
+   negative_fit_vs_saved=(W41-CompareCandleColumns $columnsFit $columnsSaved);
+   positive_saved_vs_cold=(W41-CompareCandleColumns $columnsSaved $columnsReopen);
+   no_pass_authority=$true;
+   scope='original_native_pixels_same_candles_up_down_color_2px_alignment_no_DOM_injection'
+  }|ConvertTo-Json -Compress -Depth 6))
  }
  Require $sameViewport 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
  $cap=Invoke-RestMethod -Method Get -Uri ($active.origin+'/api/operator/capabilities') -TimeoutSec 10
