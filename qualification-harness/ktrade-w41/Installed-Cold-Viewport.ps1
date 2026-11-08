@@ -455,7 +455,7 @@ function W41-Stop([object]$run){
 # Bounded, read-only localStorage LevelDB marker observation on this runner's
 # new synthetic installed profile. A hit indicates encoded key presence only;
 # missing markers are diagnostic, never a standalone data-loss conclusion.
-function W41-ObserveProfileKeys([string]$candidate){
+function W41-ObserveProfileKeys([string]$candidate,[object]$expected){
  $profile=Join-Path $candidate 'data/webview2-profile'
  if(!(Test-Path -LiteralPath $profile -PathType Container)){
   Write-Host 'W41_PROFILE_MARKER_SCAN=UNAVAILABLE_NO_PROFILE';return
@@ -474,6 +474,7 @@ function W41-ObserveProfileKeys([string]$candidate){
   }
  }
  $hit=@($false,$false);$scanned=0;$unreadable=0
+ $records=0;$contextRecords=0;$sameHistory=0;$fractionalRecords=0;$parseFailures=0
  foreach($root in $roots){
   if(!(Test-Path -LiteralPath $root -PathType Container)){continue}
   Ordinary $root $true
@@ -487,12 +488,48 @@ function W41-ObserveProfileKeys([string]$candidate){
    try{$text=[Text.Encoding]::Latin1.GetString([IO.File]::ReadAllBytes($file.FullName))}
    catch{$unreadable++;continue}
    $scanned++
+   # Read-only scan of just the disposable test profile's tiny LevelDB log.
+   # The original native installed witness never decrypts or migrates storage.
+   # Do not publish raw JSON, prices, timestamps, ranges, profile paths or keys.
+   if($file.Length -le 1048576){
+    try{
+     $raw=[IO.File]::ReadAllBytes($file.FullName)
+     $views=@($text,[Text.Encoding]::Unicode.GetString($raw,0,($raw.Length-[int]($raw.Length%2))))
+     foreach($view in $views){
+      $found=[regex]::Matches($view,'\{"schema":"ktrade\.chart-viewport\.v2"[^{}]{0,480}\}')
+      foreach($match in $found){
+       $records++
+       try{
+        $row=$match.Value|ConvertFrom-Json
+        if($row.schema -cne 'ktrade.chart-viewport.v2' -or
+           $row.product -cne 'BTC-USD' -or $row.tf -cne '1h' -or
+           [long]$row.count -ne [long]$expected.count -or
+           [long]$row.first -ne [long]$expected.first -or
+           [long]$row.last -ne [long]$expected.last){continue}
+        $contextRecords++
+        if([string]$row.history -ceq [string]$expected.history){$sameHistory++}
+        $from=[double]$row.from;$to=[double]$row.to
+        if([double]::IsFinite($from) -and [double]::IsFinite($to) -and
+           $to-$from -ge .75 -and
+           ([Math]::Abs($from-[Math]::Round($from)) -gt .02 -or
+            [Math]::Abs($to-[Math]::Round($to)) -gt .02)){$fractionalRecords++}
+       }catch{$parseFailures++}
+      }
+     }
+    }catch{$parseFailures++}
+   }
    for($i=0;$i -lt $keys.Count;$i++){
     if(!$hit[$i] -and ($text.Contains($patterns[$i].ascii) -or
       $text.Contains($patterns[$i].utf16))){$hit[$i]=$true}
    }
   }
  }
+ Write-Host ('W41_COLD_PROFILE_V2_VALUE_PROBE='+(@{
+  json_candidates=$records;bounded_context_matches=$contextRecords;
+  matching_full_history=$sameHistory;fractional_records=$fractionalRecords;
+  parse_failures=$parseFailures;
+  semantic_proof=$false;scope='test_owned_LevelDB_log_heuristic_only_no_values_or_active_record_proof'
+ }|ConvertTo-Json -Compress))
  Write-Host ('W41_COLD_PROFILE_STORAGE_MARKERS='+(@{
   scanned_files=$scanned;unreadable_files=$unreadable;
   viewport_key_present=$hit[0];timeframe_key_present=$hit[1];
@@ -579,7 +616,7 @@ try{
   $beforeClose.first -eq $firstCandles.first -and
   $beforeClose.last -eq $firstCandles.last) 'W41_CANDLE_HISTORY_DRIFTED_DURING_NAVIGATION'
  W41-Stop $active;$active=$null
- W41-ObserveProfileKeys $installed.candidate_directory
+ W41-ObserveProfileKeys $installed.candidate_directory $beforeClose
  $active=W41-Start $installed.candidate_directory
  # Read-only UIA metadata can distinguish a lost timeframe preference from
  # viewport-only restoration failure; it cannot substitute for the pixel oracle.
