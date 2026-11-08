@@ -22,6 +22,7 @@ jobs:
     env:
       KTRADE_EXPECTED_SOURCE: '7555411bbc1f2320bda6158009da0eaa8a88a246'
       QFORGE_TARGETED_PKG_ONLY: '0'
+      QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '1'
       KTRADE_EXPECTED_TREE: '12a4dac7d0b58332f33e2bcfd5ebc59dddaa65e0'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -169,6 +170,31 @@ jobs:
             if($env:QFORGE_TARGETED_PKG_ONLY -ceq '1'){
               Checked 'PKG_TARGETED_REPRO' 'go' @('test','-mod=readonly','-count=1','./pkg')
               Write-Host 'QFORGE_PKG_TARGETED_ONLY=PASS;NOT_FINAL_REGRESSION'
+              return
+            }
+            if($env:QFORGE_NODE_FIRST_BATCH_DIAG_ONLY -ceq '1'){
+              # Prior full native run on this exact SHA passed every Go gate
+              # and stopped at the first Node batch. Diagnose only that
+              # failure set; no duplicate full Go/Wails regression.
+              Checked 'NPM_LOCKED_ASSETS' 'npm.cmd' @('ci','--ignore-scripts','--no-audit','--no-fund','--silent')
+              Checked 'OFFLINE_VENDOR' 'node' @('scripts/stage_offline_vendor.cjs')
+              $all=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -Filter '*.test.cjs' -File |
+                Sort-Object FullName | ForEach-Object {$_.FullName})
+              Require ($all.Count -ge 25) 'QFORGE_NODE_FIRST_BATCH_TOO_SMALL'
+              $failed=[Collections.Generic.List[int]]::new()
+              $invalid=0
+              for($i=0;$i -lt 25;$i++){
+                & node --test --test-reporter=tap $all[$i] *> $log
+                if($LASTEXITCODE -ne 0){
+                  $failed.Add($i)
+                  $txt=[IO.File]::ReadAllText($log)
+                  if($txt.Length -gt 1000000){$invalid++}
+                  Remove-Variable txt -ErrorAction SilentlyContinue
+                }
+              }
+              Write-Host ('QFORGE_NODE_FIRST_BATCH_FILE_COUNT=25;failed_ordinals='+
+                ($failed -join ',')+';oversized_reports='+$invalid)
+              Write-Host 'QFORGE_NODE_FIRST_BATCH_DIAG=COMPLETE_NOT_FULL_REGRESSION'
               return
             }
             # First validate the new tagged-only fixture and Go interface,
