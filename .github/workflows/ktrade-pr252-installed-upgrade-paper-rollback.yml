@@ -68,7 +68,8 @@ jobs:
               @(& git -C $source[0] status --porcelain --untracked-files=no).Count -eq 0 -and
               !(Test-Path (Join-Path $source[0] '.env'))) 'PR252_RELEASE_SOURCE_NOT_EXACT_AND_CLEAN'
             $cfg=Get-Content -LiteralPath (Join-Path $source[0] 'config.json') -Raw|ConvertFrom-Json
-            Require (!$cfg.api_key.key_name -and !$cfg.api_key.key_secret -and !$cfg.account_id -and !$cfg.ngrok_authtoken) 'PR252_RELEASE_TRACKED_CREDENTIALS_REFUSED'
+            Require (!$cfg.api_key.key_name -and !$cfg.api_key.key_secret -and !$cfg.account_id -and
+              (!( @($cfg.PSObject.Properties.Name) -contains 'ngrok_authtoken') -or !$cfg.ngrok_authtoken)) 'PR252_RELEASE_TRACKED_CREDENTIALS_REFUSED'
             Require ((Get-Content (Join-Path $source[0] 'pkg/advanced_orders.go') -Raw) -match
               'func liveBrokerageAuthorized\(\) bool \{ return false \}') 'PR252_RELEASE_LIVE_DISARM_DRIFT'
           }
