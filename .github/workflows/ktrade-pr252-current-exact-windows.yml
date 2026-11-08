@@ -2,7 +2,7 @@
 name: KTRADE PR252 current exact-source Windows qualification
 # Existing Qualification-Forge KTRADE-specific Windows lane. One-shot push
 # of this pinned workflow on the dedicated, existing qualification branch.
-# Exact source KTRADE 63f0ffb4819e4ef59f6a9084727dced14b5eac4a passed full native Go/Node/Wails builds
+# Exact source KTRADE bca8616e342434797b379e1c366a507abf7aa50b passed full native Go/Node/Wails builds
 # in QForge run 42463199920. One remaining separate qualification is the
 # genuine disposable two-process Wails/WebView2 cold-reopen at that same SHA.
 on:
@@ -24,10 +24,10 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '63f0ffb4819e4ef59f6a9084727dced14b5eac4a'
+      KTRADE_EXPECTED_SOURCE: 'bca8616e342434797b379e1c366a507abf7aa50b'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: '17570baa8887a7917ab7c8dd118b37f08cc8cd81'
+      KTRADE_EXPECTED_TREE: 'f271080a048036eab2124cdaa951f6f642116298'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -48,7 +48,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 63f0ffb4819e4ef59f6a9084727dced14b5eac4a
+          ref: bca8616e342434797b379e1c366a507abf7aa50b
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -267,9 +267,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '63f0ffb4819e4ef59f6a9084727dced14b5eac4a'
-      KTRADE_EXPECTED_TREE: '17570baa8887a7917ab7c8dd118b37f08cc8cd81'
-      W01_EXPECTED_SHA: '63f0ffb4819e4ef59f6a9084727dced14b5eac4a'
+      KTRADE_EXPECTED_SOURCE: 'bca8616e342434797b379e1c366a507abf7aa50b'
+      KTRADE_EXPECTED_TREE: 'f271080a048036eab2124cdaa951f6f642116298'
+      W01_EXPECTED_SHA: 'bca8616e342434797b379e1c366a507abf7aa50b'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -284,7 +284,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 63f0ffb4819e4ef59f6a9084727dced14b5eac4a
+          ref: bca8616e342434797b379e1c366a507abf7aa50b
           fetch-depth: 0
           path: product
           persist-credentials: false
