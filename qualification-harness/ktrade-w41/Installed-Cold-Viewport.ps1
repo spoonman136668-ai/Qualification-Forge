@@ -355,6 +355,24 @@ function W41-AxisDifference([object]$reference,[object]$candidate){
    }
   }
   $ra=@(ViewportLabelRuns $a);$rb=@(ViewportLabelRuns $b)
+  # A categorical read-only comparison of the six observed original axis
+  # glyph runs, ordered left to right; never infer trading time or text.
+  $pairs=@()
+  $pairCount=[Math]::Min($ra.Count,$rb.Count)
+  for($i=0;$i -lt $pairCount;$i++){
+   $aa=$ra[$i];$bb=$rb[$i]
+   $symmetric=(ViewportGlyphCoverage $a $aa $b $bb) -and
+    (ViewportGlyphCoverage $b $bb $a $aa)
+   $pairs+=@{ordinal=$i;start_shift_pixels=([int]$bb.start-[int]$aa.start);
+    width_before=([int]$aa.end-[int]$aa.start+1);
+    width_after=([int]$bb.end-[int]$bb.start+1);
+    glyph_equivalent=$symmetric}
+  }
+  Write-Host ('W41_NATIVE_AXIS_GLYPH_PAIR_DIAGNOSTIC='+(@{
+   before_clusters=$ra.Count;after_clusters=$rb.Count;ordered_pairs=$pairs;
+   interpretation='same_ordinals_shape_test_only_not_OCR_or_acceptance';
+   full_pixel_oracle_unchanged=$true
+  }|ConvertTo-Json -Compress -Depth 5))
   Write-Host ('W41_NATIVE_AXIS_STRIP_DIFFERENCE='+(@{
    changed_pixels=$changed;first_changed_x=if($changed){$lo}else{-1};
    last_changed_x=$hi;per_quarter_changed_pixels=$perBand;
