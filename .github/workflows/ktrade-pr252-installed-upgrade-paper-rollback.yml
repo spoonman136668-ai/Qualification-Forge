@@ -2,7 +2,10 @@ name: KTRADE PR252 exact-source installed upgrade PAPER rollback
 on:
   push:
     branches: [qualification/ktrade-pr252-w41-cold-viewport-20261107]
-    paths: [.github/workflows/ktrade-pr252-installed-upgrade-paper-rollback.yml]
+    paths:
+      - .github/workflows/ktrade-pr252-installed-upgrade-paper-rollback.yml
+      - qualification-harness/ktrade-pr252-release/Installed-Paper-Lifecycle.ps1
+      - qualification-harness/ktrade-pr252-release/Build-And-Qualify.ps1
 permissions:
   contents: read
   actions: read
