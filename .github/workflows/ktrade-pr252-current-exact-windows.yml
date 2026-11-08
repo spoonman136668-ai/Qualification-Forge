@@ -62,8 +62,9 @@ jobs:
             (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE -and
             @(& git -C $p status --porcelain).Count -eq 0 -and
             !(Test-Path -LiteralPath (Join-Path $p '.env'))) 'QFORGE_EXACT_PRIVATE_SOURCE_REFUSED'
-          function Checked([string]$label,[string]$command,[string[]]$args){
-            & $command @args *> $log
+          function Checked([string]$label,[string]$command,[string[]]$argv){
+            Require ($argv.Count -gt 0) ('QFORGE_'+$label+'_EMPTY_COMMAND_ARGS')
+            & $command @argv *> $log
             if($LASTEXITCODE -ne 0){throw ('QFORGE_'+$label+'_FAIL_PRIVATE_OUTPUT_WITHHELD')}
             Write-Host ('QFORGE_'+$label+'=PASS')
           }
@@ -100,7 +101,9 @@ jobs:
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
           }
   wails-two-cold-launches:
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
+    # The previous exact-source Wails process is already running; do not
+    # duplicate it when repairing only the independent native Go test argv.
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107' && !contains(github.event.head_commit.message, 'native-only')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
