@@ -1,0 +1,164 @@
+name: KTRADE PR253 UI preview exact-source unsigned Windows build
+on:
+  push:
+    branches: [qualification/ktrade-ui-workstation-refresh-20261108]
+    paths: [.github/workflows/ktrade-pr253-ui-preview-installer-once.yml]
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-pr253-ui-preview-artifact-20261108
+  cancel-in-progress: false
+jobs:
+  private-installer:
+    name: sealed unsigned installer from exact qualified source
+    runs-on: windows-2022
+    timeout-minutes: 30
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      KTRADE_EXPECTED_SHA: 613dee9d9ddb7d9227c5d36bda94e4c8a311275a
+      KTRADE_EXPECTED_TREE: 9572b97cd06b92a27387602ffe955fb3fcba6869
+    steps:
+      - name: Checkout exact original KTRADE source without retaining credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 613dee9d9ddb7d9227c5d36bda94e4c8a311275a
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify isolated runner exact tree no secrets LIVE disarmed and no checkout drift
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          function Need([bool]$v,[string]$m){if(-not $v){throw $m}}
+          Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
+            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' -and
+            $env:GITHUB_EVENT_NAME -ceq 'push' -and
+            $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
+            $env:RUNNER_OS -ceq 'Windows' -and
+            $env:KTRADE_LIVE_TRADING -ceq 'false') 'KTRADE_ARTIFACT_ISOLATION_REFUSED'
+          $os=Get-CimInstance Win32_OperatingSystem
+          Need ($os.Caption -match 'Windows Server 2022') 'KTRADE_ARTIFACT_WRONG_WINDOWS_IMAGE'
+          $sha=(& git rev-parse HEAD).Trim()
+          $tree=(& git rev-parse 'HEAD^{tree}').Trim()
+          Need ($sha -ceq $env:KTRADE_EXPECTED_SHA -and $tree -ceq $env:KTRADE_EXPECTED_TREE) 'KTRADE_ARTIFACT_SOURCE_IDENTITY_DRIFT'
+          Need (@(& git status --porcelain).Count -eq 0 -and -not(Test-Path '.env')) 'KTRADE_ARTIFACT_DIRTY_OR_SECRET_SOURCE_REFUSED'
+          $cfg=Get-Content 'config.json' -Raw|ConvertFrom-Json
+          Need (-not $cfg.api_key.key_name -and -not $cfg.api_key.key_secret -and
+            -not $cfg.account_id -and -not $cfg.ngrok_authtoken) 'KTRADE_ARTIFACT_TRACKED_CREDENTIALS_REFUSED'
+          Need ((Get-Content 'pkg/advanced_orders.go' -Raw).Contains('func liveBrokerageAuthorized() bool { return false }')) 'KTRADE_ARTIFACT_LIVE_GUARD_DRIFT'
+          Need ((Get-Content 'windows/Go-Toolchain.version' -Raw).Trim() -ceq 'go1.26.10') 'KTRADE_ARTIFACT_GO_PIN_DRIFT'
+          Write-Host ('KTRADE_ARTIFACT_EXACT_SOURCE='+$sha)
+          Write-Host ('KTRADE_ARTIFACT_EXACT_TREE='+$tree)
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify exact source UX contract without changing the product
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          & node --test tests/rb3_w85_desktop_operator_shell.test.cjs
+          if($LASTEXITCODE -ne 0){throw 'KTRADE_UI_PREVIEW_OPERATOR_SHELL_CONTRACT_FAILED'}
+          $html=Get-Content 'tools/wails-pilot/frontend/index.html' -Raw
+          $css=Get-Content 'tools/wails-pilot/frontend/style.css' -Raw
+          $chart=Get-Content 'templates/chart.tmpl' -Raw
+          if(-not $html.Contains('PAPER WORKSPACE · LIVE DISARMED') -or
+             -not $css.Contains('#chart{flex:1 1 0') -or
+             -not $chart.Contains('RB3 workstation redesign: chart-first operator surface.') -or
+             -not $chart.Contains('id="workspaceToolsMenu"') -or
+             -not $chart.Contains('id="chart" role="region" aria-label="Price chart drawing surface"')){
+            throw 'KTRADE_UI_PREVIEW_PRODUCT_DESIGN_CONTENT_MISMATCH'
+          }
+          Write-Host '::notice::KTRADE_UI_PREVIEW_CHART_FIRST_DESIGN_AND_ORIGINAL_SAFETY_CONTROLS=PASS'
+      - name: Stage existing locked assets only (no repeat full regression)
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          if((& go env GOVERSION).Trim() -cne 'go1.26.10'){throw 'KTRADE_ARTIFACT_GO_COMPILER_DRIFT'}
+          & npm.cmd ci --ignore-scripts --no-audit --no-fund
+          if($LASTEXITCODE -ne 0){throw 'KTRADE_ARTIFACT_ASSET_INSTALL_FAILED'}
+          & node scripts/stage_offline_vendor.cjs
+          if($LASTEXITCODE -ne 0){throw 'KTRADE_ARTIFACT_VENDOR_STAGE_FAILED'}
+          $manifest=Get-Content 'static/vendor/assets-manifest.json' -Raw|ConvertFrom-Json
+          if(@($manifest.files).Count -ne 118){throw 'KTRADE_ARTIFACT_VENDOR_FILE_COUNT_DRIFT'}
+          Write-Host '::notice::KTRADE_ARTIFACT_LOCKED_ASSET_STAGE=PASS'
+      - name: Build and validate original unsigned installer with no installation or signing
+        id: package
+        shell: powershell
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          Set-StrictMode -Version Latest
+          function Need([bool]$ok,[string]$message){if(-not $ok){throw $message}}
+          $env:PSModulePath=Join-Path $PSHOME 'Modules'
+          $env:TEMP=$env:RUNNER_TEMP
+          $env:TMP=$env:RUNNER_TEMP
+          $root=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
+          & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $root -ExpectedSourceSha $env:KTRADE_EXPECTED_SHA
+          Need ($LASTEXITCODE -eq 0) 'KTRADE_ARTIFACT_NATIVE_INSTALLER_BUILD_FAILED'
+          $stage=Join-Path $root 'KTRADE-SetupBundle'
+          $zip=Join-Path $root 'KTRADE-SetupBundle.zip'
+          $manifestFile=Join-Path $stage 'installer-manifest.json'
+          $receiptFile=Join-Path $root 'setup-build-receipt.json'
+          Need ((Test-Path $zip -PathType Leaf) -and (Test-Path $manifestFile -PathType Leaf) -and
+            (Test-Path $receiptFile -PathType Leaf) -and
+            -not(Test-Path (Join-Path $root '.setup-build-incomplete'))) 'KTRADE_ARTIFACT_INCOMPLETE_BUILD_REFUSED'
+          $m=Get-Content $manifestFile -Raw|ConvertFrom-Json
+          $receipt=Get-Content $receiptFile -Raw|ConvertFrom-Json
+          Need ($m.schema -ceq 'ktrade.setup-bundle.v2' -and
+            $m.source_sha -ceq $env:KTRADE_EXPECTED_SHA -and
+            $m.live_armed -eq $false -and $m.release_authority -ceq 'none' -and
+            $m.signature_status -ceq 'unsigned' -and
+            $receipt.schema -ceq 'ktrade.setup-build.v1' -and
+            $receipt.source_sha -ceq $env:KTRADE_EXPECTED_SHA -and
+            $receipt.live_armed -eq $false -and $receipt.release_authority -ceq 'none' -and
+            $receipt.signature_status -ceq 'unsigned') 'KTRADE_ARTIFACT_AUTHORITY_OR_SCHEMA_DRIFT'
+          $files=@($m.files)
+          Need ($files.Count -eq 7) 'KTRADE_ARTIFACT_MANIFEST_FILE_COUNT_DRIFT'
+          foreach($f in $files){
+            $p=Join-Path $stage $f.name
+            Need ((Test-Path $p -PathType Leaf) -and
+              (Get-Item $p).Length -eq $f.size -and
+              (Get-FileHash $p -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $f.sha256) 'KTRADE_ARTIFACT_FILE_HASH_MISMATCH'
+          }
+          $exes=@(Get-ChildItem $root -Filter '*.exe' -Recurse -File)
+          Need ($exes.Count -eq 6) 'KTRADE_ARTIFACT_SIX_EXECUTABLES_REQUIRED'
+          foreach($exe in $exes){
+            $ver=(& go version $exe.FullName)-join ''
+            Need ($LASTEXITCODE -eq 0 -and $ver.Trim().EndsWith(': go1.26.10',[StringComparison]::Ordinal) -and
+              (Get-AuthenticodeSignature $exe.FullName).Status -ceq 'NotSigned') 'KTRADE_ARTIFACT_EXE_COMPILER_OR_SIGNATURE_DRIFT'
+          }
+          $zipHash=(Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          $manifestHash=(Get-FileHash $manifestFile -Algorithm SHA256).Hash.ToLowerInvariant()
+          Need ($receipt.archive_sha256 -ceq $zipHash -and
+            $receipt.manifest_sha256 -ceq $manifestHash) 'KTRADE_ARTIFACT_BUILDER_RECEIPT_HASH_MISMATCH'
+          $sourceTree=(& git rev-parse 'HEAD^{tree}').Trim()
+          Need ($sourceTree -ceq $env:KTRADE_EXPECTED_TREE) 'KTRADE_ARTIFACT_SOURCE_TREE_DRIFT_AFTER_BUILD'
+          $changes=@(& git status --porcelain)
+          Need (@($changes|Where-Object{$_ -cnotin @('?? node_modules/','?? static/vendor/')}).Count -eq 0) 'KTRADE_ARTIFACT_TRACKED_OR_UNEXPECTED_SOURCE_CHANGED'
+          [IO.File]::AppendAllText($env:GITHUB_OUTPUT,('archive_path='+$zip+[Environment]::NewLine+'archive_sha256='+$zipHash+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          Write-Host ('KTRADE_ARTIFACT_PRIVATE_UNSIGNED_ZIP_SHA256='+$zipHash)
+          Write-Host ('KTRADE_ARTIFACT_MANIFEST_SHA256='+$manifestHash)
+          Write-Host '::notice::KTRADE_ARTIFACT_EXACT_TREE_ORIGINAL_UNSIGNED_INSTALLER_VERIFIED=PASS'
+          Write-Host '::notice::KTRADE_ARTIFACT_NO_INSTALL_NO_SIGN_NO_BROKER_NO_LIVE_NO_RELEASE'
+      - name: Retain private seven-day unsigned UI preview archive (not a release)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ktrade-pr253-ui-preview-unsigned-613dee9d9ddb7d9227c5d36bda94e4c8a311275a
+          path: ${{ steps.package.outputs.archive_path }}
+          if-no-files-found: error
+          retention-days: 7
