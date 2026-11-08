@@ -1,12 +1,12 @@
-name: KTRADE PR253 UI preview exact-source unsigned Windows build
+name: KTRADE NEXUS native command deck unsigned preview
 on:
   push:
-    branches: [qualification/ktrade-ui-workstation-refresh-20261108]
+    branches: [qualification/ktrade-nexus-command-deck-20261108]
     paths: [.github/workflows/ktrade-pr253-ui-preview-installer-once.yml]
 permissions:
   contents: read
 concurrency:
-  group: ktrade-pr253-ui-preview-artifact-20261108
+  group: ktrade-nexus-preview-artifact-20261108
   cancel-in-progress: false
 jobs:
   private-installer:
@@ -22,14 +22,14 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SHA: b5439a9fb7ea0162920177cf18e3c0513c05f44e
-      KTRADE_EXPECTED_TREE: 9e86837d575df2272075936c830848ea2cba5c61
+      KTRADE_EXPECTED_SHA: 472d04ba8fbad6ba18ff297e5f98991152baeda9
+      KTRADE_EXPECTED_TREE: 758b1acbab98fd77052eba79a1309f872756cba1
     steps:
       - name: Checkout exact original KTRADE source without retaining credentials
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: b5439a9fb7ea0162920177cf18e3c0513c05f44e
+          ref: 472d04ba8fbad6ba18ff297e5f98991152baeda9
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -40,7 +40,7 @@ jobs:
           $ErrorActionPreference='Stop'
           function Need([bool]$v,[string]$m){if(-not $v){throw $m}}
           Need ($env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
-            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' -and
+            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-nexus-command-deck-20261108' -and
             $env:GITHUB_EVENT_NAME -ceq 'push' -and
             $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
             $env:RUNNER_OS -ceq 'Windows' -and
@@ -70,7 +70,7 @@ jobs:
         working-directory: product
         run: |
           $ErrorActionPreference='Stop'
-          & node --test tests/rb3_w85_desktop_operator_shell.test.cjs
+          & node --test tests/rb3_w85_desktop_operator_shell.test.cjs tests/rb3_nexus_command_deck.test.cjs
           if($LASTEXITCODE -ne 0){throw 'KTRADE_UI_PREVIEW_OPERATOR_SHELL_CONTRACT_FAILED'}
           $html=Get-Content 'tools/wails-pilot/frontend/index.html' -Raw
           $css=Get-Content 'tools/wails-pilot/frontend/style.css' -Raw
@@ -81,6 +81,9 @@ jobs:
              -not $chart.Contains('id="workspaceToolsMenu"') -or
              -not $chart.Contains('id="chart" role="region" aria-label="Price chart drawing surface"')){
             throw 'KTRADE_UI_PREVIEW_PRODUCT_DESIGN_CONTENT_MISMATCH'
+          }
+          if(-not $chart.Contains('id="nexusLaunch"') -or -not $chart.Contains('class="desk-ribbon nexus-deck"')){
+            throw 'NEXUS_MISSING_COMMAND_DECK'
           }
           Write-Host '::notice::KTRADE_UI_PREVIEW_CHART_FIRST_DESIGN_AND_ORIGINAL_SAFETY_CONTROLS=PASS'
       - name: Stage existing locked assets only (no repeat full regression)
@@ -158,7 +161,7 @@ jobs:
       - name: Retain private seven-day unsigned UI preview archive (not a release)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ktrade-pr253-ui-preview-unsigned-b5439a9fb7ea0162920177cf18e3c0513c05f44e
+          name: ktrade-nexus-preview-unsigned-472d04ba8fbad6ba18ff297e5f98991152baeda9
           path: ${{ steps.package.outputs.archive_path }}
           if-no-files-found: error
           retention-days: 7
