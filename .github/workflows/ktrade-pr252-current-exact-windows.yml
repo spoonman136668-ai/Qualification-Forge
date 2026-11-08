@@ -1,9 +1,9 @@
-# W41 candidate c8361c1f10b1453671914a583629c842feb255fe genuine disposable WebView2 PASS: QForge run 42467765647.
+# W41 candidate 07818f9bff92f5823ad55f4517206083bb70f7b2 genuine disposable WebView2 PASS: QForge run 42467765647.
 # Native full regression is separately required on this exact candidate.
 name: KTRADE PR252 current exact-source Windows qualification
 # Existing Qualification-Forge KTRADE-specific Windows lane. One-shot push
 # of this pinned workflow on the dedicated, existing qualification branch.
-# Exact source KTRADE c8361c1f10b1453671914a583629c842feb255fe passed full native Go/Node/Wails builds
+# Exact source KTRADE 07818f9bff92f5823ad55f4517206083bb70f7b2 passed full native Go/Node/Wails builds
 # in QForge run 42463199920. One remaining separate qualification is the
 # genuine disposable two-process Wails/WebView2 cold-reopen at that same SHA.
 on:
@@ -25,10 +25,10 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: 'c8361c1f10b1453671914a583629c842feb255fe'
+      KTRADE_EXPECTED_SOURCE: '07818f9bff92f5823ad55f4517206083bb70f7b2'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: '445d21657e49d4a5916dc5d616fdd86290b4e471'
+      KTRADE_EXPECTED_TREE: '9a9bb9df3d1d60a867758577968fdeb90ec561dd'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: c8361c1f10b1453671914a583629c842feb255fe
+          ref: 07818f9bff92f5823ad55f4517206083bb70f7b2
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -267,9 +267,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: 'c8361c1f10b1453671914a583629c842feb255fe'
-      KTRADE_EXPECTED_TREE: '445d21657e49d4a5916dc5d616fdd86290b4e471'
-      W01_EXPECTED_SHA: 'c8361c1f10b1453671914a583629c842feb255fe'
+      KTRADE_EXPECTED_SOURCE: '07818f9bff92f5823ad55f4517206083bb70f7b2'
+      KTRADE_EXPECTED_TREE: '9a9bb9df3d1d60a867758577968fdeb90ec561dd'
+      W01_EXPECTED_SHA: '07818f9bff92f5823ad55f4517206083bb70f7b2'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -284,7 +284,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: c8361c1f10b1453671914a583629c842feb255fe
+          ref: 07818f9bff92f5823ad55f4517206083bb70f7b2
           fetch-depth: 0
           path: product
           persist-credentials: false
