@@ -20,9 +20,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '4028d83e47eb2eb51979d337eafae62ecf6ec8c9'
-      QFORGE_TARGETED_PKG_ONLY: '1'
-      KTRADE_EXPECTED_TREE: 'e3bea797b7474fde4e763b93e4e75d348cbe82af'
+      KTRADE_EXPECTED_SOURCE: '0aca6115f308f7468ec71ce9d805d8299bdba9cb'
+      QFORGE_TARGETED_PKG_ONLY: '0'
+      KTRADE_EXPECTED_TREE: '59b3ebc4ccae6a4a828a730488fd98641b2ad422'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 4028d83e47eb2eb51979d337eafae62ecf6ec8c9
+          ref: 0aca6115f308f7468ec71ce9d805d8299bdba9cb
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -174,6 +174,9 @@ jobs:
             # First validate the new tagged-only fixture and Go interface,
             # then run the mandatory untagged full suite. Avoid hiding a
             # fast W41-specific code defect behind the expensive baseline.
+            # Surgical repair: confirm six legacy P18C source contract
+            # callers and the ten new authority negative controls first.
+            Checked 'GO_PHASE18_CANDLES_FOCUSED' 'go' @('test','-mod=readonly','-count=1','./pkg','-run','TestPhase18_P18C|TestPhase18P18CChartTaggedSourceBoundaryRejectsDrift')
             Checked 'GO_W41_FIXTURE_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full,ktrade_w13_fixture,ktrade_w41_cold_fixture','./cmd/ktrade')
             Checked 'GO_FULL_DEFAULT' 'go' @('test','-mod=readonly','-count=1','./...')
             Checked 'GO_FULL_SHIPPING' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full','./...')
@@ -210,9 +213,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '4028d83e47eb2eb51979d337eafae62ecf6ec8c9'
-      KTRADE_EXPECTED_TREE: 'e3bea797b7474fde4e763b93e4e75d348cbe82af'
-      W01_EXPECTED_SHA: '4028d83e47eb2eb51979d337eafae62ecf6ec8c9'
+      KTRADE_EXPECTED_SOURCE: '0aca6115f308f7468ec71ce9d805d8299bdba9cb'
+      KTRADE_EXPECTED_TREE: '59b3ebc4ccae6a4a828a730488fd98641b2ad422'
+      W01_EXPECTED_SHA: '0aca6115f308f7468ec71ce9d805d8299bdba9cb'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -227,7 +230,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 4028d83e47eb2eb51979d337eafae62ecf6ec8c9
+          ref: 0aca6115f308f7468ec71ce9d805d8299bdba9cb
           fetch-depth: 0
           path: product
           persist-credentials: false
