@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='655d4473b15ce1ab7820a35842ff60b819022119'
+$NewSHA='e31402cd9af535d3c2b8885a2d81a287f7121883'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -724,7 +724,20 @@ try{
   throw 'W41_COLD_REOPEN_NATIVE_TIME_AXIS_ABSENT_NOT_ACCEPTED'
  }
  Require (!(ViewportAxisEquivalent $baseline $restored 'NEGATIVE_FIT_CONTENT')) 'W41_REOPEN_RESET_TO_FIT_CONTENT'
- Require (ViewportAxisEquivalent $panned $restored 'COLD_REOPENED_PRESERVES_FRACTIONAL_VIEWPORT') 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
+ $sameViewport=ViewportAxisEquivalent $panned $restored 'COLD_REOPENED_PRESERVES_FRACTIONAL_VIEWPORT'
+ if(!$sameViewport){
+  # After the already-failed native screenshot comparison, observe the
+  # chart's categorical logical-range stage once more without repair.
+  Start-Sleep -Milliseconds 1400
+  $later=FindUI $active.shell 'Price chart drawing surface' $false 5
+  $lateStage='UNAVAILABLE'
+  try{
+   $name=[string]$later.Current.Name
+   if($name -cmatch 'viewport:([a-z-]{3,40})'){$lateStage=$Matches[1]}
+  }catch{}
+  Write-Host ('W41_NATIVE_CHART_POST_LAYOUT_STAGE='+$lateStage)
+ }
+ Require $sameViewport 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
  $cap=Invoke-RestMethod -Method Get -Uri ($active.origin+'/api/operator/capabilities') -TimeoutSec 10
  Require ($cap.mode -ceq 'PAPER_STOPPED' -and
   $cap.live_orders_enabled -eq $false -and $cap.paper_orders_enabled -eq $false) 'W41_INSTALLED_REOPEN_CHANGED_TRADING_AUTHORITY'
