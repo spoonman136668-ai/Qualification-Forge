@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='e251f77bfe82291610bd0aa69eec8f72f4cac173'
+$NewSHA='219bf6a8d9f6f528b30e3bb340d8a2d1ca90c76a'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -529,7 +529,11 @@ function W41-CompareCandlePixels([object]$a,[object]$b){
 function W41-ReadFrame([object]$shell){
  try{
   $node=FindUI $shell 'Price chart drawing surface' $false 10
-  $m=[regex]::Match([string]$node.Current.Name,
+  $label=[string]$node.Current.Name
+  $s=[regex]::Match($label,'viewport:([a-z-]{3,40})')
+  $stage='UNAVAILABLE'
+  if($s.Success){$stage=$s.Groups[1].Value}
+  $m=[regex]::Match($label,
    ';frame:tf=([0-9a-z]+);count=([0-9]+);record=(match|none);live=(yes|no);size=([0-9]+)x([0-9]+);points=([0-9n:|\\-]+)')
   if(!$m.Success){return [pscustomobject]@{available=$false}}
   $v=@()
@@ -542,7 +546,7 @@ function W41-ReadFrame([object]$shell){
    $v+= [pscustomobject]@{index=[int]$p[0];x=$x;y=$y}
   }
   return [pscustomobject]@{
-   available=($v.Count -eq 3);tf=$m.Groups[1].Value;count=[int]$m.Groups[2].Value;
+   available=($v.Count -eq 3);stage=$stage;tf=$m.Groups[1].Value;count=[int]$m.Groups[2].Value;
    record=$m.Groups[3].Value;live=$m.Groups[4].Value;
    width=[int]$m.Groups[5].Value;height=[int]$m.Groups[6].Value;points=@($v)}
  }catch{return [pscustomobject]@{available=$false}}
@@ -1101,6 +1105,7 @@ try{
   }
   Write-Host ('W41_NATIVE_LOADED_FRAME_READBACK='+(@{
    before_available=$pannedFrame.available;after_available=$coldFrame.available;
+   before_stage=$pannedFrame.stage;after_stage=$coldFrame.stage;
    before_tf=$pannedFrame.tf;after_tf=$coldFrame.tf;
    before_count_matches_api=($pannedFrame.count -eq $firstCandles.count);
    after_count_matches_api=($coldFrame.count -eq $afterRestart.count);
