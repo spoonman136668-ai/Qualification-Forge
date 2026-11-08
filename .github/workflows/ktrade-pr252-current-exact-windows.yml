@@ -21,6 +21,7 @@ jobs:
     timeout-minutes: 65
     env:
       KTRADE_EXPECTED_SOURCE: '4028d83e47eb2eb51979d337eafae62ecf6ec8c9'
+      QFORGE_TARGETED_PKG_ONLY: '1'
       KTRADE_EXPECTED_TREE: 'e3bea797b7474fde4e763b93e4e75d348cbe82af'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -92,6 +93,31 @@ jobs:
                 # numeric positions of failing packages in the stable
                 # go-list output and numeric parent Test positions. No
                 # package/test names, source, raw log or credentials leave VM.
+                if($label -eq 'PKG_TARGETED_REPRO'){
+                  $failed=@([regex]::Matches($private,'(?m)^\s*--- FAIL:\s+(\S+)')|
+                    ForEach-Object {$_.Groups[1].Value.Split('/')[0]}|
+                    Select-Object -Unique)
+                  $need=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+                  foreach($name in $failed){[void]$need.Add($name)}
+                  $files=@(Get-ChildItem -LiteralPath (Join-Path $p 'pkg') -Filter '*_test.go' -File|
+                    Sort-Object Name)
+                  $filePositions=@()
+                  for($fi=0;$fi -lt $files.Count;$fi++){
+                    $textBody=[IO.File]::ReadAllText($files[$fi].FullName)
+                    $ms=[regex]::Matches($textBody,'(?m)^func\s+(Test[A-Za-z0-9_]+)\s*\(')
+                    foreach($m in $ms){
+                      if($need.Contains($m.Groups[1].Value)){
+                        $filePositions+= $fi
+                        [void]$need.Remove($m.Groups[1].Value)
+                      }
+                    }
+                    Remove-Variable textBody -ErrorAction SilentlyContinue
+                  }
+                  $filePositions=@($filePositions|Sort-Object -Unique)
+                  Write-Host ('QFORGE_GO_PKG_PRIVATE_FILE_ORDINALS='+($filePositions -join ',')+
+                    ';unmatched_failure_count='+$need.Count+';candidate_test_files='+$files.Count)
+                  Remove-Variable failed,need,files,filePositions -ErrorAction SilentlyContinue
+                }
                 if($label -eq 'GO_FULL_DEFAULT'){
                   $packageOrder=@(& go list -mod=readonly ./... 2>$null)
                   $failedPkgs=@([regex]::Matches($private,'(?m)^FAIL\s+(ktrade/\S+)')|
@@ -140,6 +166,11 @@ jobs:
           try{
             Require ((& go env GOVERSION).Trim() -ceq 'go1.26.10') 'QFORGE_UNEXPECTED_GO_TOOLCHAIN'
             Write-Host 'QFORGE_PROVEN_NATIVE_RUNNER_ENV_PARITY=PASS'
+            if($env:QFORGE_TARGETED_PKG_ONLY -ceq '1'){
+              Checked 'PKG_TARGETED_REPRO' 'go' @('test','-mod=readonly','-count=1','./pkg')
+              Write-Host 'QFORGE_PKG_TARGETED_ONLY=PASS;NOT_FINAL_REGRESSION'
+              return
+            }
             # First validate the new tagged-only fixture and Go interface,
             # then run the mandatory untagged full suite. Avoid hiding a
             # fast W41-specific code defect behind the expensive baseline.
