@@ -607,7 +607,78 @@ try{
   preclose_matches_reopen=($beforeClose.history -ceq $afterRestart.history);
   scope='six_field_float64_be_sha256_no_candle_values'
  }|ConvertTo-Json -Compress))
- $restored=W41-WaitColdAxis $active.shell
+ $restored=$null
+ try{$restored=W41-WaitColdAxis $active.shell}
+ catch{
+  # Diagnostic is only entered on missing actual time-axis ink after the
+  # bounded 18-second original render wait. A successful refresh cannot
+  # retroactively turn the failed *cold restore* into acceptance.
+  if($_.Exception.Message -cne 'VIEWPORT_AXIS_LABEL_PIXELS_NOT_OBSERVED'){throw}
+  $nativeState=@{one_hour_button=$false;one_minute_button=$false;
+    chart_surface=$false;data_unavailable=$false;loading_market_data=$false;
+    one_hour_toggle='UNAVAILABLE';one_hour_aria='UNAVAILABLE'}
+  try{
+   $rootEl=[System.Windows.Automation.AutomationElement]::FromHandle($active.shell.MainWindowHandle)
+   $nodes=$rootEl.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+    [System.Windows.Automation.Condition]::TrueCondition)
+   foreach($el in $nodes){
+    try{
+     $label=[string]$el.Current.Name
+     if($label -ceq '1h'){$nativeState.one_hour_button=$true}
+     if($label -ceq '1m'){$nativeState.one_minute_button=$true}
+     if($label.Contains('Price chart drawing surface')){$nativeState.chart_surface=$true}
+     if($label.Contains('Market data unavailable')){$nativeState.data_unavailable=$true}
+     if($label.Contains('Loading market data')){$nativeState.loading_market_data=$true}
+    }catch{}
+   }
+   $toggle=$null
+   if($reopenTimeframe.TryGetCurrentPattern([System.Windows.Automation.TogglePattern]::Pattern,[ref]$toggle)){
+    $nativeState.one_hour_toggle=[string]$toggle.Current.ToggleState
+   }
+   $aria=$reopenTimeframe.GetCurrentPropertyValue(
+    [System.Windows.Automation.AutomationElement]::AriaPropertiesProperty,$true)
+   if($aria -is [string]){
+    if($aria -match '(?:^|;)\s*pressed=true(?:;|$)'){$nativeState.one_hour_aria='TRUE'}
+    elseif($aria -match '(?:^|;)\s*pressed=false(?:;|$)'){$nativeState.one_hour_aria='FALSE'}
+   }
+  }catch{}
+  Write-Host ('W41_COLD_NATIVE_UIA_CLASSIFICATION='+($nativeState|ConvertTo-Json -Compress))
+  # Images remain on the disposable runner. Report only coarse palette
+  # diversity, never UI text, prices, screenshots, or browser storage values.
+  $surface=MarkerCaptureChart $active.shell 'REOPEN_DIAGNOSTIC_ONLY'
+  try{
+   $bins=@()
+   foreach($frac in @(0.25,0.60,0.90)){
+    $colors=[Collections.Generic.HashSet[string]]::new()
+    $yy=[int][Math]::Floor($surface.bitmap.Height*$frac)
+    for($xx=12;$xx -lt $surface.bitmap.Width-12;$xx+=8){
+     $px=$surface.bitmap.GetPixel($xx,$yy)
+     [void]$colors.Add(('{0}:{1}:{2}' -f ($px.R -shr 5),($px.G -shr 5),($px.B -shr 5)))
+    }
+    $bins+= $colors.Count
+   }
+   Write-Host ('W41_COLD_NATIVE_CHART_PALETTE='+(@{top_mid_bottom_distinct_bins=$bins;
+     scope='coarse_native_pixel_palette_only_no_chart_data'}|ConvertTo-Json -Compress))
+  }finally{$surface.bitmap.Dispose()}
+  # One bounded physical 1h reselect distinguishes lost initial timeframe/
+  # load/render from a cold-restoration defect. It changes ONLY the newly
+  # installed disposable chart, after the cold acceptance has already failed.
+  ClickUI $active.shell '1h'
+  Start-Sleep -Milliseconds 1600
+  try{
+   $afterClick=ViewportStableAxis $active.shell 'DIAGNOSTIC_POST_CLICK_1H'
+   Write-Host ('W41_COLD_EXPLICIT_1H_REFRESH_DIAGNOSTIC='+(@{
+    native_axis_visible=$true;
+    matches_saved_navigation=(ViewportAxisEquivalent $panned $afterClick 'DIAG_SAVED');
+    matches_original_fit=(ViewportAxisEquivalent $baseline $afterClick 'DIAG_FIT');
+    pass_authority=$false;scope='isolated_test_only_after_failed_cold_reopen'}|ConvertTo-Json -Compress))
+  }catch{
+   Write-Host ('W41_COLD_EXPLICIT_1H_REFRESH_DIAGNOSTIC='+(@{
+    native_axis_visible=$false;failure_class='AXIS_NOT_AVAILABLE_AFTER_RESELECT';
+    pass_authority=$false}|ConvertTo-Json -Compress))
+  }
+  throw 'W41_COLD_REOPEN_NATIVE_TIME_AXIS_ABSENT_NOT_ACCEPTED'
+ }
  Require (!(ViewportAxisEquivalent $baseline $restored 'NEGATIVE_FIT_CONTENT')) 'W41_REOPEN_RESET_TO_FIT_CONTENT'
  Require (ViewportAxisEquivalent $panned $restored 'COLD_REOPENED_PRESERVES_FRACTIONAL_VIEWPORT') 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
  $cap=Invoke-RestMethod -Method Get -Uri ($active.origin+'/api/operator/capabilities') -TimeoutSec 10
