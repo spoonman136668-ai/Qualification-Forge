@@ -20,8 +20,8 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9'
-      KTRADE_EXPECTED_TREE: '649ac9a60e141318c7c95851029150bd268d36d9'
+      KTRADE_EXPECTED_SOURCE: '4028d83e47eb2eb51979d337eafae62ecf6ec8c9'
+      KTRADE_EXPECTED_TREE: 'e3bea797b7474fde4e763b93e4e75d348cbe82af'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9
+          ref: 4028d83e47eb2eb51979d337eafae62ecf6ec8c9
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -109,9 +109,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9'
-      KTRADE_EXPECTED_TREE: '649ac9a60e141318c7c95851029150bd268d36d9'
-      W01_EXPECTED_SHA: '43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9'
+      KTRADE_EXPECTED_SOURCE: '4028d83e47eb2eb51979d337eafae62ecf6ec8c9'
+      KTRADE_EXPECTED_TREE: 'e3bea797b7474fde4e763b93e4e75d348cbe82af'
+      W01_EXPECTED_SHA: '4028d83e47eb2eb51979d337eafae62ecf6ec8c9'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -126,7 +126,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 43d1a7c1866e0e8fe156aa694949ed2e7c8ba4e9
+          ref: 4028d83e47eb2eb51979d337eafae62ecf6ec8c9
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -161,7 +161,7 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_LOCKED_VENDOR_FAILED'}
             & node scripts/stage_offline_vendor.cjs *> $log
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_VENDOR_STAGE_FAILED'}
-            & node --test tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w41_cold_bridge_pane_visibility.test.cjs tests/rb3_w41_cold_bridge_diagnostic.test.cjs tests/rb3_w41_cold_restart_harness.test.cjs *> $log
+            & node --test tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w41_cold_bridge_pane_visibility.test.cjs tests/rb3_w41_cold_bridge_diagnostic.test.cjs tests/rb3_w41_cold_parent_late_iframe.test.cjs tests/rb3_w41_cold_restart_harness.test.cjs *> $log
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_CHART_FOCUSED_TEST_FAILED'}
             & ./windows/Test-KTRADE-W41-ColdReopen.ps1 -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE
             if($LASTEXITCODE -ne 0 -or !$?){throw 'QFORGE_WAILS_REAL_TWO_LAUNCH_ACCEPTANCE_FAILED'}
