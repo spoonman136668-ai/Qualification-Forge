@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='7055e9db107c9d6e93271f3c9e52a61fbfe8bf36'
+$NewSHA='613dee9d9ddb7d9227c5d36bda94e4c8a311275a'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
