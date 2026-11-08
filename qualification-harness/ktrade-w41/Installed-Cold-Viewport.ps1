@@ -862,6 +862,22 @@ try{
  Start-Sleep -Milliseconds 800
  $panned=ViewportStableAxis $active.shell 'COLD_PANNED'
  $pannedFrame=W41-ReadFrame $active.shell
+ $pannedInk=W41-RenderedCloseInk $pannedFrame 'COLD_PANNED'
+ $pannedPaintAttempts=0
+ # No further synthetic gesture or resize: admit only a naturally painted
+ # original canvas whose actual candle-close coordinates contain candle ink.
+ while(!$pannedInk.all_three_ink -and $pannedPaintAttempts -lt 4){
+  $pannedPaintAttempts++
+  Start-Sleep -Milliseconds 450
+  $panned=ViewportStableAxis $active.shell 'COLD_PANNED'
+  $pannedFrame=W41-ReadFrame $active.shell
+  $pannedInk=W41-RenderedCloseInk $pannedFrame 'COLD_PANNED'
+ }
+ Write-Host ('W41_PRE_CLOSE_CANDLE_PAINT_SETTLE='+(@{
+  extra_attempts=$pannedPaintAttempts;
+  close_ink_all_three=$pannedInk.all_three_ink;
+  scope='natural_native_chart_paint_only_no_input_or_acceptance_override'
+ }|ConvertTo-Json -Compress))
  Require ($baseline.axis_sha256 -cne $panned.axis_sha256 -and
   !(ViewportAxisEquivalent $baseline $panned 'NEGATIVE_USER_NAVIGATION')) 'W41_NATIVE_CHART_NOT_CHANGED_BY_REAL_INPUT'
  $beforeClose=W41-Candles $firstOrigin
@@ -1038,6 +1054,7 @@ try{
    scope='original_native_pixels_same_candles_up_down_color_2px_alignment_no_DOM_injection'
   }|ConvertTo-Json -Compress -Depth 6))
  }
+ Require $pannedInk.all_three_ink 'W41_PRE_CLOSE_RENDERED_CANDLES_NOT_VERIFIED'
  Require $sameViewport 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
  $cap=Invoke-RestMethod -Method Get -Uri ($active.origin+'/api/operator/capabilities') -TimeoutSec 10
  Require ($cap.mode -ceq 'PAPER_STOPPED' -and
