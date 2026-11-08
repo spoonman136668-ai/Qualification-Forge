@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='07818f9bff92f5823ad55f4517206083bb70f7b2'
+$NewSHA='655d4473b15ce1ab7820a35842ff60b819022119'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -644,6 +644,13 @@ try{
   preclose_matches_reopen=($beforeClose.history -ceq $afterRestart.history);
   scope='six_field_float64_be_sha256_no_candle_values'
  }|ConvertTo-Json -Compress))
+ $chartNative=FindUI $active.shell 'Price chart drawing surface' $false 5
+ $stage='UNAVAILABLE'
+ try{
+  $label=[string]$chartNative.Current.Name
+  if($label -cmatch 'viewport:([a-z-]{3,40})'){$stage=$Matches[1]}
+ }catch{}
+ Write-Host ('W41_NATIVE_CHART_RESTORE_STAGE='+$stage)
  $restored=$null
  try{$restored=W41-WaitColdAxis $active.shell}
  catch{
