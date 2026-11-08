@@ -29,6 +29,12 @@ jobs:
       KTRADE_PAPER_SESSION_ROOT: ''
       KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
       CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOTOOLCHAIN: 'local'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_HEAD_REPOSITORY: 'spoonman136668-ai/ktrade'
+      KTRADE_REPOSITORY_PRIVATE: 'true'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       GOMAXPROCS: '2'
       GOFLAGS: '-p=2'
     steps:
@@ -92,9 +98,16 @@ jobs:
             }
             Write-Host ('QFORGE_'+$label+'=PASS')
           }
+          # Match the qualified original KTRADE Windows native CI environment.
+          # This is a controlled environment correction, not a product patch.
+          $env:TEMP=$env:RUNNER_TEMP
+          $env:TMP=$env:RUNNER_TEMP
+          Require (([IO.Path]::GetFullPath([IO.Path]::GetTempPath())).TrimEnd('\') -ceq
+            ([IO.Path]::GetFullPath($env:RUNNER_TEMP)).TrimEnd('\')) 'QFORGE_TEMP_IDENTITY_DRIFT'
           Push-Location $p
           try{
             Require ((& go env GOVERSION).Trim() -ceq 'go1.26.10') 'QFORGE_UNEXPECTED_GO_TOOLCHAIN'
+            Write-Host 'QFORGE_PROVEN_NATIVE_RUNNER_ENV_PARITY=PASS'
             Checked 'GO_FULL_DEFAULT' 'go' @('test','-mod=readonly','-count=1','./...')
             Checked 'GO_FULL_SHIPPING' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full','./...')
             Checked 'GO_W41_FIXTURE_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full,ktrade_w13_fixture,ktrade_w41_cold_fixture','./cmd/ktrade')
