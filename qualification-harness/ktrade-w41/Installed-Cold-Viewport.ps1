@@ -1022,6 +1022,17 @@ try{
   Start-Sleep -Seconds $wait
  }
  ClickUI $active.shell '1h'
+ # UIA metadata may be unavailable; never treat this as acceptance.
+ $preClickAria='UNAVAILABLE'
+ try{
+  $tfButton=FindUI $active.shell '1h' $true 4
+  $aria=$tfButton.GetCurrentPropertyValue([System.Windows.Automation.AutomationElement]::AriaPropertiesProperty,$true)
+  if($aria -is [string]){
+   if($aria -match '(?:^|;)\s*pressed=true(?:;|$)'){$preClickAria='TRUE'}
+   elseif($aria -match '(?:^|;)\s*pressed=false(?:;|$)'){$preClickAria='FALSE'}
+  }
+ }catch{}
+ Write-Host ('W41_DESIGN_NATIVE_1H_PRESSED_DIAGNOSTIC='+$preClickAria)
  Write-Host 'W41_REAL_NATIVE_1H_TIMEFRAME_CLICKED=PASS'
  Start-Sleep -Milliseconds 1300
  $firstOrigin=$active.origin
@@ -1067,6 +1078,14 @@ try{
  Require ($beforeClose.count -eq $firstCandles.count -and
   $beforeClose.first -eq $firstCandles.first -and
   $beforeClose.last -eq $firstCandles.last) 'W41_CANDLE_HISTORY_DRIFTED_DURING_NAVIGATION'
+ # Categorical accessibility-only stage for the original chart.
+ $nativeStage='UNAVAILABLE'
+ try{
+  $chartSurface=FindUI $active.shell 'Price chart drawing surface' $false 4
+  $chartName=[string]$chartSurface.Current.Name
+  if($chartName -match 'viewport:([a-z-]{3,40})'){$nativeStage=$Matches[1]}
+ }catch{}
+ Write-Host ('W41_DESIGN_PRE_CLOSE_NATIVE_VIEWPORT_STAGE='+$nativeStage)
  W41-Stop $active;$active=$null
  W41-ObserveProfileKeys $installed.candidate_directory $beforeClose
  $active=W41-Start $installed.candidate_directory
