@@ -1,0 +1,118 @@
+name: KTRADE PR252 exact-source installed upgrade PAPER rollback
+on:
+  push:
+    branches: [qualification/ktrade-pr252-w41-cold-viewport-20261107]
+    paths: [.github/workflows/ktrade-pr252-installed-upgrade-paper-rollback.yml]
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-pr252-isolated-installed-upgrade-paper-rollback
+  cancel-in-progress: false
+jobs:
+  installed-release-continuity:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
+    runs-on: windows-2022
+    timeout-minutes: 85
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact isolated release-acceptance witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout immutable historically accepted prior install
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact current qualified W41 PR252 candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: bca8616e342434797b379e1c366a507abf7aa50b
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Source ownership, safety, and original frozen lifecycle witness preflight
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; Set-StrictMode -Version Latest
+          function Require([bool]$v,[string]$name){if(!$v){throw $name}}
+          Require ($env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
+            $env:KTRADE_LIVE_TRADING -ceq 'false' -and $env:KTRADE_CI_LIVE_AUTHORITY -ceq '0' -and
+            $env:KTRADE_CI_PROMOTION_ALLOWED -ceq '0' -and $env:KTRADE_CI_COINBASE_ALLOWED -ceq '0') 'PR252_RELEASE_UNAUTHORIZED_EXECUTION'
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          $new=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          Require ((& git -C $w rev-parse HEAD).Trim() -ceq $env:GITHUB_SHA) 'PR252_RELEASE_WITNESS_SOURCE_DRIFT'
+          foreach($source in @(@($old,'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a','989020f81a7c731acf3bfa830c06e7e929805bcd'),@($new,'bca8616e342434797b379e1c366a507abf7aa50b','f271080a048036eab2124cdaa951f6f642116298'))){
+            Require ((& git -C $source[0] rev-parse HEAD).Trim() -ceq $source[1] -and
+              (& git -C $source[0] rev-parse 'HEAD^{tree}').Trim() -ceq $source[2] -and
+              @(& git -C $source[0] status --porcelain --untracked-files=no).Count -eq 0 -and
+              !(Test-Path (Join-Path $source[0] '.env'))) 'PR252_RELEASE_SOURCE_NOT_EXACT_AND_CLEAN'
+            $cfg=Get-Content -LiteralPath (Join-Path $source[0] 'config.json') -Raw|ConvertFrom-Json
+            Require (!$cfg.api_key.key_name -and !$cfg.api_key.key_secret -and !$cfg.account_id -and !$cfg.ngrok_authtoken) 'PR252_RELEASE_TRACKED_CREDENTIALS_REFUSED'
+            Require ((Get-Content (Join-Path $source[0] 'pkg/advanced_orders.go') -Raw) -match
+              'func liveBrokerageAuthorized\(\) bool \{ return false \}') 'PR252_RELEASE_LIVE_DISARM_DRIFT'
+          }
+          $h=Join-Path $w 'qualification-harness/ktrade-pr252-release'
+          foreach($p in @((Join-Path $h 'Build-And-Qualify.ps1'),(Join-Path $h 'Installed-Paper-Lifecycle.ps1'))){
+            $tokens=$null;$errors=$null
+            [void][Management.Automation.Language.Parser]::ParseFile($p,[ref]$tokens,[ref]$errors)
+            Require ($errors.Count -eq 0) 'PR252_RELEASE_WITNESS_POWERSHELL_PARSE_FAIL'
+          }
+          $f=Join-Path $w 'qualification-harness/ktrade-w83'
+          foreach($name in @('Original-W40-Native-Inputs.ps1','Original-W40-Paper.ps1')){
+            $p=Join-Path $f $name;$tokens=$null;$errors=$null
+            [void][Management.Automation.Language.Parser]::ParseFile($p,[ref]$tokens,[ref]$errors)
+            Require ($errors.Count -eq 0) 'PR252_RELEASE_ORIGINAL_W40_AST_DRIFT'
+          }
+          Require ((& git -C $w rev-parse 'HEAD:qualification-harness/ktrade-w83/Original-W40-Paper.ps1').Trim() -ceq
+            'c69c3c05ff7f4ef933856b036bfa23fbf0a760f1') 'PR252_RELEASE_ORIGINAL_FINANCIAL_ASSERTIONS_CHANGED'
+          Write-Host 'PR252_RELEASE_DISARMED_EXACT_SOURCE_AND_ORIGINAL_FINANCIAL_CUSTODY=PASS'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Installed prior-to-current update native PAPER Stop cold and rollback
+        shell: pwsh
+        timeout-minutes: 65
+        run: |
+          $ErrorActionPreference='Stop'
+          $env:TEMP=$env:RUNNER_TEMP;$env:TMP=$env:RUNNER_TEMP
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          $h=Join-Path $w 'qualification-harness/ktrade-pr252-release'
+          $original=Join-Path $w 'qualification-harness/ktrade-w83'
+          & (Join-Path $h 'Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') -WitnessScript (Join-Path $h 'Installed-Paper-Lifecycle.ps1') -NativeInputsPath (Join-Path $original 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $original 'Original-W40-Paper.ps1')
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'PR252_RELEASE_REAL_INSTALLED_PAPER_UPGRADE_ROLLBACK_FAILED'}
+          Write-Host '::notice::PR252_RELEASE_CURRENT_INSTALLED_PAPER_AND_ROLLBACK=PASS;source=bca8616e342434797b379e1c366a507abf7aa50b'
+      - name: Final disposable boundary and read-only source
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($dir in @('previous','candidate')){
+            $p=Join-Path $env:GITHUB_WORKSPACE $dir
+            if(Test-Path $p){if(@(& git -C $p status --porcelain --untracked-files=no).Count -ne 0){throw 'PR252_RELEASE_TRACKED_SOURCE_DRIFT'}}
+          }
+          Write-Host '::notice::PR252_RELEASE_EPHEMERAL_PAPER_ONLY_NO_OWNER_INSTALL_NO_BROKER_NO_SIGNING_NO_PROMOTION'
