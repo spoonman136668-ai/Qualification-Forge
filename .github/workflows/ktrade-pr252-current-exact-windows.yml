@@ -67,7 +67,29 @@ jobs:
           function Checked([string]$label,[string]$command,[string[]]$argv){
             Require ($argv.Count -gt 0) ('QFORGE_'+$label+'_EMPTY_COMMAND_ARGS')
             & $command @argv *> $log
-            if($LASTEXITCODE -ne 0){throw ('QFORGE_'+$label+'_FAIL_PRIVATE_OUTPUT_WITHHELD')}
+            if($LASTEXITCODE -ne 0){
+              # Public qualifier never prints private test output, names,
+              # source, paths, credentials or build artifacts. Return only a
+              # bounded failure-class fingerprint so Go test vs build vs
+              # timeout can be distinguished without exposing KTRADE code.
+              $bytes=(Get-Item -LiteralPath $log -ErrorAction SilentlyContinue).Length
+              $sha=if(Test-Path -LiteralPath $log){(Get-FileHash -LiteralPath $log -Algorithm SHA256).Hash.ToLowerInvariant()}else{'none'}
+              $failureCases=0;$failurePkgs=0;$compileUnits=0;$timedOut=$false;$outOfMemory=$false
+              if($null -ne $bytes -and $bytes -ge 0 -and $bytes -le 10000000){
+                $private=[IO.File]::ReadAllText($log)
+                $failureCases=([regex]::Matches($private,'(?m)^\s*--- FAIL:')).Count
+                $failurePkgs=([regex]::Matches($private,'(?m)^FAIL\s+\S+')).Count
+                $compileUnits=([regex]::Matches($private,'(?m)^#\s+\S+')).Count
+                $timedOut=$private.Contains('panic: test timed out')
+                $outOfMemory=$private.Contains('fatal error: out of memory')
+                Remove-Variable private -ErrorAction SilentlyContinue
+              }
+              Write-Host ('QFORGE_'+$label+'_PRIVATE_CLASS: cases='+$failureCases+
+                ';packages='+$failurePkgs+';compile_units='+$compileUnits+
+                ';timeout='+$timedOut+';oom='+$outOfMemory+
+                ';log_sha256='+$sha+';raw_bytes='+$bytes)
+              throw ('QFORGE_'+$label+'_FAIL_PRIVATE_OUTPUT_WITHHELD')
+            }
             Write-Host ('QFORGE_'+$label+'=PASS')
           }
           Push-Location $p
