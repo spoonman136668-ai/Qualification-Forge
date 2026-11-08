@@ -366,7 +366,21 @@ function W41-Candles([string]$origin){
  $rows=@($data.candles)
  Require ($data.success -eq $true -and $rows.Count -ge 30 -and
   [long]$rows[0].time -gt 0 -and [long]$rows[$rows.Count-1].time -gt [long]$rows[0].time) 'W41_REAL_CANDLE_DATA_UNAVAILABLE'
- return [pscustomobject]@{count=$rows.Count;first=[long]$rows[0].time;last=[long]$rows[$rows.Count-1].time}
+ # The chart's v2 restore key hashes ALL six fields, not just time boundaries.
+ # Match the original JS DataView float64 big-endian byte order without logging
+ # source prices, sizes, private profile contents, or market records.
+ $bytes=[Collections.Generic.List[byte]]::new()
+ foreach($c in $rows){
+  foreach($field in @('time','open','high','low','close','volume')){
+   $value=[double]$c.$field
+   Require (![double]::IsNaN($value) -and ![double]::IsInfinity($value)) 'W41_HISTORY_NONFINITE_FIELD'
+   $part=[BitConverter]::GetBytes($value)
+   if([BitConverter]::IsLittleEndian){[Array]::Reverse($part)}
+   $bytes.AddRange([byte[]]$part)
+  }
+ }
+ $digest=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes.ToArray())).ToLowerInvariant()
+ return [pscustomobject]@{count=$rows.Count;first=[long]$rows[0].time;last=[long]$rows[$rows.Count-1].time;history=$digest}
 }
 function W41-Start([string]$candidate){
  $chosen=Join-Path $script:installedRoot '.ktrade-w29-install.json'
@@ -587,6 +601,12 @@ try{
  Require ($afterRestart.count -eq $firstCandles.count -and
   $afterRestart.first -eq $firstCandles.first -and
   $afterRestart.last -eq $firstCandles.last) 'W41_CANDLE_HISTORY_CHANGED_SAFE_FALLBACK_NOT_COLD_RESTORE_CASE'
+ Write-Host ('W41_INSTALLED_FULL_CANDLE_HISTORY_CUSTODY='+(@{
+  initial_matches_preclose=($firstCandles.history -ceq $beforeClose.history);
+  initial_matches_reopen=($firstCandles.history -ceq $afterRestart.history);
+  preclose_matches_reopen=($beforeClose.history -ceq $afterRestart.history);
+  scope='six_field_float64_be_sha256_no_candle_values'
+ }|ConvertTo-Json -Compress))
  $restored=W41-WaitColdAxis $active.shell
  Require (!(ViewportAxisEquivalent $baseline $restored 'NEGATIVE_FIT_CONTENT')) 'W41_REOPEN_RESET_TO_FIT_CONTENT'
  Require (ViewportAxisEquivalent $panned $restored 'COLD_REOPENED_PRESERVES_FRACTIONAL_VIEWPORT') 'W41_INSTALLED_COLD_REOPEN_TIME_AXIS_DID_NOT_RESTORE'
