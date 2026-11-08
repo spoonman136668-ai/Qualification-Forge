@@ -88,6 +88,38 @@ jobs:
                 $compileUnits=([regex]::Matches($private,'(?m)^#\s+\S+')).Count
                 $timedOut=$private.Contains('panic: test timed out')
                 $outOfMemory=$private.Contains('fatal error: out of memory')
+                # Source-private, identity-free diagnosis. Publish only
+                # numeric positions of failing packages in the stable
+                # go-list output and numeric parent Test positions. No
+                # package/test names, source, raw log or credentials leave VM.
+                if($label -eq 'GO_FULL_DEFAULT'){
+                  $packageOrder=@(& go list -mod=readonly ./... 2>$null)
+                  $failedPkgs=@([regex]::Matches($private,'(?m)^FAIL\s+(ktrade/\S+)')|
+                    ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                  $bins=@()
+                  foreach($packageName in $failedPkgs){
+                    $pkgIndex=[array]::IndexOf($packageOrder,$packageName)
+                    if($pkgIndex -lt 0){continue}
+                    $relative=$packageName.Substring(7)
+                    $pkgSource=Join-Path (Get-Location).Path ($relative.Replace('/','\'))
+                    $tests=@(Get-ChildItem -LiteralPath $pkgSource -Filter '*_test.go' -File -ErrorAction SilentlyContinue|
+                      Sort-Object Name|ForEach-Object {
+                        $fileText=[IO.File]::ReadAllText($_.FullName)
+                        [regex]::Matches($fileText,'(?m)^func\s+(Test[A-Za-z0-9_]+)\s*\(')|
+                          ForEach-Object {$_.Groups[1].Value}
+                      })
+                    $tests=@($tests|Sort-Object -Unique)
+                    $cases=@([regex]::Matches($private,'(?m)^\s*--- FAIL:\s+(\S+)')|
+                      ForEach-Object {$_.Groups[1].Value.Split('/')[0]}|
+                      Select-Object -Unique)
+                    $positions=@($cases|ForEach-Object {[array]::IndexOf($tests,$_)}|
+                      Where-Object {$_ -ge 0}|Sort-Object -Unique)
+                    $bins+=($pkgIndex.ToString()+':'+($positions -join ','))
+                    Remove-Variable pkgSource,tests,cases,positions -ErrorAction SilentlyContinue
+                  }
+                  Write-Host ('QFORGE_GO_DEFAULT_PRIVATE_ORDINAL_BINS='+($bins -join ';'))
+                  Remove-Variable packageOrder,failedPkgs,bins,packageName,relative -ErrorAction SilentlyContinue
+                }
                 Remove-Variable private -ErrorAction SilentlyContinue
               }
               Write-Host ('QFORGE_'+$label+'_PRIVATE_CLASS: cases='+$failureCases+
@@ -108,9 +140,12 @@ jobs:
           try{
             Require ((& go env GOVERSION).Trim() -ceq 'go1.26.10') 'QFORGE_UNEXPECTED_GO_TOOLCHAIN'
             Write-Host 'QFORGE_PROVEN_NATIVE_RUNNER_ENV_PARITY=PASS'
+            # First validate the new tagged-only fixture and Go interface,
+            # then run the mandatory untagged full suite. Avoid hiding a
+            # fast W41-specific code defect behind the expensive baseline.
+            Checked 'GO_W41_FIXTURE_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full,ktrade_w13_fixture,ktrade_w41_cold_fixture','./cmd/ktrade')
             Checked 'GO_FULL_DEFAULT' 'go' @('test','-mod=readonly','-count=1','./...')
             Checked 'GO_FULL_SHIPPING' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full','./...')
-            Checked 'GO_W41_FIXTURE_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full,ktrade_w13_fixture,ktrade_w41_cold_fixture','./cmd/ktrade')
             Checked 'GO_VET' 'go' @('vet','-mod=readonly','-tags','ktrade_full','./...')
             Checked 'GO_SHIPPING_BUILD' 'go' @('build','-mod=readonly','-tags','ktrade_full','./cmd/ktrade')
             Checked 'NPM_LOCKED_ASSETS' 'npm.cmd' @('ci','--ignore-scripts','--no-audit','--no-fund','--silent')
