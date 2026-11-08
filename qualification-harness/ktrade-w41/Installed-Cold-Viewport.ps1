@@ -127,7 +127,38 @@ function FindUI([object]$shell,[string]$label,[bool]$isButton,[int]$seconds=35){
  }
  throw ('W83_NATIVE_UI_NOT_OBSERVED_'+$label)
 }
+# The original toolbar is horizontally scrollable. Use *native*
+# Windows horizontal-wheel input to expose the desired timeframe before
+# clicking. UIA may report a clipped button as visible, so check against
+# the actual toolbar rectangle rather than Current.IsOffscreen alone.
+function W41-ExposeTimeframe([object]$shell,[string]$label){
+ $bar=FindUI $shell 'Chart tools and navigation' $false 12
+ $outer=$bar.Current.BoundingRectangle
+ Require (!$outer.IsEmpty -and $outer.Width -ge 170 -and $outer.Height -ge 25) 'W41_TOOLBAR_NATIVE_GEOMETRY_INVALID'
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $condition=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,$label)
+ $scrolled=0
+ for($n=0;$n -lt 8;$n++){
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
+  foreach($node in $nodes){try{
+   if($node.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button)continue
+   $r=$node.Current.BoundingRectangle
+   if(!$r.IsEmpty -and $r.Width -gt 8 -and $r.Height -gt 8 -and
+      $r.Left -ge ($outer.Left+3) -and $r.Right -le ($outer.Right-3)){
+      Write-Host ('W41_NATIVE_SCROLL_REVEALED_TIMEFRAME='+(@{label=$label;horizontal_wheel_steps=$scrolled;within_toolbar=$true}|ConvertTo-Json -Compress))
+      return
+   }
+  }catch{}}
+  [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+  Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W41_SCROLL_LOST_NATIVE_FOCUS'
+  Require ([W83Native]::SetCursorPos([int]($outer.Left+$outer.Width*0.55),[int]($outer.Top+$outer.Height*0.5))) 'W41_SCROLL_NATIVE_POINTER_FAILED'
+  [W83Native]::mouse_event(0x1000,0,0,120,[UIntPtr]::Zero)
+  $scrolled++;Start-Sleep -Milliseconds 220
+ }
+ throw 'W41_TIMEFRAME_NOT_WITHIN_SCROLLABLE_HEADER_AFTER_NATIVE_SCROLL'
+}
 function ClickUI([object]$shell,[string]$label){
+ if($label -ceq '1h'){W41-ExposeTimeframe $shell $label}
  $node=FindUI $shell $label $true
  $rect=$node.Current.BoundingRectangle
  $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle

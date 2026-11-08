@@ -206,7 +206,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   Require ($negative.success -eq $false -and ![string]::IsNullOrWhiteSpace($negative.error)) 'W83_MALFORMED_PINE_ACCEPTED'
   Write-Host '::notice::W83_INSTALLED_CANDIDATE_REAL_GO_PINE_V5_V6_COMPILE_AND_REFUSAL=PASS'
   # Genuine owned WebView2 UIA and physical-pointer catalog interaction.
-  # Inspect disabled aliases; never inject DOM code or issue a trading command.
+  # Current W90 catalog actions explicitly qualify Supertrend and RSI Divergence. Native UIA must expose their enabled apply buttons; never inject DOM or issue a trading command.
   ClickUI $shell 'Indicators'
   # Legacy W83 click can hit an occluded compact-toolbar target. Distinguish
   # a visible indicator dialog from an unhandled native click before
@@ -237,7 +237,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   foreach($label in @('Apply Supertrend','Apply RSI Divergence')){
     $condition=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,$label)
     $aliasNodes=$uiRoot.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
-    Require ($aliasNodes.Count -eq 1 -and $aliasNodes[0].Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and !$aliasNodes[0].Current.IsEnabled) 'W90_UNQUALIFIED_ALIAS_NOT_VISIBLY_DISABLED_IN_NATIVE_UIA'
+    Require ($aliasNodes.Count -eq 1 -and $aliasNodes[0].Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and $aliasNodes[0].Current.IsEnabled) 'PR252_QUALIFIED_W90_CATALOG_ACTION_NOT_NATIVE_ENABLED'
   }
   $search=FindUI $shell 'Search indicator catalog' $false 20
   Require ($search.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and $search.Current.IsEnabled) 'W90_REAL_CATALOG_SEARCH_NOT_ENABLED'
