@@ -1,3 +1,5 @@
+# W41 candidate c8361c1f10b1453671914a583629c842feb255fe genuine disposable WebView2 PASS: QForge run 42467765647.
+# Native full regression is separately required on this exact candidate.
 name: KTRADE PR252 current exact-source Windows qualification
 # Existing Qualification-Forge KTRADE-specific Windows lane. One-shot push
 # of this pinned workflow on the dedicated, existing qualification branch.
