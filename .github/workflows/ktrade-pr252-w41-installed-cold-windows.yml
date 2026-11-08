@@ -1,9 +1,9 @@
-name: KTRADE W41 exact-source installed WebView2 cold-reopen acceptance
+name: KTRADE UI redesign installed WebView2 cold-reopen acceptance
 
 on:
   push:
     branches:
-      - qualification/ktrade-pr252-w41-cold-viewport-20261107
+      - qualification/ktrade-ui-workstation-refresh-20261108
     paths:
       - qualification-harness/ktrade-w41/Installed-Cold-Viewport.ps1
       - .github/workflows/ktrade-pr252-w41-installed-cold-windows.yml
@@ -12,12 +12,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ktrade-pr252-w41-installed-cold-acceptance-20261107
+  group: ktrade-ui-redesign-installed-cold-20261108
   cancel-in-progress: false
 
 jobs:
   installed-cold:
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108'
     runs-on: windows-2022
     timeout-minutes: 40
     env:
@@ -28,7 +28,7 @@ jobs:
       GOTOOLCHAIN: 'local'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
-      KTRADE_EXPECTED_SOURCE: '7dcab78afeba33ee5a8b64c960c9f142c0f5f69a'
+      KTRADE_EXPECTED_SOURCE: '7055e9db107c9d6e93271f3c9e52a61fbfe8bf36'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
     steps:
       - name: Checkout exact qualification witness
@@ -41,7 +41,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 7dcab78afeba33ee5a8b64c960c9f142c0f5f69a
+          ref: 7055e9db107c9d6e93271f3c9e52a61fbfe8bf36
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -58,7 +58,7 @@ jobs:
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
           $source=(& git -C $p rev-parse HEAD).Trim()
           $tree=(& git -C $p rev-parse 'HEAD^{tree}').Trim()
-          if($source -cne '7dcab78afeba33ee5a8b64c960c9f142c0f5f69a' -or $tree -cne '809c5a9e10e2e815948d469351e77249c217e3b7' -or
+          if($source -cne '7055e9db107c9d6e93271f3c9e52a61fbfe8bf36' -or $tree -cne 'db5d5dc188be6a2960e0a9cc16056bc9d652b712' -or
              @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){
             throw 'W41_INSTALLED_EXACT_CLEAN_SOURCE_REQUIRED'
           }
@@ -117,7 +117,7 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_VENDOR_REFUSED'}
             $dest=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
-            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '7dcab78afeba33ee5a8b64c960c9f142c0f5f69a'
+            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '7055e9db107c9d6e93271f3c9e52a61fbfe8bf36'
             if($LASTEXITCODE -ne 0){throw 'W41_REAL_NATIVE_INSTALLER_BUILD_FAILED'}
             $zip=Join-Path $dest 'KTRADE-SetupBundle.zip'
             if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W41_REAL_NATIVE_INSTALLER_MISSING'}
