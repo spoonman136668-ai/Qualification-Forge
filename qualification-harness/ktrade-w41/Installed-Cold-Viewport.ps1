@@ -767,6 +767,84 @@ function W41-Start([string]$candidate){
  Require ($js.StatusCode -eq 200 -and $js.Content.Contains('ktrade.chart-viewport.v2')) 'W41_VIEWPORT_MODULE_NOT_SERVED'
  return [pscustomobject]@{shell=$shell;enginePid=[int]$children[0].ProcessId;origin=$origin}
 }
+# Windows hosted display-layout stress. Physically resizes only this disposable
+# installed Wails test window to the effective viewport sizes associated with
+# 125%, 150%, 200% zoom. This DOES NOT change the OS DPI or certify real HiDPI.
+# Never click a trading control, submit orders, or alter installed preferences.
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class W41WindowLayout {
+ [DllImport("user32.dll", SetLastError=true)] public static extern bool MoveWindow(IntPtr h,int x,int y,int w,int hgt,bool repaint);
+ [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr h);
+ [DllImport("user32.dll")] public static extern uint GetDpiForSystem();
+ [DllImport("user32.dll")] public static extern int GetSystemMetrics(int id);
+}
+'@
+function W41-LayoutStress([object]$run){
+ $run.shell.Refresh()
+ $handle=$run.shell.MainWindowHandle
+ Require ($handle -ne [IntPtr]::Zero) 'W41_LAYOUT_WINDOW_HANDLE_MISSING'
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($handle)
+ $original=$root.Current.BoundingRectangle
+ $desktopWidth=[W41WindowLayout]::GetSystemMetrics(0)
+ $desktopHeight=[W41WindowLayout]::GetSystemMetrics(1)
+ Require ($original.Width -ge 700 -and $original.Height -ge 400 -and
+   $desktopWidth -ge 800 -and $desktopHeight -ge 600) 'W41_LAYOUT_BASELINE_UNQUALIFIED'
+ $observed=@()
+ try{
+  foreach($percent in @(125,150,200)){
+   $width=[int][Math]::Floor($original.Width*100/$percent)
+   $height=[int][Math]::Floor($original.Height*100/$percent)
+   Require ($width -ge 390 -and $height -ge 240) 'W41_LAYOUT_REQUEST_TOO_SMALL'
+   Require ([W41WindowLayout]::MoveWindow($handle,24,24,$width,$height,$true)) 'W41_LAYOUT_NATIVE_MOVE_REFUSED'
+   Start-Sleep -Milliseconds 1100
+   $root=[System.Windows.Automation.AutomationElement]::FromHandle($handle)
+   $outer=$root.Current.BoundingRectangle
+   $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+   $wanted=@('Price chart drawing surface','1h','Indicator settings','PAPER STOPPED')
+   $items=@{}
+   foreach($name in $wanted){
+    $found=$false;$inside=$false;$rect=$null
+    foreach($n in $nodes){
+     try{
+      if(!$n.Current.Name.Contains($name)){continue}
+      $r=$n.Current.BoundingRectangle
+      $found=$true;$rect=$r
+      if(!$n.Current.IsOffscreen -and !$r.IsEmpty -and $r.Width -ge 8 -and $r.Height -ge 8 -and
+        $r.Left -ge $outer.Left-1 -and $r.Right -le $outer.Right+1 -and
+        $r.Top -ge $outer.Top-1 -and $r.Bottom -le $outer.Bottom+1){$inside=$true;break}
+     }catch{}
+    }
+    $items[$name]=@{found=$found;inside=$inside;
+      width=if($null -ne $rect){[int]$rect.Width}else{0};
+      height=if($null -ne $rect){[int]$rect.Height}else{0}}
+   }
+   $chart=$items['Price chart drawing surface']
+   $fits=$chart.inside -and $chart.width -ge 220 -and $chart.height -ge 120
+   $actions=$items['1h'].inside -and $items['Indicator settings'].inside
+   $paper=$items['PAPER STOPPED'].inside
+   $observed+=@{effective_zoom_percent=$percent;
+     actual_system_dpi=[int][W41WindowLayout]::GetDpiForSystem();
+     actual_window_dpi=[int][W41WindowLayout]::GetDpiForWindow($handle);
+     requested_width=$width;requested_height=$height;
+     actual_width=[int]$outer.Width;actual_height=[int]$outer.Height;
+     chart_visible=$fits;timeframe_and_indicator_controls_visible=$actions;
+     stopped_disarmed_status_visible=$paper;
+     chart_width=$chart.width;chart_height=$chart.height;
+     all_visible=($fits -and $actions -and $paper)}
+  }
+ }finally{
+  [void][W41WindowLayout]::MoveWindow($handle,[int]$original.Left,
+    [int]$original.Top,[int]$original.Width,[int]$original.Height,$true)
+ }
+ Write-Host ('W41_NATIVE_EFFECTIVE_VIEWPORT_STRESS='+(@{
+  source_sha=$NewSHA;results=$observed;
+  scope='real_Wails_UIA_native_window_resizing_only_not_actual_125_150_200_OS_DPI';
+  real_HiDPI_release_acceptance='UNVERIFIED';owner_data_read=$false;live_armed=$false
+ }|ConvertTo-Json -Compress -Depth 6))
+ Require (@($observed|Where-Object {!$_.all_visible}).Count -eq 0) 'W41_EFFECTIVE_VIEWPORT_LAYOUT_CONTROLS_CLIPPED'
+}
 function W41-Stop([object]$run){
  Require ([W83Native]::PostMessage($run.shell.MainWindowHandle,0x0010,[IntPtr]::Zero,[IntPtr]::Zero)) 'W41_NATIVE_CLOSE_REFUSED'
  Require ($run.shell.WaitForExit(30000)) 'W41_NATIVE_SHELL_NOT_STOPPED'
@@ -1150,6 +1228,7 @@ try{
   scope='ephemeral installed Wails/WebView2, no user profile, no broker'
  }|ConvertTo-Json -Compress))
  Write-Host '::notice::W41_INSTALLED_COLD_FRACTIONAL_CHART_VIEWPORT=PASS'
+ W41-LayoutStress $active
  W41-Stop $active;$active=$null
  Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
 }finally{
