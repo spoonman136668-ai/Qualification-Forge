@@ -1,33 +1,28 @@
-# Current exact-source W41 native regression, no PASS claimed before this workflow finishes.
-name: KTRADE PR252 current exact-source Windows qualification
-# Existing Qualification-Forge KTRADE-specific Windows lane. One-shot push
-# of this pinned workflow on the dedicated, existing qualification branch.
-# Exact source KTRADE 7dcab78afeba33ee5a8b64c960c9f142c0f5f69a passed full native Go/Node/Wails builds
-# in QForge run 42463199920. One remaining separate qualification is the
-# genuine disposable two-process Wails/WebView2 cold-reopen at that same SHA.
+# Exact-source KTRADE chart-first UI redesign full regression and genuine Wails acceptance.
+# Retain old accepted UI/Pine/TradeGuard negative controls; LIVE disarmed; no installation.
 on:
   push:
     branches:
-      - qualification/ktrade-pr252-w41-cold-viewport-20261107
+      - qualification/ktrade-ui-workstation-refresh-20261108
     paths:
       - .github/workflows/ktrade-pr252-current-exact-windows.yml
 permissions:
   contents: read
 concurrency:
-  group: ktrade-pr252-current-exact-windows-20261107
+  group: ktrade-ui-redesign-exact-windows-20261108
   cancel-in-progress: false
 jobs:
   native-regression:
     # This follow-up only classifies W41's cold-reopen failure. Preserve the
     # independent native regression running on its prior exact source.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107' && !contains(github.event.head_commit.message, 'wails-only')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '7dcab78afeba33ee5a8b64c960c9f142c0f5f69a'
+      KTRADE_EXPECTED_SOURCE: '7055e9db107c9d6e93271f3c9e52a61fbfe8bf36'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: '809c5a9e10e2e815948d469351e77249c217e3b7'
+      KTRADE_EXPECTED_TREE: 'db5d5dc188be6a2960e0a9cc16056bc9d652b712'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -48,7 +43,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 7dcab78afeba33ee5a8b64c960c9f142c0f5f69a
+          ref: 7055e9db107c9d6e93271f3c9e52a61fbfe8bf36
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -84,7 +79,7 @@ jobs:
           function Require([bool]$v,[string]$m){if(!$v){throw $m}}
           Require ($env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
             $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
-            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107' -and
+            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' -and
             $env:GITHUB_EVENT_NAME -ceq 'push') 'QFORGE_WRONG_RUNNER_OR_SCOPE'
           Require ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
             (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE -and
@@ -255,7 +250,7 @@ jobs:
             }finally{Pop-Location}
             Require ((& git rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
               @(& git status --porcelain --untracked-files=no).Count -eq 0) 'QFORGE_SOURCE_CHANGED'
-            Write-Host ('QFORGE_PR252_EXACT_SOURCE_FULL_REGRESSION=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
+            Write-Host ('QFORGE_KTRADE_UI_EXACT_SOURCE_FULL_REGRESSION=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
           }finally{
             Pop-Location
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
@@ -263,13 +258,13 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107' && !contains(github.event.head_commit.message, 'native-only')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '7dcab78afeba33ee5a8b64c960c9f142c0f5f69a'
-      KTRADE_EXPECTED_TREE: '809c5a9e10e2e815948d469351e77249c217e3b7'
-      W01_EXPECTED_SHA: '7dcab78afeba33ee5a8b64c960c9f142c0f5f69a'
+      KTRADE_EXPECTED_SOURCE: '7055e9db107c9d6e93271f3c9e52a61fbfe8bf36'
+      KTRADE_EXPECTED_TREE: 'db5d5dc188be6a2960e0a9cc16056bc9d652b712'
+      W01_EXPECTED_SHA: '7055e9db107c9d6e93271f3c9e52a61fbfe8bf36'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -284,7 +279,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 7dcab78afeba33ee5a8b64c960c9f142c0f5f69a
+          ref: 7055e9db107c9d6e93271f3c9e52a61fbfe8bf36
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -305,7 +300,7 @@ jobs:
           function Require([bool]$v,[string]$m){if(!$v){throw $m}}
           Require ($env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
             $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
-            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107' -and
+            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' -and
             $env:GITHUB_EVENT_NAME -ceq 'push') 'QFORGE_WAILS_WRONG_RUNNER_OR_SCOPE'
           Require ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
             (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE -and
@@ -325,7 +320,7 @@ jobs:
             if($LASTEXITCODE -ne 0 -or !$?){throw 'QFORGE_WAILS_REAL_TWO_LAUNCH_ACCEPTANCE_FAILED'}
             Require ((& git rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
               @(& git status --porcelain --untracked-files=no).Count -eq 0) 'QFORGE_WAILS_SOURCE_CHANGED'
-            Write-Host ('QFORGE_PR252_REAL_WEBVIEW2_TWO_LAUNCHES=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
+            Write-Host ('QFORGE_KTRADE_UI_REAL_WEBVIEW2_TWO_LAUNCHES=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
           }finally{
             Pop-Location
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
