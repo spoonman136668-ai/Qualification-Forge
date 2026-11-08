@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='83397c5eb3d0b3bae0251923f137b63aa3e57ceb'
+$NewSHA='e251f77bfe82291610bd0aa69eec8f72f4cac173'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -581,6 +581,76 @@ function W41-RenderedCloseInk([object]$frame,[string]$phase){
    samples=$samples;scope='native_chart_11x19_pixel_neighborhood_no_OHLCV_export'}
  }finally{$bitmap.Dispose()}
 }
+# Read-only diagnosis of actual painted candlestick ink relative to the
+# loaded chart library's coordinate estimates. Native pixels stay in RUNNER_TEMP.
+# The column/row scans can isolate wrong X, wrong Y, or neither. This output
+# has NO acceptance authority and no price/time/credential data.
+function W41-ChartCoordinateOffset([object]$frame,[string]$phase){
+ if(!$frame.available){return @{available=$false}}
+ $f=Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$phase+'-context.png')
+ $bmp=[System.Drawing.Bitmap]::new($f)
+ try{
+  $samples=@()
+  foreach($point in $frame.points){
+   $px=$point.x;$py=$point.y
+   $inside=($null -ne $px -and $null -ne $py -and
+     $px -ge 0 -and $px -lt $bmp.Width -and $py -ge 0 -and $py -lt $bmp.Height)
+   $nearX=$null;$nearY=$null
+   $columnInk=0;$rowInk=0
+   if($null -ne $px -and $px -ge 0 -and $px -lt $bmp.Width){
+    for($x=[Math]::Max(0,[int]$px-4);$x -le [Math]::Min($bmp.Width-1,[int]$px+4);$x+=2){
+     for($y=10;$y -lt $bmp.Height-29;$y+=2){
+      $p=$bmp.GetPixel($x,$y)
+      $g=([Math]::Abs([int]$p.R-38) -le 18 -and
+          [Math]::Abs([int]$p.G-166) -le 18 -and
+          [Math]::Abs([int]$p.B-154) -le 18)
+      $r=([Math]::Abs([int]$p.R-239) -le 18 -and
+          [Math]::Abs([int]$p.G-83) -le 18 -and
+          [Math]::Abs([int]$p.B-80) -le 18)
+      if($g -or $r){
+       $columnInk++
+       if($null -ne $py){
+        $dy=$y-[int]$py
+        if($null -eq $nearY -or [Math]::Abs($dy) -lt [Math]::Abs($nearY)){$nearY=$dy}
+       }
+      }
+     }
+    }
+   }
+   if($null -ne $py -and $py -ge 0 -and $py -lt $bmp.Height){
+    for($y=[Math]::Max(0,[int]$py-4);$y -le [Math]::Min($bmp.Height-1,[int]$py+4);$y+=2){
+     for($x=10;$x -lt $bmp.Width-109;$x+=2){
+      $p=$bmp.GetPixel($x,$y)
+      $g=([Math]::Abs([int]$p.R-38) -le 18 -and
+          [Math]::Abs([int]$p.G-166) -le 18 -and
+          [Math]::Abs([int]$p.B-154) -le 18)
+      $r=([Math]::Abs([int]$p.R-239) -le 18 -and
+          [Math]::Abs([int]$p.G-83) -le 18 -and
+          [Math]::Abs([int]$p.B-80) -le 18)
+      if($g -or $r){
+       $rowInk++
+       if($null -ne $px){
+        $dx=$x-[int]$px
+        if($null -eq $nearX -or [Math]::Abs($dx) -lt [Math]::Abs($nearX)){$nearX=$dx}
+       }
+      }
+     }
+    }
+   }
+   $samples+=@{ordinal=$samples.Count;
+    x_inside_native_surface=($null -ne $px -and $px -ge 0 -and $px -lt $bmp.Width);
+    y_inside_native_surface=($null -ne $py -and $py -ge 0 -and $py -lt $bmp.Height);
+    point_inside_surface=$inside;
+    native_candle_ink_near_x_column=($columnInk -gt 0);
+    native_candle_ink_near_y_row=($rowInk -gt 0);
+    nearest_y_offset_at_computed_x=$nearY;
+    nearest_x_offset_at_computed_y=$nearX}
+  }
+  return @{available=$true;count=$samples.Count;results=$samples;
+   coordinate_scope='original_native_Price_chart_crop_local_pixel_offsets_only_no_raw_positions';
+   no_release_authority=$true}
+ }finally{$bmp.Dispose()}
+}
 function ViewportMouseAway([object]$shell){
  $r=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
  Require ([W83Native]::SetCursorPos([int]($r.Left+12),[int]($r.Top+10))) 'VIEWPORT_MOUSE_AWAY_FAILED'
@@ -1009,6 +1079,11 @@ try{
   $coldFrame=W41-ReadFrame $active.shell
   $paintBefore=W41-RenderedCloseInk $pannedFrame 'COLD_PANNED'
   $paintAfter=W41-RenderedCloseInk $coldFrame 'COLD_REOPENED'
+  Write-Host ('W41_NATIVE_COORDINATE_OFFSET_CLASSIFICATION='+(@{
+   before=(W41-ChartCoordinateOffset $pannedFrame 'COLD_PANNED');
+   after=(W41-ChartCoordinateOffset $coldFrame 'COLD_REOPENED');
+   pass_authority=$false
+  }|ConvertTo-Json -Compress -Depth 7))
   Write-Host ('W41_REAL_CANDLE_ANCHOR_INK='+(@{
    before=$paintBefore;after=$paintAfter;
    both_three_ink=($paintBefore.all_three_ink -and $paintAfter.all_three_ink);
