@@ -450,6 +450,81 @@ function W41-CompareCandleColumns([object]$first,[object]$second){
    directed_pct_to=if($second.active_columns){[Math]::Round(100.0*$hitSecond/$second.active_columns,1)}else{0}
  }
 }
+# Second independent native screenshot diagnostic: classify each original
+# candlestick pixel in both X AND Y (2px grid) with signed up/down color.
+# This must discriminate the actual physical pan negative. Reports counts
+# only; it cannot override the unchanged original installed visual gate.
+function W41-CandlePixelMap([string]$phase){
+ $file=Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$phase+'-context.png')
+ Require (Test-Path -LiteralPath $file -PathType Leaf) 'W41_CANDLE_2D_CONTEXT_MISSING'
+ $bmp=[System.Drawing.Bitmap]::new($file)
+ try{
+  $left=24;$top=20;$right=$bmp.Width-116;$bottom=$bmp.Height-48
+  Require ($right-$left -ge 240 -and $bottom-$top -ge 120) 'W41_CANDLE_2D_ROI_INVALID'
+  $cols=[int][Math]::Ceiling(($right-$left)/2.0)
+  $rows=[int][Math]::Ceiling(($bottom-$top)/2.0)
+  $map=New-Object 'System.Byte[]' ($cols*$rows)
+  $greenPixels=0;$redPixels=0
+  for($y=0;$y -lt $rows;$y++){
+   for($x=0;$x -lt $cols;$x++){
+    $p=$bmp.GetPixel($left+2*$x,$top+2*$y)
+    $idx=$y*$cols+$x
+    if([Math]::Abs([int]$p.R-38) -le 18 -and
+       [Math]::Abs([int]$p.G-166) -le 18 -and
+       [Math]::Abs([int]$p.B-154) -le 18){$map[$idx]=1;$greenPixels++}
+    elseif([Math]::Abs([int]$p.R-239) -le 18 -and
+       [Math]::Abs([int]$p.G-83) -le 18 -and
+       [Math]::Abs([int]$p.B-80) -le 18){$map[$idx]=2;$redPixels++}
+   }
+  }
+  return [pscustomobject]@{
+   phase=$phase;columns=$cols;rows=$rows;pixels=$map;
+   up_pixels=$greenPixels;down_pixels=$redPixels
+  }
+ }finally{$bmp.Dispose()}
+}
+function W41-CompareCandlePixels([object]$a,[object]$b){
+ Require ($a.columns -eq $b.columns -and $a.rows -eq $b.rows) 'W41_CANDLE_2D_GEOMETRY_DRIFT'
+ $hitA=0;$hitB=0;$exact=0
+ for($i=0;$i -lt $a.pixels.Length;$i++){
+  $p=[int]$a.pixels[$i];$q=[int]$b.pixels[$i]
+  if($p -ne 0 -and $p -eq $q){$exact++}
+  $cx=$i%$a.columns;$cy=[int][Math]::Floor($i/$a.columns)
+  if($p -ne 0){
+   $found=$false
+   for($dy=-1;$dy -le 1 -and !$found;$dy++){
+    $yy=$cy+$dy
+    if($yy -lt 0 -or $yy -ge $a.rows){continue}
+    for($dx=-1;$dx -le 1;$dx++){
+     $xx=$cx+$dx
+     if($xx -lt 0 -or $xx -ge $a.columns){continue}
+     if([int]$b.pixels[$yy*$a.columns+$xx] -eq $p){$found=$true;break}
+    }
+   }
+   if($found){$hitA++}
+  }
+  if($q -ne 0){
+   $found=$false
+   for($dy=-1;$dy -le 1 -and !$found;$dy++){
+    $yy=$cy+$dy
+    if($yy -lt 0 -or $yy -ge $a.rows){continue}
+    for($dx=-1;$dx -le 1;$dx++){
+     $xx=$cx+$dx
+     if($xx -lt 0 -or $xx -ge $a.columns){continue}
+     if([int]$a.pixels[$yy*$a.columns+$xx] -eq $q){$found=$true;break}
+    }
+   }
+   if($found){$hitB++}
+  }
+ }
+ $nA=$a.up_pixels+$a.down_pixels;$nB=$b.up_pixels+$b.down_pixels
+ return @{from=$a.phase;to=$b.phase;map_columns=$a.columns;map_rows=$a.rows;
+  colored_pixels_from=$nA;colored_pixels_to=$nB;
+  exact_same_xy_same_color=$exact;match_2px_from=$hitA;match_2px_to=$hitB;
+  directed_pct_from=if($nA){[Math]::Round(100.0*$hitA/$nA,1)}else{0};
+  directed_pct_to=if($nB){[Math]::Round(100.0*$hitB/$nB,1)}else{0}
+ }
+}
 function ViewportMouseAway([object]$shell){
  $r=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
  Require ([W83Native]::SetCursorPos([int]($r.Left+12),[int]($r.Top+10))) 'VIEWPORT_MOUSE_AWAY_FAILED'
@@ -858,6 +933,15 @@ try{
   }catch{}
   Write-Host ('W41_NATIVE_CHART_POST_LAYOUT_STAGE='+$lateStage)
   W41-AxisDifference $panned $restored
+  $mapFit=W41-CandlePixelMap 'COLD_BASELINE'
+  $mapSaved=W41-CandlePixelMap 'COLD_PANNED'
+  $mapCold=W41-CandlePixelMap 'COLD_REOPENED'
+  Write-Host ('W41_NATIVE_CANDLE_XY_ANCHOR_DIAGNOSTIC='+(@{
+   actual_physical_navigation_negative=(W41-CompareCandlePixels $mapFit $mapSaved);
+   same_profile_cold_reopen_positive=(W41-CompareCandlePixels $mapSaved $mapCold);
+   scope='original_native_candle_up_down_pixels_2d_disposable_profile_2px_window';
+   no_acceptance_override=$true
+  }|ConvertTo-Json -Compress -Depth 5))
   $columnsFit=W41-CandleColorColumns 'COLD_BASELINE'
   $columnsSaved=W41-CandleColorColumns 'COLD_PANNED'
   $columnsReopen=W41-CandleColorColumns 'COLD_REOPENED'
