@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='4c8fd0fc9db6cb07d7f899a13940e6e24b7c94bb'
+$NewSHA='9a5787ccea34cb6a803b29cff95fe8cb3d798216'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -547,6 +547,40 @@ function W41-ReadFrame([object]$shell){
    width=[int]$m.Groups[5].Value;height=[int]$m.Groups[6].Value;points=@($v)}
  }catch{return [pscustomobject]@{available=$false}}
 }
+# Confirm that each reported real chart close coordinate is backed by
+# original native up/down candle ink, not merely calculated coordinates.
+# Exact snapshots remain on the ephemeral runner; no prices or hashes logged.
+function W41-RenderedCloseInk([object]$frame,[string]$phase){
+ if(!$frame.available){return @{available=$false;all_three_ink=$false}}
+ $file=Join-Path $env:RUNNER_TEMP ('w41-installed-viewport-axis-'+$phase+'-context.png')
+ $bitmap=[System.Drawing.Bitmap]::new($file)
+ try{
+  $samples=@()
+  foreach($point in $frame.points){
+   $hits=0;$closest=999
+   if($null -ne $point.x -and $null -ne $point.y){
+    $x0=[Math]::Max(0,[int]$point.x-5);$x1=[Math]::Min($bitmap.Width-1,[int]$point.x+5)
+    $y0=[Math]::Max(0,[int]$point.y-9);$y1=[Math]::Min($bitmap.Height-1,[int]$point.y+9)
+    for($y=$y0;$y -le $y1;$y++){
+     for($x=$x0;$x -le $x1;$x++){
+      $color=$bitmap.GetPixel($x,$y)
+      $green=([Math]::Abs([int]$color.R-38) -le 18 -and
+              [Math]::Abs([int]$color.G-166) -le 18 -and
+              [Math]::Abs([int]$color.B-154) -le 18)
+      $red=([Math]::Abs([int]$color.R-239) -le 18 -and
+            [Math]::Abs([int]$color.G-83) -le 18 -and
+            [Math]::Abs([int]$color.B-80) -le 18)
+      if($green -or $red){$hits++;$closest=[Math]::Min($closest,[Math]::Max([Math]::Abs($x-$point.x),[Math]::Abs($y-$point.y)))}
+     }
+    }
+   }
+   $samples+=@{ordinal=$samples.Count;close_candle_ink=($hits -gt 0);ink_pixels=$hits;
+    nearest_pixels=if($hits){$closest}else{$null}}
+  }
+  return @{available=$true;all_three_ink=(@($samples|Where-Object {$_.close_candle_ink}).Count -eq 3);
+   samples=$samples;scope='native_chart_11x19_pixel_neighborhood_no_OHLCV_export'}
+ }finally{$bitmap.Dispose()}
+}
 function ViewportMouseAway([object]$shell){
  $r=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
  Require ([W83Native]::SetCursorPos([int]($r.Left+12),[int]($r.Top+10))) 'VIEWPORT_MOUSE_AWAY_FAILED'
@@ -957,6 +991,13 @@ try{
   Write-Host ('W41_NATIVE_CHART_POST_LAYOUT_STAGE='+$lateStage)
   W41-AxisDifference $panned $restored
   $coldFrame=W41-ReadFrame $active.shell
+  $paintBefore=W41-RenderedCloseInk $pannedFrame 'COLD_PANNED'
+  $paintAfter=W41-RenderedCloseInk $coldFrame 'COLD_REOPENED'
+  Write-Host ('W41_REAL_CANDLE_ANCHOR_INK='+(@{
+   before=$paintBefore;after=$paintAfter;
+   both_three_ink=($paintBefore.all_three_ink -and $paintAfter.all_three_ink);
+   verdict='DIAGNOSTIC_ONLY_NO_ACCEPTANCE_OVERRIDE'
+  }|ConvertTo-Json -Compress -Depth 6))
   $samples=@()
   if($pannedFrame.available -and $coldFrame.available){
    for($i=0;$i -lt 3;$i++){
