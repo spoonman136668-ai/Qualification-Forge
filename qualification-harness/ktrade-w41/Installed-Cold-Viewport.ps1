@@ -424,7 +424,7 @@ function W41-Start([string]$candidate){
  Require ($html.Contains('/static/chart_viewport_state.js') -and
   $html.Contains('scheduleViewportSave()')) 'W41_SHIPPING_CHART_NOT_SERVED'
  $js=Invoke-WebRequest -UseBasicParsing -Uri ($origin+'/static/chart_viewport_state.js') -TimeoutSec 12
- Require ($js.StatusCode -eq 200 -and $js.Content.Contains('ktrade.chart-viewport.v1')) 'W41_VIEWPORT_MODULE_NOT_SERVED'
+ Require ($js.StatusCode -eq 200 -and $js.Content.Contains('ktrade.chart-viewport.v2')) 'W41_VIEWPORT_MODULE_NOT_SERVED'
  return [pscustomobject]@{shell=$shell;enginePid=[int]$children[0].ProcessId;origin=$origin}
 }
 function W41-Stop([object]$run){
@@ -451,7 +451,7 @@ function W41-ObserveProfileKeys([string]$candidate){
   (Join-Path $profile 'EBWebView/Default/Local Storage/leveldb'),
   (Join-Path $profile 'Default/Local Storage/leveldb')
  )
- $keys=@('ktrade_chart_viewport_v1:BTC-USD:1h','ktrade_chart_timeframe')
+ $keys=@('ktrade_chart_viewport_v2:BTC-USD:1h','ktrade_chart_timeframe')
  $patterns=@()
  foreach($key in $keys){
   $patterns+=,[pscustomobject]@{
