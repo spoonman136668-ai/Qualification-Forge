@@ -1,3 +1,5 @@
+# Exact W41 reflow candidate 07818f9bff92f5823ad55f4517206083bb70f7b2 has genuine disposable WebView2 PASS in QForge 42469145993.
+# Mandatory native full regression separately admits this same source; no disposable rerun.
 # W41 candidate 07818f9bff92f5823ad55f4517206083bb70f7b2 genuine disposable WebView2 PASS: QForge run 42467765647.
 # Native full regression is separately required on this exact candidate.
 name: KTRADE PR252 current exact-source Windows qualification
