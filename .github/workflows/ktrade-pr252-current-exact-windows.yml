@@ -1,0 +1,169 @@
+name: KTRADE PR252 current exact-source Windows qualification
+# Existing Qualification-Forge KTRADE-specific Windows lane. One-shot push
+# of this pinned workflow on the dedicated, existing qualification branch.
+on:
+  push:
+    branches:
+      - qualification/ktrade-pr252-w41-cold-viewport-20261107
+    paths:
+      - .github/workflows/ktrade-pr252-current-exact-windows.yml
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-pr252-current-exact-windows-20261107
+  cancel-in-progress: false
+jobs:
+  native-regression:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
+    runs-on: windows-2022
+    timeout-minutes: 65
+    env:
+      KTRADE_EXPECTED_SOURCE: '87659b67e70684cb0e25403d31cebca72e1e59e3'
+      KTRADE_EXPECTED_TREE: '5e52dd38bc87987d9920cb4cd020447beadcf3df'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout immutable original KTRADE source, read only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 87659b67e70684cb0e25403d31cebca72e1e59e3
+          fetch-depth: 0
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Setup pinned supported Go and Node
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Exact product custody, full native regressions, Wails builds, and Node suites
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-current-private-qualification.log'
+          function Require([bool]$v,[string]$m){if(!$v){throw $m}}
+          Require ($env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
+            $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
+            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107' -and
+            $env:GITHUB_EVENT_NAME -ceq 'push') 'QFORGE_WRONG_RUNNER_OR_SCOPE'
+          Require ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
+            (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE -and
+            @(& git -C $p status --porcelain).Count -eq 0 -and
+            !(Test-Path -LiteralPath (Join-Path $p '.env'))) 'QFORGE_EXACT_PRIVATE_SOURCE_REFUSED'
+          function Checked([string]$label,[string]$command,[string[]]$args){
+            & $command @args *> $log
+            if($LASTEXITCODE -ne 0){throw ('QFORGE_'+$label+'_FAIL_PRIVATE_OUTPUT_WITHHELD')}
+            Write-Host ('QFORGE_'+$label+'=PASS')
+          }
+          Push-Location $p
+          try{
+            Require ((& go env GOVERSION).Trim() -ceq 'go1.26.10') 'QFORGE_UNEXPECTED_GO_TOOLCHAIN'
+            Checked 'GO_FULL_DEFAULT' 'go' @('test','-mod=readonly','-count=1','./...')
+            Checked 'GO_FULL_SHIPPING' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full','./...')
+            Checked 'GO_W41_FIXTURE_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full,ktrade_w13_fixture,ktrade_w41_cold_fixture','./cmd/ktrade')
+            Checked 'GO_VET' 'go' @('vet','-mod=readonly','-tags','ktrade_full','./...')
+            Checked 'GO_SHIPPING_BUILD' 'go' @('build','-mod=readonly','-tags','ktrade_full','./cmd/ktrade')
+            Checked 'NPM_LOCKED_ASSETS' 'npm.cmd' @('ci','--ignore-scripts','--no-audit','--no-fund','--silent')
+            Checked 'OFFLINE_VENDOR' 'node' @('scripts/stage_offline_vendor.cjs')
+            $specs=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -File -Filter '*.test.cjs'|
+              Sort-Object FullName|ForEach-Object {$_.FullName})
+            Require ($specs.Count -gt 0) 'QFORGE_NODE_TEST_SET_EMPTY'
+            for($i=0;$i -lt $specs.Count;$i+=25){
+              $end=[Math]::Min($i+25,$specs.Count)
+              $batch=@($specs[$i..($end-1)])
+              Checked ('NODE_BATCH_'+$i) 'node' (@('--test','--test-reporter=tap')+$batch)
+            }
+            Write-Host ('QFORGE_NODE_SUITES='+$specs.Count)
+            Push-Location (Join-Path $p 'tools/wails-pilot')
+            try{
+              Checked 'WAILS_GO_TESTS' 'go' @('test','-mod=readonly','-count=1','./...')
+              Checked 'WAILS_GO_VET' 'go' @('vet','-mod=readonly','./...')
+              Checked 'WAILS_REAL_SHELL_BUILD' 'go' @('build','-mod=readonly','-tags','desktop,production','-ldflags','-H windowsgui','.')
+            }finally{Pop-Location}
+            Require ((& git rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
+              @(& git status --porcelain --untracked-files=no).Count -eq 0) 'QFORGE_SOURCE_CHANGED'
+            Write-Host ('QFORGE_PR252_EXACT_SOURCE_FULL_REGRESSION=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
+  wails-two-cold-launches:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
+    runs-on: windows-2022
+    timeout-minutes: 45
+    env:
+      KTRADE_EXPECTED_SOURCE: '87659b67e70684cb0e25403d31cebca72e1e59e3'
+      KTRADE_EXPECTED_TREE: '5e52dd38bc87987d9920cb4cd020447beadcf3df'
+      W01_EXPECTED_SHA: '87659b67e70684cb0e25403d31cebca72e1e59e3'
+      KTRADE_RECOVERY_ISOLATED: '0'
+      KTRADE_PORTABLE_DISARMED: '1'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+      CGO_ENABLED: '1'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout immutable original KTRADE source, read only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 87659b67e70684cb0e25403d31cebca72e1e59e3
+          fetch-depth: 0
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Real two-launch native WebView2 W03 acceptance, no trading or installed data
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $log=Join-Path $env:RUNNER_TEMP 'ktrade-current-wails-private.log'
+          function Require([bool]$v,[string]$m){if(!$v){throw $m}}
+          Require ($env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
+            $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
+            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107' -and
+            $env:GITHUB_EVENT_NAME -ceq 'push') 'QFORGE_WAILS_WRONG_RUNNER_OR_SCOPE'
+          Require ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
+            (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE -and
+            @(& git -C $p status --porcelain).Count -eq 0 -and
+            !(Test-Path -LiteralPath (Join-Path $p '.env'))) 'QFORGE_WAILS_EXACT_SOURCE_REQUIRED'
+          $env:TEMP=$env:RUNNER_TEMP
+          $env:TMP=$env:RUNNER_TEMP
+          Push-Location $p
+          try{
+            & npm.cmd ci --ignore-scripts --no-audit --no-fund --silent *> $log
+            if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_LOCKED_VENDOR_FAILED'}
+            & node scripts/stage_offline_vendor.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_VENDOR_STAGE_FAILED'}
+            & node --test tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w41_cold_bridge_pane_visibility.test.cjs tests/rb3_w41_cold_restart_harness.test.cjs *> $log
+            if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_CHART_FOCUSED_TEST_FAILED'}
+            & ./windows/Test-KTRADE-W41-ColdReopen.ps1 -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE
+            if($LASTEXITCODE -ne 0 -or !$?){throw 'QFORGE_WAILS_REAL_TWO_LAUNCH_ACCEPTANCE_FAILED'}
+            Require ((& git rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
+              @(& git status --porcelain --untracked-files=no).Count -eq 0) 'QFORGE_WAILS_SOURCE_CHANGED'
+            Write-Host ('QFORGE_PR252_REAL_WEBVIEW2_TWO_LAUNCHES=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
