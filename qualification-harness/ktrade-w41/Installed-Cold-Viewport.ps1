@@ -141,7 +141,7 @@ function W41-ExposeTimeframe([object]$shell,[string]$label){
  for($n=0;$n -lt 8;$n++){
   $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
   foreach($node in $nodes){try{
-   if($node.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button)continue
+   if($node.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button){continue}
    $r=$node.Current.BoundingRectangle
    if(!$r.IsEmpty -and $r.Width -gt 8 -and $r.Height -gt 8 -and
       $r.Left -ge ($outer.Left+3) -and $r.Right -le ($outer.Right-3)){
