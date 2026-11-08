@@ -1,9 +1,9 @@
-# Exact-source KTRADE chart-first UI redesign full regression and genuine Wails acceptance.
+# NEXUS command deck exact-source Windows regression and native Wails two-launch acceptance.
 # Retain old accepted UI/Pine/TradeGuard negative controls; LIVE disarmed; no installation.
 on:
   push:
     branches:
-      - qualification/ktrade-ui-workstation-refresh-20261108
+      - qualification/ktrade-nexus-command-deck-20261108
     paths:
       - .github/workflows/ktrade-pr252-current-exact-windows.yml
 permissions:
@@ -15,14 +15,14 @@ jobs:
   native-regression:
     # This follow-up only classifies W41's cold-reopen failure. Preserve the
     # independent native regression running on its prior exact source.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-nexus-command-deck-20261108' && !contains(github.event.head_commit.message, 'wails-only')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: 'b5439a9fb7ea0162920177cf18e3c0513c05f44e'
+      KTRADE_EXPECTED_SOURCE: '472d04ba8fbad6ba18ff297e5f98991152baeda9'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: '9e86837d575df2272075936c830848ea2cba5c61'
+      KTRADE_EXPECTED_TREE: '758b1acbab98fd77052eba79a1309f872756cba1'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -43,7 +43,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: b5439a9fb7ea0162920177cf18e3c0513c05f44e
+          ref: 472d04ba8fbad6ba18ff297e5f98991152baeda9
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -70,7 +70,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Exact product custody, full native regressions, Wails builds, and Node suites
+      - name: NEXUS exact product full regression, Wails builds, and Node suites
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
@@ -79,7 +79,7 @@ jobs:
           function Require([bool]$v,[string]$m){if(!$v){throw $m}}
           Require ($env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
             $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
-            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' -and
+            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-nexus-command-deck-20261108' -and
             $env:GITHUB_EVENT_NAME -ceq 'push') 'QFORGE_WRONG_RUNNER_OR_SCOPE'
           Require ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
             (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE -and
@@ -258,13 +258,13 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-nexus-command-deck-20261108' && !contains(github.event.head_commit.message, 'native-only')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: 'b5439a9fb7ea0162920177cf18e3c0513c05f44e'
-      KTRADE_EXPECTED_TREE: '9e86837d575df2272075936c830848ea2cba5c61'
-      W01_EXPECTED_SHA: 'b5439a9fb7ea0162920177cf18e3c0513c05f44e'
+      KTRADE_EXPECTED_SOURCE: '472d04ba8fbad6ba18ff297e5f98991152baeda9'
+      KTRADE_EXPECTED_TREE: '758b1acbab98fd77052eba79a1309f872756cba1'
+      W01_EXPECTED_SHA: '472d04ba8fbad6ba18ff297e5f98991152baeda9'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -279,7 +279,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: b5439a9fb7ea0162920177cf18e3c0513c05f44e
+          ref: 472d04ba8fbad6ba18ff297e5f98991152baeda9
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -300,7 +300,7 @@ jobs:
           function Require([bool]$v,[string]$m){if(!$v){throw $m}}
           Require ($env:RUNNER_OS -ceq 'Windows' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
             $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
-            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' -and
+            $env:GITHUB_REF -ceq 'refs/heads/qualification/ktrade-nexus-command-deck-20261108' -and
             $env:GITHUB_EVENT_NAME -ceq 'push') 'QFORGE_WAILS_WRONG_RUNNER_OR_SCOPE'
           Require ((& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
             (& git -C $p rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE -and
