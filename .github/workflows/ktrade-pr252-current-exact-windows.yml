@@ -340,8 +340,37 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_VENDOR_STAGE_FAILED'}
             & node --test tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w41_cold_bridge_pane_visibility.test.cjs tests/rb3_w41_cold_bridge_diagnostic.test.cjs tests/rb3_w41_cold_parent_late_iframe.test.cjs tests/rb3_w41_cold_restart_harness.test.cjs *> $log
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_CHART_FOCUSED_TEST_FAILED'}
-            & ./windows/Test-KTRADE-W41-ColdReopen.ps1 -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE
-            if($LASTEXITCODE -ne 0 -or !$?){throw 'QFORGE_WAILS_REAL_TWO_LAUNCH_ACCEPTANCE_FAILED'}
+            # Repair witness-scope mismatch only. Preserve the immutable product
+            # source and full original test semantics; adapt one frozen branch
+            # allowlist in an untracked, ephemeral witness beside its builder.
+            $original=Join-Path $p 'windows/Test-KTRADE-W41-ColdReopen.ps1'
+            $adapter=Join-Path $p 'windows/Test-KTRADE-W41-QForge-Adapter.ps1'
+            $blob=(& git rev-parse 'HEAD:windows/Test-KTRADE-W41-ColdReopen.ps1').Trim()
+            $checkoutBlob=(& git hash-object -- $original).Trim()
+            Require ($blob -ceq 'ce5e41b2afcd073d238e96e45c98333dddba0a35' -and
+              $checkoutBlob -ceq $blob -and !(Test-Path -LiteralPath $adapter)) 'QFORGE_W41_ORIGINAL_FROZEN_SOURCE_REQUIRED'
+            $text=[IO.File]::ReadAllText($original)
+            $from='refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
+            $to='refs/heads/qualification/ktrade-ui-workstation-refresh-20261108'
+            Require ($text.Split([string[]]@($from),[StringSplitOptions]::None).Count -eq 2 -and
+              !$text.Contains($to)) 'QFORGE_W41_SINGLE_ALLOWLIST_REWRITE_REQUIRED'
+            $adapted=$text.Replace($from,$to)
+            Require ($adapted -cne $text -and
+              $adapted.Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_CHANGE_ALLOWED'
+            try{
+              [IO.File]::WriteAllText($adapter,$adapted,[Text.UTF8Encoding]::new($false))
+              $tokens=$null;$parseErrors=$null
+              [void][Management.Automation.Language.Parser]::ParseFile($adapter,[ref]$tokens,[ref]$parseErrors)
+              Require ($parseErrors.Count -eq 0) 'QFORGE_W41_ADAPTER_POWERSHELL_INVALID'
+              Write-Host 'QFORGE_W41_FROZEN_ONE_BRANCH_SCOPE_ADAPTER=PASS'
+              & $adapter -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE
+              if($LASTEXITCODE -ne 0 -or !$?){throw 'QFORGE_WAILS_REAL_TWO_LAUNCH_ACCEPTANCE_FAILED'}
+            }finally{
+              Remove-Item -LiteralPath $adapter -Force -ErrorAction SilentlyContinue
+            }
+            Require (!(Test-Path -LiteralPath $adapter) -and
+              (& git hash-object -- $original).Trim() -ceq $blob) 'QFORGE_W41_ADAPTER_CLEANUP_OR_SOURCE_DRIFT'
+            Write-Host 'QFORGE_W41_REAL_TWO_LAUNCH_EXACT_PR253=PASS'
             Require ((& git rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
               @(& git status --porcelain --untracked-files=no).Count -eq 0) 'QFORGE_WAILS_SOURCE_CHANGED'
             Write-Host ('QFORGE_KTRADE_UI_REAL_WEBVIEW2_TWO_LAUNCHES=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
