@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='bfb29505454f3e18b13233f699790b630bc94c4b'
+$NewSHA='d6d69ee572032f54274da72b9c4489b7b44ea201'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -1209,6 +1209,41 @@ function W103-VerifyWatchlistReopen([object]$shell){
  Write-Host '::notice::W103_REAL_NATIVE_WATCHLIST_COLD_PERSISTENCE=PASS'
 }
 
+# W104 / exact native proof: pinned market selector stays entirely inside
+# original window and left of the timeframe scroll region after 1h navigation.
+# Read-only UIAutomation; no DOM injection, trading or owner profile.
+function W104-AssertPinnedMarket([object]$shell,[string]$phase){
+ $shell.Refresh()
+ Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W104_NATIVE_WINDOW_REQUIRED'
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $outer=$root.Current.BoundingRectangle
+ $nav=FindUI $shell 'Chart tools and navigation' $false 12
+ $navRect=$nav.Current.BoundingRectangle
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+  [System.Windows.Automation.Condition]::TrueCondition)
+ $matches=@()
+ foreach($node in $nodes){try{
+  $v=$node.Current
+  if($v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+   $v.Name.Contains('BTCUSD') -and $v.IsEnabled -and !$v.IsOffscreen){
+   $matches+=@{name=$v.Name;rect=$v.BoundingRectangle}
+  }
+ }catch{}}
+ Require ($matches.Count -eq 1) ('W104_EXACT_ONE_VISIBLE_MARKET_BUTTON_'+$phase)
+ $r=$matches[0].rect
+ Require (!$r.IsEmpty -and $r.Width -ge 65 -and $r.Height -ge 20 -and
+  $r.Left -ge ($outer.Left+3) -and $r.Right -le ($outer.Right-3) -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom -and
+  $r.Right -le ($navRect.Left+2)) ('W104_MARKET_SELECTOR_SCROLL_CLIPPED_'+$phase)
+ Write-Host ('W104_NATIVE_PINNED_MARKET='+(@{
+  source_sha=$NewSHA;phase=$phase;market_button_name=$matches[0].name;
+  market_left=[int]$r.Left;market_right=[int]$r.Right;
+  scroll_region_left=[int]$navRect.Left;fully_owned=$true;
+  live_armed=$false;owner_profile_used=$false
+ }|ConvertTo-Json -Compress))
+ Write-Host ('::notice::W104_NATIVE_PINNED_MARKET_'+$phase+'=PASS')
+}
+
 # W100 genuine one-click vertical marker acceptance on self-owned native test.
 function W100-VerticalActions([object]$shell){
  $shell.Refresh()
@@ -1285,6 +1320,7 @@ try{
   Start-Sleep -Seconds $wait
  }
  ClickUI $active.shell '1h'
+ W104-AssertPinnedMarket $active.shell 'AFTER_1H_TIMEFRAME_SCROLL'
  # UIA metadata may be unavailable; never treat this as acceptance.
  $preClickAria='UNAVAILABLE'
  try{
@@ -1584,6 +1620,7 @@ try{
  Write-Host '::notice::W100_NATIVE_VERTICAL_COLD_REOPEN_DELETE=PASS'
  W101-RealRangeButtons $active.shell
  W102-RealZoom $active.shell
+ W104-AssertPinnedMarket $active.shell 'AFTER_CHART_NAVIGATION'
  W103-RealWatchlist $active.shell
  W41-Stop $active;$active=$null
  $active=W41-Start $installed.candidate_directory

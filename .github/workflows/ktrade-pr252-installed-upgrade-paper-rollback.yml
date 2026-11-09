@@ -1,4 +1,4 @@
-# Reuse unchanged W83 isolated release-continuity witness and nine identical installer component blobs for current W103 watchlist product; no installed user data.
+# Reuse unchanged W83 isolated release-continuity witness and nine identical installer component blobs for current W104 pinned-market product; no installed user data.
 name: KTRADE PR253 exact-source installed upgrade PAPER rollback
 on:
   push:
@@ -46,11 +46,11 @@ jobs:
           path: previous
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Checkout exact current qualified W103 PR253 candidate
+      - name: Checkout exact current qualified W104 PR253 candidate
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: bfb29505454f3e18b13233f699790b630bc94c4b
+          ref: d6d69ee572032f54274da72b9c4489b7b44ea201
           path: candidate
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -66,7 +66,7 @@ jobs:
           $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
           $new=Join-Path $env:GITHUB_WORKSPACE 'candidate'
           Require ((& git -C $w rev-parse HEAD).Trim() -ceq $env:GITHUB_SHA) 'PR252_RELEASE_WITNESS_SOURCE_DRIFT'
-          foreach($source in @(@($old,'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a','989020f81a7c731acf3bfa830c06e7e929805bcd'),@($new,'bfb29505454f3e18b13233f699790b630bc94c4b','8e5cddfe037c61d511c6c576ae5a5bda86088a19'))){
+          foreach($source in @(@($old,'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a','989020f81a7c731acf3bfa830c06e7e929805bcd'),@($new,'d6d69ee572032f54274da72b9c4489b7b44ea201','683392a8b6e1a688496f9f52a8215ca18707a9b1'))){
             Require ((& git -C $source[0] rev-parse HEAD).Trim() -ceq $source[1] -and
               (& git -C $source[0] rev-parse 'HEAD^{tree}').Trim() -ceq $source[2] -and
               @(& git -C $source[0] status --porcelain --untracked-files=no).Count -eq 0 -and
@@ -110,7 +110,7 @@ jobs:
           $original=Join-Path $w 'qualification-harness/ktrade-w83'
           & (Join-Path $h 'Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') -WitnessScript (Join-Path $h 'Installed-Paper-Lifecycle.ps1') -NativeInputsPath (Join-Path $original 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $original 'Original-W40-Paper.ps1')
           if($LASTEXITCODE -ne 0 -or !$?){throw 'PR252_RELEASE_REAL_INSTALLED_PAPER_UPGRADE_ROLLBACK_FAILED'}
-          Write-Host '::notice::PR253_RELEASE_CURRENT_INSTALLED_PAPER_AND_ROLLBACK=PASS;source=bfb29505454f3e18b13233f699790b630bc94c4b'
+          Write-Host '::notice::PR253_RELEASE_CURRENT_INSTALLED_PAPER_AND_ROLLBACK=PASS;source=d6d69ee572032f54274da72b9c4489b7b44ea201'
       - name: Final disposable boundary and read-only source
         if: always()
         shell: pwsh
