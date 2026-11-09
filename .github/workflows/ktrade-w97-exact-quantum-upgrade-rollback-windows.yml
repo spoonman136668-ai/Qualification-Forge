@@ -126,9 +126,55 @@ jobs:
           $witness=$witness.Replace($oldAlias,'$aliasNodes[0].Current.IsEnabled')
           $witness=$witness.Replace('W90_UNQUALIFIED_ALIAS_NOT_VISIBLY_DISABLED_IN_NATIVE_UIA','W97_QUALIFIED_ALIAS_NOT_VISIBLY_ENABLED_IN_NATIVE_UIA')
           $witness=$witness.Replace('W90_NATIVE_CATALOG_DISABLED_ALIASES_EXPLICIT_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING','W97_NATIVE_CATALOG_ENABLED_ALIASES_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING')
+          # The W96 header intentionally scrolls its original market
+          # selector into an overflow region when the selected 1h timeframe
+          # is exposed. Keep the original W40 UIA ownership checks but first
+          # reveal BTCUSD using real, owned Win32 horizontal-wheel input.
+          $native=Get-Content (Join-Path $h 'Original-W40-Native-Inputs.ps1') -Raw
+          $nativeStart='function Click-W32EUI([object]$proc,[string]$name){'
+          $nativeClick='  $el=Wait-W32EUI $proc $name'
+          Need ($native.Split($nativeStart).Count -eq 2 -and $native.Split($nativeClick).Count -eq 2) 'W97_ORIGINAL_NATIVE_INPUT_HELPER_SHAPE_DRIFT'
+          $reveal=@'
+          function W97-ExposeMarketSymbol([object]$proc){
+            $bar=Wait-W32EUI $proc 'Chart tools and navigation' 10
+            $r=$bar.Current.BoundingRectangle
+            $outer=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle).Current.BoundingRectangle
+            if($r.IsEmpty -or $r.Width -lt 140 -or $r.Height -lt 23 -or
+               $r.Left -lt $outer.Left -or $r.Right -gt $outer.Right){
+               throw 'W97_NATIVE_MARKET_HEADER_NOT_WITHIN_OWNED_WINDOW'
+            }
+            for($turn=0;$turn -lt 12;$turn++){
+              $root=[System.Windows.Automation.AutomationElement]::FromHandle($proc.MainWindowHandle)
+              $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+              foreach($node in $nodes){try{
+                $n=$node.Current
+                $rect=$n.BoundingRectangle
+                if($n.Name.Contains('BTCUSD') -and $n.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+                   !$rect.IsEmpty -and $rect.Width -gt 30 -and $rect.Height -gt 20 -and
+                   $rect.Left -ge $r.Left+3 -and $rect.Right -le $r.Right-3 -and
+                   $rect.Top -ge $r.Top-1 -and $rect.Bottom -le $r.Bottom+1){
+                   Write-Output ('W97_NATIVE_MARKET_SYMBOL_REVEALED='+(@{
+                      horizontal_wheel_steps=$turn;scope='real_owned_UIA_and_horizontal_mousewheel';
+                      no_chart_navigation_or_trading=$true
+                   }|ConvertTo-Json -Compress))
+                   return
+                }
+              }catch{}}
+              [void][W32ENativeInput]::SetForegroundWindow($proc.MainWindowHandle)
+              if([W32ENativeInput]::GetForegroundWindow() -ne $proc.MainWindowHandle){throw 'W97_FOREIGN_FOCUS_REFUSED'}
+              if(![W32ENativeInput]::SetCursorPos([int]($r.Left+$r.Width*.45),[int]($r.Top+$r.Height*.55))){throw 'W97_NATIVE_CURSOR_REFUSED'}
+              [W32ENativeInput]::mouse_event(0x1000,0,0,[uint32]4294967176,[UIntPtr]::Zero)
+              Start-Sleep -Milliseconds 180
+            }
+            throw 'W97_MARKET_SYMBOL_NOT_REACHABLE_AFTER_NATIVE_SCROLL'
+          }
+          '@
+          $native=$native.Replace($nativeStart,$reveal+[Environment]::NewLine+$nativeStart)
+          $native=$native.Replace($nativeClick,"  if($name -ceq 'BTCUSD'){W97-ExposeMarketSymbol $proc}"+[Environment]::NewLine+$nativeClick)
+          [IO.File]::WriteAllText((Join-Path $target 'Original-W40-Native-Inputs.ps1'),$native,[Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText((Join-Path $target 'Build-And-Qualify.ps1'),$builder,[Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText((Join-Path $target 'Installed-Paper-Lifecycle.ps1'),$witness,[Text.UTF8Encoding]::new($false))
-          foreach($name in @('Build-And-Qualify.ps1','Installed-Paper-Lifecycle.ps1')){
+          foreach($name in @('Build-And-Qualify.ps1','Installed-Paper-Lifecycle.ps1','Original-W40-Native-Inputs.ps1')){
             $t=$null;$errors=$null
             [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $target $name),[ref]$t,[ref]$errors)
             Need ($errors.Count -eq 0) ('W97_ADAPTED_W83_POWERSHELL_AST_FAILED_'+$name)
@@ -146,7 +192,7 @@ jobs:
             -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') `
             -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') `
             -WitnessScript (Join-Path $env:W97_PATCHED_W83_ROOT 'Installed-Paper-Lifecycle.ps1') `
-            -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') `
+            -NativeInputsPath (Join-Path $env:W97_PATCHED_W83_ROOT 'Original-W40-Native-Inputs.ps1') `
             -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1')
           if(!$? -or $LASTEXITCODE -ne 0){throw 'W97_W83_CURRENT_QUANTUM_PAPER_ROLLBACK_FAILURE'}
           Write-Host '::notice::W97_EXACT_QUANTUM_INSTALLED_W83_PAPER_4FILL_COLD_ACCOUNT_UPDATE_ROLLBACK=PASS'
