@@ -1,0 +1,93 @@
+# W107: actual KTRADE WinForms setup window, source-bound artifact reuse.
+# Hosted Windows only; no owner install, broker, signing, or scheduled runner.
+name: KTRADE W107 real native installer occupied-root UI acceptance
+on:
+  push:
+    branches: [qualification/ktrade-ui-workstation-refresh-20261108]
+    paths:
+      - .github/workflows/ktrade-w107-native-gui.yml
+      - qualification-harness/ktrade-w107/Probe-Installer-UI.ps1
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w107-exact-native-setup-window-once
+  cancel-in-progress: false
+jobs:
+  real-native-setup-preflight:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108'
+    runs-on: windows-2022
+    timeout-minutes: 18
+    env:
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+    steps:
+      - name: Read exact W107 qualification witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Download already-qualified W106 unsigned setup artifact (no rebuild)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          run-id: 42712784458
+          name: ktrade-pr253-ui-preview-unsigned-4b0bb1cf12d72d09ba16142a8334884b7655df6c
+          path: ${{ runner.temp }}/w107-source
+          github-token: ${{ github.token }}
+      - name: Verify exact artifact and Windows host without install
+        id: package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+          function Need([bool]$v,[string]$why){if(!$v){throw $why}}
+          Need ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and $env:RUNNER_OS -ceq 'Windows' -and
+           $env:KTRADE_LIVE_TRADING -ceq 'false' -and
+           $env:KTRADE_CI_LIVE_AUTHORITY -ceq '0' -and $env:KTRADE_CI_COINBASE_ALLOWED -ceq '0' -and
+           $env:KTRADE_CI_PROMOTION_ALLOWED -ceq '0') 'W107_EPHEMERAL_DISARMED_WINDOWS_ONLY'
+          $inputFolder=Join-Path $env:RUNNER_TEMP 'w107-source'
+          $z=@(Get-ChildItem -LiteralPath $inputFolder -File -Filter '*.zip')
+          Need ($z.Count -eq 1 -and $z[0].Name -ceq 'KTRADE-SetupBundle.zip') 'W107_ONE_EXACT_W106_PACKAGE_REQUIRED'
+          Need ((Get-FileHash -LiteralPath $z[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant() -ceq
+           '89b1696e64440e5a3ea2f597184ac1ba026780c1f9eba9901e4b56ebe4fa62da') 'W107_ORIGINAL_W106_ARTIFACT_SHA256_REFUSED'
+          $folder=Join-Path $env:RUNNER_TEMP ('w107-unpacked-'+[guid]::NewGuid().ToString('N'))
+          [void][IO.Directory]::CreateDirectory($folder)
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::ExtractToDirectory($z[0].FullName,$folder)
+          $mfile=Join-Path $folder 'installer-manifest.json'
+          Need (Test-Path -LiteralPath $mfile -PathType Leaf) 'W107_MISSING_MANIFEST'
+          $m=Get-Content -LiteralPath $mfile -Raw|ConvertFrom-Json
+          Need ($m.schema -ceq 'ktrade.setup-bundle.v2' -and
+           $m.source_sha -ceq '4b0bb1cf12d72d09ba16142a8334884b7655df6c' -and
+           $m.live_armed -eq $false -and $m.release_authority -ceq 'none' -and
+           $m.signature_status -ceq 'unsigned' -and @($m.files).Count -eq 7) 'W107_EXACT_SOURCE_AND_DISARMED_MANIFEST_REQUIRED'
+          foreach($f in @($m.files)){
+           Need ($f.name -cmatch '^[A-Za-z0-9.-]+$' -and $f.sha256 -cmatch '^[a-f0-9]{64}$') 'W107_UNSAFE_MANIFEST_ITEM'
+           $p=Join-Path $folder $f.name
+           Need ((Test-Path -LiteralPath $p -PathType Leaf) -and
+            (Get-Item -LiteralPath $p).Length -eq $f.size -and
+            (Get-FileHash -LiteralPath $p -Algorithm SHA256).Hash.ToLowerInvariant() -ceq $f.sha256) 'W107_MANIFEST_ASSET_CHANGED'
+          }
+          $script=Join-Path $env:GITHUB_WORKSPACE 'qualification-harness/ktrade-w107/Probe-Installer-UI.ps1'
+          $tokens=$null;$errors=$null
+          [void][Management.Automation.Language.Parser]::ParseFile($script,[ref]$tokens,[ref]$errors)
+          Need ($errors.Count -eq 0) 'W107_NATIVE_POWERSHELL_AST_INVALID'
+          [IO.File]::AppendAllText($env:GITHUB_OUTPUT,('package_dir='+$folder+[Environment]::NewLine),[Text.UTF8Encoding]::new($false))
+          Write-Host '::notice::W107_PREVIOUS_EXACT_W106_UNSIGNED_INSTALLER_VERIFIED=PASS'
+      - name: Exercise real WinForms default, occupied-root refusal and owner-byte preservation
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          $ErrorActionPreference='Stop'
+          $powershell=Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+          if(!(Test-Path -LiteralPath $powershell -PathType Leaf)){throw 'W107_WINDOWS_POWERSHELL_51_REQUIRED'}
+          & $powershell -NoProfile -STA -ExecutionPolicy Bypass -File (Join-Path $env:GITHUB_WORKSPACE 'qualification-harness/ktrade-w107/Probe-Installer-UI.ps1') -PackageDir '${{ steps.package.outputs.package_dir }}'
+          if($LASTEXITCODE -ne 0){throw 'W107_REAL_SETUP_WINDOW_ACCEPTANCE_FAILED'}
+          Write-Host '::notice::W107_REAL_NATIVE_INSTALLER_COLLISION_UI_NO_INSTALL=PASS'
+      - name: Confirm scope and non-release boundary
+        if: always()
+        shell: pwsh
+        run: |
+          if($env:RUNNER_ENVIRONMENT -cne 'github-hosted'){throw 'W107_UNAUTHORIZED_RUNNER'}
+          Write-Host '::notice::W107_NO_OWNER_INSTALL_NO_BROKER_NO_LIVE_NO_PROMOTION_NO_SCHEDULE'
