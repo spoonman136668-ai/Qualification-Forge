@@ -1,0 +1,149 @@
+name: KTRADE W97 Quantum exact-source installed update PAPER rollback acceptance
+on:
+  push:
+    branches:
+      - qualification/ktrade-ui-workstation-refresh-20261108
+    paths:
+      - .github/workflows/ktrade-w97-exact-quantum-upgrade-rollback-windows.yml
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: ktrade-w97-upgrade-rollback-quantum-20261109
+  cancel-in-progress: false
+jobs:
+  native-update-paper-rollback:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108'
+    runs-on: windows-2022
+    timeout-minutes: 85
+    env:
+      GOWORK: 'off'
+      GOFLAGS: '-p=2'
+      GOMAXPROCS: '2'
+      CGO_ENABLED: '1'
+      GOTOOLCHAIN: 'local'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      KTRADE_EXPECTED_SOURCE: 'ab22b0c2d199d166fad0f7d6fa72971b2d938896'
+      KTRADE_EXPECTED_TREE: '661bdd0e60e787d953f20ad7a5707c96d03c8070'
+      GITHUB_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout immutable qualification source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          path: witness
+          persist-credentials: false
+      - name: Checkout exact previously qualified W83 predecessor
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout exact Quantum UI candidate
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: ab22b0c2d199d166fad0f7d6fa72971b2d938896
+          fetch-depth: 0
+          path: candidate
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Verify immutable source, original W83 witness and disarmed ephemeral custody
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          function Need([bool]$ok,[string]$name){if(!$ok){throw $name}}
+          Need ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and $env:RUNNER_OS -ceq 'Windows' -and $env:KTRADE_LIVE_TRADING -ceq 'false' -and $env:GITHUB_EVENT_NAME -ceq 'push') 'W97_NON_EPHEMERAL_OR_LIVE_REFUSED'
+          $src=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
+          $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
+          Need ((& git -C $src rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and (& git -C $src rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE) 'W97_SOURCE_SHA_TREE_DRIFT'
+          Need ((& git -C $old rev-parse HEAD).Trim() -ceq 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a' -and (& git -C $old rev-parse 'HEAD^{tree}').Trim() -ceq '989020f81a7c731acf3bfa830c06e7e929805bcd') 'W97_W83_PREDECESSOR_DRIFT'
+          foreach($root in @($src,$old,$w)){
+            Need (@(& git -C $root status --porcelain).Count -eq 0 -and !(Test-Path (Join-Path $root '.env'))) 'W97_DIRTY_OR_SECRET_SOURCE_REFUSED'
+          }
+          foreach($root in @($src,$old)){
+            $cfg=Get-Content -LiteralPath (Join-Path $root 'config.json') -Raw|ConvertFrom-Json
+            Need (!$cfg.api_key.key_name -and !$cfg.api_key.key_secret -and !$cfg.account_id -and !$cfg.ngrok_authtoken) 'W97_TRACKED_CREDENTIALS_REFUSED'
+            Need ((Get-Content (Join-Path $root 'pkg/advanced_orders.go') -Raw).Contains('func liveBrokerageAuthorized() bool { return false }')) 'W97_ORIGINAL_LIVE_AUTHORITY_DRIFT'
+          }
+          $rel=@('tools/wails-pilot/backend/installed_update.go','tools/wails-pilot/backend/installed_update_test.go',
+            'tools/wails-pilot/backend/fresh_launch.go','tools/wails-pilot/backend/setup_bundle.go',
+            'tools/wails-pilot/backend/release_process_lease.go','tools/wails-pilot/cmd/release-setup/main.go',
+            'tools/wails-pilot/cmd/release-launch/main.go','tools/wails-pilot/backend/fresh_uninstall.go','windows/Install-KTRADE-Fresh.ps1')
+          foreach($p in $rel){
+            $a=(& git -C $old rev-parse ('HEAD:'+$p)).Trim()
+            $b=(& git -C $src rev-parse ('HEAD:'+$p)).Trim()
+            Need ($a -ceq $b -and $a -cmatch '^[a-f0-9]{40}$') ('W97_INSTALLER_SOURCE_CHANGED_'+$p)
+          }
+          $h='qualification-harness/ktrade-w83/'
+          foreach($pin in @(
+            @($h+'Build-And-Qualify.ps1','cdaa4125b7deccfedcc78df190aa61709e4b3fbb'),
+            @($h+'Installed-Paper-Lifecycle.ps1','196607a527072b5dac19a426347602b00eb39316'),
+            @($h+'Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1'),
+            @($h+'Original-W40-Native-Inputs.ps1','646a3dc40cb8877e7bc34690e02f74773b83529c')
+          )){
+            Need ((& git -C $w rev-parse ('HEAD:'+$pin[0])).Trim() -ceq $pin[1]) ('W97_ORIGINAL_HARNESS_BLOB_DRIFT_'+$pin[0])
+          }
+          Write-Host '::notice::W97_EXACT_CANDIDATE_W83_ORIGINAL_INSTALLER_NINE_FILES_AND_PAPER_HARNESS=PASS'
+      - name: Setup pinned Go and Node for source builds only
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Materialize two immutable-source W83 scripts with only exact candidate SHA and tree adapted
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          function Need([bool]$ok,[string]$name){if(!$ok){throw $name}}
+          $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          $target=Join-Path $env:RUNNER_TEMP ('w97-w83-adapt-'+[guid]::NewGuid().ToString('N'))
+          $null=New-Item -ItemType Directory -Path $target
+          $builder=Get-Content (Join-Path $h 'Build-And-Qualify.ps1') -Raw
+          $witness=Get-Content (Join-Path $h 'Installed-Paper-Lifecycle.ps1') -Raw
+          $oldSHA='abc5335554d7b273f2eadf1c89948bcf26d76249'
+          $oldTree='21ccbb5e5b1ce78428ee01e228c8a2c3fadb5863'
+          Need ($builder.Split($oldSHA).Count -eq 2 -and $builder.Split($oldTree).Count -eq 2 -and $witness.Split($oldSHA).Count -eq 2) 'W97_ORIGINAL_CANDIDATE_PIN_SHAPE_DRIFT'
+          $builder=$builder.Replace($oldSHA,$env:KTRADE_EXPECTED_SOURCE).Replace($oldTree,$env:KTRADE_EXPECTED_TREE)
+          $witness=$witness.Replace($oldSHA,$env:KTRADE_EXPECTED_SOURCE)
+          [IO.File]::WriteAllText((Join-Path $target 'Build-And-Qualify.ps1'),$builder,[Text.UTF8Encoding]::new($false))
+          [IO.File]::WriteAllText((Join-Path $target 'Installed-Paper-Lifecycle.ps1'),$witness,[Text.UTF8Encoding]::new($false))
+          foreach($name in @('Build-And-Qualify.ps1','Installed-Paper-Lifecycle.ps1')){
+            $t=$null;$errors=$null
+            [void][Management.Automation.Language.Parser]::ParseFile((Join-Path $target $name),[ref]$t,[ref]$errors)
+            Need ($errors.Count -eq 0) ('W97_ADAPTED_W83_POWERSHELL_AST_FAILED_'+$name)
+          }
+          "W97_PATCHED_W83_ROOT=$target"|Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host '::notice::W97_ORIGINAL_W83_SOURCE_ONLY_PIN_ADAPTATION=PASS'
+      - name: Build both unsigned versions and run original native PAPER and upgrade rollback witness
+        shell: pwsh
+        timeout-minutes: 65
+        run: |
+          $ErrorActionPreference='Stop'
+          if([string]::IsNullOrWhiteSpace($env:W97_PATCHED_W83_ROOT)){throw 'W97_WITNESS_ROOT_MISSING'}
+          $h=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w83'
+          & (Join-Path $env:W97_PATCHED_W83_ROOT 'Build-And-Qualify.ps1') `
+            -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') `
+            -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') `
+            -WitnessScript (Join-Path $env:W97_PATCHED_W83_ROOT 'Installed-Paper-Lifecycle.ps1') `
+            -NativeInputsPath (Join-Path $h 'Original-W40-Native-Inputs.ps1') `
+            -PaperScenarioPath (Join-Path $h 'Original-W40-Paper.ps1')
+          if(!$? -or $LASTEXITCODE -ne 0){throw 'W97_W83_CURRENT_QUANTUM_PAPER_ROLLBACK_FAILURE'}
+          Write-Host '::notice::W97_EXACT_QUANTUM_INSTALLED_W83_PAPER_4FILL_COLD_ACCOUNT_UPDATE_ROLLBACK=PASS'
+      - name: Report no owner profile, credential or release authority
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($name in @('previous','candidate')){
+            $root=Join-Path $env:GITHUB_WORKSPACE $name
+            if(@(& git -C $root status --porcelain --untracked-files=no).Count -ne 0){throw 'W97_PRODUCT_SOURCE_MODIFIED'}
+          }
+          Write-Host '::notice::W97_DISPOSABLE_WINDOWS_TEST_DATA_ONLY_PAPER_STOPPED_LIVE_DISARMED_NO_OWNER_DATA_NO_RELEASE'
