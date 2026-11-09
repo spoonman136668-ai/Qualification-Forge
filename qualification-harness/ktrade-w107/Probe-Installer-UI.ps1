@@ -36,6 +36,57 @@ function UI([System.Windows.Automation.AutomationElement]$root,[string]$name,[Sy
  }catch{}}
  return $null
 }
+# Native handles are a separate check from UIA roles. Some hosted WinForms
+# automation providers expose only ControlType.Pane. Use Win32 message
+# marshalling exclusively for exact test-owned controls; no process injection.
+Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public static class W107Native {
+ [DllImport("user32.dll",CharSet=CharSet.Unicode)]
+ public static extern int GetClassName(IntPtr h, StringBuilder s, int n);
+ [DllImport("user32.dll")]
+ public static extern bool IsChild(IntPtr parent, IntPtr child);
+ [DllImport("user32.dll",EntryPoint="SendMessageTimeoutW",CharSet=CharSet.Unicode)]
+ public static extern IntPtr Read(IntPtr h,uint msg,IntPtr w,[Out]StringBuilder value,uint flags,uint ms,out IntPtr result);
+ [DllImport("user32.dll",EntryPoint="SendMessageTimeoutW",CharSet=CharSet.Unicode)]
+ public static extern IntPtr Write(IntPtr h,uint msg,IntPtr w,[MarshalAs(UnmanagedType.LPWStr)]string value,uint flags,uint ms,out IntPtr result);
+ [DllImport("user32.dll",EntryPoint="SendMessageTimeoutW",CharSet=CharSet.Unicode)]
+ public static extern IntPtr Click(IntPtr h,uint msg,IntPtr w,IntPtr value,uint flags,uint ms,out IntPtr result);
+ public static string ClassName(IntPtr h){
+  var s=new StringBuilder(256);
+  return GetClassName(h,s,s.Capacity)>0?s.ToString():String.Empty;
+ }
+ public static string Caption(IntPtr h){
+  var s=new StringBuilder(1024);IntPtr result;
+  return Read(h,13,(IntPtr)s.Capacity,s,2,1000,out result)!=IntPtr.Zero?s.ToString():String.Empty;
+ }
+ public static bool ChangeText(IntPtr h,string value){
+  IntPtr result;
+  return Write(h,12,IntPtr.Zero,value,2,1000,out result)!=IntPtr.Zero && result!=IntPtr.Zero;
+ }
+ public static bool Invoke(IntPtr h){
+  IntPtr result;
+  return Click(h,245,IntPtr.Zero,IntPtr.Zero,2,1000,out result)!=IntPtr.Zero;
+ }
+}
+'@
+function NativeControls([System.Windows.Automation.AutomationElement]$root){
+ $parent=[IntPtr]$root.Current.NativeWindowHandle
+ Need ($parent -ne [IntPtr]::Zero) 'W107_NATIVE_WINDOW_HANDLE_REQUIRED'
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+  [System.Windows.Automation.Condition]::TrueCondition)
+ $out=@();$seen=@{}
+ foreach($node in $nodes){try{
+  $h=[IntPtr]$node.Current.NativeWindowHandle
+  if($h -eq [IntPtr]::Zero -or $seen.ContainsKey($h.ToInt64())){continue}
+  if(![W107Native]::IsChild($parent,$h)){continue}
+  $seen[$h.ToInt64()]=$true
+  $out+=@{h=$h;class=[W107Native]::ClassName($h)}
+ }catch{}}
+ return $out
+}
 try{
  $script:launcher=Start-Process -FilePath $exe -WorkingDirectory $PackageDir -PassThru
  Need ($script:launcher.Id -gt 0) 'W107_NATIVE_LAUNCHER_NOT_STARTED'
@@ -61,8 +112,10 @@ try{
  Need ($null -ne $script:window) 'W107_REAL_HOSTED_WINFORMS_WINDOW_NOT_OBSERVED'
  # Wait for genuine WinForms controls to become accessible after the native
  # window is created. The bare top-level window can exist before its children.
- $edit=$null;$lastTypes=@{};$lastVisible=0
- $readyUntil=(Get-Date).AddSeconds(25)
+ # Require controls to settle. WinForms may expose all children as Pane
+ # rather than Edit/Button/ComboBox through hosted UIAutomation.
+ $edit=$null;$lastTypes=@{};$lastVisible=0;$uiElements=@()
+ $readyUntil=(Get-Date).AddSeconds(20)
  do{
   $nodes=$script:window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
    [System.Windows.Automation.Condition]::TrueCondition)
@@ -76,46 +129,66 @@ try{
     !$state.IsOffscreen -and $state.IsEnabled){$edits+=,$node}
   }catch{}}
   if($edits.Count -eq 1){$edit=$edits[0];break}
-  Start-Sleep -Milliseconds 450
+  Start-Sleep -Milliseconds 350
  }while((Get-Date) -lt $readyUntil)
+ $nativeMode=$false
  if($null -eq $edit){
-  # Metadata only: control-type counts, no UI names, paths or user values.
-  Write-Host ('W107_NATIVE_UIA_PROVIDER_DIAGNOSTIC='+(@{
-   total_nodes=$nodes.Count;visible_nodes=$lastVisible;
-   visible_edit_candidates=$edits.Count;control_types=$lastTypes
-  }|ConvertTo-Json -Compress -Depth 5))
-  throw 'W107_NATIVE_DESTINATION_INPUT_UNAVAILABLE_AFTER_25S'
+  $nativeMode=$true
+  $nativeControls=@(NativeControls $script:window)
+  $nativeEdit=@($nativeControls|Where-Object {$_.class -match '(^|\.)EDIT(\.|$)'})
+  $nativeCombo=@($nativeControls|Where-Object {$_.class -match '(^|\.)COMBOBOX(\.|$)'})
+  $nativeButton=@($nativeControls|Where-Object {
+   $_.class -match '(^|\.)BUTTON(\.|$)' -and [W107Native]::Caption($_.h) -ceq 'Install'
+  })
+  if($nativeEdit.Count -ne 1 -or $nativeCombo.Count -ne 1 -or $nativeButton.Count -ne 1){
+   # Only counts and window class names are output; no input or account values.
+   $classes=@{};foreach($el in $nativeControls){
+    if(!$classes.ContainsKey($el.class)){$classes[$el.class]=0};$classes[$el.class]++
+   }
+   Write-Host ('W107_WINDOWS_NATIVE_CONTROL_DIAGNOSTIC='+(@{
+    uia_total_nodes=$nodes.Count;uia_types=$lastTypes;
+    child_hwnd_count=$nativeControls.Count;native_class_counts=$classes;
+    edit_count=$nativeEdit.Count;combo_count=$nativeCombo.Count;
+    install_button_count=$nativeButton.Count
+   }|ConvertTo-Json -Compress -Depth 5))
+   throw 'W107_WINFORMS_NATIVE_CONTROL_OWNERSHIP_NOT_PROVABLE'
+  }
+  $actual=[W107Native]::Caption($nativeEdit[0].h)
+  Need ($actual -ceq $expected) 'W107_NATIVE_OCCUPIED_DEFAULT_NOT_SAFELY_REPLACED'
+ }else{
+  $value=$edit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
+  Need ($value.Current.Value -ceq $expected) 'W107_OCCUPIED_DEFAULT_NOT_SAFELY_REPLACED'
+  $mode=UI $script:window 'Setup operation' ([System.Windows.Automation.ControlType]::ComboBox)
+  Need ($null -ne $mode) 'W107_SETUP_MODE_NOT_VISIBLE'
+  $button=UI $script:window 'Install' ([System.Windows.Automation.ControlType]::Button)
+  Need ($null -ne $button -and $button.Current.IsEnabled) 'W107_NATIVE_INSTALL_CONTROL_MISSING'
  }
- $value=$edit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
- Need ($value.Current.Value -ceq $expected) 'W107_OCCUPIED_DEFAULT_NOT_SAFELY_REPLACED'
- $mode=UI $script:window 'Setup operation' ([System.Windows.Automation.ControlType]::ComboBox)
- if($null -eq $mode){
-  $combos=@()
-  $nodes=$script:window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-   [System.Windows.Automation.Condition]::TrueCondition)
-  foreach($node in $nodes){try{
-   if($node.Current.ControlType -eq [System.Windows.Automation.ControlType]::ComboBox -and
-     !$node.Current.IsOffscreen){$combos+=,$node}
-  }catch{}}
-  Need ($combos.Count -eq 1) ('W107_SETUP_MODE_AMBIGUOUS_COUNT_'+$combos.Count)
-  $mode=$combos[0]
- }
- Need ($null -ne $mode) 'W107_SETUP_MODE_NOT_VISIBLE'
- $button=UI $script:window 'Install' ([System.Windows.Automation.ControlType]::Button)
- Need ($null -ne $button -and $button.Current.IsEnabled) 'W107_NATIVE_INSTALL_CONTROL_MISSING'
  Need (!(Test-Path -LiteralPath $expected)) 'W107_SUGGESTION_UNEXPECTEDLY_CREATED_FOLDER'
  Write-Host '::notice::W107_REAL_NATIVE_SETUP_SUGGESTS_UNUSED_SOURCE_BOUND_SIBLING=PASS'
- # Explicitly override with a test-owned existing directory. The GUI must
- # refuse locally before creating an installation receipt or starting W29.
- $value.SetValue($original)
- Need ($value.Current.Value -ceq $original) 'W107_NATIVE_INPUT_OVERRIDE_REFUSED'
- $invoke=$button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
- $invoke.Invoke()
+ # Test-owned existing root only. A click must refuse without invoking
+ # release-setup.exe or creating any installation receipt.
+ if($nativeMode){
+  Need ([W107Native]::ChangeText($nativeEdit[0].h,$original)) 'W107_WIN32_SET_TEXT_FAILED'
+  Need ([W107Native]::Caption($nativeEdit[0].h) -ceq $original) 'W107_WIN32_TEXT_NOT_CHANGED'
+  Need ([W107Native]::Invoke($nativeButton[0].h)) 'W107_WIN32_EXACT_INSTALL_BUTTON_INVOKE_FAILED'
+ }else{
+  $value.SetValue($original)
+  Need ($value.Current.Value -ceq $original) 'W107_NATIVE_INPUT_OVERRIDE_REFUSED'
+  $invoke=$button.GetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern)
+  $invoke.Invoke()
+ }
  $seen=$false
  $limit=(Get-Date).AddSeconds(12)
  do{
-  $msg=UI $script:window 'This folder already exists. Choose an unused folder for a new installation.' ([System.Windows.Automation.ControlType]::Text)
-  if($null -ne $msg){$seen=$true;break}
+  if($nativeMode){
+   foreach($el in $nativeControls){
+    if([W107Native]::Caption($el.h) -ceq 'This folder already exists. Choose an unused folder for a new installation.'){$seen=$true;break}
+   }
+  }else{
+   $msg=UI $script:window 'This folder already exists. Choose an unused folder for a new installation.' ([System.Windows.Automation.ControlType]::Text)
+   if($null -ne $msg){$seen=$true}
+  }
+  if($seen){break}
   Start-Sleep -Milliseconds 250
  }while((Get-Date) -lt $limit)
  Need $seen 'W107_REAL_NATIVE_EXISTING_ROOT_ERROR_NOT_SHOWN'
