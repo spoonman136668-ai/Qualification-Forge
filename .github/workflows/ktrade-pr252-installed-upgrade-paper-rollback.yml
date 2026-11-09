@@ -1,4 +1,4 @@
-# Reuse unchanged W83 isolated release-continuity witness and nine identical installer component blobs for current W104 pinned-market product; no installed user data.
+# W106 source-isolated installer preflight and existing W83 upgrade/PAPER/rollback: eight immutable installer components plus one reviewed fresh-install GUI safety delta. No owner installed data.
 name: KTRADE PR253 exact-source installed upgrade PAPER rollback
 on:
   push:
@@ -46,11 +46,11 @@ jobs:
           path: previous
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
-      - name: Checkout exact current qualified W104 PR253 candidate
+      - name: Checkout exact W106 PR253 installer-safety candidate
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 9d0990a7304341a4ec28976e7d62be76d2088355
+          ref: 4b0bb1cf12d72d09ba16142a8334884b7655df6c
           path: candidate
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -66,7 +66,7 @@ jobs:
           $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
           $new=Join-Path $env:GITHUB_WORKSPACE 'candidate'
           Require ((& git -C $w rev-parse HEAD).Trim() -ceq $env:GITHUB_SHA) 'PR252_RELEASE_WITNESS_SOURCE_DRIFT'
-          foreach($source in @(@($old,'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a','989020f81a7c731acf3bfa830c06e7e929805bcd'),@($new,'9d0990a7304341a4ec28976e7d62be76d2088355','e4162638bf1b3463859549cd3fb56fd084d339d3'))){
+          foreach($source in @(@($old,'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a','989020f81a7c731acf3bfa830c06e7e929805bcd'),@($new,'4b0bb1cf12d72d09ba16142a8334884b7655df6c','141808b7071db5e455a52a50d64c5d78ce5f26ce'))){
             Require ((& git -C $source[0] rev-parse HEAD).Trim() -ceq $source[1] -and
               (& git -C $source[0] rev-parse 'HEAD^{tree}').Trim() -ceq $source[2] -and
               @(& git -C $source[0] status --porcelain --untracked-files=no).Count -eq 0 -and
@@ -99,6 +99,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - name: W106 real Windows PowerShell 5.1 fresh-root and collision negative controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=Join-Path $env:GITHUB_WORKSPACE 'candidate'
+          Push-Location $p
+          try{
+            & node --test --test-reporter=tap tests/w106_installer_preflight.test.cjs
+            if($LASTEXITCODE -ne 0){throw 'W106_REAL_WINDOWS_INSTALLER_PREFLIGHT_FAILED'}
+          }finally{Pop-Location}
+          Write-Host '::notice::W106_WINDOWS_POWERSHELL_51_FRESH_ROOT_COLLISION_NEGATIVES=PASS'
       - name: Installed prior-to-current update native PAPER Stop cold and rollback
         shell: pwsh
         timeout-minutes: 65
@@ -110,7 +121,7 @@ jobs:
           $original=Join-Path $w 'qualification-harness/ktrade-w83'
           & (Join-Path $h 'Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') -WitnessScript (Join-Path $h 'Installed-Paper-Lifecycle.ps1') -NativeInputsPath (Join-Path $original 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $original 'Original-W40-Paper.ps1')
           if($LASTEXITCODE -ne 0 -or !$?){throw 'PR252_RELEASE_REAL_INSTALLED_PAPER_UPGRADE_ROLLBACK_FAILED'}
-          Write-Host '::notice::PR253_RELEASE_CURRENT_INSTALLED_PAPER_AND_ROLLBACK=PASS;source=9d0990a7304341a4ec28976e7d62be76d2088355'
+          Write-Host '::notice::PR253_RELEASE_CURRENT_INSTALLED_PAPER_AND_ROLLBACK=PASS;source=4b0bb1cf12d72d09ba16142a8334884b7655df6c'
       - name: Final disposable boundary and read-only source
         if: always()
         shell: pwsh

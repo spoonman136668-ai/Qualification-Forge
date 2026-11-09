@@ -19,11 +19,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '9d0990a7304341a4ec28976e7d62be76d2088355'
+      KTRADE_EXPECTED_SOURCE: '4b0bb1cf12d72d09ba16142a8334884b7655df6c'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: 'e4162638bf1b3463859549cd3fb56fd084d339d3'
+      KTRADE_EXPECTED_TREE: '141808b7071db5e455a52a50d64c5d78ce5f26ce'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 9d0990a7304341a4ec28976e7d62be76d2088355
+          ref: 4b0bb1cf12d72d09ba16142a8334884b7655df6c
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -286,9 +286,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '9d0990a7304341a4ec28976e7d62be76d2088355'
-      KTRADE_EXPECTED_TREE: 'e4162638bf1b3463859549cd3fb56fd084d339d3'
-      W01_EXPECTED_SHA: '9d0990a7304341a4ec28976e7d62be76d2088355'
+      KTRADE_EXPECTED_SOURCE: '4b0bb1cf12d72d09ba16142a8334884b7655df6c'
+      KTRADE_EXPECTED_TREE: '141808b7071db5e455a52a50d64c5d78ce5f26ce'
+      W01_EXPECTED_SHA: '4b0bb1cf12d72d09ba16142a8334884b7655df6c'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -303,7 +303,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 9d0990a7304341a4ec28976e7d62be76d2088355
+          ref: 4b0bb1cf12d72d09ba16142a8334884b7655df6c
           fetch-depth: 0
           path: product
           persist-credentials: false
