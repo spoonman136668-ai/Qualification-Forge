@@ -1509,9 +1509,9 @@ try{
  ClickUI $active.shell 'Remove vertical line 1'
  W100-ExpectVertical $active.shell @() 'DELETED'
  ClickUI $active.shell 'Close trendlines'
- W41-Stop $active;$active=$null
  Write-Host '::notice::W100_NATIVE_VERTICAL_COLD_REOPEN_DELETE=PASS'
  W101-RealRangeButtons $active.shell
+ W41-Stop $active;$active=$null
  Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
 }finally{
  if($null -ne $active){
