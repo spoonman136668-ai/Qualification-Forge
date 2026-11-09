@@ -113,6 +113,19 @@ jobs:
           Need ($builder.Split($oldSHA).Count -eq 2 -and $builder.Split($oldTree).Count -eq 2 -and $witness.Split($oldSHA).Count -eq 2) 'W97_ORIGINAL_CANDIDATE_PIN_SHAPE_DRIFT'
           $builder=$builder.Replace($oldSHA,$env:KTRADE_EXPECTED_SOURCE).Replace($oldTree,$env:KTRADE_EXPECTED_TREE)
           $witness=$witness.Replace($oldSHA,$env:KTRADE_EXPECTED_SOURCE)
+          # Historical W83 assumes Supertrend and RSI Divergence must be
+          # disabled. The exact current W90 product regression qualifies both
+          # as enabled catalog actions. Verify the same native UIA controls
+          # are enabled instead; never remove any trading/PAPER assertions.
+          $catalogContract=Get-Content -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'candidate/tests/rb3_w90_catalog_actions.test.cjs') -Raw
+          Need ($catalogContract.Contains("assert.equal(await f.window.KTRADE_applyIndicatorByName('Supertrend'),true);") -and
+            $catalogContract.Contains("assert.equal(await f.window.KTRADE_applyIndicatorByName('RSI Divergence'),true);")) 'W97_CURRENT_CATALOG_ENABLEMENT_NOT_QUALIFIED'
+          $oldAlias='!$aliasNodes[0].Current.IsEnabled'
+          Need ($witness.Split($oldAlias).Count -eq 2 -and
+            $witness.Contains('W90_UNQUALIFIED_ALIAS_NOT_VISIBLY_DISABLED_IN_NATIVE_UIA')) 'W97_LEGACY_W83_CATALOG_CHECK_DRIFT'
+          $witness=$witness.Replace($oldAlias,'$aliasNodes[0].Current.IsEnabled')
+          $witness=$witness.Replace('W90_UNQUALIFIED_ALIAS_NOT_VISIBLY_DISABLED_IN_NATIVE_UIA','W97_QUALIFIED_ALIAS_NOT_VISIBLY_ENABLED_IN_NATIVE_UIA')
+          $witness=$witness.Replace('W90_NATIVE_CATALOG_DISABLED_ALIASES_EXPLICIT_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING','W97_NATIVE_CATALOG_ENABLED_ALIASES_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING')
           [IO.File]::WriteAllText((Join-Path $target 'Build-And-Qualify.ps1'),$builder,[Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText((Join-Path $target 'Installed-Paper-Lifecycle.ps1'),$witness,[Text.UTF8Encoding]::new($false))
           foreach($name in @('Build-And-Qualify.ps1','Installed-Paper-Lifecycle.ps1')){
