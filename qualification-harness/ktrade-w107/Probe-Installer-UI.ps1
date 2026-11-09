@@ -60,10 +60,35 @@ try{
  }while((Get-Date) -lt $until)
  Need ($null -ne $script:window) 'W107_REAL_HOSTED_WINFORMS_WINDOW_NOT_OBSERVED'
  $edit=UI $script:window 'Installation folder' ([System.Windows.Automation.ControlType]::Edit)
+ if($null -eq $edit){
+  # WinForms on Server 2022 can expose an Edit's current text rather than
+  # AccessibleName. The setup dialog has exactly one visible Edit (details
+  # textbox is hidden), so select by distinct control type, never position.
+  $edits=@()
+  $nodes=$script:window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  foreach($node in $nodes){try{
+   if($node.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and
+    !$node.Current.IsOffscreen -and $node.Current.IsEnabled){$edits+=,$node}
+  }catch{}}
+  Need ($edits.Count -eq 1) ('W107_NATIVE_DESTINATION_INPUT_AMBIGUOUS_COUNT_'+$edits.Count)
+  $edit=$edits[0]
+ }
  Need ($null -ne $edit) 'W107_NATIVE_DESTINATION_INPUT_MISSING'
  $value=$edit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
  Need ($value.Current.Value -ceq $expected) 'W107_OCCUPIED_DEFAULT_NOT_SAFELY_REPLACED'
  $mode=UI $script:window 'Setup operation' ([System.Windows.Automation.ControlType]::ComboBox)
+ if($null -eq $mode){
+  $combos=@()
+  $nodes=$script:window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  foreach($node in $nodes){try{
+   if($node.Current.ControlType -eq [System.Windows.Automation.ControlType]::ComboBox -and
+     !$node.Current.IsOffscreen){$combos+=,$node}
+  }catch{}}
+  Need ($combos.Count -eq 1) ('W107_SETUP_MODE_AMBIGUOUS_COUNT_'+$combos.Count)
+  $mode=$combos[0]
+ }
  Need ($null -ne $mode) 'W107_SETUP_MODE_NOT_VISIBLE'
  $button=UI $script:window 'Install' ([System.Windows.Automation.ControlType]::Button)
  Need ($null -ne $button -and $button.Current.IsEnabled) 'W107_NATIVE_INSTALL_CONTROL_MISSING'
