@@ -1105,6 +1105,24 @@ function W100-ExpectVertical([object]$shell,[string[]]$expected,[string]$phase){
  }|ConvertTo-Json -Compress))
  Require $pass ('W100_NATIVE_VERTICAL_MARKER_MISMATCH_'+$phase)
 }
+# W100: read-only manager must be visibly open before inspecting drawings.
+# Opening only adds the 'open' class; a bounded repeat is idempotent.
+function W100-OpenDrawings([object]$shell){
+ for($attempt=1;$attempt -le 2;$attempt++){
+  ClickUI $shell 'Manage trendlines'
+  try{
+   $null=FindUI $shell 'Close trendlines' $true 4
+   Write-Host ('W100_NATIVE_DRAWING_MODAL_VISIBLE='+(@{attempt=$attempt;
+    scope='owned_UIA_modal_readiness_no_order_no_storage_write';
+    accepted=$true}|ConvertTo-Json -Compress))
+   return
+  }catch{
+   if($_.Exception.Message -cne 'W83_NATIVE_UI_NOT_OBSERVED_Close trendlines' -or $attempt -eq 2){throw}
+  }
+  Start-Sleep -Milliseconds 240
+ }
+ throw 'W100_DRAWING_MODAL_NEVER_VISIBLE'
+}
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -1399,18 +1417,18 @@ try{
  Write-Host 'W41_LAYOUT_DESKTOP_DIAGNOSTICS_COLLAPSED=PASS'
  W41-LayoutStress $active
  # After W41 success, physical two-click annotation interaction and cold storage.
- ClickUI $active.shell 'Manage trendlines'
+ W100-OpenDrawings $active.shell
  W42-ExpectedShapeActions $active.shell @() 'EMPTY_FRESH_INSTALL'
  ClickUI $active.shell 'Close trendlines'
  W42-DrawNative $active.shell 'Draw rectangle zone' 0.30 0.31 0.55 0.58
  W42-DrawNative $active.shell 'Draw Fibonacci retracement' 0.39 0.64 0.71 0.27
- ClickUI $active.shell 'Manage trendlines'
+ W100-OpenDrawings $active.shell
  W42-ExpectedShapeActions $active.shell @('Remove rect drawing 1','Remove fib drawing 2') 'AFTER_PHYSICAL_TWO_CLICK_DRAWINGS'
  ClickUI $active.shell 'Close trendlines'
  W41-SpectrumVisual $active.shell
  W41-Stop $active;$active=$null
  $active=W41-Start $installed.candidate_directory
- ClickUI $active.shell 'Manage trendlines'
+ W100-OpenDrawings $active.shell
  W42-ExpectedShapeActions $active.shell @('Remove rect drawing 1','Remove fib drawing 2') 'COLD_REOPENED_BOTH_DRAWINGS'
  ClickUI $active.shell 'Remove rect drawing 1'
  W42-ExpectedShapeActions $active.shell @('Remove fib drawing 2') 'RECT_REMOVED_FIB_PRESERVED'
@@ -1418,18 +1436,18 @@ try{
  W42-ExpectedShapeActions $active.shell @() 'BOTH_DRAWINGS_REMOVED'
  ClickUI $active.shell 'Close trendlines'
  Write-Host '::notice::W42_REAL_NATIVE_RECT_FIB_DRAW_REOPEN_REMOVE=PASS'
- ClickUI $active.shell 'Manage trendlines'
+ W100-OpenDrawings $active.shell
  W100-ExpectVertical $active.shell @() 'FRESH_NAMESPACE_EMPTY'
  ClickUI $active.shell 'Close trendlines'
  ClickUI $active.shell 'Draw vertical line'
  W42-ShapeClick $active.shell 0.42 0.42
- ClickUI $active.shell 'Manage trendlines'
+ W100-OpenDrawings $active.shell
  W100-ExpectVertical $active.shell @('Remove vertical line 1') 'PHYSICAL_ONE_CLICK_SAVED'
  ClickUI $active.shell 'Close trendlines'
  W41-SpectrumVisual $active.shell
  W41-Stop $active;$active=$null
  $active=W41-Start $installed.candidate_directory
- ClickUI $active.shell 'Manage trendlines'
+ W100-OpenDrawings $active.shell
  W100-ExpectVertical $active.shell @('Remove vertical line 1') 'COLD_REOPEN_PRESERVED'
  ClickUI $active.shell 'Remove vertical line 1'
  W100-ExpectVertical $active.shell @() 'DELETED'
