@@ -59,22 +59,33 @@ try{
   Start-Sleep -Milliseconds 300
  }while((Get-Date) -lt $until)
  Need ($null -ne $script:window) 'W107_REAL_HOSTED_WINFORMS_WINDOW_NOT_OBSERVED'
- $edit=UI $script:window 'Installation folder' ([System.Windows.Automation.ControlType]::Edit)
- if($null -eq $edit){
-  # WinForms on Server 2022 can expose an Edit's current text rather than
-  # AccessibleName. The setup dialog has exactly one visible Edit (details
-  # textbox is hidden), so select by distinct control type, never position.
-  $edits=@()
+ # Wait for genuine WinForms controls to become accessible after the native
+ # window is created. The bare top-level window can exist before its children.
+ $edit=$null;$lastTypes=@{};$lastVisible=0
+ $readyUntil=(Get-Date).AddSeconds(25)
+ do{
   $nodes=$script:window.FindAll([System.Windows.Automation.TreeScope]::Descendants,
    [System.Windows.Automation.Condition]::TrueCondition)
+  $edits=@();$lastTypes=@{};$lastVisible=0
   foreach($node in $nodes){try{
-   if($node.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and
-    !$node.Current.IsOffscreen -and $node.Current.IsEnabled){$edits+=,$node}
+   $state=$node.Current;$type=$state.ControlType.ProgrammaticName
+   if(!$lastTypes.ContainsKey($type)){$lastTypes[$type]=0}
+   $lastTypes[$type]++
+   if(!$state.IsOffscreen){$lastVisible++}
+   if($state.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and
+    !$state.IsOffscreen -and $state.IsEnabled){$edits+=,$node}
   }catch{}}
-  Need ($edits.Count -eq 1) ('W107_NATIVE_DESTINATION_INPUT_AMBIGUOUS_COUNT_'+$edits.Count)
-  $edit=$edits[0]
+  if($edits.Count -eq 1){$edit=$edits[0];break}
+  Start-Sleep -Milliseconds 450
+ }while((Get-Date) -lt $readyUntil)
+ if($null -eq $edit){
+  # Metadata only: control-type counts, no UI names, paths or user values.
+  Write-Host ('W107_NATIVE_UIA_PROVIDER_DIAGNOSTIC='+(@{
+   total_nodes=$nodes.Count;visible_nodes=$lastVisible;
+   visible_edit_candidates=$edits.Count;control_types=$lastTypes
+  }|ConvertTo-Json -Compress -Depth 5))
+  throw 'W107_NATIVE_DESTINATION_INPUT_UNAVAILABLE_AFTER_25S'
  }
- Need ($null -ne $edit) 'W107_NATIVE_DESTINATION_INPUT_MISSING'
  $value=$edit.GetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern)
  Need ($value.Current.Value -ceq $expected) 'W107_OCCUPIED_DEFAULT_NOT_SAFELY_REPLACED'
  $mode=UI $script:window 'Setup operation' ([System.Windows.Automation.ControlType]::ComboBox)
