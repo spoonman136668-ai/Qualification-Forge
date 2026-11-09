@@ -13,7 +13,7 @@ concurrency:
 jobs:
   physical-dpi-capability:
     if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108'
-    runs-on: windows-2022
+    runs-on: windows-2025
     timeout-minutes: 8
     env:
       KTRADE_LIVE_TRADING: 'false'
@@ -58,7 +58,7 @@ jobs:
             schema='ktrade.w99.genuine-dpi-host-readonly.v1'
             exact_source=$env:KTRADE_EXACT_SOURCE
             exact_tree=$env:KTRADE_EXACT_TREE
-            runner='github-hosted-windows-2022'
+            runner='github-hosted-windows-2025'
             system_dpi=$sys
             desktop_hwnd_dpi=$win
             primary_monitor_effective_dpi_x=[int]$mx
