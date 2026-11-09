@@ -1044,7 +1044,7 @@ function W42-ShapeActions([object]$shell){
   if(!$n.Current.IsOffscreen -and $n.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
      $label -cmatch '^Remove (?:rect|fib) drawing [0-9]+$'){$names.Add($label)}
  }catch{}}
- return ,($names.ToArray())
+ return $names.ToArray()
 }
 function W42-ShapeClick([object]$shell,[double]$fx,[double]$fy){
  Require ($fx -ge .18 -and $fx -le .78 -and $fy -ge .19 -and $fy -le .75) 'W42_CANDLE_PLOT_SCOPE_REQUIRED'
