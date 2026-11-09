@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='66c67b4aebde1be86471328f2df0f0fb13291851'
+$NewSHA='ab22b0c2d199d166fad0f7d6fa72971b2d938896'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -862,6 +862,8 @@ function W41-LayoutStress([object]$run){
      actual_width=[int]$outer.Width;actual_height=[int]$outer.Height;
      chart_visible=$fits;timeframe_and_indicator_controls_visible=$actions;
      stopped_disarmed_status_visible=$paper;
+     timeframe_visible=$items['1h'].inside;
+     indicator_settings_visible=$items['Indicator settings'].inside;
      chart_width=$chart.width;chart_height=$chart.height;
      all_visible=($fits -and $actions -and $paper)}
   }
