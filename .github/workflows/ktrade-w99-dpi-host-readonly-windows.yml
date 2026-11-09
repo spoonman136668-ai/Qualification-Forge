@@ -1,0 +1,88 @@
+name: KTRADE W99 genuine Windows DPI host capability preflight
+on:
+  push:
+    branches:
+      - qualification/ktrade-ui-workstation-refresh-20261108
+    paths:
+      - .github/workflows/ktrade-w99-dpi-host-readonly-windows.yml
+permissions:
+  contents: read
+concurrency:
+  group: ktrade-w99-dpi-host-readonly-20261109
+  cancel-in-progress: false
+jobs:
+  physical-dpi-capability:
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108'
+    runs-on: windows-2022
+    timeout-minutes: 8
+    env:
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_EXACT_SOURCE: '24595734900c97b3dc80e6465b54e8c31ca23476'
+      KTRADE_EXACT_TREE: '7f495b338413e5fb39873ec3d5e5ce61ce5ef8ef'
+    steps:
+      - name: Verify actual OS DPI without modifying display or touching application
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          function Need([bool]$ok,[string]$code){if(!$ok){throw $code}}
+          Need ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
+            $env:RUNNER_OS -ceq 'Windows' -and
+            $env:KTRADE_LIVE_TRADING -ceq 'false') 'W99_EPHEMERAL_WINDOWS_DISARMED_ONLY'
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          public static class W99DpiReadOnly {
+            [DllImport("user32.dll")] public static extern uint GetDpiForSystem();
+            [DllImport("user32.dll")] public static extern IntPtr GetDesktopWindow();
+            [DllImport("user32.dll")] public static extern uint GetDpiForWindow(IntPtr h);
+            [DllImport("user32.dll")] public static extern int GetSystemMetrics(int id);
+            [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr h, uint flags);
+            [DllImport("shcore.dll")] public static extern int GetDpiForMonitor(IntPtr h, int type, out uint x, out uint y);
+          }
+          '@
+          $sys=[int][W99DpiReadOnly]::GetDpiForSystem()
+          $desktop=[W99DpiReadOnly]::GetDesktopWindow()
+          $win=[int][W99DpiReadOnly]::GetDpiForWindow($desktop)
+          $monitor=[W99DpiReadOnly]::MonitorFromWindow($desktop,2)
+          $mx=[uint32]0;$my=[uint32]0
+          $hr=[W99DpiReadOnly]::GetDpiForMonitor($monitor,0,[ref]$mx,[ref]$my)
+          $width=[int][W99DpiReadOnly]::GetSystemMetrics(0)
+          $height=[int][W99DpiReadOnly]::GetSystemMetrics(1)
+          Need ($sys -ge 96 -and $sys -le 480 -and $width -ge 800 -and
+            $height -ge 600 -and $monitor -ne [IntPtr]::Zero -and $hr -eq 0) 'W99_PHYSICAL_DPI_TELEMETRY_UNAVAILABLE'
+          $factors=@(125,150,200)
+          $matched=@($factors|Where-Object {[Math]::Abs(($sys*100/96)-$_) -le 0.5 -and [Math]::Abs(($mx*100/96)-$_) -le 0.5})
+          # One immutable runner state cannot qualify three physical scaling settings.
+          # No display registry writes, undocumented APIs, logoff or reboot.
+          $receipt=[ordered]@{
+            schema='ktrade.w99.genuine-dpi-host-readonly.v1'
+            exact_source=$env:KTRADE_EXACT_SOURCE
+            exact_tree=$env:KTRADE_EXACT_TREE
+            runner='github-hosted-windows-2022'
+            system_dpi=$sys
+            desktop_hwnd_dpi=$win
+            primary_monitor_effective_dpi_x=[int]$mx
+            primary_monitor_effective_dpi_y=[int]$my
+            display_width_px=$width
+            display_height_px=$height
+            measured_percent=[int][Math]::Round($sys*100/96)
+            tested_real_dpi_percent=@($matched)
+            all_125_150_200_qualified=$false
+            candidate_application_installed=$false
+            physical_dpi_mutated=$false
+            live_trading=$false
+            conclusion='HOST_CAPABILITY_PROBE_ONLY_NOT_PRODUCT_ACCEPTANCE'
+          }
+          $json=$receipt|ConvertTo-Json -Depth 5 -Compress
+          Write-Host ('W99_REAL_WINDOWS_DPI_PROBE='+$json)
+          if(@($matched).Count -eq 0){Write-Host '::notice::W99_REAL_HIDPI_125_150_200=UNVERIFIED_HOST_DPI_DOES_NOT_MATCH'}
+          else{Write-Host '::notice::W99_REAL_HIDPI_125_150_200=UNVERIFIED_NO_APP_ACCEPTANCE'}
+          $json|Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'w99-dpi-host-readonly.json') -Encoding utf8
+      - name: Retain nonsensitive host DPI capability receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ktrade-w99-dpi-host-readonly-2459573
+          path: ${{ runner.temp }}/w99-dpi-host-readonly.json
+          if-no-files-found: warn
+          retention-days: 3
