@@ -1031,6 +1031,55 @@ function W41-WaitColdAxis([object]$shell){
   }
  }
 }
+# W42 additive real native drawing proof; W41 remains fully enforced.
+# Only self-owned disposable Windows WebView2, physical mouse and read-only UIA.
+function W42-ShapeActions([object]$shell){
+ $shell.Refresh()
+ Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W42_NATIVE_WINDOW_REQUIRED'
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+ $names=[Collections.Generic.List[string]]::new()
+ foreach($n in $nodes){try{
+  $label=[string]$n.Current.Name
+  if(!$n.Current.IsOffscreen -and $n.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+     $label -cmatch '^Remove (?:rect|fib) drawing [0-9]+$'){$names.Add($label)}
+ }catch{}}
+ return ,($names.ToArray())
+}
+function W42-ShapeClick([object]$shell,[double]$fx,[double]$fy){
+ Require ($fx -ge .18 -and $fx -le .78 -and $fy -ge .19 -and $fy -le .75) 'W42_CANDLE_PLOT_SCOPE_REQUIRED'
+ $n=FindUI $shell 'Price chart drawing surface' $false 12
+ $r=$n.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$r.IsEmpty -and $r.Width -ge 600 -and $r.Height -ge 220 -and
+  $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W42_REAL_CHART_NOT_READY'
+ [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W42_FOREGROUND_REQUIRED'
+ Require ([W83Native]::SetCursorPos([int]($r.Left+$r.Width*$fx),[int]($r.Top+$r.Height*$fy))) 'W42_MOUSE_POSITION_REFUSED'
+ Start-Sleep -Milliseconds 160
+ [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 310
+}
+function W42-DrawNative([object]$shell,[string]$tool,[double]$x0,[double]$y0,[double]$x1,[double]$y1){
+ Require ($tool -cin @('Draw rectangle zone','Draw Fibonacci retracement')) 'W42_ONLY_ORIGINAL_DRAWING_TOOLS'
+ ClickUI $shell $tool
+ Start-Sleep -Milliseconds 250
+ W42-ShapeClick $shell $x0 $y0
+ W42-ShapeClick $shell $x1 $y1
+ Start-Sleep -Milliseconds 500
+}
+function W42-ExpectedShapeActions([object]$shell,[string[]]$expected,[string]$phase){
+ $observed=@(W42-ShapeActions $shell)
+ $ok=($observed.Count -eq $expected.Count)
+ foreach($item in $expected){if($observed -cnotcontains $item){$ok=$false}}
+ Write-Host ('W42_NATIVE_SHAPE_ACTIONS='+(@{phase=$phase;source_sha=$NewSHA;
+  expected_count=$expected.Count;observed_count=$observed.Count;
+  exact_actions_match=$ok;scope='self_owned_disposable_native_UIA_no_financial_data'
+ }|ConvertTo-Json -Compress))
+ Require $ok ('W42_SHAPE_ACTIONS_MISMATCH_'+$phase)
+}
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -1324,7 +1373,27 @@ try{
  ClickUI $active.shell 'Desktop diagnostics'
  Write-Host 'W41_LAYOUT_DESKTOP_DIAGNOSTICS_COLLAPSED=PASS'
  W41-LayoutStress $active
+ # After W41 success, physical two-click annotation interaction and cold storage.
+ ClickUI $active.shell 'Manage trendlines'
+ W42-ExpectedShapeActions $active.shell @() 'EMPTY_FRESH_INSTALL'
+ ClickUI $active.shell 'Close trendlines'
+ W42-DrawNative $active.shell 'Draw rectangle zone' 0.30 0.31 0.55 0.58
+ W42-DrawNative $active.shell 'Draw Fibonacci retracement' 0.39 0.64 0.71 0.27
+ ClickUI $active.shell 'Manage trendlines'
+ W42-ExpectedShapeActions $active.shell @('Remove rect drawing 1','Remove fib drawing 2') 'AFTER_PHYSICAL_TWO_CLICK_DRAWINGS'
+ ClickUI $active.shell 'Close trendlines'
+ W41-SpectrumVisual $active.shell
  W41-Stop $active;$active=$null
+ $active=W41-Start $installed.candidate_directory
+ ClickUI $active.shell 'Manage trendlines'
+ W42-ExpectedShapeActions $active.shell @('Remove rect drawing 1','Remove fib drawing 2') 'COLD_REOPENED_BOTH_DRAWINGS'
+ ClickUI $active.shell 'Remove rect drawing 1'
+ W42-ExpectedShapeActions $active.shell @('Remove fib drawing 2') 'RECT_REMOVED_FIB_PRESERVED'
+ ClickUI $active.shell 'Remove fib drawing 2'
+ W42-ExpectedShapeActions $active.shell @() 'BOTH_DRAWINGS_REMOVED'
+ ClickUI $active.shell 'Close trendlines'
+ W41-Stop $active;$active=$null
+ Write-Host '::notice::W42_REAL_NATIVE_RECT_FIB_DRAW_REOPEN_REMOVE=PASS'
  Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
 }finally{
  if($null -ne $active){
