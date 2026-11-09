@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='353e6b1be22a74882eeb30229450354345bb9374'
+$NewSHA='86eec83145d360e34be08a36415471bbfb927e7f'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -1165,6 +1165,50 @@ function W102-RealZoom([object]$shell){
  Write-Host '::notice::W102_REAL_NATIVE_CHART_ZOOM=PASS'
 }
 
+# W103 / exercise real native WebView2 watchlist navigation and verify
+# pinned symbol continuity after process restart. UIA only; no order intent.
+function W103-RealWatchlist([object]$shell){
+ ClickUI $shell 'Watchlist'
+ $b=FindUI $shell 'Open chart BTC-USD' $true 12
+ $e=FindUI $shell 'Open chart ETH-USD' $true 12
+ $pin=FindUI $shell 'Remove SOL-USD from watchlist' $true 12
+ Require (!$b.Current.IsOffscreen -and !$e.Current.IsOffscreen -and
+  !$pin.Current.IsOffscreen) 'W103_NATIVE_WATCHLIST_ROWS_NOT_VISIBLE'
+ ClickUI $shell 'Remove SOL-USD from watchlist'
+ ClickUI $shell 'Open chart ETH-USD'
+ Start-Sleep -Milliseconds 500
+ $symbol=FindUI $shell 'ETHUSD' $false 12
+ Require ($symbol.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+  $symbol.Current.Name.Contains('ETHUSD')) 'W103_CHART_MARKET_DID_NOT_CHANGE'
+ Write-Host ('W103_NATIVE_WATCHLIST_NAVIGATION='+(@{
+  source_sha=$NewSHA;requested_market='ETH-USD';native_clicks=3;
+  symbol_header_observed=$true;pin_toggle=$true;
+  live_armed=$false;owner_profile_used=$false
+ }|ConvertTo-Json -Compress))
+ Write-Host '::notice::W103_REAL_NATIVE_MARKET_WATCHLIST_NAVIGATION=PASS'
+}
+function W103-VerifyWatchlistReopen([object]$shell){
+ ClickUI $shell 'Watchlist'
+ $row=FindUI $shell 'Open chart ETH-USD' $true 12
+ Require (!$row.Current.IsOffscreen) 'W103_REOPEN_WATCHLIST_UNAVAILABLE'
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+  [System.Windows.Automation.Condition]::TrueCondition)
+ $removed=$false;$kept=$false
+ foreach($node in $nodes){try{
+  if($node.Current.IsOffscreen){continue}
+  if($node.Current.Name -ceq 'Open chart SOL-USD'){$removed=$true}
+  if($node.Current.Name -ceq 'Open chart ETH-USD'){$kept=$true}
+ }catch{}}
+ Require ($kept -and !$removed) 'W103_PINNED_MARKETS_NOT_PRESERVED'
+ Write-Host ('W103_NATIVE_WATCHLIST_REOPEN='+(@{
+  source_sha=$NewSHA;eth_market_remains=$true;removed_sol_remains_absent=$true;
+  actual_native_cold_reopen=$true;owner_profile_used=$false;
+  live_armed=$false;release_authority=$false
+ }|ConvertTo-Json -Compress))
+ Write-Host '::notice::W103_REAL_NATIVE_WATCHLIST_COLD_PERSISTENCE=PASS'
+}
+
 # W100 genuine one-click vertical marker acceptance on self-owned native test.
 function W100-VerticalActions([object]$shell){
  $shell.Refresh()
@@ -1540,6 +1584,10 @@ try{
  Write-Host '::notice::W100_NATIVE_VERTICAL_COLD_REOPEN_DELETE=PASS'
  W101-RealRangeButtons $active.shell
  W102-RealZoom $active.shell
+ W103-RealWatchlist $active.shell
+ W41-Stop $active;$active=$null
+ $active=W41-Start $installed.candidate_directory
+ W103-VerifyWatchlistReopen $active.shell
  W41-Stop $active;$active=$null
  Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
 }finally{
