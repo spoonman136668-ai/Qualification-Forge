@@ -22,14 +22,14 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SHA: 472d04ba8fbad6ba18ff297e5f98991152baeda9
-      KTRADE_EXPECTED_TREE: 758b1acbab98fd77052eba79a1309f872756cba1
+      KTRADE_EXPECTED_SHA: 9c9be61e440ad472ba69df1ad4bc286447118e88
+      KTRADE_EXPECTED_TREE: 3c43340ecba6a3894340a3ac500ea136b6295021
     steps:
       - name: Checkout exact original KTRADE source without retaining credentials
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 472d04ba8fbad6ba18ff297e5f98991152baeda9
+          ref: 9c9be61e440ad472ba69df1ad4bc286447118e88
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -70,7 +70,7 @@ jobs:
         working-directory: product
         run: |
           $ErrorActionPreference='Stop'
-          & node --test tests/rb3_w85_desktop_operator_shell.test.cjs tests/rb3_nexus_command_deck.test.cjs
+          & node --test tests/rb3_w85_desktop_operator_shell.test.cjs tests/rb3_nexus_command_deck.test.cjs tests/rb3_nexus_install_selector.test.cjs
           if($LASTEXITCODE -ne 0){throw 'KTRADE_UI_PREVIEW_OPERATOR_SHELL_CONTRACT_FAILED'}
           $html=Get-Content 'tools/wails-pilot/frontend/index.html' -Raw
           $css=Get-Content 'tools/wails-pilot/frontend/style.css' -Raw
@@ -86,6 +86,36 @@ jobs:
             throw 'NEXUS_MISSING_COMMAND_DECK'
           }
           Write-Host '::notice::KTRADE_UI_PREVIEW_CHART_FIRST_DESIGN_AND_ORIGINAL_SAFETY_CONTROLS=PASS'
+      - name: Qualify isolated fresh-root suggestion with Windows PowerShell AST
+        shell: pwsh
+        working-directory: product
+        run: |
+          $ErrorActionPreference='Stop'
+          $source=Get-Content 'windows/Install-KTRADE-Fresh.ps1' -Raw
+          $tokens=$null;$parseErrors=$null
+          $ast=[System.Management.Automation.Language.Parser]::ParseInput($source,[ref]$tokens,[ref]$parseErrors)
+          if(@($parseErrors).Count -ne 0){throw 'NEXUS_SETUP_POWERSHELL_PARSE_FAILED'}
+          $fn=$ast.Find({param($node) $node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and $node.Name -ceq 'Get-UnclaimedPreviewDestination'},$true)
+          if($null -eq $fn){throw 'NEXUS_SETUP_ROOT_SELECTOR_MISSING'}
+          . ([scriptblock]::Create($fn.Extent.Text))
+          $sandbox=Join-Path $env:RUNNER_TEMP ('ktrade-nexus-setup-test-'+[guid]::NewGuid().ToString('N'))
+          [void][IO.Directory]::CreateDirectory($sandbox)
+          try{
+            $initial=Get-UnclaimedPreviewDestination $sandbox
+            if($initial -cne (Join-Path $sandbox 'KTRADE-NEXUS-Preview')){throw 'NEXUS_FRESH_SELECTOR_DEFAULT_NOT_AVAILABLE'}
+            [void][IO.Directory]::CreateDirectory($initial)
+            $proof=Join-Path $initial 'owner-bytes-must-not-change.txt'
+            [IO.File]::WriteAllText($proof,'preserve')
+            $next=Get-UnclaimedPreviewDestination $sandbox
+            if($next -cne (Join-Path $sandbox 'KTRADE-NEXUS-Preview-02') -or
+               [IO.File]::ReadAllText($proof) -cne 'preserve' -or
+               (Test-Path -LiteralPath $next)){
+              throw 'NEXUS_FRESH_SELECTOR_EXISTING_OWNER_ROOT_NOT_PRESERVED'
+            }
+            Write-Host '::notice::NEXUS_FRESH_ROOT_SUGGESTION_EXISTING_OWNER_PRESERVED=PASS'
+          }finally{
+            [IO.Directory]::Delete($sandbox,$true)
+          }
       - name: Stage existing locked assets only (no repeat full regression)
         shell: pwsh
         working-directory: product
@@ -161,7 +191,7 @@ jobs:
       - name: Retain private seven-day unsigned UI preview archive (not a release)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ktrade-nexus-preview-unsigned-472d04ba8fbad6ba18ff297e5f98991152baeda9
+          name: ktrade-nexus-preview-unsigned-9c9be61e440ad472ba69df1ad4bc286447118e88
           path: ${{ steps.package.outputs.archive_path }}
           if-no-files-found: error
           retention-days: 7
