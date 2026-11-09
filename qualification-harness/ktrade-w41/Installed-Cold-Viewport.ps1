@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='25853a73bc087de21bec8d56e57ba208df03618d'
+$NewSHA='353e6b1be22a74882eeb30229450354345bb9374'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -1137,6 +1137,32 @@ function W101-RealRangeButtons([object]$shell){
  Write-Host '::notice::W101_REAL_NATIVE_BOUNDED_TIME_RANGES=PASS'
 }
 
+# W102: native installed Graphite/chart zoom. UIA/axis only; no script injection.
+function W102-RealZoom([object]$shell){
+ foreach($label in @('Zoom chart in','Zoom chart out')){
+  $button=FindUI $shell $label $false 12
+  Require ($button.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+   $button.Current.IsEnabled -and !$button.Current.IsOffscreen) ('W102_NATIVE_ZOOM_BUTTON_UNAVAILABLE_'+$label)
+ }
+ $before=ViewportStableAxis $shell 'W102_BEFORE_ZOOM'
+ ClickUI $shell 'Zoom chart in'
+ Start-Sleep -Milliseconds 850
+ $zoomed=ViewportStableAxis $shell 'W102_ZOOMED_IN'
+ ClickUI $shell 'Zoom chart out'
+ Start-Sleep -Milliseconds 850
+ $restored=ViewportStableAxis $shell 'W102_ZOOMED_OUT'
+ Require ($before.axis_sha256 -cne $zoomed.axis_sha256 -and
+  $zoomed.axis_sha256 -cne $restored.axis_sha256) 'W102_NATIVE_ZOOM_DID_NOT_CHANGE_TIME_AXIS'
+ Write-Host ('W102_NATIVE_ZOOM_EVIDENCE='+(@{
+  source_sha=$NewSHA;native_mouse_clicks=2;
+  initial_axis_sha256=$before.axis_sha256;
+  zoom_in_axis_sha256=$zoomed.axis_sha256;
+  zoom_out_axis_sha256=$restored.axis_sha256;
+  genuine_webview2=$true;live_armed=$false;release_authority=$false
+ }|ConvertTo-Json -Compress))
+ Write-Host '::notice::W102_REAL_NATIVE_CHART_ZOOM=PASS'
+}
+
 # W100 genuine one-click vertical marker acceptance on self-owned native test.
 function W100-VerticalActions([object]$shell){
  $shell.Refresh()
@@ -1511,6 +1537,7 @@ try{
  ClickUI $active.shell 'Close trendlines'
  Write-Host '::notice::W100_NATIVE_VERTICAL_COLD_REOPEN_DELETE=PASS'
  W101-RealRangeButtons $active.shell
+ W102-RealZoom $active.shell
  W41-Stop $active;$active=$null
  Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
 }finally{
