@@ -1,4 +1,4 @@
-name: KTRADE W104 pinned market header and native chart acceptance
+name: KTRADE W105 compact header native 200%-equivalent acceptance
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
       GOTOOLCHAIN: 'local'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
-      KTRADE_EXPECTED_SOURCE: 'd6d69ee572032f54274da72b9c4489b7b44ea201'
+      KTRADE_EXPECTED_SOURCE: 'af68990216ec72533500658e053451f0cb23933f'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       KTRADE_SPECTRUM_PREVIEW: '1'
     steps:
@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: d6d69ee572032f54274da72b9c4489b7b44ea201
+          ref: af68990216ec72533500658e053451f0cb23933f
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -59,7 +59,7 @@ jobs:
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
           $source=(& git -C $p rev-parse HEAD).Trim()
           $tree=(& git -C $p rev-parse 'HEAD^{tree}').Trim()
-          if($source -cne 'd6d69ee572032f54274da72b9c4489b7b44ea201' -or $tree -cne '683392a8b6e1a688496f9f52a8215ca18707a9b1' -or
+          if($source -cne 'af68990216ec72533500658e053451f0cb23933f' -or $tree -cne '5655716573cf63f486beeafa9dc76c1a4fab3529' -or
              @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){
             throw 'W41_INSTALLED_EXACT_CLEAN_SOURCE_REQUIRED'
           }
@@ -111,9 +111,9 @@ jobs:
                   else{Write-Host 'W103_SAFE_FAILED_TEST=OTHER_WITHHELD'}
                 }
               }
-              throw 'W104_FOCUSED_UI_REGRESSION_FAILED_PRIVATE_LOG_WITHHELD'
+              throw 'W105_FOCUSED_UI_REGRESSION_FAILED_PRIVATE_LOG_WITHHELD'
             }
-            Write-Host 'W104_FOCUSED_UI_REGRESSION=PASS'
+            Write-Host 'W105_FOCUSED_UI_REGRESSION=PASS'
           }finally{
             Pop-Location
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
@@ -130,7 +130,7 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_VENDOR_REFUSED'}
             $dest=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
-            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha 'd6d69ee572032f54274da72b9c4489b7b44ea201'
+            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha 'af68990216ec72533500658e053451f0cb23933f'
             if($LASTEXITCODE -ne 0){throw 'W41_REAL_NATIVE_INSTALLER_BUILD_FAILED'}
             $zip=Join-Path $dest 'KTRADE-SetupBundle.zip'
             if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W41_REAL_NATIVE_INSTALLER_MISSING'}
@@ -148,7 +148,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ktrade-spectrum-native-ui-d6d69ee572032f54274da72b9c4489b7b44ea201
+          name: ktrade-spectrum-native-ui-af68990216ec72533500658e053451f0cb23933f
           path: ${{ runner.temp }}/ktrade-pr253-spectrum-native-workstation.png
           if-no-files-found: warn
           retention-days: 3
