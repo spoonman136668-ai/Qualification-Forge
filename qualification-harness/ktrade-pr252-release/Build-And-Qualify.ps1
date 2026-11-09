@@ -52,7 +52,8 @@ Require ($priorSetup -ceq 'e65062ac026403fb57ebdc8a1c15ff16ae6630e9' -and
  $newTest -ceq 'bf53f640c14c8284a01e2df329305764090a35ba') 'W106_EXACT_GUI_DELTA_AND_NEGATIVE_TEST_REQUIRED'
 $w29Old=(& git -C $PreviousCheckout rev-parse 'HEAD:tools/wails-pilot/backend/fresh_install.go').Trim()
 $w29New=(& git -C $CandidateCheckout rev-parse 'HEAD:tools/wails-pilot/backend/fresh_install.go').Trim()
-Require ($w29Old -ceq $w29New -and $w29Old -cmatch '^[a-f0-9]{40}
+Require ($w29Old -ceq $w29New -and $w29Old -cmatch '^[a-f0-9]{40}$') 'W106_W29_EXCLUSIVE_ROOT_CLAIM_DRIFT'
+Write-Output 'W106_EIGHT_UNCHANGED_INSTALLER_BLOBS_EXACT_GUI_DELTA_AND_W29_CLAIM=PASS'
 $foundations=@(
  @{id=40615926800;sha='5c2a6200f54b4a9e50c05e00ffe45f42a2b5b413'},
  @{id=40787692876;sha='858d21380e1e88c01555371c6e258dfab07f7446'}
