@@ -1097,7 +1097,8 @@ function W101-RangeStatus([object]$shell,[string]$label){
   if($node.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button){
    $r=$node.Current.BoundingRectangle
    $matched+=@{enabled=[bool]$node.Current.IsEnabled;offscreen=[bool]$node.Current.IsOffscreen;
-    width=[int]$r.Width;height=[int]$r.Height}
+    width=[int]$r.Width;height=[int]$r.Height;left=[int]$r.Left;top=[int]$r.Top;
+    control_type=[string]$node.Current.ControlType.ProgrammaticName}
   }
  }catch{}}
  Require ($matched.Count -eq 1) ('W101_NATIVE_BUTTON_IDENTITY_'+$label)
@@ -1106,6 +1107,7 @@ function W101-RangeStatus([object]$shell,[string]$label){
 function W101-RealRangeButtons([object]$shell){
  foreach($label in @('1D','5D','All')){
   $s=W101-RangeStatus $shell $label
+  Write-Host ('W101_NATIVE_RANGE_UIA='+(@{label=$label;status=$s}|ConvertTo-Json -Compress -Depth 4))
   Require ($s.enabled -and !$s.offscreen -and $s.width -ge 14 -and $s.height -ge 14) ('W101_SUPPORTED_RANGE_NOT_VISIBLE_'+$label)
  }
  foreach($label in @('1M','3M','6M','YTD','1Y','5Y')){
