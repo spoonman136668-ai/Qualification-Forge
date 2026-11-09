@@ -1080,6 +1080,63 @@ function W42-ExpectedShapeActions([object]$shell,[string[]]$expected,[string]$ph
  }|ConvertTo-Json -Compress))
  Require $ok ('W42_SHAPE_ACTIONS_MISMATCH_'+$phase)
 }
+
+# W101 next gate: native-only button availability and real chart-time navigation.
+# Read UIAutomation and original price-chart pixels only; never execute script,
+# read/write storage or broker state, or claim genuine OS DPI acceptance.
+function W101-RangeStatus([object]$shell,[string]$label){
+ Require ($label -cin @('1D','5D','1M','3M','6M','YTD','1Y','5Y','All')) 'W101_UNKNOWN_RANGE'
+ $shell.Refresh()
+ Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W101_NATIVE_WINDOW_REQUIRED'
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $filter=[System.Windows.Automation.PropertyCondition]::new(
+  [System.Windows.Automation.AutomationElement]::NameProperty,$label)
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$filter)
+ $matched=@()
+ foreach($node in $nodes){try{
+  if($node.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button){
+   $r=$node.Current.BoundingRectangle
+   $matched+=@{enabled=[bool]$node.Current.IsEnabled;offscreen=[bool]$node.Current.IsOffscreen;
+    width=[int]$r.Width;height=[int]$r.Height}
+  }
+ }catch{}}
+ Require ($matched.Count -eq 1) ('W101_NATIVE_BUTTON_IDENTITY_'+$label)
+ return $matched[0]
+}
+function W101-RealRangeButtons([object]$shell){
+ foreach($label in @('1D','5D','All')){
+  $s=W101-RangeStatus $shell $label
+  Require ($s.enabled -and !$s.offscreen -and $s.width -ge 14 -and $s.height -ge 14) ('W101_SUPPORTED_RANGE_NOT_VISIBLE_'+$label)
+ }
+ foreach($label in @('1M','3M','6M','YTD','1Y','5Y')){
+  $s=W101-RangeStatus $shell $label
+  Require (!$s.enabled) ('W101_UNBACKED_HISTORY_RANGE_ENABLED_'+$label)
+ }
+ $initial=ViewportStableAxis $shell 'W101_BEFORE_NATIVE_RANGE'
+ ClickUI $shell '1D'
+ Start-Sleep -Milliseconds 850
+ $one=ViewportStableAxis $shell 'W101_NATIVE_1D'
+ ClickUI $shell '5D'
+ Start-Sleep -Milliseconds 850
+ $five=ViewportStableAxis $shell 'W101_NATIVE_5D'
+ ClickUI $shell 'All'
+ Start-Sleep -Milliseconds 850
+ $all=ViewportStableAxis $shell 'W101_NATIVE_ALL'
+ Require ($one.axis_sha256 -cne $five.axis_sha256 -and
+  $five.axis_sha256 -cne $all.axis_sha256 -and
+  $one.axis_sha256 -cne $all.axis_sha256) 'W101_NATIVE_RANGE_DID_NOT_CHANGE_TIME_AXIS'
+ Write-Host ('W101_NATIVE_CHART_RANGE_EVIDENCE='+(@{
+  source_sha=$NewSHA;one_day_axis_sha256=$one.axis_sha256;
+  five_day_axis_sha256=$five.axis_sha256;all_axis_sha256=$all.axis_sha256;
+  original_axis_sha256=$initial.axis_sha256;
+  distinct_native_time_axes=$true;native_mouse_clicks=3;
+  enabled=@('1D','5D','All');disabled=@('1M','3M','6M','YTD','1Y','5Y');
+  scopes='disposable_installed_WebView2_UIAutomation_and_time_axis_pixels_only';
+  full_history_fetch=$false;live_armed=$false;release_authority=$false
+ }|ConvertTo-Json -Compress))
+ Write-Host '::notice::W101_REAL_NATIVE_BOUNDED_TIME_RANGES=PASS'
+}
+
 # W100 genuine one-click vertical marker acceptance on self-owned native test.
 function W100-VerticalActions([object]$shell){
  $shell.Refresh()
@@ -1454,6 +1511,7 @@ try{
  ClickUI $active.shell 'Close trendlines'
  W41-Stop $active;$active=$null
  Write-Host '::notice::W100_NATIVE_VERTICAL_COLD_REOPEN_DELETE=PASS'
+ W101-RealRangeButtons $active.shell
  Write-Host '::notice::W41_REAL_INSTALLED_WEBVIEW2_DISARMED_STOP_NO_ORPHANS=PASS'
 }finally{
  if($null -ne $active){
