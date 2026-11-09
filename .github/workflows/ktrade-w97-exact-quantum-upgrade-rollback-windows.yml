@@ -170,7 +170,7 @@ jobs:
           }
           '@
           $native=$native.Replace($nativeStart,$reveal+[Environment]::NewLine+$nativeStart)
-          $native=$native.Replace($nativeClick,"  if($name -ceq 'BTCUSD'){W97-ExposeMarketSymbol $proc}"+[Environment]::NewLine+$nativeClick)
+          $native=$native.Replace($nativeClick,('  if($name -ceq ''BTCUSD''){W97-ExposeMarketSymbol $proc}'+[Environment]::NewLine+$nativeClick))
           [IO.File]::WriteAllText((Join-Path $target 'Original-W40-Native-Inputs.ps1'),$native,[Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText((Join-Path $target 'Build-And-Qualify.ps1'),$builder,[Text.UTF8Encoding]::new($false))
           [IO.File]::WriteAllText((Join-Path $target 'Installed-Paper-Lifecycle.ps1'),$witness,[Text.UTF8Encoding]::new($false))
