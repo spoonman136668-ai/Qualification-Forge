@@ -82,10 +82,10 @@ jobs:
           }
           $h='qualification-harness/ktrade-w83/'
           foreach($pin in @(
-            @($h+'Build-And-Qualify.ps1','cdaa4125b7deccfedcc78df190aa61709e4b3fbb'),
-            @($h+'Installed-Paper-Lifecycle.ps1','196607a527072b5dac19a426347602b00eb39316'),
-            @($h+'Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1'),
-            @($h+'Original-W40-Native-Inputs.ps1','646a3dc40cb8877e7bc34690e02f74773b83529c')
+            @('qualification-harness/ktrade-w83/Build-And-Qualify.ps1','cdaa4125b7deccfedcc78df190aa61709e4b3fbb'),
+            @('qualification-harness/ktrade-w83/Installed-Paper-Lifecycle.ps1','196607a527072b5dac19a426347602b00eb39316'),
+            @('qualification-harness/ktrade-w83/Original-W40-Paper.ps1','c69c3c05ff7f4ef933856b036bfa23fbf0a760f1'),
+            @('qualification-harness/ktrade-w83/Original-W40-Native-Inputs.ps1','646a3dc40cb8877e7bc34690e02f74773b83529c')
           )){
             Need ((& git -C $w rev-parse ('HEAD:'+$pin[0])).Trim() -ceq $pin[1]) ('W97_ORIGINAL_HARNESS_BLOB_DRIFT_'+$pin[0])
           }
