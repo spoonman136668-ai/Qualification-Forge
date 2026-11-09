@@ -25,8 +25,8 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SOURCE: 'ab22b0c2d199d166fad0f7d6fa72971b2d938896'
-      KTRADE_EXPECTED_TREE: '661bdd0e60e787d953f20ad7a5707c96d03c8070'
+      KTRADE_EXPECTED_SOURCE: '24595734900c97b3dc80e6465b54e8c31ca23476'
+      KTRADE_EXPECTED_TREE: '7f495b338413e5fb39873ec3d5e5ce61ce5ef8ef'
       GITHUB_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout immutable qualification source
@@ -47,7 +47,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: ab22b0c2d199d166fad0f7d6fa72971b2d938896
+          ref: 24595734900c97b3dc80e6465b54e8c31ca23476
           fetch-depth: 0
           path: candidate
           persist-credentials: false
