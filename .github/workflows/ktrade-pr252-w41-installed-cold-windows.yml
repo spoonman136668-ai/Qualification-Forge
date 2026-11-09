@@ -99,56 +99,13 @@ jobs:
             & node --test --test-reporter=tap tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w95_appearance.test.cjs tests/w101_chart_ranges.test.cjs tests/w102_tradingview_navigation.test.cjs tests/w103_watchlist.test.cjs *> $log
             if($LASTEXITCODE -ne 0){
               Write-Host ('W41_FOCUSED_NODE_FAILURE_SHA256='+(Get-FileHash -LiteralPath $log -Algorithm SHA256).Hash.ToLowerInvariant())
-              # Allowlisted test titles only; no assertion payload, private log,
-              # owner data, paths or secret-bearing source bytes.
               $approved=@('fresh watchlist defaults are valid, independent of existing data',
                 'watchlist allows bounded custom symbols, removal and cold retrieval',
                 'unknown, corrupt, future and competing preferences are not overwritten',
                 'invalid catalog, duplicate/unallowlisted selection, oversized queries fail closed',
                 'real UI connects original market symbol selection and accessible watchlist controls')
               foreach($line in @(Get-Content -LiteralPath $log)){
-                if($line -match '^not ok [0-9]+ - (.*)
-            }
-            Write-Host 'W103_FOCUSED_UI_REGRESSION=PASS'
-          }finally{
-            Pop-Location
-            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
-          }
-      - name: Build unsigned original Wails installer from exact qualified candidate
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $product=Join-Path $env:GITHUB_WORKSPACE 'product'
-          Push-Location $product
-          try{
-            & npm ci --ignore-scripts --no-audit --no-fund --silent
-            if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_NPM_REFUSED'}
-            & node scripts/stage_offline_vendor.cjs
-            if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_VENDOR_REFUSED'}
-            $dest=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
-            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '86eec83145d360e34be08a36415471bbfb927e7f'
-            if($LASTEXITCODE -ne 0){throw 'W41_REAL_NATIVE_INSTALLER_BUILD_FAILED'}
-            $zip=Join-Path $dest 'KTRADE-SetupBundle.zip'
-            if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W41_REAL_NATIVE_INSTALLER_MISSING'}
-            Write-Host ('W41_EXACT_UNSIGNED_NATIVE_BUNDLE_SHA256='+(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant())
-            "W41_PACKAGE_PATH=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
-          }finally{Pop-Location}
-      - name: Real installed Wails cold-reopen physical chart acceptance
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          if([string]::IsNullOrEmpty($env:W41_PACKAGE_PATH)){throw 'W41_PACKAGE_CUSTODY_LOST'}
-          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w41/Installed-Cold-Viewport.ps1') -PackageZip $env:W41_PACKAGE_PATH
-          if(!$?){throw 'W41_REAL_INSTALLED_COLD_ACCEPTANCE_FAILED'}
-      - name: Retain test-owned native Spectrum Desk image for UX inspection
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: ktrade-spectrum-native-ui-86eec83145d360e34be08a36415471bbfb927e7f
-          path: ${{ runner.temp }}/ktrade-pr253-spectrum-native-workstation.png
-          if-no-files-found: warn
-          retention-days: 3
-){
+                if($line -match '^not ok [0-9]+ - (.*)$'){
                   $name=[string]$Matches[1]
                   if($approved -ccontains $name){Write-Host ('W103_SAFE_FAILED_TEST='+$name)}
                   else{Write-Host 'W103_SAFE_FAILED_TEST=OTHER_WITHHELD'}
