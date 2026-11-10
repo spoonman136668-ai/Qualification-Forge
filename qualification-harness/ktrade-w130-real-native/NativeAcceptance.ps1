@@ -229,11 +229,18 @@ try {
     (& git -C $repo rev-parse 'HEAD:tests/w129_tick_interaction.test.cjs').Trim() -ceq
       '900a8c36a41c53083a04af0ba6af5e6e6cc8c64e') 'W130_PRODUCT_CHART_SOURCE_DRIFT'
   $html=[IO.File]::ReadAllText($chartPath)
-  $anchor='<script src="/static/w41_wails_cold_bridge.js"></script>'
+  # The W41 bridge is appended just before </body>, AFTER the product
+  # w114 chart script. Hooking the frozen chart API at that point replaces an
+  # already-defined API and prevents the chart DOMContentLoaded install.
+  # Place this passive fixture BEFORE w114_tick_chart.js, not after W41.
+  $anchor='<script src="/static/w114_tick_chart.js"></script>'
+  $w41='<script src="/static/w41_wails_cold_bridge.js"></script>'
   Require ($html.Split([string[]]@($anchor),[StringSplitOptions]::None).Count -eq 2 -and
-    !$html.Contains('w130_real_native_observer')) 'W130_FIXTURE_ASSET_BOUNDARY'
-  $html=$html.Replace($anchor,$anchor+[Environment]::NewLine+
-    '<script src="/static/w130_real_native_observer.js"></script>')
+    $html.Contains($w41) -and
+    !$html.Contains('w130_real_native_observer')) 'W130_PRE_CHART_FIXTURE_BOUNDARY'
+  $html=$html.Replace($anchor,
+    '<script src="/static/w130_real_native_observer.js"></script>'+
+    [Environment]::NewLine+$anchor)
   [IO.File]::WriteAllText($chartPath,$html,[Text.UTF8Encoding]::new($false))
   Require ((& git -C $repo rev-parse HEAD).Trim() -ceq $ExpectedSourceSha -and
     @(& git -C $repo status --porcelain --untracked-files=no).Count -eq 0) 'W130_PRODUCT_WORKTREE_CHANGED'
