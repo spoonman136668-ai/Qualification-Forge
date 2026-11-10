@@ -15,7 +15,7 @@ jobs:
   native-regression:
     # This follow-up only classifies W41's cold-reopen failure. Preserve the
     # independent native regression running on its prior exact source.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
@@ -325,7 +325,7 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
@@ -488,3 +488,33 @@ jobs:
           if(!(Test-Path -LiteralPath $script -PathType Leaf)){throw 'W118_SOURCE_OWNED_ONE_SHOT_SCRIPT_MISSING'}
           & $script -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE -ExpectedTreeSha $env:KTRADE_EXPECTED_TREE
           if($LASTEXITCODE -ne 0 -or !$?){throw 'W118_PUBLIC_DATA_VERIFICATION_FAILED'}
+
+  public-market-data-diagnostic-once:
+    # Read-only public network diagnosis, no KTRADE product checkout.
+    # Only triggered by this single commit marker, never scheduled.
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && github.event_name == 'push' && contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY')
+    runs-on: windows-2022
+    timeout-minutes: 6
+    env:
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      W118B_PUBLIC_MARKET_DIAGNOSTIC_ONLY: '1'
+    steps:
+      - name: Checkout immutable QForge public-readonly diagnostics only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: qualifier
+          persist-credentials: false
+      - name: Probe public Coinbase DNS, Level 3 HTTPS headers, WS full subscribe acknowledgement
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+          $q=Join-Path $env:GITHUB_WORKSPACE 'qualifier'
+          $script=Join-Path $q 'qualification-harness/ktrade-w118-public-readonly/Diagnose-Network.ps1'
+          if(!(Test-Path -LiteralPath $script -PathType Leaf) -or
+            (& git -C $q hash-object -- $script).Trim() -cne 'dfdcf50c1e0bcaedaf519d1f2109ffa3b2d77f9e'){
+            throw 'W118B_SOURCE_PIN_REFUSED'
+          }
+          & $script
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'W118B_NETWORK_DIAGNOSTIC_NOT_PASS'}
