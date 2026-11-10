@@ -15,7 +15,7 @@ jobs:
   native-regression:
     # This follow-up only classifies W41's cold-reopen failure. Preserve the
     # independent native regression running on its prior exact source.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
@@ -325,7 +325,7 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
@@ -440,3 +440,51 @@ jobs:
             Pop-Location
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
           }
+
+  public-market-data-readonly-once:
+    # One-shot public-data-only probe with immutable KTRADE source.
+    # Not scheduled; no account, credential, orders, live or owner runner.
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && github.event_name == 'push' && contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT')
+    runs-on: windows-2022
+    timeout-minutes: 12
+    env:
+      KTRADE_EXPECTED_SOURCE: 'ef7c7105879025d8e8e04d2b26900b19886804b0'
+      KTRADE_EXPECTED_TREE: '13e0e6330512293b118f767d48fda0759bf98bfe'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      W118_PUBLIC_MARKET_DATA_ONLY: '1'
+      GOTOOLCHAIN: 'local'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout immutable qualified KTRADE source without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: ef7c7105879025d8e8e04d2b26900b19886804b0
+          fetch-depth: 0
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout isolated QForge acceptance harness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: qualifier
+          persist-credentials: false
+      - name: Setup pinned Go for one bounded read-only public feed
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - name: One read-only Exchange full WebSocket and Level 3 public snapshot
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'; Set-StrictMode -Version Latest
+          $script=Join-Path $env:GITHUB_WORKSPACE 'qualifier/qualification-harness/ktrade-w118-public-readonly/Run-OneShot.ps1'
+          if(!(Test-Path -LiteralPath $script -PathType Leaf)){throw 'W118_SOURCE_OWNED_ONE_SHOT_SCRIPT_MISSING'}
+          & $script -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE -ExpectedTreeSha $env:KTRADE_EXPECTED_TREE
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'W118_PUBLIC_DATA_VERIFICATION_FAILED'}
