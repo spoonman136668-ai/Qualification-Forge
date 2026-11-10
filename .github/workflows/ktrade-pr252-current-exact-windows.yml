@@ -19,11 +19,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: 'c44bb75345b48385f784b9500f49ffb127c4411c'
+      KTRADE_EXPECTED_SOURCE: '8e99dddb26e9d869012d1ceec000e219e727e7bf'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: 'c04d67b9e3b1c1a9472e0fcbb8215330f89b25cb'
+      KTRADE_EXPECTED_TREE: '831f98984d09baca8a02ddaabd94291bee879de9'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: c44bb75345b48385f784b9500f49ffb127c4411c
+          ref: 8e99dddb26e9d869012d1ceec000e219e727e7bf
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -245,15 +245,16 @@ jobs:
             Require ($LASTEXITCODE -eq 0) 'W109_W106_CANDIDATE_ANCESTRY_LOST'
             # Exact parent and content-blob identity are stronger than an
             # OS-dependent path sort or string-comparison diagnostic.
-            Require ((& git rev-parse HEAD^).Trim() -ceq 'ef7c7105879025d8e8e04d2b26900b19886804b0' -and
-              (& git rev-parse 'HEAD^^').Trim() -ceq 'c4f18a4a64c42b0e0a881019187dd5914aee8a54' -and
-              (& git rev-parse 'HEAD^^^').Trim() -ceq '2452b0aa2d7bfe74e548ff4132e324c97448a808' -and
-              (& git rev-parse 'HEAD^^^^').Trim() -ceq '18a52b91b8e3021fd5243c11cb733a50a47ba952' -and
-              (& git rev-parse 'HEAD^^^^^').Trim() -ceq '9c176420f23575c0a6012d7d5939da6a0cfa78f9' -and
-              (& git rev-parse 'HEAD^^^^^^').Trim() -ceq 'b7231934cc6e7ce8eff1179c504a892fc6803614' -and
-              (& git rev-parse 'HEAD^^^^^^^').Trim() -ceq '53135b3325071f2ed4b7f81481bd020361c7dea6' -and
-              (& git rev-parse 'HEAD^^^^^^^^').Trim() -ceq 'd3e7642e8cb2f3ec5df53bb3e85c0ec473603255' -and
-              (& git rev-parse 'HEAD^^^^^^^^^').Trim() -ceq '4b0bb1cf12d72d09ba16142a8334884b7655df6c' -and
+            Require ((& git rev-parse HEAD^).Trim() -ceq 'c44bb75345b48385f784b9500f49ffb127c4411c' -and
+              (& git rev-parse 'HEAD^^').Trim() -ceq 'ef7c7105879025d8e8e04d2b26900b19886804b0' -and
+              (& git rev-parse 'HEAD^^^').Trim() -ceq 'c4f18a4a64c42b0e0a881019187dd5914aee8a54' -and
+              (& git rev-parse 'HEAD^^^^').Trim() -ceq '2452b0aa2d7bfe74e548ff4132e324c97448a808' -and
+              (& git rev-parse 'HEAD^^^^^').Trim() -ceq '18a52b91b8e3021fd5243c11cb733a50a47ba952' -and
+              (& git rev-parse 'HEAD^^^^^^').Trim() -ceq '9c176420f23575c0a6012d7d5939da6a0cfa78f9' -and
+              (& git rev-parse 'HEAD^^^^^^^').Trim() -ceq 'b7231934cc6e7ce8eff1179c504a892fc6803614' -and
+              (& git rev-parse 'HEAD^^^^^^^^').Trim() -ceq '53135b3325071f2ed4b7f81481bd020361c7dea6' -and
+              (& git rev-parse 'HEAD^^^^^^^^^').Trim() -ceq 'd3e7642e8cb2f3ec5df53bb3e85c0ec473603255' -and
+              (& git rev-parse 'HEAD^^^^^^^^^^').Trim() -ceq '4b0bb1cf12d72d09ba16142a8334884b7655df6c' -and
               (& git rev-parse 'HEAD:internal/tickchart/tickchart.go').Trim() -ceq 'eaadd20a677309588403b03d7fd2f5953bfb2978' -and
               (& git rev-parse 'HEAD:internal/tickchart/tickchart_test.go').Trim() -ceq 'e7d78ba49ab73fc1019d2f263d86f22b1bd6f34e' -and
               (& git rev-parse 'HEAD:internal/tickchart/stream.go').Trim() -ceq '5c2f0360a29e8bd0ecafbd1dedfd0f866cc99ba1' -and
@@ -273,8 +274,9 @@ jobs:
               (& git rev-parse 'HEAD:tests/w115_tick_navigation.test.cjs').Trim() -ceq 'e671e9ab3c444343a15dd870c6269b22f912141b' -and
               (& git rev-parse 'HEAD:internal/tickchart/exchange_full_transport.go').Trim() -ceq 'e3aed7e3239ecac60647e242a986187e0ac59e2a' -and
               (& git rev-parse 'HEAD:internal/tickchart/exchange_full_tls_integration_test.go').Trim() -ceq '58aab8b46c49011f39f35391bdcfca038e667c6e' -and
-              (& git rev-parse 'HEAD:internal/tickchart/exchange_matches_heartbeat.go').Trim() -ceq '861d2258ed457f12f00d724cb047cc63c13c1e8a' -and
-              (& git rev-parse 'HEAD:internal/tickchart/exchange_matches_heartbeat_test.go').Trim() -ceq '439eb93320cf373dca1ae3fb5dd83c687c4528a5') 'W121_EXACT_W117_PARENT_PUBLIC_MATCHES_HEARTBEAT_BLOBS_REQUIRED'
+              (& git rev-parse 'HEAD:internal/tickchart/exchange_matches_heartbeat.go').Trim() -ceq '89654865bcede98793921f873beaf6f8c39f2b34' -and
+              (& git rev-parse 'HEAD:internal/tickchart/exchange_matches_heartbeat_test.go').Trim() -ceq '439eb93320cf373dca1ae3fb5dd83c687c4528a5' -and
+              (& git rev-parse 'HEAD:internal/tickchart/exchange_matches_heartbeat_w125_test.go').Trim() -ceq '1302e12227a60c1bb19aec65dd5b2f4cf0e08963') 'W125_EXACT_W121_PARENT_COVERAGE_GAP_WATCHDOG_BLOBS_REQUIRED'
             Checked 'W109_TICK_BARS_EXACT_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW109')
             Write-Host '::notice::W109_TICK_BAR_SOURCE_BOUNDARY_NO_TICKER_PROMOTION=PASS'
             Checked 'W110_TICK_STREAM_BATCH_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW110')
@@ -283,6 +285,7 @@ jobs:
             Checked 'W113_READONLY_TRANSPORT_FOCUSED' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW113')
             Checked 'W117_REAL_TLS_WS_LEVEL3_INTEGRATION' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW117')
             Checked 'W121_PUBLIC_MATCHES_HEARTBEAT_FOCUSED' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW121')
+            Checked 'W125_COVERAGE_TIMEOUT_NEGATIVE_CONTROLS' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW125')
             Checked 'W114_READONLY_TICK_WS_FOCUSED' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full','./cmd/ktrade','-run','TestW114')
             Write-Host '::notice::W110_TICK_STREAM_GAP_RESTART_ATOMICITY=PASS'
             Checked 'GO_PHASE18_CANDLES_FOCUSED' 'go' @('test','-mod=readonly','-count=1','./pkg','-run','TestPhase18_P18C|TestPhase18P18CChartTaggedSourceBoundaryRejectsDrift')
@@ -334,7 +337,7 @@ jobs:
     timeout-minutes: 45
     env:
       KTRADE_EXPECTED_SOURCE: 'c44bb75345b48385f784b9500f49ffb127c4411c'
-      KTRADE_EXPECTED_TREE: 'c04d67b9e3b1c1a9472e0fcbb8215330f89b25cb'
+      KTRADE_EXPECTED_TREE: '831f98984d09baca8a02ddaabd94291bee879de9'
       W01_EXPECTED_SHA: 'c44bb75345b48385f784b9500f49ffb127c4411c'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
