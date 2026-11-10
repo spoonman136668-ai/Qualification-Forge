@@ -15,7 +15,7 @@ jobs:
   native-regression:
     # This follow-up only classifies W41's cold-reopen failure. Preserve the
     # independent native regression running on its prior exact source.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
@@ -325,7 +325,7 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
@@ -519,3 +519,33 @@ jobs:
           }
           & $script
           if($LASTEXITCODE -ne 0 -or !$?){throw 'W118B_NETWORK_DIAGNOSTIC_NOT_PASS'}
+
+  public-matches-heartbeat-feasibility-once:
+    # One bounded public-data feasibility experiment, no KTRADE product source,
+    # no paid endpoints, orders, credentials, controller or scheduler.
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && github.event_name == 'push' && contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY')
+    runs-on: windows-2022
+    timeout-minutes: 5
+    env:
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      W120_PUBLIC_MATCHES_PROBE_ONLY: '1'
+    steps:
+      - name: Checkout source-owned public match/heartbeat feasibility only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: qualifier
+          persist-credentials: false
+      - name: One public matches+heartbeat WS and public REST trades read
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+          $q=Join-Path $env:GITHUB_WORKSPACE 'qualifier'
+          $script=Join-Path $q 'qualification-harness/ktrade-w120-public-matches/Probe-OneShot.ps1'
+          if(!(Test-Path -LiteralPath $script -PathType Leaf) -or
+            (& git -C $q hash-object -- $script).Trim() -cne '1bf22209bcf66a3e69fda108ce54097cd3a511b6'){
+            throw 'W120_PUBLIC_PROBE_SOURCE_IDENTITY_MISMATCH'
+          }
+          & $script
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'W120_NOT_PROVEN_WITH_PUBLIC_MARKET_DATA'}
