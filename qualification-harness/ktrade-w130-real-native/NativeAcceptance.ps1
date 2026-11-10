@@ -32,7 +32,7 @@ $fixture=Join-Path $qualifier 'qualification-harness/ktrade-w130-real-native/obs
 Require (Test-Path -LiteralPath $fixture -PathType Leaf) 'W130_EXACT_FIXTURE_SOURCE_MISSING'
 $fixtureHash=(& git -C $qualifier hash-object -- $fixture).Trim()
 Require ($LASTEXITCODE -eq 0 -and
- $fixtureHash -ceq 'ce4d5527d8a138710bc849536280c468cf0abf5d') 'W130_FIXTURE_HASH_DRIFT'
+ $fixtureHash -ceq '3e156f0d5e5f2056421b879d8289ce1ce676a9c8') 'W130_FIXTURE_HASH_DRIFT'
 $head=(& git -C $repo rev-parse HEAD).Trim()
 $tree=(& git -C $repo rev-parse 'HEAD^{tree}').Trim()
 Require ($LASTEXITCODE -eq 0 -and $head -ceq $ExpectedSourceSha -and
@@ -274,7 +274,32 @@ try {
     $cap.strategy_execution_enabled -eq $false) 'W130_FINANCIAL_MODE_NOT_DISARMED'
   [void](Wait-Control 'W130_REAL_READY' $false 60)
   Write-Host 'QFORGE_W130_REAL_PUBLIC_PASSIVE_WITNESS_VISIBLE=PASS'
-  Native-Click '100T'; Wait-Witness 'FIRST_100T_PUBLIC_CANVAS' 125
+  Native-Click '100T'
+  try{
+    Wait-Witness 'FIRST_100T_PUBLIC_CANVAS' 125
+  }catch{
+    $signals=@(
+      'SOURCE_SET','VIEW_INSTALLED','NATIVE_SELECTION',
+      'TICK_SOCKET_CREATED','TICK_SOCKET_OPEN','TICK_OVERLAY_ACTIVE',
+      'BLANK_PIXELS_CAPTURED','PUBLIC_CANDLE_STATUS',
+      'VIEW_COMPLETED_BARS','NEW_CANVAS_PIXELS'
+    )
+    $passed=@()
+    foreach($label in $signals){
+      if(Find-Control ('W130_DIAG_'+$label+'=PASS') $false){$passed+=,$label}
+    }
+    $classification=if($passed -cnotcontains 'VIEW_INSTALLED'){'CHART_INSTALL_VIEW_NOT_CAPTURED'}
+      elseif($passed -cnotcontains 'TICK_SOCKET_CREATED'){'TICK_SUBSCRIPTION_NOT_CREATED'}
+      elseif($passed -cnotcontains 'TICK_SOCKET_OPEN'){'TICK_SOCKET_NOT_OPEN'}
+      elseif($passed -cnotcontains 'PUBLIC_CANDLE_STATUS'){'NO_VERIFIED_PUBLIC_100T_IN_BUDGET'}
+      elseif($passed -cnotcontains 'BLANK_PIXELS_CAPTURED'){'EMPTY_FRAME_WITNESS_MISSED'}
+      elseif($passed -cnotcontains 'NEW_CANVAS_PIXELS'){'CANVAS_DID_NOT_REPAINT'}
+      else{'FIRST_BAR_WITNESS_MISMATCH'}
+    Write-Host ('QFORGE_W130B_DIAGNOSTIC='+
+      $classification+';observed='+($passed -join ',')+
+      ';source='+$ExpectedSourceSha+';orders=zero;synthetic=zero')
+    throw 'W130B_NATIVE_REAL_FIRST_BAR_UNVERIFIED'
+  }
   $rect=Real-CanvasRect
   Real-CanvasFocus
   [KTRADEW130Native]::Hover([int]($rect.X+$rect.Width*.5),[int]($rect.Y+$rect.Height*.5))

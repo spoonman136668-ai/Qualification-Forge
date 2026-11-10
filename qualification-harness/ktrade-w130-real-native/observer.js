@@ -38,6 +38,18 @@ out.style.cssText='position:fixed;right:5px;bottom:38px;z-index:32000;'+
  'font:12px Consolas,monospace;padding:4px 8px;pointer-events:none';
 out.textContent='W130_REAL_READY';doc.body.appendChild(out);
 const emit=stage=>{out.textContent='W130_REAL_'+stage+'=PASS'};
+const observed=new Set();
+function diagnostic(stage){
+ if(observed.has(stage))return;
+ observed.add(stage);
+ const item=doc.createElement('output');
+ item.setAttribute('role','status');
+ item.id='w130-diagnostic-'+stage.toLowerCase();
+ item.style.cssText='position:fixed;right:5px;bottom:'+(55+observed.size*13)+
+   'px;z-index:32000;color:#13d4d4;background:#0b2830;'+
+   'font:10px Consolas,monospace;pointer-events:none';
+ item.textContent='W130_DIAG_'+stage+'=PASS';doc.body.appendChild(item);
+}
 const canvas=doc.getElementById('tickChartCanvas');
 const status=doc.getElementById('tickChartStatus');
 const inspect=doc.getElementById('tickInspectStatus');
@@ -68,6 +80,22 @@ tf?.addEventListener('click',e=>{
  },45);
  let cycles=0;const interval=win.setInterval(()=>{
   if(++cycles>4000||!started){win.clearInterval(interval);return}
+  // Monotone diagnostic witnesses; these do not modify the product
+  // socket, market data, input handler or chart state.
+  if(api)diagnostic('SOURCE_SET');
+  if(view)diagnostic('VIEW_INSTALLED');
+  if(started)diagnostic('NATIVE_SELECTION');
+  if(sockets.length===1)diagnostic('TICK_SOCKET_CREATED');
+  if(sockets.length===1&&sockets[0].readyState===OriginalSocket.OPEN)
+    diagnostic('TICK_SOCKET_OPEN');
+  if(overlay?.hidden===false&&tf?.getAttribute('aria-pressed')==='true')
+    diagnostic('TICK_OVERLAY_ACTIVE');
+  if(emptyPixels)diagnostic('BLANK_PIXELS_CAPTURED');
+  if(/^100T · [1-9][0-9]* completed session bars · Pine inputs unchanged$/.test(status?.textContent||''))
+    diagnostic('PUBLIC_CANDLE_STATUS');
+  if(view?.barCount?.()>0)diagnostic('VIEW_COMPLETED_BARS');
+  if(emptyPixels&&fingerprint()&&fingerprint()!==emptyPixels)
+    diagnostic('NEW_CANVAS_PIXELS');
   if(!validPublic()||view.active()!==100||view.barCount()<1||
     !emptyPixels||fingerprint()===emptyPixels)return;
   if(!crosshair){
