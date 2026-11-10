@@ -243,8 +243,11 @@ jobs:
             # W109: isolate the tick-candle engine and refuse invented ticker bars.
             & git merge-base --is-ancestor '4b0bb1cf12d72d09ba16142a8334884b7655df6c' HEAD
             Require ($LASTEXITCODE -eq 0) 'W109_W106_CANDIDATE_ANCESTRY_LOST'
-            $delta=@(& git diff --name-only '4b0bb1cf12d72d09ba16142a8334884b7655df6c' HEAD|Sort-Object)
-            Require (($delta -join '|') -ceq 'internal/tickchart/tickchart.go|internal/tickchart/tickchart_test.go') 'W109_ISOLATED_CORE_ONLY_REQUIRED'
+            # Exact parent and content-blob identity are stronger than an
+            # OS-dependent path sort or string-comparison diagnostic.
+            Require ((& git rev-parse HEAD^).Trim() -ceq '4b0bb1cf12d72d09ba16142a8334884b7655df6c' -and
+              (& git rev-parse 'HEAD:internal/tickchart/tickchart.go').Trim() -ceq 'eaadd20a677309588403b03d7fd2f5953bfb2978' -and
+              (& git rev-parse 'HEAD:internal/tickchart/tickchart_test.go').Trim() -ceq 'e7d78ba49ab73fc1019d2f263d86f22b1bd6f34e') 'W109_EXACT_PARENT_AND_TWO_TICK_CORE_BLOBS_REQUIRED'
             Checked 'W109_TICK_BARS_EXACT_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW109')
             Write-Host '::notice::W109_TICK_BAR_SOURCE_BOUNDARY_NO_TICKER_PROMOTION=PASS'
             Checked 'GO_PHASE18_CANDLES_FOCUSED' 'go' @('test','-mod=readonly','-count=1','./pkg','-run','TestPhase18_P18C|TestPhase18P18CChartTaggedSourceBoundaryRejectsDrift')
