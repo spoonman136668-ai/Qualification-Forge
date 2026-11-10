@@ -15,7 +15,7 @@ jobs:
   native-regression:
     # This follow-up only classifies W41's cold-reopen failure. Preserve the
     # independent native regression running on its prior exact source.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
@@ -329,7 +329,7 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
@@ -606,3 +606,65 @@ jobs:
           }
           & $script -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE -ExpectedTreeSha $env:KTRADE_EXPECTED_TREE
           if($LASTEXITCODE -ne 0 -or !$?){throw 'W122_PUBLIC_100T_ACCEPTANCE_NOT_VERIFIED'}
+
+  public-native-real-100t-ui-once:
+    # Exact source c44bb753: W121 full Windows Go/Node/Wails PASS and
+    # W122 real public 100T proof PASS before this job is authorized.
+    # One passive witness, real WebView2 native mouse, no mocked tick feed.
+    # No order, account, credentials, schedule or owner-machine operation.
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && github.event_name == 'push' && contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY')
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      KTRADE_EXPECTED_SOURCE: 'c44bb75345b48385f784b9500f49ffb127c4411c'
+      KTRADE_EXPECTED_TREE: 'c04d67b9e3b1c1a9472e0fcbb8215330f89b25cb'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOTOOLCHAIN: 'local'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout exact qualified KTRADE product without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: c44bb75345b48385f784b9500f49ffb127c4411c
+          fetch-depth: 0
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout immutable passive native UI observer
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: qualifier
+          persist-credentials: false
+      - name: Setup pinned Go for disposable native Wails package
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Genuine read-only Coinbase public 100T chart rendering by native Windows click
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+          $q=Join-Path $env:GITHUB_WORKSPACE 'qualifier'
+          $h=Join-Path $q 'qualification-harness/ktrade-w123-real-native/NativeAcceptance.ps1'
+          $observer=Join-Path $q 'qualification-harness/ktrade-w123-real-native/observer.js'
+          if(!(Test-Path -LiteralPath $h -PathType Leaf) -or
+             !(Test-Path -LiteralPath $observer -PathType Leaf) -or
+            (& git -C $q hash-object -- $h).Trim() -cne 'ba71e188fae4249a63d8c90c2775b8a48c2b3f0a' -or
+            (& git -C $q hash-object -- $observer).Trim() -cne '9f71b12a6d7053907159bfd7118cbef5b1aeab92'){
+            throw 'W123_NATIVE_REAL_UI_WITNESS_HASH_DRIFT'
+          }
+          & $h -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE -ExpectedTreeSha $env:KTRADE_EXPECTED_TREE
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'W123_NATIVE_REAL_PUBLIC_100T_UNVERIFIED'}
