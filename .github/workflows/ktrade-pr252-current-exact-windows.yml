@@ -245,12 +245,15 @@ jobs:
             Require ($LASTEXITCODE -eq 0) 'W109_W106_CANDIDATE_ANCESTRY_LOST'
             # Exact parent and content-blob identity are stronger than an
             # OS-dependent path sort or string-comparison diagnostic.
-            Require ((& git rev-parse HEAD^).Trim() -ceq 'd3e7642e8cb2f3ec5df53bb3e85c0ec473603255' -and
-              (& git rev-parse 'HEAD^^').Trim() -ceq '4b0bb1cf12d72d09ba16142a8334884b7655df6c' -and
+            Require ((& git rev-parse HEAD^).Trim() -ceq '53135b3325071f2ed4b7f81481bd020361c7dea6' -and
+              (& git rev-parse 'HEAD^^').Trim() -ceq 'd3e7642e8cb2f3ec5df53bb3e85c0ec473603255' -and
+              (& git rev-parse 'HEAD^^^').Trim() -ceq '4b0bb1cf12d72d09ba16142a8334884b7655df6c' -and
               (& git rev-parse 'HEAD:internal/tickchart/tickchart.go').Trim() -ceq 'eaadd20a677309588403b03d7fd2f5953bfb2978' -and
               (& git rev-parse 'HEAD:internal/tickchart/tickchart_test.go').Trim() -ceq 'e7d78ba49ab73fc1019d2f263d86f22b1bd6f34e' -and
               (& git rev-parse 'HEAD:internal/tickchart/stream.go').Trim() -ceq '5c2f0360a29e8bd0ecafbd1dedfd0f866cc99ba1' -and
-              (& git rev-parse 'HEAD:internal/tickchart/stream_test.go').Trim() -ceq '5472d335f5dbc90df948b7444c6d1a1ea37acd91') 'W110_EXACT_W109_PARENT_AND_FOUR_TICK_CORE_BLOBS_REQUIRED'
+              (& git rev-parse 'HEAD:internal/tickchart/stream_test.go').Trim() -ceq '5472d335f5dbc90df948b7444c6d1a1ea37acd91' -and
+              (& git rev-parse 'HEAD:internal/tickchart/exchange_full_sequence.go').Trim() -ceq '2450cccee0ad5f6aaad7768406da36fdbbc58acf' -and
+              (& git rev-parse 'HEAD:internal/tickchart/exchange_full_sequence_test.go').Trim() -ceq 'f99f08468b536ac34d4e2f0f9d2f50d70b0c0cb2') 'W111_EXACT_W110_ANCESTRY_AND_SIX_TICK_BLOBS_REQUIRED'
             Checked 'W109_TICK_BARS_EXACT_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW109')
             Write-Host '::notice::W109_TICK_BAR_SOURCE_BOUNDARY_NO_TICKER_PROMOTION=PASS'
             Checked 'W110_TICK_STREAM_BATCH_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW110')
