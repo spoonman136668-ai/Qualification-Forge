@@ -514,7 +514,7 @@ jobs:
           $q=Join-Path $env:GITHUB_WORKSPACE 'qualifier'
           $script=Join-Path $q 'qualification-harness/ktrade-w118-public-readonly/Diagnose-Network.ps1'
           if(!(Test-Path -LiteralPath $script -PathType Leaf) -or
-            (& git -C $q hash-object -- $script).Trim() -cne '27a34ecec268a39080f01568d5aab0e7061ab2f2'){
+            (& git -C $q hash-object -- $script).Trim() -cne '7f1e41cfefbc5d265157d131b4d414ba12b3aabd'){
             throw 'W118B_SOURCE_PIN_REFUSED'
           }
           & $script
