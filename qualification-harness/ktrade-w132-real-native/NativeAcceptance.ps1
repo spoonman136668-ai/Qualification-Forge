@@ -140,6 +140,7 @@ function Wait-Control([string]$label,[bool]$buttonOnly,[int]$seconds) {
     }
     Start-Sleep -Milliseconds 330
   }
+  Write-Host ('QFORGE_W132_MISSING_WITNESS='+$label)
   throw 'W132_NATIVE_ACCESSIBILITY_CONTROL_UNAVAILABLE'
 }
 function Native-Click([string]$label) {
@@ -264,6 +265,8 @@ try {
     $html.Contains($w41) -and
     !$html.Contains('w132_real_native_observer')) 'W132_PRE_CHART_FIXTURE_BOUNDARY'
   $html=$html.Replace($anchor,
+    '<output role="status" style="position:fixed;right:6px;bottom:20px;z-index:32000;background:#0b2830;color:#13d4d4">W132_STATIC_MARKUP_LOADED</output>'+
+    [Environment]::NewLine+
     '<script src="/static/w132_real_native_observer.js"></script>'+
     [Environment]::NewLine+$anchor)
   [IO.File]::WriteAllText($chartPath,$html,[Text.UTF8Encoding]::new($false))
@@ -304,6 +307,13 @@ try {
     $cap.paper_orders_enabled -eq $false -and
     $cap.live_orders_enabled -eq $false -and
     $cap.strategy_execution_enabled -eq $false) 'W132_FINANCIAL_MODE_NOT_DISARMED'
+  # Test-only diagnostics on the disposable WebView2 fixture; no chart
+  # events, feed synthesis, broker operations or owner state.
+  $asset=Invoke-WebRequest -Uri ($url+'/static/w132_real_native_observer.js') -Method Get -TimeoutSec 10
+  Require ($asset.StatusCode -eq 200 -and $asset.RawContentLength -gt 4000) 'W132_OBSERVER_ASSET_NOT_SERVED'
+  Write-Host 'QFORGE_W132_OBSERVER_ASSET_SERVED=PASS'
+  $probe=Find-Control 'W132_STATIC_MARKUP_LOADED' $false
+  Write-Host ('QFORGE_W132_STATIC_MARKUP_UIA_VISIBLE='+[bool]($null -ne $probe))
   [void](Wait-Control 'W132_REAL_READY' $false 60)
   Write-Host 'QFORGE_W132_REAL_PUBLIC_PASSIVE_WITNESS_VISIBLE=PASS'
   Native-Click '100T'
