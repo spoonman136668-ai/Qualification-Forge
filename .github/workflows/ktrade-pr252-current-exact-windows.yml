@@ -15,7 +15,7 @@ jobs:
   native-regression:
     # This follow-up only classifies W41's cold-reopen failure. Preserve the
     # independent native regression running on its prior exact source.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
@@ -335,7 +335,7 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
@@ -798,4 +798,68 @@ jobs:
           }
           & $h -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE -ExpectedTreeSha $env:KTRADE_EXPECTED_TREE
           if($LASTEXITCODE -ne 0 -or !$?){throw 'W127_NATIVE_REAL_PUBLIC_STALE_UNVERIFIED'}
+
+
+  public-native-real-reselect-100t-ui-once:
+    # Exact W126 product source, full regression and prior native stale proof PASS.
+    # One native Win32/WebView2 session: real public 100T, local read-only
+    # socket closure, verified stale/blank/disabled nav, manually clicked
+    # new 100T epoch with another genuine public candle and clean hover.
+    # No product modification, full regression rerun, orders, owner data or cron.
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && github.event_name == 'push' && contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY')
+    runs-on: windows-2022
+    timeout-minutes: 25
+    env:
+      KTRADE_EXPECTED_SOURCE: '1450075012b686e1d87bf101f8206d7c2e22c2d8'
+      KTRADE_EXPECTED_TREE: '0c453906610f646b05b1fb991dc35ff1aecfed7e'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOTOOLCHAIN: 'local'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout exact qualified KTRADE product without persisted credentials
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 1450075012b686e1d87bf101f8206d7c2e22c2d8
+          fetch-depth: 0
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout immutable passive native UI observer
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: qualifier
+          persist-credentials: false
+      - name: Setup pinned Go for disposable native Wails package
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Genuine public 100T disconnect and manual reselect acceptance in native Windows
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+          $q=Join-Path $env:GITHUB_WORKSPACE 'qualifier'
+          $h=Join-Path $q 'qualification-harness/ktrade-w128-real-native/NativeAcceptance.ps1'
+          $observer=Join-Path $q 'qualification-harness/ktrade-w128-real-native/observer.js'
+          if(!(Test-Path -LiteralPath $h -PathType Leaf) -or
+             !(Test-Path -LiteralPath $observer -PathType Leaf) -or
+            (& git -C $q hash-object -- $h).Trim() -cne '70fde42aee87d32f450e8f765d202b1c812880f0' -or
+            (& git -C $q hash-object -- $observer).Trim() -cne 'b2c97f52350a618d7e6c0663842aa0111e194dd5'){
+            throw 'W128_NATIVE_STALE_WITNESS_HASH_DRIFT'
+          }
+          & $h -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE -ExpectedTreeSha $env:KTRADE_EXPECTED_TREE
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'W128_NATIVE_RECOVERY_UNVERIFIED'}
 
