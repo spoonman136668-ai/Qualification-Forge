@@ -491,6 +491,7 @@ jobs:
 
   public-market-data-diagnostic-once:
     # Read-only public network diagnosis, no KTRADE product checkout.
+    # W118C corrects diagnostic error classification; not a product/source change.
     # Only triggered by this single commit marker, never scheduled.
     if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && github.event_name == 'push' && contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY')
     runs-on: windows-2022
@@ -513,7 +514,7 @@ jobs:
           $q=Join-Path $env:GITHUB_WORKSPACE 'qualifier'
           $script=Join-Path $q 'qualification-harness/ktrade-w118-public-readonly/Diagnose-Network.ps1'
           if(!(Test-Path -LiteralPath $script -PathType Leaf) -or
-            (& git -C $q hash-object -- $script).Trim() -cne 'dfdcf50c1e0bcaedaf519d1f2109ffa3b2d77f9e'){
+            (& git -C $q hash-object -- $script).Trim() -cne '27a34ecec268a39080f01568d5aab0e7061ab2f2'){
             throw 'W118B_SOURCE_PIN_REFUSED'
           }
           & $script

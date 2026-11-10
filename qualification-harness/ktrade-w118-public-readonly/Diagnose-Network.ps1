@@ -28,6 +28,7 @@ $client=[Net.Http.HttpClient]::new()
 $client.Timeout=[TimeSpan]::FromSeconds(14)
 $client.DefaultRequestHeaders.TryAddWithoutValidation('Accept','application/json')|Out-Null
 $httpStatus='REQUEST_FAILED'
+$httpClass='NOT_CLASSIFIED'
 $response=$null
 try{
  $uri='https://api.exchange.coinbase.com/products/BTC-USD/book?level=3'
@@ -35,6 +36,21 @@ try{
  try{
    $response=$client.SendAsync($request,[Net.Http.HttpCompletionOption]::ResponseHeadersRead).GetAwaiter().GetResult()
    $httpStatus=[string][int]$response.StatusCode
+   if($httpStatus -ne '200'){
+     $httpClass='HTTP_'+$httpStatus+'_UNCLASSIFIED'
+     try{
+       $stream=$response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+       $bytes=New-Object byte[] 2048
+       $read=$stream.Read($bytes,0,$bytes.Length)
+       if($read -gt 0){
+         $body=[Text.Encoding]::UTF8.GetString($bytes,0,$read)
+         if($body -match 'auth|api.key|permission|forbidden'){$httpClass='ACCESS_OR_AUTH_REQUIRED'}
+         elseif($body -match 'rate.limit|too.many'){$httpClass='RATE_LIMITED'}
+         elseif($body -match 'invalid|level|unsupported|bad.request'){$httpClass='INVALID_REQUEST_OR_LEVEL'}
+         elseif($body -match 'cloudflare|challenge|proxy|denied'){$httpClass='EDGE_OR_PROXY_REJECTION'}
+       }
+     }catch{$httpClass='ERROR_BODY_UNAVAILABLE'}
+   }
  }finally{$request.Dispose()}
 }catch{$httpStatus='TRANSPORT_UNAVAILABLE'}
 finally{
@@ -42,6 +58,7 @@ finally{
  $client.Dispose()
 }
 Write-Host ('W118B_PUBLIC_LEVEL3_HTTPS_STATUS='+$httpStatus)
+Write-Host ('W118B_PUBLIC_LEVEL3_ERROR_CLASS='+$httpClass)
 $wsStatus='CONNECT_UNAVAILABLE'
 $ackStatus='NOT_ATTEMPTED'
 $ws=[Net.WebSockets.ClientWebSocket]::new()
@@ -57,7 +74,8 @@ try{
      $segment=[ArraySegment[byte]]::new($raw)
      $ws.SendAsync($segment,[Net.WebSockets.WebSocketMessageType]::Text,$true,$cancel.Token).GetAwaiter().GetResult()
      $buf=New-Object byte[] 8192
-     $received=$ws.ReceiveAsync([ArraySegment[byte]]::new($buf),$cancel.Token).GetAwaiter().GetResult()
+     $receiveSegment=[ArraySegment[byte]]::new($buf)
+     $received=$ws.ReceiveAsync($receiveSegment,$cancel.Token).GetAwaiter().GetResult()
      if($received.MessageType -eq [Net.WebSockets.WebSocketMessageType]::Text -and $received.EndOfMessage -and $received.Count -gt 0){
        $msg=[Text.Encoding]::UTF8.GetString($buf,0,$received.Count)|ConvertFrom-Json
        $channels=@($msg.channels)
@@ -71,7 +89,9 @@ try{
      }else{$ackStatus='NO_COMPLETE_TEXT_ACK'}
    }
  }catch{
-   if($wsStatus -eq 'CONNECTED'){$ackStatus='ACK_TIMEOUT_OR_RECEIVE_FAILED'}
+   $kind=$_.Exception.GetType().Name -replace '[^A-Za-z]',''
+   if($wsStatus -eq 'CONNECTED'){$ackStatus='CLIENT_OR_CHANNEL_ERROR_'+$kind}
+   else{$wsStatus='CONNECT_ERROR_'+$kind}
  }
 }finally{
  try{$ws.Dispose()}catch{}
