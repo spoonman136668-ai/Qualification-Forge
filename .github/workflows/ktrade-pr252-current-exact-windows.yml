@@ -245,6 +245,22 @@ jobs:
             Require ($LASTEXITCODE -eq 0) 'W109_W106_CANDIDATE_ANCESTRY_LOST'
             # Exact parent and content-blob identity are stronger than an
             # OS-dependent path sort or string-comparison diagnostic.
+            if($env:KTRADE_EXPECTED_SOURCE -ceq '0617ef76f0af0c6f0b8794a7650f43df0dc062d6'){
+              # W131 extends the previously qualified immutable W129 parent.
+              # Exact parent/tree + exactly three changed paths preserve all
+              # historical Go/Pine/TradeGuard, source, and regression fences.
+              $w131Changed=@(& git diff --name-only 'HEAD^' 'HEAD' | Sort-Object)
+              Require ((& git rev-parse 'HEAD^').Trim() -ceq 'b1b25156d34952c0126255e7fdb69787522ee980' -and
+                (& git rev-parse 'HEAD^^').Trim() -ceq '1450075012b686e1d87bf101f8206d7c2e22c2d8' -and
+                (& git rev-parse 'HEAD^{tree}').Trim() -ceq '04bae32e9582c47fe1d91dfcdb7430b014873b93' -and
+                (& git rev-parse 'HEAD^:static/w114_tick_chart.js').Trim() -ceq 'c94193f71ae563d58cd2d954d785c84f2e97c287' -and
+                (& git rev-parse 'HEAD^:templates/chart.tmpl').Trim() -ceq '31a4a99922705ab63ab98cd66420b57020dfcb28' -and
+                (& git rev-parse 'HEAD:static/w114_tick_chart.js').Trim() -ceq '349a935bf0ff457c3f61ddaef6d0473b53486b9a' -and
+                (& git rev-parse 'HEAD:templates/chart.tmpl').Trim() -ceq '5e7a11be7c1d1dd58b8e39b25612d480d989f414' -and
+                (& git rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
+                ($w131Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w131_tick_keyboard.test.cjs') 'W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
+              Write-Host 'QFORGE_W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA=PASS'
+            }else{
             Require ((& git rev-parse HEAD^).Trim() -ceq '1450075012b686e1d87bf101f8206d7c2e22c2d8' -and
               (& git rev-parse 'HEAD^^').Trim() -ceq '8e99dddb26e9d869012d1ceec000e219e727e7bf' -and
               (& git rev-parse 'HEAD^^^').Trim() -ceq 'c44bb75345b48385f784b9500f49ffb127c4411c' -and
@@ -281,6 +297,7 @@ jobs:
               (& git rev-parse 'HEAD:internal/tickchart/exchange_matches_heartbeat_w125_test.go').Trim() -ceq '1302e12227a60c1bb19aec65dd5b2f4cf0e08963' -and
               (& git rev-parse 'HEAD:tests/w126_stale_tick_chart.test.cjs').Trim() -ceq '4ba8676fd16458ce11db9021c31af7b6fa7e84bf' -and
               (& git rev-parse 'HEAD:tests/w129_tick_interaction.test.cjs').Trim() -ceq '900a8c36a41c53083a04af0ba6af5e6e6cc8c64e') 'W129_EXACT_W126_PARENT_AND_CHART_INTERACTION_TEST_BLOBS_REQUIRED'
+            }
             Checked 'W109_TICK_BARS_EXACT_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW109')
             Write-Host '::notice::W109_TICK_BAR_SOURCE_BOUNDARY_NO_TICKER_PROMOTION=PASS'
             Checked 'W110_TICK_STREAM_BATCH_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','./internal/tickchart','-run','TestW110')
@@ -304,6 +321,7 @@ jobs:
             Checked 'W115_TICK_CHART_NAVIGATION_FOCUSED' 'node' @('--test','tests/w115_tick_navigation.test.cjs')
             Checked 'W126_STALE_CHART_FAIL_CLOSED_FOCUSED' 'node' @('--test','tests/w126_stale_tick_chart.test.cjs')
             Checked 'W129_TICK_CHART_PRO_INTERACTION_FOCUSED' 'node' @('--test','tests/w129_tick_interaction.test.cjs')
+            Checked 'W131_TICK_KEYBOARD_FOCUSED' 'node' @('--test','tests/w131_tick_keyboard.test.cjs')
             $specs=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -File -Filter '*.test.cjs'|
               Sort-Object FullName|ForEach-Object {$_.FullName})
             Require ($specs.Count -ge 35) 'QFORGE_NODE_TEST_COVERAGE_MISSING'
