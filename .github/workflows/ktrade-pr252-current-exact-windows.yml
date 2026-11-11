@@ -19,11 +19,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: 'cf5b636f5256995875afdde2027098faaf6e3c83'
+      KTRADE_EXPECTED_SOURCE: 'd10d312b4319eb81e9d313fb28f1355802c69f87'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: 'dfdbffcb35777a3e34d45ca435f8707e21630aba'
+      KTRADE_EXPECTED_TREE: '302e05759d07693795426e3d4c1a6847d59bcb0e'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: cf5b636f5256995875afdde2027098faaf6e3c83
+          ref: d10d312b4319eb81e9d313fb28f1355802c69f87
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -245,7 +245,31 @@ jobs:
             Require ($LASTEXITCODE -eq 0) 'W109_W106_CANDIDATE_ANCESTRY_LOST'
             # Exact parent and content-blob identity are stronger than an
             # OS-dependent path sort or string-comparison diagnostic.
-            if($env:KTRADE_EXPECTED_SOURCE -ceq 'cf5b636f5256995875afdde2027098faaf6e3c83'){
+            if($env:KTRADE_EXPECTED_SOURCE -ceq 'd10d312b4319eb81e9d313fb28f1355802c69f87'){
+              # W145: strict certified source/client count allowlist change.
+              # Only 12 designated chart/Go/test files, no owner or financial
+              # authority. Preserve earlier W143 full regression controls.
+              $w145Changed=@(& git diff --name-only 'HEAD^' 'HEAD' | Sort-Object)
+              Require ((& git rev-parse 'HEAD^').Trim() -ceq 'cf5b636f5256995875afdde2027098faaf6e3c83' -and
+                (& git rev-parse 'HEAD^^').Trim() -ceq '05bc773d39874eb31e96b897a4c530ce3456c9cc' -and
+                (& git rev-parse 'HEAD^{tree}').Trim() -ceq '302e05759d07693795426e3d4c1a6847d59bcb0e' -and
+                (& git rev-parse 'HEAD^:templates/chart.tmpl').Trim() -ceq '2ca9f2d18472f365037caa9fe0037c702af9697a' -and
+                (& git rev-parse 'HEAD^:static/w114_tick_chart.js').Trim() -ceq 'eb5c410bf5bde7f0d1e6ec81258be5a5543049de' -and
+                (& git rev-parse 'HEAD:cmd/ktrade/w114_tickchart_full_test.go').Trim() -ceq 'a9deacfdf74ae74ddd4fbed0992a3d730d6fd8ee' -and
+                (& git rev-parse 'HEAD:internal/tickchart/exchange_full_sequence_test.go').Trim() -ceq 'bde2f6b0f4b5895083730fc6670b22a9e404ff5a' -and
+                (& git rev-parse 'HEAD:internal/tickchart/exchange_full_transport.go').Trim() -ceq '64792ddb2e10467f9944d9955ecda18c8b037cbb' -and
+                (& git rev-parse 'HEAD:internal/tickchart/exchange_matches_heartbeat_test.go').Trim() -ceq '264c3e3d430746bab15a83e9b49ba43cfdccb1d2' -and
+                (& git rev-parse 'HEAD:internal/tickchart/stream.go').Trim() -ceq '6061078f033b36cbc5bade7347fab8000222ee5d' -and
+                (& git rev-parse 'HEAD:internal/tickchart/stream_test.go').Trim() -ceq 'cf39d18f5733b8ac5cb5aca4fecb98b9daa9dab3' -and
+                (& git rev-parse 'HEAD:internal/tickchart/tickchart.go').Trim() -ceq '7da5e4f38542f85c58b1ef7f902aa107f5bc0db9' -and
+                (& git rev-parse 'HEAD:internal/tickchart/tickchart_test.go').Trim() -ceq '8479533fcfae5a85feae697bd2e0f7d98386e83d' -and
+                (& git rev-parse 'HEAD:static/w114_tick_chart.js').Trim() -ceq '75ae8642d9661b57fb488d28fff05fea8540f39f' -and
+                (& git rev-parse 'HEAD:templates/chart.tmpl').Trim() -ceq 'b89c1f048c996c7a6c3a6e57b96a36613acc8562' -and
+                (& git rev-parse 'HEAD:tests/w114_tick_chart.test.cjs').Trim() -ceq 'd3a1da719106756f9c33a95d3e113bd9072371c9' -and
+                (& git rev-parse 'HEAD:tests/w145_tick_intervals.test.cjs').Trim() -ceq '779070e022fdbf3feef41864081a15b78d52c78f' -and
+                ($w145Changed -join ';') -ceq 'cmd/ktrade/w114_tickchart_full_test.go;internal/tickchart/exchange_full_sequence_test.go;internal/tickchart/exchange_full_transport.go;internal/tickchart/exchange_matches_heartbeat_test.go;internal/tickchart/stream.go;internal/tickchart/stream_test.go;internal/tickchart/tickchart.go;internal/tickchart/tickchart_test.go;static/w114_tick_chart.js;templates/chart.tmpl;tests/w114_tick_chart.test.cjs;tests/w145_tick_intervals.test.cjs') 'W145_EXACT_W143_PARENT_AND_TWELVE_FILE_DELTA_REQUIRED'
+              Write-Host 'QFORGE_W145_EXACT_W143_PARENT_AND_TWELVE_FILE_DELTA=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'cf5b636f5256995875afdde2027098faaf6e3c83'){
               # W143 exact two-file chart-pane-layout fix child of W141.
               # Keep original full Go/Pine/financial negative controls and
               # native Wails regressions without substituting source.
@@ -436,6 +460,7 @@ jobs:
             Checked 'W139_TICK_BB20_FOCUSED' 'node' @('--test','tests/w139_tick_bb20.test.cjs')
             Checked 'W141_TICK_MACD_FOCUSED' 'node' @('--test','tests/w141_tick_macd.test.cjs')
             Checked 'W143_PANE_STACK_FOCUSED' 'node' @('--test','tests/w143_tick_pane_stack.test.cjs')
+            Checked 'W145_TICK_COUNTS_FOCUSED' 'node' @('--test','tests/w145_tick_intervals.test.cjs')
             $specs=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -File -Filter '*.test.cjs'|
               Sort-Object FullName|ForEach-Object {$_.FullName})
             Require ($specs.Count -ge 35) 'QFORGE_NODE_TEST_COVERAGE_MISSING'
@@ -474,9 +499,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: 'cf5b636f5256995875afdde2027098faaf6e3c83'
-      KTRADE_EXPECTED_TREE: 'dfdbffcb35777a3e34d45ca435f8707e21630aba'
-      W01_EXPECTED_SHA: 'cf5b636f5256995875afdde2027098faaf6e3c83'
+      KTRADE_EXPECTED_SOURCE: 'd10d312b4319eb81e9d313fb28f1355802c69f87'
+      KTRADE_EXPECTED_TREE: '302e05759d07693795426e3d4c1a6847d59bcb0e'
+      W01_EXPECTED_SHA: 'd10d312b4319eb81e9d313fb28f1355802c69f87'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -491,7 +516,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: cf5b636f5256995875afdde2027098faaf6e3c83
+          ref: d10d312b4319eb81e9d313fb28f1355802c69f87
           fetch-depth: 0
           path: product
           persist-credentials: false
