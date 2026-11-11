@@ -15,7 +15,7 @@ jobs:
   native-regression:
     # This follow-up only classifies W41's cold-reopen failure. Preserve the
     # independent native regression running on its prior exact source.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
@@ -470,7 +470,7 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
@@ -1426,3 +1426,62 @@ jobs:
           }
           & $h -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE -ExpectedTreeSha $env:KTRADE_EXPECTED_TREE
           if($LASTEXITCODE -ne 0 -or !$?){throw 'W142_NATIVE_MACD_UNVERIFIED'}
+
+  public-native-real-multipane-once:
+    # Validate W143 chart layout only after exact W143 full Windows PASS.
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && github.event_name == 'push' && contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY')
+    runs-on: windows-2022
+    timeout-minutes: 35
+    env:
+      KTRADE_EXPECTED_SOURCE: 'cf5b636f5256995875afdde2027098faaf6e3c83'
+      KTRADE_EXPECTED_TREE: 'dfdbffcb35777a3e34d45ca435f8707e21630aba'
+      KTRADE_LIVE_TRADING: 'false'
+      KTRADE_CI_LIVE_AUTHORITY: '0'
+      KTRADE_CI_PROMOTION_ALLOWED: '0'
+      KTRADE_CI_COINBASE_ALLOWED: '0'
+      KTRADE_PAPER_SESSION_ROOT: ''
+      KTRADE_PAPER_CUSTODY_REVIEW_ROOT: ''
+      KTRADE_USE_LEGACY_CDP_CONFIG: '0'
+      CGO_ENABLED: '1'
+      GOWORK: 'off'
+      GOTOOLCHAIN: 'local'
+      GOMAXPROCS: '2'
+      GOFLAGS: '-p=2'
+    steps:
+      - name: Checkout exact W143 layout product, read-only
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: cf5b636f5256995875afdde2027098faaf6e3c83
+          fetch-depth: 0
+          path: product
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
+      - name: Checkout test-only passive W144 witness
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: qualifier
+          persist-credentials: false
+      - name: Setup Go for native Wails acceptance
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.10'
+          cache: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Native Win32-resized real-data RSI and MACD pane geometry
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop';Set-StrictMode -Version Latest
+          $q=Join-Path $env:GITHUB_WORKSPACE 'qualifier'
+          $h=Join-Path $q 'qualification-harness/ktrade-w144-real-native/NativeAcceptance.ps1'
+          $observer=Join-Path $q 'qualification-harness/ktrade-w144-real-native/observer.js'
+          if(!(Test-Path -LiteralPath $h -PathType Leaf) -or
+             !(Test-Path -LiteralPath $observer -PathType Leaf) -or
+             (& git -C $q hash-object -- $h).Trim() -cne 'e229fbf2a0d324b7b35a2fa539eb57d57d9e43e8' -or
+             (& git -C $q hash-object -- $observer).Trim() -cne '2e2df9489840c68b8b7a5bf637f13de953016ae0'){
+             throw 'W144_NATIVE_PANE_WITNESS_HASH_DRIFT'
+          }
+          & $h -ExpectedSourceSha $env:KTRADE_EXPECTED_SOURCE -ExpectedTreeSha $env:KTRADE_EXPECTED_TREE
+          if($LASTEXITCODE -ne 0 -or !$?){throw 'W144_NATIVE_PANES_UNVERIFIED'}
