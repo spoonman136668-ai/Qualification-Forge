@@ -15,6 +15,11 @@ entered.style.cssText='position:fixed;right:5px;bottom:22px;z-index:32000;'+
  'background:#0b2830;color:#13d4d4;border:1px solid #13d4d4;'+
  'font:12px Consolas,monospace;padding:4px 8px;pointer-events:none';
 doc.body.appendChild(entered);
+// Test-only stage marker. It never modifies market data or browser state.
+win.addEventListener('error',()=>{
+ entered.textContent='W132_STAGE_RUNTIME_ERROR=PASS';
+},{once:true});
+entered.textContent='W132_STAGE_BEFORE_API=PASS';
 Object.defineProperty(win,'KTRADE_W114_TickChart',{
  configurable:true,enumerable:true,
  get(){return sourceApi},
@@ -29,6 +34,7 @@ Object.defineProperty(win,'KTRADE_W114_TickChart',{
   }));
  }
 });
+entered.textContent='W132_STAGE_API_WRAPPED=PASS';
 class ObservedSocket extends OriginalSocket {
  constructor(url,protocols){
   if(protocols===undefined)super(url);else super(url,protocols);
@@ -38,13 +44,16 @@ class ObservedSocket extends OriginalSocket {
     u.searchParams.get('product')==='BTC-USD')sockets.push(this);
  }
 }
+entered.textContent='W132_STAGE_SOCKET_CLASS=PASS';
 win.WebSocket=ObservedSocket;
+entered.textContent='W132_STAGE_SOCKET_SET=PASS';
 const canvas=doc.getElementById('tickChartCanvas');
 const overlay=doc.getElementById('tickChartOverlay');
 const status=doc.getElementById('tickChartStatus');
 const inspect=doc.getElementById('tickInspectStatus');
 const tf=doc.querySelector('.tick-tf-btn[data-ticks="100"]');
 const oneMinute=doc.querySelector('.tf-btn[data-tf="1m"]');
+entered.textContent='W132_STAGE_DOM_LOOKUP=PASS';
 const stages=new Set();
 function emit(name){
  if(stages.has(name))return;
@@ -59,6 +68,7 @@ function emit(name){
  doc.body.appendChild(node);
 }
 emit('READY');
+entered.textContent='W132_STAGE_READY_EMITTED=PASS';
 function publicFeed(){
  return selected&&view?.active?.()===100&&view?.barCount?.()>=1&&
   sockets.length===1&&sockets[0].readyState===OriginalSocket.OPEN&&

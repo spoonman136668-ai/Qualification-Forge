@@ -32,7 +32,7 @@ $fixture=Join-Path $qualifier 'qualification-harness/ktrade-w132-real-native/obs
 Require (Test-Path -LiteralPath $fixture -PathType Leaf) 'W132_EXACT_FIXTURE_SOURCE_MISSING'
 $fixtureHash=(& git -C $qualifier hash-object -- $fixture).Trim()
 Require ($LASTEXITCODE -eq 0 -and
- $fixtureHash -ceq '79be5f02c6362f040b1aee348246afda8cc6174c') 'W132_FIXTURE_HASH_DRIFT'
+ $fixtureHash -ceq '3be2c7b6f7c20bc6536e5746fad8b5d713c28a6f') 'W132_FIXTURE_HASH_DRIFT'
 $head=(& git -C $repo rev-parse HEAD).Trim()
 $tree=(& git -C $repo rev-parse 'HEAD^{tree}').Trim()
 Require ($LASTEXITCODE -eq 0 -and $head -ceq $ExpectedSourceSha -and
@@ -334,10 +334,23 @@ try {
     ';static='+[bool]($null -ne $probe))
   # Explicitly separate external JavaScript execution from the later
   # chart witness, without treating script fetch/HTML delivery as execution.
-  $early=Find-Control 'W132_JS_ENTERED=PASS' $false
-  Write-Host ('QFORGE_W132_JS_ENTERED_UIA_VISIBLE='+[bool]($null -ne $early))
-  if(!$early){throw 'W132_OBSERVER_JAVASCRIPT_NOT_OBSERVED'}
-  [void](Wait-Control 'W132_REAL_READY' $false 30)
+  $phases=@(
+    'W132_STAGE_READY_EMITTED=PASS',
+    'W132_STAGE_RUNTIME_ERROR=PASS',
+    'W132_STAGE_DOM_LOOKUP=PASS',
+    'W132_STAGE_SOCKET_SET=PASS',
+    'W132_STAGE_SOCKET_CLASS=PASS',
+    'W132_STAGE_API_WRAPPED=PASS',
+    'W132_STAGE_BEFORE_API=PASS',
+    'W132_JS_ENTERED=PASS'
+  )
+  $phase='NOT_OBSERVED'
+  foreach($candidate in $phases){
+    if(Find-Control $candidate $false){$phase=$candidate;break}
+  }
+  Write-Host ('QFORGE_W132_JS_LAST_INIT_STAGE='+$phase)
+  if($phase -ceq 'NOT_OBSERVED'){throw 'W132_OBSERVER_JAVASCRIPT_NOT_OBSERVED'}
+  [void](Wait-Control 'W132_REAL_READY' $false 25)
   Write-Host 'QFORGE_W132_REAL_PUBLIC_PASSIVE_WITNESS_VISIBLE=PASS'
   Native-Click '100T'
   Wait-Witness 'FIRST_PUBLIC_BAR' 145
