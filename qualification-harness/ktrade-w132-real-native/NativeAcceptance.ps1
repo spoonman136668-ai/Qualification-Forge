@@ -32,7 +32,7 @@ $fixture=Join-Path $qualifier 'qualification-harness/ktrade-w132-real-native/obs
 Require (Test-Path -LiteralPath $fixture -PathType Leaf) 'W132_EXACT_FIXTURE_SOURCE_MISSING'
 $fixtureHash=(& git -C $qualifier hash-object -- $fixture).Trim()
 Require ($LASTEXITCODE -eq 0 -and
- $fixtureHash -ceq '0a9b4060dd7bbf376b7558fa77322189a211fc3b') 'W132_FIXTURE_HASH_DRIFT'
+ $fixtureHash -ceq '79be5f02c6362f040b1aee348246afda8cc6174c') 'W132_FIXTURE_HASH_DRIFT'
 $head=(& git -C $repo rev-parse HEAD).Trim()
 $tree=(& git -C $repo rev-parse 'HEAD^{tree}').Trim()
 Require ($LASTEXITCODE -eq 0 -and $head -ceq $ExpectedSourceSha -and
@@ -332,6 +332,11 @@ try {
   Write-Host ('QFORGE_W132_UIA_PRESENT:shell='+[bool]($null -ne $shell)+
     ';hundredT='+[bool]($null -ne $tf)+';oneMinute='+[bool]($null -ne $minute)+
     ';static='+[bool]($null -ne $probe))
+  # Explicitly separate external JavaScript execution from the later
+  # chart witness, without treating script fetch/HTML delivery as execution.
+  $early=Find-Control 'W132_JS_ENTERED=PASS' $false
+  Write-Host ('QFORGE_W132_JS_ENTERED_UIA_VISIBLE='+[bool]($null -ne $early))
+  if(!$early){throw 'W132_OBSERVER_JAVASCRIPT_NOT_OBSERVED'}
   [void](Wait-Control 'W132_REAL_READY' $false 30)
   Write-Host 'QFORGE_W132_REAL_PUBLIC_PASSIVE_WITNESS_VISIBLE=PASS'
   Native-Click '100T'

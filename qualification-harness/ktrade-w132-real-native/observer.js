@@ -5,6 +5,16 @@
 'use strict';
 let sourceApi=null,view=null,selected=false;
 const sockets=[],OriginalSocket=win.WebSocket;
+// Early test-only visible marker distinguishes JS non-execution from later
+// chart API or witness failure. It never generates events or market data.
+const entered=doc.createElement('output');
+entered.id='w132-early-js-marker';
+entered.setAttribute('role','status');
+entered.textContent='W132_JS_ENTERED=PASS';
+entered.style.cssText='position:fixed;right:5px;bottom:22px;z-index:32000;'+
+ 'background:#0b2830;color:#13d4d4;border:1px solid #13d4d4;'+
+ 'font:12px Consolas,monospace;padding:4px 8px;pointer-events:none';
+doc.body.appendChild(entered);
 Object.defineProperty(win,'KTRADE_W114_TickChart',{
  configurable:true,enumerable:true,
  get(){return sourceApi},
@@ -44,8 +54,8 @@ function emit(name){
  node.setAttribute('role','status');
  node.textContent='W132_REAL_'+name+'=PASS';
  node.style.cssText='position:fixed;right:5px;bottom:'+(34+stages.size*17)+
-   'px;background:#0b2830;color:#13d4d4;border:1px solid #2c545c;'+
-   'font:10px Consolas,monospace;z-index:32000;padding:1px 3px;pointer-events:none';
+   'px;background:#0b2830;color:#13d4d4;border:1px solid #13d4d4;'+
+   'font:12px Consolas,monospace;z-index:32000;padding:4px 8px;pointer-events:none';
  doc.body.appendChild(node);
 }
 emit('READY');
