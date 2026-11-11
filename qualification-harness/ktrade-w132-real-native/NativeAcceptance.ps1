@@ -350,7 +350,7 @@ try {
   }
   Write-Host ('QFORGE_W132_JS_LAST_INIT_STAGE='+$phase)
   if($phase -ceq 'NOT_OBSERVED'){throw 'W132_OBSERVER_JAVASCRIPT_NOT_OBSERVED'}
-  [void](Wait-Control 'W132_REAL_READY' $false 25)
+  [void](Wait-Control 'W132_REAL_READY=PASS' $false 25)
   Write-Host 'QFORGE_W132_REAL_PUBLIC_PASSIVE_WITNESS_VISIBLE=PASS'
   Native-Click '100T'
   Wait-Witness 'FIRST_PUBLIC_BAR' 145
