@@ -19,11 +19,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '05bc773d39874eb31e96b897a4c530ce3456c9cc'
+      KTRADE_EXPECTED_SOURCE: 'cf5b636f5256995875afdde2027098faaf6e3c83'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: '9d1394bdc04c09fe19460ea9e0fc0c9f092dc1f9'
+      KTRADE_EXPECTED_TREE: 'dfdbffcb35777a3e34d45ca435f8707e21630aba'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 05bc773d39874eb31e96b897a4c530ce3456c9cc
+          ref: cf5b636f5256995875afdde2027098faaf6e3c83
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -245,7 +245,22 @@ jobs:
             Require ($LASTEXITCODE -eq 0) 'W109_W106_CANDIDATE_ANCESTRY_LOST'
             # Exact parent and content-blob identity are stronger than an
             # OS-dependent path sort or string-comparison diagnostic.
-            if($env:KTRADE_EXPECTED_SOURCE -ceq '05bc773d39874eb31e96b897a4c530ce3456c9cc'){
+            if($env:KTRADE_EXPECTED_SOURCE -ceq 'cf5b636f5256995875afdde2027098faaf6e3c83'){
+              # W143 exact two-file chart-pane-layout fix child of W141.
+              # Keep original full Go/Pine/financial negative controls and
+              # native Wails regressions without substituting source.
+              $w143Changed=@(& git diff --name-only 'HEAD^' 'HEAD' | Sort-Object)
+              Require ((& git rev-parse 'HEAD^').Trim() -ceq '05bc773d39874eb31e96b897a4c530ce3456c9cc' -and
+                (& git rev-parse 'HEAD^^').Trim() -ceq '6c7de43873a1fdfda59a1d35cf8a721cd5fb34a0' -and
+                (& git rev-parse 'HEAD^:templates/chart.tmpl').Trim() -ceq '21a83c97368e3f4e66643ee6ef4e9059cfdc0b4d' -and
+                (& git rev-parse 'HEAD:templates/chart.tmpl').Trim() -ceq '2ca9f2d18472f365037caa9fe0037c702af9697a' -and
+                (& git rev-parse 'HEAD:static/w114_tick_chart.js').Trim() -ceq 'eb5c410bf5bde7f0d1e6ec81258be5a5543049de' -and
+                (& git rev-parse 'HEAD:tests/w141_tick_macd.test.cjs').Trim() -ceq 'c737dce30e9f40c1d97ed46187ea5a8724c8ea49' -and
+                (& git rev-parse 'HEAD:tests/w143_tick_pane_stack.test.cjs').Trim() -ceq '99e0d0669a0c6022767713869309a28c7467367f' -and
+                (& git rev-parse 'HEAD^{tree}').Trim() -ceq 'dfdbffcb35777a3e34d45ca435f8707e21630aba' -and
+                ($w143Changed -join ';') -ceq 'templates/chart.tmpl;tests/w143_tick_pane_stack.test.cjs') 'W143_EXACT_W141_PARENT_AND_TWO_FILE_LAYOUT_REQUIRED'
+              Write-Host 'QFORGE_W143_EXACT_W141_PARENT_AND_TWO_FILE_LAYOUT=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '05bc773d39874eb31e96b897a4c530ce3456c9cc'){
               # W141: only three chart-source files beyond accepted W139.
               # Full original Go/Pine/TradeGuard, Node negative controls
               # and native two-cold-launches remain unchanged.
@@ -420,6 +435,7 @@ jobs:
             Checked 'W137_TICK_RSI14_FOCUSED' 'node' @('--test','tests/w137_tick_rsi14.test.cjs')
             Checked 'W139_TICK_BB20_FOCUSED' 'node' @('--test','tests/w139_tick_bb20.test.cjs')
             Checked 'W141_TICK_MACD_FOCUSED' 'node' @('--test','tests/w141_tick_macd.test.cjs')
+            Checked 'W143_PANE_STACK_FOCUSED' 'node' @('--test','tests/w143_tick_pane_stack.test.cjs')
             $specs=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -File -Filter '*.test.cjs'|
               Sort-Object FullName|ForEach-Object {$_.FullName})
             Require ($specs.Count -ge 35) 'QFORGE_NODE_TEST_COVERAGE_MISSING'
@@ -458,9 +474,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '05bc773d39874eb31e96b897a4c530ce3456c9cc'
-      KTRADE_EXPECTED_TREE: '9d1394bdc04c09fe19460ea9e0fc0c9f092dc1f9'
-      W01_EXPECTED_SHA: '05bc773d39874eb31e96b897a4c530ce3456c9cc'
+      KTRADE_EXPECTED_SOURCE: 'cf5b636f5256995875afdde2027098faaf6e3c83'
+      KTRADE_EXPECTED_TREE: 'dfdbffcb35777a3e34d45ca435f8707e21630aba'
+      W01_EXPECTED_SHA: 'cf5b636f5256995875afdde2027098faaf6e3c83'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -475,7 +491,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 05bc773d39874eb31e96b897a4c530ce3456c9cc
+          ref: cf5b636f5256995875afdde2027098faaf6e3c83
           fetch-depth: 0
           path: product
           persist-credentials: false
