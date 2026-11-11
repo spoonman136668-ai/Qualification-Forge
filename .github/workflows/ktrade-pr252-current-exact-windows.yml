@@ -19,11 +19,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: 'bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2'
+      KTRADE_EXPECTED_SOURCE: '15f561e6c118f3ea10a41ff6c390e7d56a24622f'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: 'f4658bb1e1c5cf485ac7bba02b3e489d090f2182'
+      KTRADE_EXPECTED_TREE: 'd8299fe07941c77e4228699e27b943f7946512ab'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2
+          ref: 15f561e6c118f3ea10a41ff6c390e7d56a24622f
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -245,7 +245,20 @@ jobs:
             Require ($LASTEXITCODE -eq 0) 'W109_W106_CANDIDATE_ANCESTRY_LOST'
             # Exact parent and content-blob identity are stronger than an
             # OS-dependent path sort or string-comparison diagnostic.
-            if($env:KTRADE_EXPECTED_SOURCE -ceq 'bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2'){
+            if($env:KTRADE_EXPECTED_SOURCE -ceq '15f561e6c118f3ea10a41ff6c390e7d56a24622f'){
+              # W159 currently-scoped chart-only descendant of the last full
+              # QForge-qualified W148 source. Source/tree checked at checkout.
+              & git merge-base --is-ancestor 'bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2' HEAD
+              Require ($LASTEXITCODE -eq 0) 'W159_LAST_FULL_QUALIFIED_ANCESTOR_REQUIRED'
+              Require ((& git rev-parse 'bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2^{tree}').Trim() -ceq 'f4658bb1e1c5cf485ac7bba02b3e489d090f2182') 'W159_ACCEPTED_PARENT_TREE_DRIFT'
+              $w159Paths=@(& git diff --name-only 'bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2' HEAD)
+              $w159Allowed=@('static/w149_advanced_drawings.js','static/w151_parallel_channels.js','static/w153_magnet_snap.js','static/w156_chart_notes.js','static/w157_freehand_brush.js','static/w159_drawing_trash.js','templates/chart.tmpl','tests/w149_advanced_drawings.test.cjs','tests/w150_advanced_drawing_history.test.cjs','tests/w151_parallel_channel.test.cjs','tests/w153_magnet_snap.test.cjs','tests/w156_chart_notes.test.cjs','tests/w157_freehand_brush.test.cjs','tests/w158_drawing_lock.test.cjs','tests/w159_drawing_trash.test.cjs')
+              $w159Missing=@($w159Allowed | Where-Object {-not ($w159Paths -ccontains $_)})
+              $w159Unknown=@($w159Paths | Where-Object {-not ($w159Allowed -ccontains $_)})
+              Require ($w159Paths.Count -eq $w159Allowed.Count -and
+                $w159Missing.Count -eq 0 -and $w159Unknown.Count -eq 0) 'W159_CHART_ONLY_DELTA_REFUSED'
+              Write-Host 'QFORGE_W159_EXACT_ACCEPTED_ANCESTOR_AND_CHART_ONLY_15_PATHS=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2'){
               # Exact W148 two-file source continuity patch; all previous
               # W145 certified feed/UI and frozen financial controls remain.
               $w148Changed=@(& git diff --name-only 'HEAD^' 'HEAD')
@@ -550,9 +563,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: 'bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2'
-      KTRADE_EXPECTED_TREE: 'f4658bb1e1c5cf485ac7bba02b3e489d090f2182'
-      W01_EXPECTED_SHA: 'bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2'
+      KTRADE_EXPECTED_SOURCE: '15f561e6c118f3ea10a41ff6c390e7d56a24622f'
+      KTRADE_EXPECTED_TREE: 'd8299fe07941c77e4228699e27b943f7946512ab'
+      W01_EXPECTED_SHA: '15f561e6c118f3ea10a41ff6c390e7d56a24622f'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -567,7 +580,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2
+          ref: 15f561e6c118f3ea10a41ff6c390e7d56a24622f
           fetch-depth: 0
           path: product
           persist-credentials: false
