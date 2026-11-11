@@ -250,6 +250,33 @@ jobs:
               # Only 12 designated chart/Go/test files, no owner or financial
               # authority. Preserve earlier W143 full regression controls.
               $w145Changed=@(& git diff --name-only 'HEAD^' 'HEAD' | Sort-Object)
+
+              # Non-sensitive probe: names of failing exact-source checks only.
+              # Does not read owner data, invoke the application, or relax
+              # the historical hard Require below.
+              $w145Probes=[ordered]@{
+                parent=((& git rev-parse 'HEAD^').Trim() -ceq 'cf5b636f5256995875afdde2027098faaf6e3c83')
+                grandparent=((& git rev-parse 'HEAD^^').Trim() -ceq '05bc773d39874eb31e96b897a4c530ce3456c9cc')
+                tree=((& git rev-parse 'HEAD^{tree}').Trim() -ceq '302e05759d07693795426e3d4c1a6847d59bcb0e')
+                base_html=((& git rev-parse 'HEAD^:templates/chart.tmpl').Trim() -ceq '2ca9f2d18472f365037caa9fe0037c702af9697a')
+                base_js=((& git rev-parse 'HEAD^:static/w114_tick_chart.js').Trim() -ceq 'eb5c410bf5bde7f0d1e6ec81258be5a5543049de')
+                cmd_test=((& git rev-parse 'HEAD:cmd/ktrade/w114_tickchart_full_test.go').Trim() -ceq 'a9deacfdf74ae74ddd4fbed0992a3d730d6fd8ee')
+                full_sequence_test=((& git rev-parse 'HEAD:internal/tickchart/exchange_full_sequence_test.go').Trim() -ceq 'bde2f6b0f4b5895083730fc6670b22a9e404ff5a')
+                full_transport=((& git rev-parse 'HEAD:internal/tickchart/exchange_full_transport.go').Trim() -ceq '64792ddb2e10467f9944d9955ecda18c8b037cbb')
+                heartbeat_test=((& git rev-parse 'HEAD:internal/tickchart/exchange_matches_heartbeat_test.go').Trim() -ceq '264c3e3d430746bab15a83e9b49ba43cfdccb1d2')
+                stream=((& git rev-parse 'HEAD:internal/tickchart/stream.go').Trim() -ceq '6061078f033b36cbc5bade7347fab8000222ee5d')
+                stream_test=((& git rev-parse 'HEAD:internal/tickchart/stream_test.go').Trim() -ceq 'cf39d18f5733b8ac5cb5aca4fecb98b9daa9dab3')
+                aggregate=((& git rev-parse 'HEAD:internal/tickchart/tickchart.go').Trim() -ceq '7da5e4f38542f85c58b1ef7f902aa107f5bc0db9')
+                aggregate_test=((& git rev-parse 'HEAD:internal/tickchart/tickchart_test.go').Trim() -ceq '8479533fcfae5a85feae697bd2e0f7d98386e83d')
+                client=((& git rev-parse 'HEAD:static/w114_tick_chart.js').Trim() -ceq '75ae8642d9661b57fb488d28fff05fea8540f39f')
+                markup=((& git rev-parse 'HEAD:templates/chart.tmpl').Trim() -ceq 'b89c1f048c996c7a6c3a6e57b96a36613acc8562')
+                ui_test=((& git rev-parse 'HEAD:tests/w114_tick_chart.test.cjs').Trim() -ceq 'd3a1da719106756f9c33a95d3e113bd9072371c9')
+                new_test=((& git rev-parse 'HEAD:tests/w145_tick_intervals.test.cjs').Trim() -ceq '779070e022fdbf3feef41864081a15b78d52c78f')
+                paths=(($w145Changed -join ';') -ceq 'cmd/ktrade/w114_tickchart_full_test.go;internal/tickchart/exchange_full_sequence_test.go;internal/tickchart/exchange_full_transport.go;internal/tickchart/exchange_matches_heartbeat_test.go;internal/tickchart/stream.go;internal/tickchart/stream_test.go;internal/tickchart/tickchart.go;internal/tickchart/tickchart_test.go;static/w114_tick_chart.js;templates/chart.tmpl;tests/w114_tick_chart.test.cjs;tests/w145_tick_intervals.test.cjs')
+              }
+              $w145Failed=@($w145Probes.Keys|Where-Object{-not $w145Probes[$_]})
+              Write-Host ('QFORGE_W145_CUSTODY_DIAG_FAILURES='+($w145Failed -join ','))
+              Write-Host ('QFORGE_W145_CUSTODY_DIAG_CHECKS='+$w145Probes.Count)
               Require ((& git rev-parse 'HEAD^').Trim() -ceq 'cf5b636f5256995875afdde2027098faaf6e3c83' -and
                 (& git rev-parse 'HEAD^^').Trim() -ceq '05bc773d39874eb31e96b897a4c530ce3456c9cc' -and
                 (& git rev-parse 'HEAD^{tree}').Trim() -ceq '302e05759d07693795426e3d4c1a6847d59bcb0e' -and
