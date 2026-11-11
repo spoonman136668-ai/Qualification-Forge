@@ -1004,7 +1004,7 @@ jobs:
           $observer=Join-Path $q 'qualification-harness/ktrade-w132-real-native/observer.js'
           if(!(Test-Path -LiteralPath $h -PathType Leaf) -or
              !(Test-Path -LiteralPath $observer -PathType Leaf) -or
-            (& git -C $q hash-object -- $h).Trim() -cne '042142b6f349638849f2062b793e7e28adf8d4f3' -or
+            (& git -C $q hash-object -- $h).Trim() -cne 'a60471d80685779691a991ed98615cec71a38914' -or
             (& git -C $q hash-object -- $observer).Trim() -cne '0a9b4060dd7bbf376b7558fa77322189a211fc3b'){
             throw 'W132_NATIVE_KEYBOARD_WITNESS_HASH_DRIFT'
           }

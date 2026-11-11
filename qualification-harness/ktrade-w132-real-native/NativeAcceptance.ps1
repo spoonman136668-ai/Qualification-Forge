@@ -312,9 +312,27 @@ try {
   $asset=Invoke-WebRequest -Uri ($url+'/static/w132_real_native_observer.js') -Method Get -TimeoutSec 10
   Require ($asset.StatusCode -eq 200 -and $asset.RawContentLength -gt 4000) 'W132_OBSERVER_ASSET_NOT_SERVED'
   Write-Host 'QFORGE_W132_OBSERVER_ASSET_SERVED=PASS'
+  # Compare the actual server-side document with the disposable injected
+  # fixture. A served JS asset alone does not prove script inclusion in /chart.
+  $served=Invoke-WebRequest -Uri ($url+'/chart') -Method Get -TimeoutSec 10
+  Require ($served.StatusCode -eq 200) 'W132_CHART_ROUTE_NOT_SERVED'
+  $hasObserver=$served.Content.Contains('<script src="/static/w132_real_native_observer.js"></script>')
+  $hasMarker=$served.Content.Contains('W132_STATIC_MARKUP_LOADED')
+  $hasProduct=$served.Content.Contains('<script src="/static/w114_tick_chart.js"></script>')
+  Write-Host ('QFORGE_W132_CHART_HTTP_SCRIPT='+$hasObserver+';static='+$hasMarker+';product='+$hasProduct)
+  if(!$hasObserver -or !$hasMarker -or !$hasProduct){
+    throw 'W132_STAGED_CHART_TEMPLATE_NOT_SERVED'
+  }
+  # Read only innocuous UIA element presence. Never dump window contents,
+  # private account data, clipboard, screenshots or owner files.
+  $shell=Find-Control 'Original KTRADE chart and Pine editor' $false
+  $tf=Find-Control '100T' $true
+  $minute=Find-Control '1m' $true
   $probe=Find-Control 'W132_STATIC_MARKUP_LOADED' $false
-  Write-Host ('QFORGE_W132_STATIC_MARKUP_UIA_VISIBLE='+[bool]($null -ne $probe))
-  [void](Wait-Control 'W132_REAL_READY' $false 60)
+  Write-Host ('QFORGE_W132_UIA_PRESENT:shell='+[bool]($null -ne $shell)+
+    ';hundredT='+[bool]($null -ne $tf)+';oneMinute='+[bool]($null -ne $minute)+
+    ';static='+[bool]($null -ne $probe))
+  [void](Wait-Control 'W132_REAL_READY' $false 30)
   Write-Host 'QFORGE_W132_REAL_PUBLIC_PASSIVE_WITNESS_VISIBLE=PASS'
   Native-Click '100T'
   Wait-Witness 'FIRST_PUBLIC_BAR' 145
