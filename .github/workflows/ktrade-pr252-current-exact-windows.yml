@@ -19,11 +19,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '6c7de43873a1fdfda59a1d35cf8a721cd5fb34a0'
+      KTRADE_EXPECTED_SOURCE: '05bc773d39874eb31e96b897a4c530ce3456c9cc'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: '188353189c1bdd01ba0e9e212d68daa2e1311914'
+      KTRADE_EXPECTED_TREE: '9d1394bdc04c09fe19460ea9e0fc0c9f092dc1f9'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 6c7de43873a1fdfda59a1d35cf8a721cd5fb34a0
+          ref: 05bc773d39874eb31e96b897a4c530ce3456c9cc
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -245,7 +245,23 @@ jobs:
             Require ($LASTEXITCODE -eq 0) 'W109_W106_CANDIDATE_ANCESTRY_LOST'
             # Exact parent and content-blob identity are stronger than an
             # OS-dependent path sort or string-comparison diagnostic.
-            if($env:KTRADE_EXPECTED_SOURCE -ceq '6c7de43873a1fdfda59a1d35cf8a721cd5fb34a0'){
+            if($env:KTRADE_EXPECTED_SOURCE -ceq '05bc773d39874eb31e96b897a4c530ce3456c9cc'){
+              # W141: only three chart-source files beyond accepted W139.
+              # Full original Go/Pine/TradeGuard, Node negative controls
+              # and native two-cold-launches remain unchanged.
+              $w141Changed=@(& git diff --name-only 'HEAD^' 'HEAD' | Sort-Object)
+              Require ((& git rev-parse 'HEAD^').Trim() -ceq '6c7de43873a1fdfda59a1d35cf8a721cd5fb34a0' -and
+                (& git rev-parse 'HEAD^^').Trim() -ceq 'c8675e76c9d85661cf0868df2638b992fa029012' -and
+                (& git rev-parse 'HEAD^:static/w114_tick_chart.js').Trim() -ceq '058ddfee5398b8be96a3f78a4e01d014eae19ddc' -and
+                (& git rev-parse 'HEAD^:templates/chart.tmpl').Trim() -ceq '3f7dcf8d9609c2f7080856c86700f82ad44f1c1c' -and
+                (& git rev-parse 'HEAD:static/w114_tick_chart.js').Trim() -ceq 'eb5c410bf5bde7f0d1e6ec81258be5a5543049de' -and
+                (& git rev-parse 'HEAD:templates/chart.tmpl').Trim() -ceq '21a83c97368e3f4e66643ee6ef4e9059cfdc0b4d' -and
+                (& git rev-parse 'HEAD:tests/w139_tick_bb20.test.cjs').Trim() -ceq 'e393c4ca784dc9c9ca20a6b231192bd287718456' -and
+                (& git rev-parse 'HEAD:tests/w141_tick_macd.test.cjs').Trim() -ceq 'c737dce30e9f40c1d97ed46187ea5a8724c8ea49' -and
+                (& git rev-parse 'HEAD^{tree}').Trim() -ceq '9d1394bdc04c09fe19460ea9e0fc0c9f092dc1f9' -and
+                ($w141Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w141_tick_macd.test.cjs') 'W141_EXACT_W139_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
+              Write-Host 'QFORGE_W141_EXACT_W139_PARENT_AND_THREE_FILE_DELTA=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '6c7de43873a1fdfda59a1d35cf8a721cd5fb34a0'){
               # W139: exact 3-file Bollinger extension of fully qualified
               # W137B corrected RSI. Preserve all historical Go/Pine/finance
               # negative controls without changing runtime authority.
@@ -403,6 +419,7 @@ jobs:
             Checked 'W135_TICK_EMA20_FOCUSED' 'node' @('--test','tests/w135_tick_ema20.test.cjs')
             Checked 'W137_TICK_RSI14_FOCUSED' 'node' @('--test','tests/w137_tick_rsi14.test.cjs')
             Checked 'W139_TICK_BB20_FOCUSED' 'node' @('--test','tests/w139_tick_bb20.test.cjs')
+            Checked 'W141_TICK_MACD_FOCUSED' 'node' @('--test','tests/w141_tick_macd.test.cjs')
             $specs=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -File -Filter '*.test.cjs'|
               Sort-Object FullName|ForEach-Object {$_.FullName})
             Require ($specs.Count -ge 35) 'QFORGE_NODE_TEST_COVERAGE_MISSING'
@@ -441,9 +458,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '6c7de43873a1fdfda59a1d35cf8a721cd5fb34a0'
-      KTRADE_EXPECTED_TREE: '188353189c1bdd01ba0e9e212d68daa2e1311914'
-      W01_EXPECTED_SHA: '6c7de43873a1fdfda59a1d35cf8a721cd5fb34a0'
+      KTRADE_EXPECTED_SOURCE: '05bc773d39874eb31e96b897a4c530ce3456c9cc'
+      KTRADE_EXPECTED_TREE: '9d1394bdc04c09fe19460ea9e0fc0c9f092dc1f9'
+      W01_EXPECTED_SHA: '05bc773d39874eb31e96b897a4c530ce3456c9cc'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -458,7 +475,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 6c7de43873a1fdfda59a1d35cf8a721cd5fb34a0
+          ref: 05bc773d39874eb31e96b897a4c530ce3456c9cc
           fetch-depth: 0
           path: product
           persist-credentials: false
