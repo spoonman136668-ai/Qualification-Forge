@@ -32,7 +32,7 @@ $fixture=Join-Path $qualifier 'qualification-harness/ktrade-w136-real-native/obs
 Require (Test-Path -LiteralPath $fixture -PathType Leaf) 'W136_EXACT_FIXTURE_SOURCE_MISSING'
 $fixtureHash=(& git -C $qualifier hash-object -- $fixture).Trim()
 Require ($LASTEXITCODE -eq 0 -and
- $fixtureHash -ceq 'fd972a1ae23f5d4b21cb29bc808f87da015a992b') 'W136_FIXTURE_HASH_DRIFT'
+ $fixtureHash -ceq 'c695958c113d0202ffd5825d729b299e99988b0d') 'W136_FIXTURE_HASH_DRIFT'
 $head=(& git -C $repo rev-parse HEAD).Trim()
 $tree=(& git -C $repo rev-parse 'HEAD^{tree}').Trim()
 Require ($LASTEXITCODE -eq 0 -and $head -ceq $ExpectedSourceSha -and
@@ -254,7 +254,7 @@ try {
       '900a8c36a41c53083a04af0ba6af5e6e6cc8c64e' -and
     (& git -C $repo rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq
       '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
-    (& git -C $repo rev-parse 'HEAD:tests/w133_tick_ema20.test.cjs').Trim() -ceq
+    (& git -C $repo rev-parse 'HEAD:tests/w133_tick_sma20.test.cjs').Trim() -ceq
       '57247ae0acabfc98137a6ef38254cec9f218b73b' -and
     (& git -C $repo rev-parse 'HEAD:tests/w135_tick_ema20.test.cjs').Trim() -ceq
       '148f52be149e291f5c2e1d4fa908316fbd4e659b') 'W136_PRODUCT_CHART_SOURCE_DRIFT'

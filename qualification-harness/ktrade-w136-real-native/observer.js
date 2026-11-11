@@ -83,7 +83,7 @@ function ready(){
 // W136: inspect only verified completed public 100T candles; the fixture
 // never sends DOM events, fabricates candles, or writes product/owner state.
 const ema=doc.getElementById('tickEma20');
-const emaStatus=doc.getElementById('tickSmaStatus');
+const emaStatus=doc.getElementById('tickEmaStatus');
 const oneMinuteReturn=oneMinute;
 let blank='',on=false,off=false;
 function bitmap(){try{return canvas.toDataURL('image/png')}catch(_){return ''}}
