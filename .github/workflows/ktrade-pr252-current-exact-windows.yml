@@ -250,6 +250,13 @@ jobs:
               # Only 12 designated chart/Go/test files, no owner or financial
               # authority. Preserve earlier W143 full regression controls.
               $w145Changed=@(& git diff --name-only 'HEAD^' 'HEAD' | Sort-Object)
+              # Windows Sort-Object uses a culture order, unlike Git tree order.
+              # Enforce case-sensitive exact path set plus cardinality.
+              $w145ExpectedPaths='cmd/ktrade/w114_tickchart_full_test.go;internal/tickchart/exchange_full_sequence_test.go;internal/tickchart/exchange_full_transport.go;internal/tickchart/exchange_matches_heartbeat_test.go;internal/tickchart/stream.go;internal/tickchart/stream_test.go;internal/tickchart/tickchart.go;internal/tickchart/tickchart_test.go;static/w114_tick_chart.js;templates/chart.tmpl;tests/w114_tick_chart.test.cjs;tests/w145_tick_intervals.test.cjs'.Split(';')
+              $w145Missing=@($w145ExpectedPaths|Where-Object{-not ($w145Changed -ccontains $_)})
+              $w145Unknown=@($w145Changed|Where-Object{-not ($w145ExpectedPaths -ccontains $_)})
+              $w145PathSetValid=($w145Changed.Count -eq $w145ExpectedPaths.Count -and
+                $w145Missing.Count -eq 0 -and $w145Unknown.Count -eq 0)
 
               # Non-sensitive probe: names of failing exact-source checks only.
               # Does not read owner data, invoke the application, or relax
@@ -272,7 +279,7 @@ jobs:
                 markup=((& git rev-parse 'HEAD:templates/chart.tmpl').Trim() -ceq 'b89c1f048c996c7a6c3a6e57b96a36613acc8562')
                 ui_test=((& git rev-parse 'HEAD:tests/w114_tick_chart.test.cjs').Trim() -ceq 'd3a1da719106756f9c33a95d3e113bd9072371c9')
                 new_test=((& git rev-parse 'HEAD:tests/w145_tick_intervals.test.cjs').Trim() -ceq '779070e022fdbf3feef41864081a15b78d52c78f')
-                paths=(($w145Changed -join ';') -ceq 'cmd/ktrade/w114_tickchart_full_test.go;internal/tickchart/exchange_full_sequence_test.go;internal/tickchart/exchange_full_transport.go;internal/tickchart/exchange_matches_heartbeat_test.go;internal/tickchart/stream.go;internal/tickchart/stream_test.go;internal/tickchart/tickchart.go;internal/tickchart/tickchart_test.go;static/w114_tick_chart.js;templates/chart.tmpl;tests/w114_tick_chart.test.cjs;tests/w145_tick_intervals.test.cjs')
+                paths=($w145PathSetValid)
               }
               $w145Failed=@($w145Probes.Keys|Where-Object{-not $w145Probes[$_]})
               Write-Host ('QFORGE_W145_CUSTODY_DIAG_FAILURES='+($w145Failed -join ','))
@@ -294,7 +301,7 @@ jobs:
                 (& git rev-parse 'HEAD:templates/chart.tmpl').Trim() -ceq 'b89c1f048c996c7a6c3a6e57b96a36613acc8562' -and
                 (& git rev-parse 'HEAD:tests/w114_tick_chart.test.cjs').Trim() -ceq 'd3a1da719106756f9c33a95d3e113bd9072371c9' -and
                 (& git rev-parse 'HEAD:tests/w145_tick_intervals.test.cjs').Trim() -ceq '779070e022fdbf3feef41864081a15b78d52c78f' -and
-                ($w145Changed -join ';') -ceq 'cmd/ktrade/w114_tickchart_full_test.go;internal/tickchart/exchange_full_sequence_test.go;internal/tickchart/exchange_full_transport.go;internal/tickchart/exchange_matches_heartbeat_test.go;internal/tickchart/stream.go;internal/tickchart/stream_test.go;internal/tickchart/tickchart.go;internal/tickchart/tickchart_test.go;static/w114_tick_chart.js;templates/chart.tmpl;tests/w114_tick_chart.test.cjs;tests/w145_tick_intervals.test.cjs') 'W145_EXACT_W143_PARENT_AND_TWELVE_FILE_DELTA_REQUIRED'
+                $w145PathSetValid) 'W145_EXACT_W143_PARENT_AND_TWELVE_FILE_DELTA_REQUIRED'
               Write-Host 'QFORGE_W145_EXACT_W143_PARENT_AND_TWELVE_FILE_DELTA=PASS'
             }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'cf5b636f5256995875afdde2027098faaf6e3c83'){
               # W143 exact two-file chart-pane-layout fix child of W141.
