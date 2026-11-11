@@ -19,11 +19,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '5b8efdc64e1f7597a1fd61738c3fe76edb706652'
+      KTRADE_EXPECTED_SOURCE: 'c8675e76c9d85661cf0868df2638b992fa029012'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: 'cd8d9248123c0cf4657d21201f5d08d28e10a511'
+      KTRADE_EXPECTED_TREE: '8ae94cd1d09fcc8005180bba08718bc014785f3b'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 5b8efdc64e1f7597a1fd61738c3fe76edb706652
+          ref: c8675e76c9d85661cf0868df2638b992fa029012
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -245,7 +245,22 @@ jobs:
             Require ($LASTEXITCODE -eq 0) 'W109_W106_CANDIDATE_ANCESTRY_LOST'
             # Exact parent and content-blob identity are stronger than an
             # OS-dependent path sort or string-comparison diagnostic.
-            if($env:KTRADE_EXPECTED_SOURCE -ceq '5b8efdc64e1f7597a1fd61738c3fe76edb706652'){
+            if($env:KTRADE_EXPECTED_SOURCE -ceq 'c8675e76c9d85661cf0868df2638b992fa029012'){
+              # W137B: exact two-file corrective child of fully focused W137.
+              # Test-only first-toggle hidden canvas geometry negative is
+              # mandatory and the rest of Go/Pine/order/ledger remains frozen.
+              $changedW137B=@(& git diff --name-only 'HEAD^' 'HEAD' | Sort-Object)
+              Require ((& git rev-parse 'HEAD^').Trim() -ceq '5b8efdc64e1f7597a1fd61738c3fe76edb706652' -and
+                (& git rev-parse 'HEAD^^').Trim() -ceq '4fef64545a85122e892a4372da1bf455273d3a65' -and
+                (& git rev-parse 'HEAD^:static/w114_tick_chart.js').Trim() -ceq '3e2502e0a7ac64430b7417b4a33960a15b5692b9' -and
+                (& git rev-parse 'HEAD:static/w114_tick_chart.js').Trim() -ceq '63776b3906ae9237a47739b5ce52f8c722351bc0' -and
+                (& git rev-parse 'HEAD^:tests/w137_tick_rsi14.test.cjs').Trim() -ceq '880c7e9ba7e3d6807eb82202e538e5a749c26d0d' -and
+                (& git rev-parse 'HEAD:tests/w137_tick_rsi14.test.cjs').Trim() -ceq '92400068429c621e0bfa49661dfdc7c98f5af32f' -and
+                (& git rev-parse 'HEAD:templates/chart.tmpl').Trim() -ceq '5e0690746194b113aca62202560a3d594d01b5f2' -and
+                (& git rev-parse 'HEAD^{tree}').Trim() -ceq '8ae94cd1d09fcc8005180bba08718bc014785f3b' -and
+                ($changedW137B -join ';') -ceq 'static/w114_tick_chart.js;tests/w137_tick_rsi14.test.cjs') 'W137B_EXACT_W137_PARENT_AND_TWO_FILE_FIX_REQUIRED'
+              Write-Host 'QFORGE_W137B_EXACT_W137_PARENT_AND_TWO_FILE_FIX=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '5b8efdc64e1f7597a1fd61738c3fe76edb706652'){
               # W137 is an exact three-path RSI14 extension of qualified W135.
               # Previous Go/Pine/ledger/TradeGuard source and negative controls
               # remain covered by the same unchanged full regression.
@@ -409,9 +424,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '5b8efdc64e1f7597a1fd61738c3fe76edb706652'
-      KTRADE_EXPECTED_TREE: 'cd8d9248123c0cf4657d21201f5d08d28e10a511'
-      W01_EXPECTED_SHA: '5b8efdc64e1f7597a1fd61738c3fe76edb706652'
+      KTRADE_EXPECTED_SOURCE: 'c8675e76c9d85661cf0868df2638b992fa029012'
+      KTRADE_EXPECTED_TREE: '8ae94cd1d09fcc8005180bba08718bc014785f3b'
+      W01_EXPECTED_SHA: 'c8675e76c9d85661cf0868df2638b992fa029012'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -426,7 +441,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 5b8efdc64e1f7597a1fd61738c3fe76edb706652
+          ref: c8675e76c9d85661cf0868df2638b992fa029012
           fetch-depth: 0
           path: product
           persist-credentials: false
