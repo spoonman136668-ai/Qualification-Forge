@@ -190,12 +190,24 @@ jobs:
                 Sort-Object FullName | ForEach-Object {$_.FullName})
               Require ($specs.Count -ge 50) 'QFORGE_NODE_DIAG_SCOPE_UNQUALIFIED'
               $fail=[Collections.Generic.List[int]]::new()
-              for($i=25;$i -lt 50;$i++){
+              for($i=35;$i -lt 36;$i++){
                 & node --test --test-reporter=tap $specs[$i] *> $log
-                if($LASTEXITCODE -ne 0){$fail.Add($i)}
+                if($LASTEXITCODE -ne 0){
+                  $fail.Add($i)
+                  # Do not export private TAP output, names, paths, source or expected values.
+                  $report=[IO.File]::ReadAllText($log)
+                  $subtests=@([regex]::Matches($report,'(?m)^not ok ([0-9]+)') |
+                    ForEach-Object {$_.Groups[1].Value})
+                  $asserts=([regex]::Matches($report,'ERR_ASSERTION')).Count
+                  $syntax=([regex]::Matches($report,'SyntaxError')).Count
+                  Write-Host ('QFORGE_NODE_35_BOUNDED_DIAG=subtest_ordinals:'+($subtests -join ',')+
+                    ';assertion_code_mentions:'+$asserts+';syntax_error_mentions:'+$syntax+
+                    ';raw_private_output_exported:false')
+                  Remove-Variable report,subtests,asserts,syntax -ErrorAction SilentlyContinue
+                }
               }
               Write-Host ('QFORGE_NODE_BATCH_25_DIAG='+(@{
-                checked=25;source=$env:KTRADE_EXPECTED_SOURCE;
+                checked=1;source=$env:KTRADE_EXPECTED_SOURCE;
                 failed_ordinals=($fail -join ',');failures=$fail.Count;
                 raw_private_output_exported=$false
               } | ConvertTo-Json -Compress))
