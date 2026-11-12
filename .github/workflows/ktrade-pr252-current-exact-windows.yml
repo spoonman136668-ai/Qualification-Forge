@@ -188,58 +188,14 @@ jobs:
               Checked 'OFFLINE_VENDOR' 'node' @('scripts/stage_offline_vendor.cjs')
               $specs=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -File -Filter '*.test.cjs' |
                 Sort-Object FullName | ForEach-Object {$_.FullName})
+              $special=Join-Path $p 'tests/rb3_w28f_original_browser_state.test.cjs'
+              Require ($specs -ccontains $special) 'QFORGE_NODE_DIAG_TWO_ROOT_SPEC_MISSING'
+              $specs=@($specs | Where-Object {$_ -cne $special})
               Require ($specs.Count -ge 50) 'QFORGE_NODE_DIAG_SCOPE_UNQUALIFIED'
               $fail=[Collections.Generic.List[int]]::new()
               for($i=25;$i -lt 50;$i++){
                 & node --test --test-reporter=tap $specs[$i] *> $log
-                if($LASTEXITCODE -ne 0){
-                  $fail.Add($i)
-                  if($i -eq 30){
-                    # Strictly diagnostic: export numeric TAP subtest indices only.
-                    # The private TAP log is deleted after this step.
-                    $private=[IO.File]::ReadAllText($log)
-                    $subtestOrdinals=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)') |
-                      ForEach-Object {$_.Groups[1].Value} | Select-Object -Unique)
-                    $failureTypes=@([regex]::Matches($private,'(?m)^\s*failureType:\s*''([^'']+)''') |
-                      ForEach-Object {$_.Groups[1].Value} | Select-Object -Unique)
-                    # Sanitize the first TAP assertion stack location to line/column integers.
-                    $assertions=@([regex]::Matches($private,'(?m)^\s*at\s+TestContext\.<anonymous>\s*\([^\r\n]*?:(\d+):(\d+)\)')|
-                      ForEach-Object {$_.Groups[1].Value+':'+$_.Groups[2].Value}|Select-Object -Unique)
-                    $operators=@([regex]::Matches($private,"(?m)^\s*operator:\s*'([A-Za-z]+)'")|
-                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
-                    # Sanitize source test basename and report only numeric locations.
-                    $lines=@([regex]::Matches($private,'rb3_w94_chart_theme\.test\.cjs:(\d+):(\d+)')|
-                      ForEach-Object {$_.Groups[1].Value+':'+$_.Groups[2].Value}|
-                      Select-Object -Unique)
-                    $errorKinds=@([regex]::Matches($private,"name: '([A-Za-z]+)'")|
-                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
-                    $assertOperators=@([regex]::Matches($private,"operator: '([^']+)'")|
-                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
-                    $codes=@([regex]::Matches($private,"(?m)code:\s*'([^']+)'")|
-                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
-                    $messageCodes=@()
-                    foreach($pattern in @('ERR_INVALID_ARG_TYPE','Cannot read properties','is not a function','must be of type string','Invalid regular expression','The input did not match','path.*must be','received undefined')){
-                      if($private.Contains($pattern)){$messageCodes+= $pattern}
-                    }
-                    $testTotals=@([regex]::Matches($private,'(?m)^#\s+tests\s+(\d+)')|
-                      ForEach-Object {$_.Groups[1].Value})
-                    Write-Host ('QFORGE_W94_TYPE_ERROR_CLASSIFICATION=codes:'+($codes -join ',')+
-                      ';matching_signatures:'+($messageCodes.Count)+
-                      ';test_counts:'+($testTotals -join ',')+
-                      ';raw_output_exported:false')
-                    Write-Host ('QFORGE_W94_ASSERTION_LINE_NUMBERS='+($lines -join ',')+
-                      ';error_names:'+($errorKinds -join ',')+
-                      ';assert_operators:'+($assertOperators -join ',')+
-                      ';raw_private_output_exported:false')
-                    Write-Host ('QFORGE_W94_PRIVATE_ASSERTION_LOCATION='+($assertions -join ',')+
-                      ';operators:'+($operators -join ',')+';private_raw_output:false')
-                    Write-Host ('QFORGE_W94_PRIVATE_TAP_DIAG=subtest_ordinals:'+($subtestOrdinals -join ',')+
-                      ';failure_types:'+($failureTypes -join ',')+
-                      ';log_bytes:'+([Text.Encoding]::UTF8.GetByteCount($private))+
-                      ';raw_private_output_exported:false')
-                    Remove-Variable private,subtestOrdinals,failureTypes -ErrorAction SilentlyContinue
-                  }
-                }
+                if($LASTEXITCODE -ne 0){$fail.Add($i)}
               }
               Write-Host ('QFORGE_NODE_BATCH_25_DIAG='+(@{
                 checked=25;source=$env:KTRADE_EXPECTED_SOURCE;
