@@ -202,6 +202,13 @@ jobs:
                       ForEach-Object {$_.Groups[1].Value} | Select-Object -Unique)
                     $failureTypes=@([regex]::Matches($private,'(?m)^\s*failureType:\s*''([^'']+)''') |
                       ForEach-Object {$_.Groups[1].Value} | Select-Object -Unique)
+                    # Sanitize the first TAP assertion stack location to line/column integers.
+                    $assertions=@([regex]::Matches($private,'(?m)^\s*at\s+TestContext\.<anonymous>\s*\([^\r\n]*?:(\d+):(\d+)\)')|
+                      ForEach-Object {$_.Groups[1].Value+':'+$_.Groups[2].Value}|Select-Object -Unique)
+                    $operators=@([regex]::Matches($private,"(?m)^\s*operator:\s*'([A-Za-z]+)'")|
+                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                    Write-Host ('QFORGE_W94_PRIVATE_ASSERTION_LOCATION='+($assertions -join ',')+
+                      ';operators:'+($operators -join ',')+';private_raw_output:false')
                     Write-Host ('QFORGE_W94_PRIVATE_TAP_DIAG=subtest_ordinals:'+($subtestOrdinals -join ',')+
                       ';failure_types:'+($failureTypes -join ',')+
                       ';log_bytes:'+([Text.Encoding]::UTF8.GetByteCount($private))+
