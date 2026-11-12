@@ -192,7 +192,23 @@ jobs:
               $fail=[Collections.Generic.List[int]]::new()
               for($i=25;$i -lt 50;$i++){
                 & node --test --test-reporter=tap $specs[$i] *> $log
-                if($LASTEXITCODE -ne 0){$fail.Add($i)}
+                if($LASTEXITCODE -ne 0){
+                  $fail.Add($i)
+                  if($i -eq 30){
+                    # Strictly diagnostic: export numeric TAP subtest indices only.
+                    # The private TAP log is deleted after this step.
+                    $private=[IO.File]::ReadAllText($log)
+                    $subtestOrdinals=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)') |
+                      ForEach-Object {$_.Groups[1].Value} | Select-Object -Unique)
+                    $failureTypes=@([regex]::Matches($private,'(?m)^\s*failureType:\s*''([^'']+)''') |
+                      ForEach-Object {$_.Groups[1].Value} | Select-Object -Unique)
+                    Write-Host ('QFORGE_W94_PRIVATE_TAP_DIAG=subtest_ordinals:'+($subtestOrdinals -join ',')+
+                      ';failure_types:'+($failureTypes -join ',')+
+                      ';log_bytes:'+([Text.Encoding]::UTF8.GetByteCount($private))+
+                      ';raw_private_output_exported:false')
+                    Remove-Variable private,subtestOrdinals,failureTypes -ErrorAction SilentlyContinue
+                  }
+                }
               }
               Write-Host ('QFORGE_NODE_BATCH_25_DIAG='+(@{
                 checked=25;source=$env:KTRADE_EXPECTED_SOURCE;
