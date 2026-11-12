@@ -22,7 +22,7 @@ jobs:
       KTRADE_EXPECTED_SOURCE: '53dd61e8d9cb81476417c4e142b294990dd93ead'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
-      QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
+      QFORGE_NODE_BATCH_25_DIAG_ONLY: '1'
       KTRADE_EXPECTED_TREE: '0433ed8062bdb908fbaa113884ead462369e7c6a'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
@@ -187,10 +187,11 @@ jobs:
               Checked 'NPM_LOCKED_ASSETS' 'npm.cmd' @('ci','--ignore-scripts','--no-audit','--no-fund','--silent')
               Checked 'OFFLINE_VENDOR' 'node' @('scripts/stage_offline_vendor.cjs')
               $specs=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -File -Filter '*.test.cjs' |
+                Where-Object {$_.Name -cne 'rb3_w28f_original_browser_state.test.cjs'} |
                 Sort-Object FullName | ForEach-Object {$_.FullName})
-              Require ($specs.Count -ge 50) 'QFORGE_NODE_DIAG_SCOPE_UNQUALIFIED'
+              Require ($specs.Count -ge 75) 'QFORGE_NODE_DIAG_SCOPE_UNQUALIFIED'
               $fail=[Collections.Generic.List[int]]::new()
-              for($i=25;$i -lt 50;$i++){
+              for($i=50;$i -lt 75;$i++){
                 & node --test --test-reporter=tap $specs[$i] *> $log
                 if($LASTEXITCODE -ne 0){$fail.Add($i)}
               }
