@@ -207,6 +207,18 @@ jobs:
                       ForEach-Object {$_.Groups[1].Value+':'+$_.Groups[2].Value}|Select-Object -Unique)
                     $operators=@([regex]::Matches($private,"(?m)^\s*operator:\s*'([A-Za-z]+)'")|
                       ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                    # Sanitize source test basename and report only numeric locations.
+                    $lines=@([regex]::Matches($private,'rb3_w94_chart_theme\.test\.cjs:(\d+):(\d+)')|
+                      ForEach-Object {$_.Groups[1].Value+':'+$_.Groups[2].Value}|
+                      Select-Object -Unique)
+                    $errorKinds=@([regex]::Matches($private,"name: '([A-Za-z]+)'")|
+                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                    $assertOperators=@([regex]::Matches($private,"operator: '([^']+)'")|
+                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                    Write-Host ('QFORGE_W94_ASSERTION_LINE_NUMBERS='+($lines -join ',')+
+                      ';error_names:'+($errorKinds -join ',')+
+                      ';assert_operators:'+($assertOperators -join ',')+
+                      ';raw_private_output_exported:false')
                     Write-Host ('QFORGE_W94_PRIVATE_ASSERTION_LOCATION='+($assertions -join ',')+
                       ';operators:'+($operators -join ',')+';private_raw_output:false')
                     Write-Host ('QFORGE_W94_PRIVATE_TAP_DIAG=subtest_ordinals:'+($subtestOrdinals -join ',')+
