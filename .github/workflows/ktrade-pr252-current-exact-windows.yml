@@ -196,7 +196,16 @@ jobs:
               $failed=[Collections.Generic.List[int]]::new()
               for($i=50;$i -lt 75;$i++){
                 & node --test --test-reporter=tap $specs[$i] *> $log
-                if($LASTEXITCODE -ne 0){$failed.Add($i)}
+                if($LASTEXITCODE -ne 0){
+                  $failed.Add($i)
+                  # TAP subtest numbers only; neither source paths nor private
+                  # assertion messages leave the Windows runner.
+                  $tap=[IO.File]::ReadAllText($log)
+                  $bad=@([regex]::Matches($tap,'(?m)^not ok\s+(\d+)')|
+                    ForEach-Object {$_.Groups[1].Value})
+                  Write-Host ('QFORGE_NODE_50_FAILED_FILE_'+$i+'_SUBTEST_ORDINALS='+($bad -join ','))
+                  Remove-Variable tap,bad -ErrorAction SilentlyContinue
+                }
               }
               Write-Host ('QFORGE_NODE_BATCH_50_DIAG='+(@{
                 checked=25;source=$env:KTRADE_EXPECTED_SOURCE;
