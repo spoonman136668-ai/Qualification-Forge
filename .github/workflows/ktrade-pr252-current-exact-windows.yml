@@ -215,6 +215,18 @@ jobs:
                       ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
                     $assertOperators=@([regex]::Matches($private,"operator: '([^']+)'")|
                       ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                    $codes=@([regex]::Matches($private,"(?m)code:\s*'([^']+)'")|
+                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                    $messageCodes=@()
+                    foreach($pattern in @('ERR_INVALID_ARG_TYPE','Cannot read properties','is not a function','must be of type string','Invalid regular expression','The input did not match','path.*must be','received undefined')){
+                      if($private.Contains($pattern)){$messageCodes+= $pattern}
+                    }
+                    $testTotals=@([regex]::Matches($private,'(?m)^#\s+tests\s+(\d+)')|
+                      ForEach-Object {$_.Groups[1].Value})
+                    Write-Host ('QFORGE_W94_TYPE_ERROR_CLASSIFICATION=codes:'+($codes -join ',')+
+                      ';matching_signatures:'+($messageCodes.Count)+
+                      ';test_counts:'+($testTotals -join ',')+
+                      ';raw_output_exported:false')
                     Write-Host ('QFORGE_W94_ASSERTION_LINE_NUMBERS='+($lines -join ',')+
                       ';error_names:'+($errorKinds -join ',')+
                       ';assert_operators:'+($assertOperators -join ',')+
