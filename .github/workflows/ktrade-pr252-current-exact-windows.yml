@@ -191,12 +191,23 @@ jobs:
                 Sort-Object FullName | ForEach-Object {$_.FullName})
               Require ($specs.Count -ge 75) 'QFORGE_NODE_DIAG_SCOPE_UNQUALIFIED'
               $fail=[Collections.Generic.List[int]]::new()
-              for($i=50;$i -lt 75;$i++){
+              foreach($i in @(60,70,71,72)){
                 & node --test --test-reporter=tap $specs[$i] *> $log
-                if($LASTEXITCODE -ne 0){$fail.Add($i)}
+                if($LASTEXITCODE -ne 0){
+                  $fail.Add($i)
+                  # Only ordinal subtest indices and non-sensitive error-code counts leave Windows.
+                  $report=[IO.File]::ReadAllText($log)
+                  $subtests=@([regex]::Matches($report,'(?m)^not ok ([0-9]+)') |
+                    ForEach-Object {$_.Groups[1].Value})
+                  Write-Host ('QFORGE_W160_FAILED_FILE_ORDINAL='+$i+
+                    ';subtest_ordinals='+($subtests -join ',')+
+                    ';assertion_code_mentions='+([regex]::Matches($report,'ERR_ASSERTION')).Count+
+                    ';raw_private_output_exported:false')
+                  Remove-Variable report,subtests -ErrorAction SilentlyContinue
+                }
               }
               Write-Host ('QFORGE_NODE_BATCH_25_DIAG='+(@{
-                checked=25;source=$env:KTRADE_EXPECTED_SOURCE;
+                checked=4;source=$env:KTRADE_EXPECTED_SOURCE;
                 failed_ordinals=($fail -join ',');failures=$fail.Count;
                 raw_private_output_exported=$false
               } | ConvertTo-Json -Compress))
