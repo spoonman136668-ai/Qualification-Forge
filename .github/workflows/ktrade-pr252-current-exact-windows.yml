@@ -19,11 +19,11 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '2cdaa988aa44a60375bac4d7857069203dd6c74f'
+      KTRADE_EXPECTED_SOURCE: 'b4d86ce0823c8ae9a7f7b29efe6439e8c53bf2c6'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
-      KTRADE_EXPECTED_TREE: '2117bf52039cb158712ddb62df09b837c143e406'
+      KTRADE_EXPECTED_TREE: '78467afe9ee664ed3081f5f973026b908dc77614'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 2cdaa988aa44a60375bac4d7857069203dd6c74f
+          ref: b4d86ce0823c8ae9a7f7b29efe6439e8c53bf2c6
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -455,7 +455,7 @@ jobs:
                 (& git rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
                 ($w131Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w131_tick_keyboard.test.cjs') 'W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
               Write-Host 'QFORGE_W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA=PASS'
-            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '2cdaa988aa44a60375bac4d7857069203dd6c74f'){
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'b4d86ce0823c8ae9a7f7b29efe6439e8c53bf2c6'){
               & git merge-base --is-ancestor '3bfdfac9152575dd47092b345145ed585780764c' HEAD
               Require ($LASTEXITCODE -eq 0) 'QFORGE_PR253_QUALIFIED_ANCESTOR_REQUIRED'
               Write-Host 'QFORGE_PR253_QUALIFIED_ANCESTOR=PASS'
@@ -567,9 +567,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '2cdaa988aa44a60375bac4d7857069203dd6c74f'
-      KTRADE_EXPECTED_TREE: '2117bf52039cb158712ddb62df09b837c143e406'
-      W01_EXPECTED_SHA: '2cdaa988aa44a60375bac4d7857069203dd6c74f'
+      KTRADE_EXPECTED_SOURCE: 'b4d86ce0823c8ae9a7f7b29efe6439e8c53bf2c6'
+      KTRADE_EXPECTED_TREE: '78467afe9ee664ed3081f5f973026b908dc77614'
+      W01_EXPECTED_SHA: 'b4d86ce0823c8ae9a7f7b29efe6439e8c53bf2c6'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -584,7 +584,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 2cdaa988aa44a60375bac4d7857069203dd6c74f
+          ref: b4d86ce0823c8ae9a7f7b29efe6439e8c53bf2c6
           fetch-depth: 0
           path: product
           persist-credentials: false
