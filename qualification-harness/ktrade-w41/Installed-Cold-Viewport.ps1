@@ -1553,15 +1553,36 @@ function W253C-RevealRailControl([object]$shell,[string]$name){
      return
    }
   }catch{}}
-  Require ($attempt -lt 24) ('W253C_RAIL_CONTROL_UNREACHABLE_'+$name)
+  if($attempt -eq 24){
+   Write-Host ('W253C_NATIVE_RAIL_FAILED_GEOMETRY='+(@{
+    label=$name;target_found=$found;target_empty=($null -eq $target -or $target.IsEmpty);
+    target_top=if($null -eq $target){$null}else{[int]$target.Top};
+    target_bottom=if($null -eq $target){$null}else{[int]$target.Bottom};
+    rail_top=[int]$scope.Top;rail_bottom=[int]$scope.Bottom;
+    source_sha=$NewSHA;real_wheel_attempts=$attempt}|ConvertTo-Json -Compress))
+   W41-SpectrumVisual $shell
+   throw ('W253C_RAIL_CONTROL_UNREACHABLE_'+$name)
+  }
   [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
   Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W253C_RAIL_FOREIGN_FOCUS'
   Require ([W83Native]::SetCursorPos([int]($scope.Left+$scope.Width/2),
    [int]($scope.Top+$scope.Height/2))) 'W253C_RAIL_POINTER_REFUSED'
   # A control above the visible rail requires wheel-up; otherwise scroll down.
-  $delta=if($found -and $null -ne $target -and $target.Bottom -le $scope.Top+3){
+  # UIA may return Rect.Empty for an offscreen control, which has
+  # bottom=0: that is not evidence the control is above the rail.
+  $delta=if($found -and $null -ne $target -and !$target.IsEmpty -and
+    $target.Height -ge 8 -and $target.Bottom -le $scope.Top+3){
    [uint32]120
   }else{$leftWheel}
+  if($attempt -eq 0){
+   Write-Host ('W253C_NATIVE_RAIL_INITIAL_GEOMETRY='+(@{
+    label=$name;target_found=$found;target_empty=($null -eq $target -or $target.IsEmpty);
+    target_top=if($null -eq $target){$null}else{[int]$target.Top};
+    target_bottom=if($null -eq $target){$null}else{[int]$target.Bottom};
+    rail_top=[int]$scope.Top;rail_bottom=[int]$scope.Bottom;
+    selected_scroll=if($delta -eq [uint32]120){'UP'}else{'DOWN'};
+    source_sha=$NewSHA}|ConvertTo-Json -Compress))
+  }
   [W83Native]::mouse_event(0x0800,0,0,$delta,[UIntPtr]::Zero)
   Start-Sleep -Milliseconds 150
  }
