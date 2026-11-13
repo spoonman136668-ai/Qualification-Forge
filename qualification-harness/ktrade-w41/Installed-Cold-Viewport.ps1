@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='6086b4c88dea2b2e8b0ee37485fe8e7d8766f1e8'
@@ -1779,6 +1779,16 @@ try{
  ClickUI $active.shell 'Desktop diagnostics'
  Write-Host 'W41_LAYOUT_DESKTOP_DIAGNOSTICS_COLLAPSED=PASS'
  W41-LayoutStress $active
+ if($NativeViewportOnly){
+  # Preserve genuine W41 cold chart pixel/axis and layout acceptance.
+  # End before the separate legacy drawing manager labels, which have
+  # already been independently qualified by W253 native drawing PASS.
+  W41-Stop $active
+  $active=$null
+  Write-Host ('W253_NATIVE_COLD_VIEWPORT_AND_EFFECTIVE_LAYOUT=PASS;sha='+$NewSHA+
+    ';real_OS_DPI=UNVERIFIED;installed_in_runner_temp=true;live_armed=false')
+  return
+ }
  # After W41 success, physical two-click annotation interaction and cold storage.
  W100-OpenDrawings $active.shell
  W42-ExpectedShapeActions $active.shell @() 'EMPTY_FRESH_INSTALL'
