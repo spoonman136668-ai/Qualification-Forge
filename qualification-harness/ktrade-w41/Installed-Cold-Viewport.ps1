@@ -92,7 +92,18 @@ function FindUI([object]$shell,[string]$label,[bool]$isButton,[int]$seconds=35){
  $until=(Get-Date).AddSeconds($seconds)
  do{
   $shell.Refresh()
-  Require (!$shell.HasExited) 'W83_SHELL_EXITED_BEFORE_UI_READY'
+  if($shell.HasExited){
+   $exitCode=[int]$shell.ExitCode
+   $phase=if($label -ceq 'Desktop diagnostics'){'diagnostics'}
+     elseif($label -ceq 'Verify chart UI'){'chart-verify'}
+     elseif($label -ceq 'Price chart drawing surface'){'chart-ready'}
+     else{'subsequent-ui'}
+   Write-Host ('W83_EPHEMERAL_SHELL_EXIT_DIAGNOSTIC='+(@{
+     phase=$phase;process_exited=$true;exit_code=$exitCode;
+     source_sha=$NewSHA;owner_data_read=$false;live_armed=$false
+   }|ConvertTo-Json -Compress))
+   throw 'W83_SHELL_EXITED_BEFORE_UI_READY'
+  }
   if($shell.MainWindowHandle -ne [IntPtr]::Zero){
    $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
    $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
