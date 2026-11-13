@@ -122,6 +122,19 @@ jobs:
                     $cases=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)')|
                       ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
                     Write-Host ('W105_FAILED_FILE_ORDINAL_'+$i+'_CASE_ORDINALS='+($cases -join ','))
+                    if($i -eq 6){
+                      # Reveal only verified numeric line/column and safe assertion operator,
+                      # never the private TAP stack, messages or file contents.
+                      $location=[regex]::Match($private,'rb3_w85_desktop_operator_shell\.test\.cjs:(\d+):(\d+)')
+                      $op=[regex]::Match($private,"(?m)^\s*operator:\s*'([A-Za-z]+)'")
+                      $safeOp=if($op.Success -and $op.Groups[1].Value -cin
+                        @('strictEqual','deepStrictEqual','match','doesNotMatch','ok')){$op.Groups[1].Value}else{'unclassified'}
+                      Write-Host ('W165_SANITIZED_ASSERTION_LOCATION='+(@{
+                        line=if($location.Success){$location.Groups[1].Value}else{'unknown'};
+                        column=if($location.Success){$location.Groups[2].Value}else{'unknown'};
+                        operator=$safeOp;private_stack_exported=$false
+                      }|ConvertTo-Json -Compress))
+                    }
                     Remove-Variable private,cases -ErrorAction SilentlyContinue
                   }
                 }finally{Remove-Item -LiteralPath $single -Force -ErrorAction SilentlyContinue}
