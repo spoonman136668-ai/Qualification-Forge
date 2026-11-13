@@ -1519,42 +1519,98 @@ function W253C-TypeDeletionPhrase([object]$shell){
  Start-Sleep -Milliseconds 200
  Require (W253C-Enabled $shell 'Delete selected drawing') 'W253C_EXACT_DELETE_NOT_ENABLED'
 }
+# The original left drawing rail is vertically scrollable at 1044x788.
+# Expose the original control with real Windows mouse-wheel input and check
+# true on-screen UIA geometry. No JS, synthetic click, hidden-element action
+# or disabled control can satisfy this function.
+function W253C-RevealRailControl([object]$shell,[string]$name){
+ $leftWheel=[BitConverter]::ToUInt32([BitConverter]::GetBytes([int]-120),0)
+ for($attempt=0;$attempt -le 24;$attempt++){
+  $shell.Refresh()
+  Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W253C_RAIL_SHELL_LOST'
+  $rail=FindUI $shell 'Drawing tools' $false 7
+  $scope=$rail.Current.BoundingRectangle
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $window=$root.Current.BoundingRectangle
+  Require (!$scope.IsEmpty -and $scope.Width -ge 35 -and $scope.Height -ge 190 -and
+   $scope.Left -ge $window.Left -and $scope.Right -le $window.Right -and
+   $scope.Top -ge $window.Top -and $scope.Bottom -le $window.Bottom) 'W253C_RAIL_OUT_OF_OWNED_WINDOW'
+  $filter=[System.Windows.Automation.PropertyCondition]::new(
+   [System.Windows.Automation.AutomationElement]::NameProperty,$name)
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$filter)
+  $target=$null;$found=$false
+  foreach($node in $nodes){try{
+   $v=$node.Current;$rect=$v.BoundingRectangle
+   if($v.ControlType -ne [System.Windows.Automation.ControlType]::Button){continue}
+   $found=$true;$target=$rect
+   if(!$v.IsOffscreen -and $v.IsEnabled -and !$rect.IsEmpty -and
+    $rect.Width -ge 8 -and $rect.Height -ge 8 -and
+    $rect.Left -ge $scope.Left -and $rect.Right -le $scope.Right -and
+    $rect.Top -ge $scope.Top+3 -and $rect.Bottom -le $scope.Bottom-3){
+     Write-Host ('W253C_NATIVE_RAIL_CONTROL_VISIBLE='+(@{label=$name;
+      real_wheel_steps=$attempt;source_sha=$NewSHA;inside_rail=$true;
+      input='Win32_vertical_wheel';live_armed=$false}|ConvertTo-Json -Compress))
+     return
+   }
+  }catch{}}
+  Require ($attempt -lt 24) ('W253C_RAIL_CONTROL_UNREACHABLE_'+$name)
+  [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+  Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W253C_RAIL_FOREIGN_FOCUS'
+  Require ([W83Native]::SetCursorPos([int]($scope.Left+$scope.Width/2),
+   [int]($scope.Top+$scope.Height/2))) 'W253C_RAIL_POINTER_REFUSED'
+  # A control above the visible rail requires wheel-up; otherwise scroll down.
+  $delta=if($found -and $null -ne $target -and $target.Bottom -le $scope.Top+3){
+   [uint32]120
+  }else{$leftWheel}
+  [W83Native]::mouse_event(0x0800,0,0,$delta,[UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 150
+ }
+ throw ('W253C_RAIL_CONTROL_NOT_ACCESSIBLE_'+$name)
+}
+function W253C-ClickRail([object]$shell,[string]$name){
+ W253C-RevealRailControl $shell $name
+ ClickUI $shell $name
+}
+function W253C-OpenDrawingManager([object]$shell){
+ W253C-RevealRailControl $shell 'Manage trendlines'
+ W100-OpenDrawings $shell
+}
 function W253C-NativeControls([object]$shell,[string[]]$four){
  # Lock blocks *actual* chart pointer gestures before they can mutate state.
- ClickUI $shell 'Lock all chart drawings'
- ClickUI $shell 'Draw rectangle zone'
+ W253C-ClickRail $shell 'Lock all chart drawings'
+ W253C-ClickRail $shell 'Draw rectangle zone'
  W42-ShapeClick $shell 0.22 0.25
  W42-ShapeClick $shell 0.72 0.63
- ClickUI $shell 'Lock all chart drawings'
- W100-OpenDrawings $shell
+ W253C-ClickRail $shell 'Lock all chart drawings'
+ W253C-OpenDrawingManager $shell
  W253-ReviewDrawingRows $shell $four 'LOCKED_GESTURE_NO_MUTATION'
  ClickUI $shell 'Close drawings'
  Write-Host ('W253C_NATIVE_LOCK_PREVENTS_DRAWING=PASS;sha='+$NewSHA)
  # Native magnet toggle can be exercised; numeric snapping is not claimed
  # without a separately qualified near-candle geometric oracle.
- ClickUI $shell 'Snap drawing anchors to nearby candle OHLC'
- ClickUI $shell 'Snap drawing anchors to nearby candle OHLC'
+ W253C-ClickRail $shell 'Snap drawing anchors to nearby candle OHLC'
+ W253C-ClickRail $shell 'Snap drawing anchors to nearby candle OHLC'
  # No deletion is allowed until an individual selection and exact phrase.
- ClickUI $shell 'Review and remove one chart drawing'
+ W253C-ClickRail $shell 'Review and remove one chart drawing'
  Require (!(W253C-Enabled $shell 'Delete selected drawing')) 'W253C_DELETE_ENABLED_WITHOUT_SELECTION'
  ClickUI $shell 'Cancel'
- W100-OpenDrawings $shell
+ W253C-OpenDrawingManager $shell
  W253-ReviewDrawingRows $shell $four 'CANCEL_PRESERVES_ALL_FOUR'
  ClickUI $shell 'Close drawings'
- ClickUI $shell 'Review and remove one chart drawing'
+ W253C-ClickRail $shell 'Review and remove one chart drawing'
  W253C-ClickPrefix $shell 'Select Rectangle/Fibonacci #1 '
  Require (!(W253C-Enabled $shell 'Delete selected drawing')) 'W253C_DELETE_ENABLED_WITHOUT_PHRASE'
  ClickUI $shell 'Cancel'
- W100-OpenDrawings $shell
+ W253C-OpenDrawingManager $shell
  W253-ReviewDrawingRows $shell $four 'SELECT_THEN_CANCEL_NO_MUTATION'
  ClickUI $shell 'Close drawings'
  # One bounded, explicitly selected deletion in a disposable native profile.
- ClickUI $shell 'Review and remove one chart drawing'
+ W253C-ClickRail $shell 'Review and remove one chart drawing'
  W253C-ClickPrefix $shell 'Select Rectangle/Fibonacci #1 '
  W253C-TypeDeletionPhrase $shell
  ClickUI $shell 'Delete selected drawing'
  ClickUI $shell 'Cancel'
- W100-OpenDrawings $shell
+ W253C-OpenDrawingManager $shell
  $remaining=@('Review removal · fib drawing 2','Review removal · trendline 1',
   'Review removal · vertical line 1')
  W253-ReviewDrawingRows $shell $remaining 'ONE_DELETE_RETAINS_OTHER_THREE'
