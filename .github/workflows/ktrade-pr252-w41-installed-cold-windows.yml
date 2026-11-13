@@ -29,6 +29,7 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_EXPECTED_SOURCE: '6086b4c88dea2b2e8b0ee37485fe8e7d8766f1e8'
+      QFORGE_NATIVE_DRAWINGS_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWINGS_FOCUSED') }}
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       KTRADE_SPECTRUM_PREVIEW: '1'
     steps:
@@ -142,7 +143,12 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           if([string]::IsNullOrEmpty($env:W41_PACKAGE_PATH)){throw 'W41_PACKAGE_CUSTODY_LOST'}
-          & (Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w41/Installed-Cold-Viewport.ps1') -PackageZip $env:W41_PACKAGE_PATH
+          $script=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w41/Installed-Cold-Viewport.ps1'
+          if($env:QFORGE_NATIVE_DRAWINGS_FOCUSED -ceq 'true'){
+            & $script -PackageZip $env:W41_PACKAGE_PATH -NativeDrawingsOnly
+          }else{
+            & $script -PackageZip $env:W41_PACKAGE_PATH
+          }
           if(!$?){throw 'W41_REAL_INSTALLED_COLD_ACCEPTANCE_FAILED'}
       - name: Retain test-owned native Spectrum Desk image for UX inspection
         if: always()

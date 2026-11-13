@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='6086b4c88dea2b2e8b0ee37485fe8e7d8766f1e8'
@@ -1275,17 +1275,92 @@ function W100-OpenDrawings([object]$shell){
  for($attempt=1;$attempt -le 2;$attempt++){
   ClickUI $shell 'Manage trendlines'
   try{
-   $null=FindUI $shell 'Close trendlines' $true 4
+   $null=FindUI $shell 'Close drawings' $true 4
    Write-Host ('W100_NATIVE_DRAWING_MODAL_VISIBLE='+(@{attempt=$attempt;
     scope='owned_UIA_modal_readiness_no_order_no_storage_write';
     accepted=$true}|ConvertTo-Json -Compress))
    return
   }catch{
-   if($_.Exception.Message -cne 'W83_NATIVE_UI_NOT_OBSERVED_Close trendlines' -or $attempt -eq 2){throw}
+   if($_.Exception.Message -cne 'W83_NATIVE_UI_NOT_OBSERVED_Close drawings' -or $attempt -eq 2){throw}
   }
   Start-Sleep -Milliseconds 240
  }
  throw 'W100_DRAWING_MODAL_NEVER_VISIBLE'
+}
+# W253 focused native drawing acceptance: original installed Wails process,
+# genuine Win32 pointer clicks and UIAutomation readback. Synthetic disposable
+# Windows profile only. Independent of the private W160 trusted-event witness.
+function W253-ReviewDrawingRows([object]$shell,[string[]]$expected,[string]$phase){
+ $shell.Refresh()
+ Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W253_NATIVE_SHELL_REQUIRED'
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $window=$root.Current.BoundingRectangle
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+  [System.Windows.Automation.Condition]::TrueCondition)
+ $seen=[Collections.Generic.List[string]]::new()
+ foreach($node in $nodes){try{
+  $v=$node.Current;$name=[string]$v.Name;$rect=$v.BoundingRectangle
+  if($name.StartsWith('Review removal · ',[StringComparison]::Ordinal) -and
+     $v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+     !$v.IsOffscreen -and $v.IsEnabled -and !$rect.IsEmpty -and
+     $rect.Width -ge 8 -and $rect.Height -ge 8 -and
+     $rect.Left -ge $window.Left -and $rect.Right -le $window.Right -and
+     $rect.Top -ge $window.Top -and $rect.Bottom -le $window.Bottom){
+     $seen.Add($name)
+  }
+ }catch{}}
+ $ok=($seen.Count -eq $expected.Count)
+ foreach($item in $expected){if($seen -cnotcontains $item){$ok=$false}}
+ Write-Host ('W253_NATIVE_DRAWING_REVIEW='+(@{phase=$phase;
+  expected_count=$expected.Count;observed_count=$seen.Count;
+  exact_accessible_rows=$ok;source_sha=$NewSHA;
+  scope='genuine_Win32_mouse_plus_installed_WebView2_UIA_no_DOM_script_or_user_data';
+  live_armed=$false}|ConvertTo-Json -Compress))
+ Require $ok ('W253_NATIVE_DRAWING_ROWS_MISMATCH_'+$phase)
+}
+function W253-NativeDrawings([object]$installed,[object]$first){
+ $s=$first.shell
+ # Manager must be genuinely visible and empty before starting.
+ W100-OpenDrawings $s
+ W253-ReviewDrawingRows $s @() 'FRESH_EMPTY'
+ ClickUI $s 'Close drawings'
+ W42-DrawNative $s 'Draw rectangle zone' 0.30 0.31 0.55 0.58
+ W100-OpenDrawings $s
+ W253-ReviewDrawingRows $s @('Review removal · rect drawing 1') 'RECT_SAVED'
+ ClickUI $s 'Close drawings'
+ W42-DrawNative $s 'Draw Fibonacci retracement' 0.39 0.64 0.71 0.27
+ W100-OpenDrawings $s
+ W253-ReviewDrawingRows $s @('Review removal · rect drawing 1','Review removal · fib drawing 2') 'FIB_SAVED'
+ ClickUI $s 'Close drawings'
+ ClickUI $s 'Trend Line'
+ W42-ShapeClick $s 0.28 0.32
+ W42-ShapeClick $s 0.66 0.61
+ W100-OpenDrawings $s
+ W253-ReviewDrawingRows $s @('Review removal · rect drawing 1','Review removal · fib drawing 2',
+  'Review removal · trendline 1') 'TRENDLINE_SAVED'
+ ClickUI $s 'Close drawings'
+ ClickUI $s 'Draw vertical line'
+ W42-ShapeClick $s 0.44 0.46
+ W100-OpenDrawings $s
+ $four=@('Review removal · rect drawing 1','Review removal · fib drawing 2',
+  'Review removal · trendline 1','Review removal · vertical line 1')
+ W253-ReviewDrawingRows $s $four 'FOUR_DRAWING_TYPES_SAVED'
+ ClickUI $s 'Close drawings'
+ W41-SpectrumVisual $s
+ W41-Stop $first
+ $second=W41-Start $installed.candidate_directory
+ try{
+  W100-OpenDrawings $second.shell
+  W253-ReviewDrawingRows $second.shell $four 'ALL_FOUR_COLD_RESTORED'
+  ClickUI $second.shell 'Close drawings'
+  $cap=Invoke-RestMethod -Method Get -Uri ($second.origin+'/api/operator/capabilities') -TimeoutSec 10
+  Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and
+   $cap.live_orders_enabled -eq $false) 'W253_COLD_REOPEN_CHANGED_TRADING_AUTHORITY'
+  Write-Host ('W253_NATIVE_FOUR_DRAWING_TYPES_AND_COLD_RESTORE=PASS;sha='+$NewSHA+
+   ';genuine_mouse=true;native_WebView2=true;installed_in_runner_temp=true;live_armed=false')
+ }finally{
+  W41-Stop $second
+ }
 }
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
@@ -1304,6 +1379,15 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ if($NativeDrawingsOnly){
+  # Keep original W41 full cold-chart test intact and independent.
+  # This mode tests four current real drawing tools without relying on
+  # the unrelated 1h header-scroll gate, and never claims W160 authority.
+  $current=$active
+  $active=$null
+  W253-NativeDrawings $installed $current
+  return
+ }
  # 1h is supported end-to-end by the original Coinbase candle backend.
  # A 2h button exists but currently falls through to 1m backend granularity;
  # do not misrepresent that as a stable two-hour historical fixture.
