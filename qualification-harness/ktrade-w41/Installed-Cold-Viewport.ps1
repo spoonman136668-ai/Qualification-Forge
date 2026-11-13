@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='6086b4c88dea2b2e8b0ee37485fe8e7d8766f1e8'
@@ -82,6 +82,7 @@ public static class W83Native {
  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
  [DllImport("user32.dll")] public static extern void mouse_event(uint f,uint x,uint y,uint z,UIntPtr u);
+ [DllImport("user32.dll")] public static extern void keybd_event(byte key,byte scan,uint flags,UIntPtr extra);
  [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr h,uint m,IntPtr w,IntPtr l);
  [DllImport("user32.dll",CharSet=CharSet.Unicode)] public static extern int GetClassName(IntPtr h,System.Text.StringBuilder s,int n);
  [DllImport("user32.dll")] public static extern bool IsChild(IntPtr parent,IntPtr child);
@@ -1318,6 +1319,99 @@ function W253-ReviewDrawingRows([object]$shell,[string[]]$expected,[string]$phas
   live_armed=$false}|ConvertTo-Json -Compress))
  Require $ok ('W253_NATIVE_DRAWING_ROWS_MISMATCH_'+$phase)
 }
+# Independent native 1h discoverability test. Never uses DOM events, JS,
+# UIA SetFocus, broker authority, or an owner browser profile.
+function W253-ToolbarGeometry([object]$shell){
+ $bar=FindUI $shell 'Chart tools and navigation' $false 12
+ $outer=$bar.Current.BoundingRectangle
+ Require (!$outer.IsEmpty -and $outer.Width -ge 170) 'W253_BAR_MISSING'
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $condition=[System.Windows.Automation.PropertyCondition]::new(
+  [System.Windows.Automation.AutomationElement]::NameProperty,'1h')
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
+ $visible=$false;$found=$false;$left=0;$right=0;$offscreen=$true
+ foreach($node in $nodes){try{
+  if($node.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button){continue}
+  $r=$node.Current.BoundingRectangle
+  $found=$true;$left=[int]$r.Left;$right=[int]$r.Right
+  $offscreen=[bool]$node.Current.IsOffscreen
+  $visible=(!$r.IsEmpty -and $r.Width -ge 8 -and
+   $r.Left -ge $outer.Left+3 -and $r.Right -le $outer.Right-3 -and
+   !$offscreen -and $node.Current.IsEnabled)
+  if($visible){break}
+ }catch{}}
+ return [pscustomobject]@{found=$found;visible=$visible;offscreen=$offscreen;
+  left=$left;right=$right;toolbar_left=[int]$outer.Left;
+  toolbar_right=[int]$outer.Right;toolbar_height=[int]$outer.Height}
+}
+function W253-ToolbarTrial([object]$installed,[object]$run){
+ $shell=$run.shell
+ $initial=W253-ToolbarGeometry $shell
+ $after=$initial;$wheelSteps=0
+ for($n=0;$n -lt 16 -and !$after.visible;$n++){
+  $nav=FindUI $shell 'Chart tools and navigation' $false 6
+  $b=$nav.Current.BoundingRectangle
+  [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+  Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W253_TOOLBAR_FOREIGN_FOCUS'
+  Require ([W83Native]::SetCursorPos([int]($b.Left+$b.Width*0.55),
+    [int]($b.Top+$b.Height*0.5))) 'W253_TOOLBAR_POINTER_FAILED'
+  [W83Native]::mouse_event(0x1000,0,0,120,[UIntPtr]::Zero)
+  $wheelSteps++;Start-Sleep -Milliseconds 130
+  $after=W253-ToolbarGeometry $shell
+ }
+ Write-Host ('W253_NATIVE_TOOLBAR_WHEEL='+(@{
+  source_sha=$NewSHA;initial=$initial;after=$after;
+  horizontal_wheel_steps=$wheelSteps;scope='native_geometry_diagnostic_no_acceptance_override'
+ }|ConvertTo-Json -Compress -Depth 5))
+ $keyboard=$false;$tabs=0
+ if(!$after.visible){
+  # Reverse the same native wheel gesture to return to the first button.
+  $nav=FindUI $shell 'Chart tools and navigation' $false 6
+  $b=$nav.Current.BoundingRectangle
+  [void][W83Native]::SetCursorPos([int]($b.Left+$b.Width*0.55),
+    [int]($b.Top+$b.Height*0.5))
+  for($n=0;$n -lt $wheelSteps;$n++){
+   [W83Native]::mouse_event(0x1000,0,0,[uint32](-120),[UIntPtr]::Zero)
+   Start-Sleep -Milliseconds 80
+  }
+  # Genuine mouse focus on first timeframe, then keyboard Tab.
+  ClickUI $shell '1m'
+  for($n=0;$n -lt 12;$n++){
+   $position=W253-ToolbarGeometry $shell
+   if($position.visible){$keyboard=$true;break}
+   [W83Native]::keybd_event(0x09,0,0,[UIntPtr]::Zero)
+   [W83Native]::keybd_event(0x09,0,2,[UIntPtr]::Zero)
+   $tabs++;Start-Sleep -Milliseconds 160
+  }
+ }
+ $final=W253-ToolbarGeometry $shell
+ Write-Host ('W253_NATIVE_TOOLBAR_FINAL='+(@{
+  source_sha=$NewSHA;wheel_visible=$after.visible;keyboard_visible=$keyboard;
+  tabs=$tabs;last=$final;input='Win32_pointer_horizontal_wheel_and_Tab'
+ }|ConvertTo-Json -Compress -Depth 5))
+ Require ($final.visible) 'W253_1H_UNREACHABLE_BOTH_NATIVE_INPUT_PATHS'
+ ClickUI $shell '1h'
+ Start-Sleep -Milliseconds 650
+ $aria='UNAVAILABLE'
+ try{
+  $button=FindUI $shell '1h' $true 5
+  $props=$button.GetCurrentPropertyValue(
+    [System.Windows.Automation.AutomationElement]::AriaPropertiesProperty,$true)
+  if($props -is [string]){
+   if($props -match '(?:^|;)\s*pressed=true(?:;|$)'){$aria='TRUE'}
+   elseif($props -match '(?:^|;)\s*pressed=false(?:;|$)'){$aria='FALSE'}
+  }
+ }catch{}
+ Require ($aria -cne 'FALSE') 'W253_1H_UIA_PRESSED_FALSE_AFTER_NATIVE_CLICK'
+ W104-AssertPinnedMarket $shell 'AFTER_1H_NATIVE'
+ $cap=Invoke-RestMethod -Method Get -Uri ($run.origin+'/api/operator/capabilities') -TimeoutSec 10
+ Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.live_orders_enabled -eq $false -and
+  $cap.paper_orders_enabled -eq $false) 'W253_TOOLBAR_TRADING_AUTHORITY_CHANGED'
+ Write-Host ('W253_NATIVE_TOOLBAR_PHYSICAL_ACCESS=PASS;sha='+$NewSHA+
+  ';wheel_visible='+$after.visible+';keyboard_visible='+$keyboard+
+  ';aria_pressed='+$aria+';live_armed=false')
+ W41-Stop $run
+}
 function W253-NativeDrawings([object]$installed,[object]$first){
  $s=$first.shell
  # Manager must be genuinely visible and empty before starting.
@@ -1379,6 +1473,12 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ if($NativeToolbarOnly){
+  $current=$active
+  $active=$null
+  W253-ToolbarTrial $installed $current
+  return
+ }
  if($NativeDrawingsOnly){
   # Keep original W41 full cold-chart test intact and independent.
   # This mode tests four current real drawing tools without relying on
