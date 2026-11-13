@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='59d15aa38f85d5f62229e1e96217fd1078013f2e'
+$NewSHA='74e82a7aea0c5dfec83ce3126e19a7e08d2e775f'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and

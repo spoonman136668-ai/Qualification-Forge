@@ -28,7 +28,7 @@ jobs:
       GOTOOLCHAIN: 'local'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
-      KTRADE_EXPECTED_SOURCE: '59d15aa38f85d5f62229e1e96217fd1078013f2e'
+      KTRADE_EXPECTED_SOURCE: '74e82a7aea0c5dfec83ce3126e19a7e08d2e775f'
       QFORGE_NATIVE_DRAWINGS_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWINGS_FOCUSED') }}
       QFORGE_NATIVE_DRAWING_CONTROLS: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWING_CONTROLS') }}
       QFORGE_NATIVE_TOOLBAR_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_TOOLBAR_FOCUSED') }}
@@ -46,7 +46,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 59d15aa38f85d5f62229e1e96217fd1078013f2e
+          ref: 74e82a7aea0c5dfec83ce3126e19a7e08d2e775f
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -63,7 +63,7 @@ jobs:
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
           $source=(& git -C $p rev-parse HEAD).Trim()
           $tree=(& git -C $p rev-parse 'HEAD^{tree}').Trim()
-          if($source -cne '59d15aa38f85d5f62229e1e96217fd1078013f2e' -or $tree -cne '27516ea33c62c346dd270fbc66dd58dd93bc3e50' -or
+          if($source -cne '74e82a7aea0c5dfec83ce3126e19a7e08d2e775f' -or $tree -cne 'acd81962e3eaa4e2a17fabf0f66730397c937064' -or
              @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){
             throw 'W41_INSTALLED_EXACT_CLEAN_SOURCE_REQUIRED'
           }
@@ -100,7 +100,7 @@ jobs:
           $log=Join-Path $env:RUNNER_TEMP 'w41-focused-node-private.log'
           Push-Location $p
           try {
-            & node --test --test-reporter=tap tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w95_appearance.test.cjs tests/w101_chart_ranges.test.cjs tests/w102_tradingview_navigation.test.cjs tests/w103_watchlist.test.cjs tests/w104_pinned_market_selector.test.cjs *> $log
+            & node --test --test-reporter=tap tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w95_appearance.test.cjs tests/w101_chart_ranges.test.cjs tests/w102_tradingview_navigation.test.cjs tests/w103_watchlist.test.cjs tests/w104_pinned_market_selector.test.cjs tests/rb3_w85_desktop_operator_shell.test.cjs tests/w160_native_drawings_observer.test.cjs *> $log
             if($LASTEXITCODE -ne 0){
               Write-Host ('W41_FOCUSED_NODE_FAILURE_SHA256='+(Get-FileHash -LiteralPath $log -Algorithm SHA256).Hash.ToLowerInvariant())
               $approved=@('fresh watchlist defaults are valid, independent of existing data',
@@ -134,7 +134,7 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_VENDOR_REFUSED'}
             $dest=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
-            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '59d15aa38f85d5f62229e1e96217fd1078013f2e'
+            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '74e82a7aea0c5dfec83ce3126e19a7e08d2e775f'
             if($LASTEXITCODE -ne 0){throw 'W41_REAL_NATIVE_INSTALLER_BUILD_FAILED'}
             $zip=Join-Path $dest 'KTRADE-SetupBundle.zip'
             if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W41_REAL_NATIVE_INSTALLER_MISSING'}
@@ -163,7 +163,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ktrade-spectrum-native-ui-59d15aa38f85d5f62229e1e96217fd1078013f2e
+          name: ktrade-spectrum-native-ui-74e82a7aea0c5dfec83ce3126e19a7e08d2e775f
           path: ${{ runner.temp }}/ktrade-pr253-spectrum-native-workstation.png
           if-no-files-found: warn
           retention-days: 3
