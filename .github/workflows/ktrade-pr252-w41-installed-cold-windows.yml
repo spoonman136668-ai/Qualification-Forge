@@ -28,7 +28,7 @@ jobs:
       GOTOOLCHAIN: 'local'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
-      KTRADE_EXPECTED_SOURCE: '09f23c83a3c8bcb07c38b4f985dd5f60249b97b4'
+      KTRADE_EXPECTED_SOURCE: '878598293641a8ad7f9f21920c7690d00d49d66c'
       QFORGE_NATIVE_DRAWINGS_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWINGS_FOCUSED') }}
       QFORGE_NATIVE_DRAWING_CONTROLS: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWING_CONTROLS') }}
       QFORGE_NATIVE_TOOLBAR_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_TOOLBAR_FOCUSED') }}
@@ -46,7 +46,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 09f23c83a3c8bcb07c38b4f985dd5f60249b97b4
+          ref: 878598293641a8ad7f9f21920c7690d00d49d66c
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -63,7 +63,7 @@ jobs:
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
           $source=(& git -C $p rev-parse HEAD).Trim()
           $tree=(& git -C $p rev-parse 'HEAD^{tree}').Trim()
-          if($source -cne '09f23c83a3c8bcb07c38b4f985dd5f60249b97b4' -or $tree -cne '31b388cf4869f8c8fdd9d4f9d20054ed227d37e6' -or
+          if($source -cne '878598293641a8ad7f9f21920c7690d00d49d66c' -or $tree -cne 'f29ed057a8d59af86d976690c2601d8e79b1717c' -or
              @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){
             throw 'W41_INSTALLED_EXACT_CLEAN_SOURCE_REQUIRED'
           }
@@ -134,7 +134,7 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_VENDOR_REFUSED'}
             $dest=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
-            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '09f23c83a3c8bcb07c38b4f985dd5f60249b97b4'
+            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '878598293641a8ad7f9f21920c7690d00d49d66c'
             if($LASTEXITCODE -ne 0){throw 'W41_REAL_NATIVE_INSTALLER_BUILD_FAILED'}
             $zip=Join-Path $dest 'KTRADE-SetupBundle.zip'
             if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W41_REAL_NATIVE_INSTALLER_MISSING'}
@@ -163,7 +163,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ktrade-spectrum-native-ui-09f23c83a3c8bcb07c38b4f985dd5f60249b97b4
+          name: ktrade-spectrum-native-ui-878598293641a8ad7f9f21920c7690d00d49d66c
           path: ${{ runner.temp }}/ktrade-pr253-spectrum-native-workstation.png
           if-no-files-found: warn
           retention-days: 3
