@@ -22,14 +22,14 @@ jobs:
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
-      KTRADE_EXPECTED_SHA: 4b0bb1cf12d72d09ba16142a8334884b7655df6c
-      KTRADE_EXPECTED_TREE: 141808b7071db5e455a52a50d64c5d78ce5f26ce
+      KTRADE_EXPECTED_SHA: 74c89d27003c6cf4768a23ff0d8fddcb403bf113
+      KTRADE_EXPECTED_TREE: 8e9aaf5181a35ed1a6d8a03072146708382d9ad2
     steps:
       - name: Checkout exact original KTRADE source without retaining credentials
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 4b0bb1cf12d72d09ba16142a8334884b7655df6c
+          ref: 74c89d27003c6cf4768a23ff0d8fddcb403bf113
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -158,7 +158,7 @@ jobs:
       - name: Retain private seven-day unsigned UI preview archive (not a release)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ktrade-pr253-ui-preview-unsigned-4b0bb1cf12d72d09ba16142a8334884b7655df6c
+          name: ktrade-pr253-ui-preview-unsigned-74c89d27003c6cf4768a23ff0d8fddcb403bf113
           path: ${{ steps.package.outputs.archive_path }}
           if-no-files-found: error
           retention-days: 7
