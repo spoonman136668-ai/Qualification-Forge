@@ -23,6 +23,7 @@ jobs:
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
+      QFORGE_NODE_BATCH_50_DIAG_ONLY: ${{ contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') }}
       QFORGE_NODE_BATCH_75_DIAG_ONLY: '0'
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
       QFORGE_W05_ASSET_ROLLBACK_ONLY: ${{ contains(github.event.head_commit.message, 'W05_TEMP_ASSET_ROLLBACK_ONLY') }}
@@ -378,6 +379,47 @@ jobs:
                   Remove-Item -LiteralPath $build -Recurse -Force -ErrorAction SilentlyContinue
                 }
               }
+              return
+            }
+            if($env:QFORGE_NODE_BATCH_50_DIAG_ONLY -ceq 'true'){
+              # Bounded diagnosis of exact-file batch 50 after historical full Go and
+              # Node batches 0/25 succeeded. Do not change KTRADE, bypass fails,
+              # or misreport this focused probe as full qualification.
+              Checked 'NPM_LOCKED_ASSETS' 'npm.cmd' @('ci','--ignore-scripts','--no-audit','--no-fund','--silent')
+              Checked 'OFFLINE_VENDOR' 'node' @('scripts/stage_offline_vendor.cjs')
+              $specs=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -File -Filter '*.test.cjs' |
+                Sort-Object FullName | ForEach-Object {$_.FullName})
+              $special=Join-Path $p 'tests/rb3_w28f_original_browser_state.test.cjs'
+              Require ($specs -ccontains $special) 'QFORGE_NODE50_TWO_ROOT_SPEC_MISSING'
+              $specs=@($specs|Where-Object {$_ -cne $special})
+              Require ($specs.Count -ge 75) 'QFORGE_NODE50_COVERAGE_INCOMPLETE'
+              $batch=@($specs[50..74])
+              & node --test --test-reporter=tap @batch *> $log
+              $batchFailed=$LASTEXITCODE -ne 0
+              $perFileFailed=[Collections.Generic.List[int]]::new()
+              if($batchFailed){
+                for($i=50;$i -lt 75;$i++){
+                  & node --test --test-reporter=tap $specs[$i] *> $log
+                  if($LASTEXITCODE -ne 0){
+                    $perFileFailed.Add($i)
+                    $private=[IO.File]::ReadAllText($log)
+                    $bad=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)')|
+                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                    Write-Host ('QFORGE_NODE50_FAILED_FILE_'+$i+'_CASE_ORDINALS='+($bad -join ','))
+                    Remove-Variable private,bad -ErrorAction SilentlyContinue
+                  }
+                }
+              }
+              Write-Host ('QFORGE_NODE50_DIAG='+(@{
+                source=$env:KTRADE_EXPECTED_SOURCE;
+                batch_failed=$batchFailed;
+                independently_failing_file_ordinals=($perFileFailed -join ',');
+                independent_failures=$perFileFailed.Count;
+                files=25;raw_private_output_exported=$false;
+                qualifier_not_final=$true
+              }|ConvertTo-Json -Compress))
+              if($batchFailed){throw 'QFORGE_NODE50_BATCH_STILL_FAILS_DIAGNOSTIC_ONLY'}
+              Write-Host 'QFORGE_NODE50_BATCH_DIAGNOSTIC=PASS_NOT_FINAL_REGRESSION'
               return
             }
             if($env:QFORGE_NODE_BATCH_75_DIAG_ONLY -ceq '1'){
@@ -801,7 +843,7 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY') && !contains(github.event.head_commit.message, 'W146_NATIVE_10T50T_ONLY') && !contains(github.event.head_commit.message, 'W147_NATIVE_LARGE_COUNTS_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY') && !contains(github.event.head_commit.message, 'W146_NATIVE_10T50T_ONLY') && !contains(github.event.head_commit.message, 'W147_NATIVE_LARGE_COUNTS_ONLY')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
