@@ -8,8 +8,12 @@ permissions:
 concurrency:
   group: ktrade-pr253-ui-preview-artifact-20261108
   cancel-in-progress: false
+# SECURITY HOLD: Qualification-Forge is PUBLIC; private KTRADE source and
+# packaged binaries must not be handled or uploaded by this workflow.
+# Re-enable only via an explicitly approved PRIVATE repository/artifact route.
 jobs:
   private-installer:
+    if: false # Public-repository artifact custody is not authorized
     name: sealed unsigned installer from exact qualified source
     runs-on: windows-2022
     timeout-minutes: 30
