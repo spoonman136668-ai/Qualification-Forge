@@ -1298,29 +1298,38 @@ function W100-OpenDrawings([object]$shell){
 # genuine Win32 pointer clicks and UIAutomation readback. Synthetic disposable
 # Windows profile only. Independent of the private W160 trusted-event witness.
 function W253-ReviewDrawingRows([object]$shell,[string[]]$expected,[string]$phase){
- $shell.Refresh()
- Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W253_NATIVE_SHELL_REQUIRED'
- $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
- $window=$root.Current.BoundingRectangle
- $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-  [System.Windows.Automation.Condition]::TrueCondition)
+ # UIA can publish a newly persisted drawing asynchronously. Poll only the
+ # read-only accessibility tree; never replay chart gestures or storage writes.
+ $ok=$false;$attempt=0
  $seen=[Collections.Generic.List[string]]::new()
- foreach($node in $nodes){try{
-  $v=$node.Current;$name=[string]$v.Name;$rect=$v.BoundingRectangle
-  if($name.StartsWith('Review removal · ',[StringComparison]::Ordinal) -and
-     $v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
-     !$v.IsOffscreen -and $v.IsEnabled -and !$rect.IsEmpty -and
-     $rect.Width -ge 8 -and $rect.Height -ge 8 -and
-     $rect.Left -ge $window.Left -and $rect.Right -le $window.Right -and
-     $rect.Top -ge $window.Top -and $rect.Bottom -le $window.Bottom){
-     $seen.Add($name)
-  }
- }catch{}}
- $ok=($seen.Count -eq $expected.Count)
- foreach($item in $expected){if($seen -cnotcontains $item){$ok=$false}}
+ for($attempt=1;$attempt -le 12;$attempt++){
+  $shell.Refresh()
+  Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W253_NATIVE_SHELL_REQUIRED'
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $window=$root.Current.BoundingRectangle
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  $seen=[Collections.Generic.List[string]]::new()
+  foreach($node in $nodes){try{
+   $v=$node.Current;$name=[string]$v.Name;$rect=$v.BoundingRectangle
+   if($name.StartsWith('Review removal · ',[StringComparison]::Ordinal) -and
+      $v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+      !$v.IsOffscreen -and $v.IsEnabled -and !$rect.IsEmpty -and
+      $rect.Width -ge 8 -and $rect.Height -ge 8 -and
+      $rect.Left -ge $window.Left -and $rect.Right -le $window.Right -and
+      $rect.Top -ge $window.Top -and $rect.Bottom -le $window.Bottom){
+      $seen.Add($name)
+   }
+  }catch{}}
+  $ok=($seen.Count -eq $expected.Count)
+  foreach($item in $expected){if($seen -cnotcontains $item){$ok=$false}}
+  if($ok){break}
+  if($attempt -lt 12){Start-Sleep -Milliseconds 320}
+ }
  Write-Host ('W253_NATIVE_DRAWING_REVIEW='+(@{phase=$phase;
   expected_count=$expected.Count;observed_count=$seen.Count;
-  exact_accessible_rows=$ok;source_sha=$NewSHA;
+  exact_accessible_rows=$ok;read_only_observation_attempts=$attempt;
+  source_sha=$NewSHA;
   scope='genuine_Win32_mouse_plus_installed_WebView2_UIA_no_DOM_script_or_user_data';
   live_armed=$false}|ConvertTo-Json -Compress))
  Require $ok ('W253_NATIVE_DRAWING_ROWS_MISMATCH_'+$phase)
@@ -1555,6 +1564,15 @@ function W253C-NativeControls([object]$shell,[string[]]$four){
 }
 function W253-NativeDrawings([object]$installed,[object]$first,[switch]$Controls){
  $s=$first.shell
+ # Require actual native candle-axis paint before pointer gestures.
+ # The prior trial saw no drawing immediately after startup despite having
+ # a visible chart surface; this is a read-only readiness gate, not a bypass.
+ $axis=W41-WaitColdAxis $s
+ Require ($null -ne $axis) 'W253_FIRST_CHART_AXIS_NOT_READY'
+ $feed=W41-Candles $first.origin
+ Require ($feed.count -ge 30) 'W253_FIRST_CHART_CANDLES_MISSING'
+ Write-Host ('W253_NATIVE_FIRST_CHART_READY=PASS;sha='+$NewSHA+
+  ';candles='+$feed.count+';axis_readback=true;read_only=true')
  # Manager must be genuinely visible and empty before starting.
  W100-OpenDrawings $s
  W253-ReviewDrawingRows $s @() 'FRESH_EMPTY'
