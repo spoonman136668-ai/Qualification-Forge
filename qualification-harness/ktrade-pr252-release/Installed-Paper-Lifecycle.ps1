@@ -116,6 +116,51 @@ function FindUI([object]$shell,[string]$label,[bool]$isButton,[int]$seconds=35){
  }while((Get-Date) -lt $until)
  throw ('W83_NATIVE_UI_NOT_OBSERVED_'+$label)
 }
+# Read-only failure classification for the PREVIOUS installed baseline.
+# Never export raw window text, profile data, page URLs or private source.
+function ClassifyW83UI([object]$shell,[string]$phase){
+ $flags=[ordered]@{
+  schema='ktrade.w83.ui-readiness.v1';phase=$phase;
+  diagnostics_toggle_seen=$false;diagnostics_toggle_visible=$false;
+  diagnostics_toggle_enabled=$false;verification_seen=$false;
+  verification_visible=$false;verification_enabled=$false;
+  verification_button=$false;diagnostics_section_seen=$false;
+  workspace_starting_notice=$false;backend_refused_notice=$false;
+  original_chart_verification_result=$false;
+  scope='read_only_UIAutomation_allowlisted_booleans_no_raw_text'
+ }
+ try{
+  $shell.Refresh()
+  if($shell.MainWindowHandle -ne [IntPtr]::Zero){
+   $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+   $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+   foreach($node in $nodes){
+    try{
+     $name=[string]$node.Current.Name
+     if($name -ceq 'Desktop diagnostics'){
+      $flags.diagnostics_toggle_seen=$true
+      $flags.diagnostics_toggle_visible=(!$node.Current.IsOffscreen)
+      $flags.diagnostics_toggle_enabled=[bool]$node.Current.IsEnabled
+     }elseif($name -ceq 'Verify chart UI'){
+      $flags.verification_seen=$true
+      $flags.verification_visible=(!$node.Current.IsOffscreen)
+      $flags.verification_enabled=[bool]$node.Current.IsEnabled
+      $flags.verification_button=($node.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button)
+     }elseif($name -ceq 'Desktop chart verification'){
+      $flags.diagnostics_section_seen=$true
+     }elseif($name -ceq 'Opening your workspace…'){
+      $flags.workspace_starting_notice=$true
+     }elseif($name.StartsWith('Desktop refused unsafe or unavailable backend:',[StringComparison]::Ordinal)){
+      $flags.backend_refused_notice=$true
+     }elseif($name.StartsWith('Original chart DOM, Monaco editor and preferences controls observed.',[StringComparison]::Ordinal)){
+      $flags.original_chart_verification_result=$true
+     }
+    }catch{}
+   }
+  }
+ }catch{}
+ Write-Host ('W83_UI_READINESS_DIAGNOSTIC='+($flags|ConvertTo-Json -Compress))
+}
 function ClickUI([object]$shell,[string]$label){
  $node=FindUI $shell $label $true
  $rect=$node.Current.BoundingRectangle
@@ -166,7 +211,8 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
  if($receipt.source_sha -ceq $NewSHA){ClickUI $shell 'Desktop diagnostics'}
  $verified=$false
  for($attempt=1;$attempt -le 3;$attempt++){
-  ClickUI $shell 'Verify chart UI'
+  try{ClickUI $shell 'Verify chart UI'}
+  catch{ClassifyW83UI $shell $phase;throw}
   try{
    $null=FindUI $shell 'Original chart DOM, Monaco editor and preferences controls observed.' $false 12
    $verified=$true
