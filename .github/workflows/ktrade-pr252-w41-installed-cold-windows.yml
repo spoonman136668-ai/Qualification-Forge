@@ -103,6 +103,35 @@ jobs:
             & node --test --test-reporter=tap tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w95_appearance.test.cjs tests/w101_chart_ranges.test.cjs tests/w102_tradingview_navigation.test.cjs tests/w103_watchlist.test.cjs tests/w104_pinned_market_selector.test.cjs tests/rb3_w85_desktop_operator_shell.test.cjs tests/w160_native_drawings_observer.test.cjs *> $log
             if($LASTEXITCODE -ne 0){
               Write-Host ('W41_FOCUSED_NODE_FAILURE_SHA256='+(Get-FileHash -LiteralPath $log -Algorithm SHA256).Hash.ToLowerInvariant())
+              # Exact-source per-file failure classification (no assertions, paths,
+              # private logs, profile data or secret values printed).
+              $scope=@('tests/rb3_w41_chart_viewport_persistence.test.cjs',
+                'tests/rb3_w95_appearance.test.cjs','tests/w101_chart_ranges.test.cjs',
+                'tests/w102_tradingview_navigation.test.cjs','tests/w103_watchlist.test.cjs',
+                'tests/w104_pinned_market_selector.test.cjs',
+                'tests/rb3_w85_desktop_operator_shell.test.cjs',
+                'tests/w160_native_drawings_observer.test.cjs')
+              $failed=[Collections.Generic.List[int]]::new()
+              for($i=0;$i -lt $scope.Count;$i++){
+                $single=Join-Path $env:RUNNER_TEMP ('w105-focused-single-'+$i+'.log')
+                try {
+                  & node --test --test-reporter=tap $scope[$i] *> $single
+                  if($LASTEXITCODE -ne 0){
+                    $failed.Add($i)
+                    $private=[IO.File]::ReadAllText($single)
+                    $cases=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)')|
+                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                    Write-Host ('W105_FAILED_FILE_ORDINAL_'+$i+'_CASE_ORDINALS='+($cases -join ','))
+                    Remove-Variable private,cases -ErrorAction SilentlyContinue
+                  }
+                }finally{Remove-Item -LiteralPath $single -Force -ErrorAction SilentlyContinue}
+              }
+              Write-Host ('W105_FOCUSED_DIAGNOSTIC='+(@{
+                failed_ordinals=($failed -join ',');independent_failures=$failed.Count;
+                raw_private_output_exported=$false;
+                batch_failed=$true;release_qualified=$false
+              }|ConvertTo-Json -Compress))
+
               $approved=@('fresh watchlist defaults are valid, independent of existing data',
                 'watchlist allows bounded custom symbols, removal and cold retrieval',
                 'unknown, corrupt, future and competing preferences are not overwritten',
