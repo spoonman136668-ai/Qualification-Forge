@@ -139,11 +139,14 @@ function W41-ExposeTimeframe([object]$shell,[string]$label){
  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
  $condition=[System.Windows.Automation.PropertyCondition]::new([System.Windows.Automation.AutomationElement]::NameProperty,$label)
  $scrolled=0
+ $leftDelta=[BitConverter]::ToUInt32([BitConverter]::GetBytes([int]-120),0)
  for($n=0;$n -lt 8;$n++){
   $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$condition)
+  $target=$null
   foreach($node in $nodes){try{
    if($node.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button){continue}
    $r=$node.Current.BoundingRectangle
+   if($null -eq $target){$target=$r}
    if(!$r.IsEmpty -and $r.Width -gt 8 -and $r.Height -gt 8 -and
       $r.Left -ge ($outer.Left+3) -and $r.Right -le ($outer.Right-3)){
       Write-Host ('W41_NATIVE_SCROLL_REVEALED_TIMEFRAME='+(@{label=$label;horizontal_wheel_steps=$scrolled;within_toolbar=$true}|ConvertTo-Json -Compress))
@@ -153,7 +156,10 @@ function W41-ExposeTimeframe([object]$shell,[string]$label){
   [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
   Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W41_SCROLL_LOST_NATIVE_FOCUS'
   Require ([W83Native]::SetCursorPos([int]($outer.Left+$outer.Width*0.55),[int]($outer.Top+$outer.Height*0.5))) 'W41_SCROLL_NATIVE_POINTER_FAILED'
-  [W83Native]::mouse_event(0x1000,0,0,120,[UIntPtr]::Zero)
+  # Choose direction from the *actual* target geometry: clipped-left
+  # timeframes need wheel-left, not the previous unconditional wheel-right.
+  $delta=if($null -ne $target -and $target.Left -lt $outer.Left+3){$leftDelta}else{[uint32]120}
+  [W83Native]::mouse_event(0x1000,0,0,$delta,[UIntPtr]::Zero)
   $scrolled++;Start-Sleep -Milliseconds 220
  }
  throw 'W41_TIMEFRAME_NOT_WITHIN_SCROLLABLE_HEADER_AFTER_NATIVE_SCROLL'
@@ -1348,6 +1354,8 @@ function W253-ToolbarTrial([object]$installed,[object]$run){
  $shell=$run.shell
  $initial=W253-ToolbarGeometry $shell
  $after=$initial;$wheelSteps=0
+ $leftDelta=[BitConverter]::ToUInt32([BitConverter]::GetBytes([int]-120),0)
+ $deltas=[Collections.Generic.List[uint32]]::new()
  for($n=0;$n -lt 16 -and !$after.visible;$n++){
   $nav=FindUI $shell 'Chart tools and navigation' $false 6
   $b=$nav.Current.BoundingRectangle
@@ -1355,7 +1363,12 @@ function W253-ToolbarTrial([object]$installed,[object]$run){
   Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W253_TOOLBAR_FOREIGN_FOCUS'
   Require ([W83Native]::SetCursorPos([int]($b.Left+$b.Width*0.55),
     [int]($b.Top+$b.Height*0.5))) 'W253_TOOLBAR_POINTER_FAILED'
-  [W83Native]::mouse_event(0x1000,0,0,120,[UIntPtr]::Zero)
+  # A left-clipped button needs wheel-left; a right-clipped one right.
+  $delta=if($after.found -and $after.left -lt $after.toolbar_left+3){
+   $leftDelta
+  }else{[uint32]120}
+  [W83Native]::mouse_event(0x1000,0,0,$delta,[UIntPtr]::Zero)
+  $deltas.Add($delta)
   $wheelSteps++;Start-Sleep -Milliseconds 130
   $after=W253-ToolbarGeometry $shell
  }
@@ -1370,8 +1383,9 @@ function W253-ToolbarTrial([object]$installed,[object]$run){
   $b=$nav.Current.BoundingRectangle
   [void][W83Native]::SetCursorPos([int]($b.Left+$b.Width*0.55),
     [int]($b.Top+$b.Height*0.5))
-  for($n=0;$n -lt $wheelSteps;$n++){
-   [W83Native]::mouse_event(0x1000,0,0,[uint32](-120),[UIntPtr]::Zero)
+  for($n=$deltas.Count-1;$n -ge 0;$n--){
+   $reverse=if($deltas[$n] -eq $leftDelta){[uint32]120}else{$leftDelta}
+   [W83Native]::mouse_event(0x1000,0,0,$reverse,[UIntPtr]::Zero)
    Start-Sleep -Milliseconds 80
   }
   # Genuine mouse focus on first timeframe, then keyboard Tab.
