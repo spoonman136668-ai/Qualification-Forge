@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='59d15aa38f85d5f62229e1e96217fd1078013f2e'
@@ -1426,7 +1426,134 @@ function W253-ToolbarTrial([object]$installed,[object]$run){
   ';aria_pressed='+$aria+';live_armed=false')
  W41-Stop $run
 }
-function W253-NativeDrawings([object]$installed,[object]$first){
+# W253C focuses on confirmed native lock, cancel and one-at-a-time deletion.
+# Real Win32 mouse/keyboard only; no JavaScript automation, UIA value writes,
+# browser profile, broker operations or owner installation.
+function W253C-ExactButton([object]$shell,[string]$name){
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $filter=[System.Windows.Automation.PropertyCondition]::new(
+  [System.Windows.Automation.AutomationElement]::NameProperty,$name)
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$filter)
+ $found=[Collections.Generic.List[object]]::new()
+ foreach($n in $nodes){try{
+  $v=$n.Current;$r=$v.BoundingRectangle
+  if($v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+   !$v.IsOffscreen -and !$r.IsEmpty -and $r.Width -ge 8 -and $r.Height -ge 8){
+   $found.Add($n)
+  }
+ }catch{}}
+ Require ($found.Count -eq 1) ('W253C_EXPECT_EXACT_BUTTON_'+$name)
+ return $found[0]
+}
+function W253C-Enabled([object]$shell,[string]$name){
+ $b=W253C-ExactButton $shell $name
+ return [bool]$b.Current.IsEnabled
+}
+function W253C-ClickPrefix([object]$shell,[string]$prefix){
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $bounds=$root.Current.BoundingRectangle
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+ $matches=[Collections.Generic.List[object]]::new()
+ foreach($n in $nodes){try{
+  $v=$n.Current;$r=$v.BoundingRectangle
+  if($v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+    $v.Name.StartsWith($prefix,[StringComparison]::Ordinal) -and
+    !$v.IsOffscreen -and $v.IsEnabled -and !$r.IsEmpty -and
+    $r.Width -ge 8 -and $r.Height -ge 8 -and
+    $r.Left -ge $bounds.Left -and $r.Right -le $bounds.Right -and
+    $r.Top -ge $bounds.Top -and $r.Bottom -le $bounds.Bottom){
+     $matches.Add($n)
+  }
+ }catch{}}
+ Require ($matches.Count -eq 1) 'W253C_SELECT_ONE_VISIBLE_OWNED_DRAWING'
+ $rect=$matches[0].Current.BoundingRectangle
+ [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W253C_FOREIGN_FOCUS'
+ Require ([W83Native]::SetCursorPos([int]($rect.Left+$rect.Width/2),
+  [int]($rect.Top+$rect.Height/2))) 'W253C_FOREIGN_POINTER'
+ [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ Write-Host ('W253C_NATIVE_DRAWING_SELECTION=PASS;prefix='+$prefix)
+}
+function W253C-TypeDeletionPhrase([object]$shell){
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $filter=[System.Windows.Automation.PropertyCondition]::new(
+   [System.Windows.Automation.AutomationElement]::NameProperty,'Type DELETE to confirm')
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$filter)
+ $edits=[Collections.Generic.List[object]]::new()
+ foreach($n in $nodes){try{
+  $v=$n.Current;$r=$v.BoundingRectangle
+  if($v.ControlType -eq [System.Windows.Automation.ControlType]::Edit -and
+     !$v.IsOffscreen -and $v.IsEnabled -and !$r.IsEmpty){$edits.Add($n)}
+ }catch{}}
+ Require ($edits.Count -eq 1) 'W253C_NATIVE_DELETE_FIELD_NOT_UNIQUE'
+ $r=$edits[0].Current.BoundingRectangle
+ $outer=$root.Current.BoundingRectangle
+ Require ($r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W253C_FOREIGN_DELETE_FIELD'
+ [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W253C_DELETE_FOCUS_LOST'
+ Require ([W83Native]::SetCursorPos([int]($r.Left+$r.Width/2),
+   [int]($r.Top+$r.Height/2))) 'W253C_DELETE_POINTER_FAILED'
+ [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 150
+ Require ([bool]$edits[0].Current.HasKeyboardFocus) 'W253C_NATIVE_DELETE_INPUT_NOT_FOCUSED'
+ foreach($char in 'DELETE'.ToCharArray()){
+  [W83Native]::keybd_event(0x10,0,0,[UIntPtr]::Zero)
+  [W83Native]::keybd_event([byte][char]$char,0,0,[UIntPtr]::Zero)
+  [W83Native]::keybd_event([byte][char]$char,0,2,[UIntPtr]::Zero)
+  [W83Native]::keybd_event(0x10,0,2,[UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 50
+ }
+ Start-Sleep -Milliseconds 200
+ Require (W253C-Enabled $shell 'Delete selected drawing') 'W253C_EXACT_DELETE_NOT_ENABLED'
+}
+function W253C-NativeControls([object]$shell,[string[]]$four){
+ # Lock blocks *actual* chart pointer gestures before they can mutate state.
+ ClickUI $shell 'Lock all chart drawings'
+ ClickUI $shell 'Draw rectangle zone'
+ W42-ShapeClick $shell 0.22 0.25
+ W42-ShapeClick $shell 0.72 0.63
+ ClickUI $shell 'Lock all chart drawings'
+ W100-OpenDrawings $shell
+ W253-ReviewDrawingRows $shell $four 'LOCKED_GESTURE_NO_MUTATION'
+ ClickUI $shell 'Close drawings'
+ Write-Host ('W253C_NATIVE_LOCK_PREVENTS_DRAWING=PASS;sha='+$NewSHA)
+ # Native magnet toggle can be exercised; numeric snapping is not claimed
+ # without a separately qualified near-candle geometric oracle.
+ ClickUI $shell 'Snap drawing anchors to nearby candle OHLC'
+ ClickUI $shell 'Snap drawing anchors to nearby candle OHLC'
+ # No deletion is allowed until an individual selection and exact phrase.
+ ClickUI $shell 'Review and remove one chart drawing'
+ Require (!(W253C-Enabled $shell 'Delete selected drawing')) 'W253C_DELETE_ENABLED_WITHOUT_SELECTION'
+ ClickUI $shell 'Cancel'
+ W100-OpenDrawings $shell
+ W253-ReviewDrawingRows $shell $four 'CANCEL_PRESERVES_ALL_FOUR'
+ ClickUI $shell 'Close drawings'
+ ClickUI $shell 'Review and remove one chart drawing'
+ W253C-ClickPrefix $shell 'Select Rectangle/Fibonacci #1 '
+ Require (!(W253C-Enabled $shell 'Delete selected drawing')) 'W253C_DELETE_ENABLED_WITHOUT_PHRASE'
+ ClickUI $shell 'Cancel'
+ W100-OpenDrawings $shell
+ W253-ReviewDrawingRows $shell $four 'SELECT_THEN_CANCEL_NO_MUTATION'
+ ClickUI $shell 'Close drawings'
+ # One bounded, explicitly selected deletion in a disposable native profile.
+ ClickUI $shell 'Review and remove one chart drawing'
+ W253C-ClickPrefix $shell 'Select Rectangle/Fibonacci #1 '
+ W253C-TypeDeletionPhrase $shell
+ ClickUI $shell 'Delete selected drawing'
+ ClickUI $shell 'Cancel'
+ W100-OpenDrawings $shell
+ $remaining=@('Review removal · fib drawing 2','Review removal · trendline 1',
+  'Review removal · vertical line 1')
+ W253-ReviewDrawingRows $shell $remaining 'ONE_DELETE_RETAINS_OTHER_THREE'
+ ClickUI $shell 'Close drawings'
+ Write-Host ('W253C_NATIVE_LOCK_CANCEL_SINGLE_DELETE=PASS;sha='+$NewSHA+
+  ';selected_one=true;exact_keyboard_DELETE=true;other_three_preserved=true;live_armed=false')
+}
+function W253-NativeDrawings([object]$installed,[object]$first,[switch]$Controls){
  $s=$first.shell
  # Manager must be genuinely visible and empty before starting.
  W100-OpenDrawings $s
@@ -1461,6 +1588,7 @@ function W253-NativeDrawings([object]$installed,[object]$first){
   W100-OpenDrawings $second.shell
   W253-ReviewDrawingRows $second.shell $four 'ALL_FOUR_COLD_RESTORED'
   ClickUI $second.shell 'Close drawings'
+  if($Controls){W253C-NativeControls $second.shell $four}
   $cap=Invoke-RestMethod -Method Get -Uri ($second.origin+'/api/operator/capabilities') -TimeoutSec 10
   Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and
    $cap.live_orders_enabled -eq $false) 'W253_COLD_REOPEN_CHANGED_TRADING_AUTHORITY'
@@ -1491,6 +1619,12 @@ try{
   $current=$active
   $active=$null
   W253-ToolbarTrial $installed $current
+  return
+ }
+ if($NativeDrawingControlsOnly){
+  $current=$active
+  $active=$null
+  W253-NativeDrawings $installed $current -Controls
   return
  }
  if($NativeDrawingsOnly){

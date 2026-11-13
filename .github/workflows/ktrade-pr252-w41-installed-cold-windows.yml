@@ -30,6 +30,7 @@ jobs:
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
       KTRADE_EXPECTED_SOURCE: '59d15aa38f85d5f62229e1e96217fd1078013f2e'
       QFORGE_NATIVE_DRAWINGS_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWINGS_FOCUSED') }}
+      QFORGE_NATIVE_DRAWING_CONTROLS: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWING_CONTROLS') }}
       QFORGE_NATIVE_TOOLBAR_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_TOOLBAR_FOCUSED') }}
       QFORGE_NATIVE_VIEWPORT_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_VIEWPORT_FOCUSED') }}
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
@@ -150,6 +151,8 @@ jobs:
             & $script -PackageZip $env:W41_PACKAGE_PATH -NativeViewportOnly
           }elseif($env:QFORGE_NATIVE_TOOLBAR_FOCUSED -ceq 'true'){
             & $script -PackageZip $env:W41_PACKAGE_PATH -NativeToolbarOnly
+          }elseif($env:QFORGE_NATIVE_DRAWING_CONTROLS -ceq 'true'){
+            & $script -PackageZip $env:W41_PACKAGE_PATH -NativeDrawingControlsOnly
           }elseif($env:QFORGE_NATIVE_DRAWINGS_FOCUSED -ceq 'true'){
             & $script -PackageZip $env:W41_PACKAGE_PATH -NativeDrawingsOnly
           }else{
