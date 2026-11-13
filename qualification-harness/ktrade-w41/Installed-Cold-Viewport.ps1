@@ -1523,6 +1523,71 @@ function W253C-TypeDeletionPhrase([object]$shell){
 # Expose the original control with real Windows mouse-wheel input and check
 # true on-screen UIA geometry. No JS, synthetic click, hidden-element action
 # or disabled control can satisfy this function.
+# Genuine Windows keyboard accessibility fallback for a rail item omitted
+# from UIA when offscreen. No UIA Invoke/SetFocus, DOM, JS or hidden click.
+# This is a *separate* input path; wheel exhaustion remains recorded.
+function W253C-KeyboardRailReveal([object]$shell,[string]$name){
+ $shell.Refresh()
+ Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W253C_KEYBOARD_SHELL_MISSING'
+ $nav=FindUI $shell 'Drawing tools' $false 7
+ $bounds=$nav.Current.BoundingRectangle
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $controls=$nav.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+  [System.Windows.Automation.Condition]::TrueCondition)
+ $starter=$null
+ foreach($candidate in $controls){try{
+  $v=$candidate.Current;$r=$v.BoundingRectangle
+  if($v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+   !$v.IsOffscreen -and $v.IsEnabled -and !$r.IsEmpty -and
+   $r.Width -ge 8 -and $r.Height -ge 8 -and
+   $r.Left -ge $bounds.Left -and $r.Right -le $bounds.Right -and
+   $r.Top -ge $bounds.Top+3 -and $r.Bottom -le $bounds.Bottom-3){
+    $starter=$candidate;break
+  }
+ }catch{}}
+ Require ($null -ne $starter) 'W253C_KEYBOARD_NO_VISIBLE_START'
+ $r=$starter.Current.BoundingRectangle
+ [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W253C_KEYBOARD_FOREIGN_FOCUS'
+ Require ([W83Native]::SetCursorPos([int]($r.Left+$r.Width/2),
+  [int]($r.Top+$r.Height/2))) 'W253C_KEYBOARD_FOREIGN_POINTER'
+ [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 140
+ for($i=0;$i -le 52;$i++){
+  $nav=FindUI $shell 'Drawing tools' $false 5
+  $b=$nav.Current.BoundingRectangle
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $filter=[System.Windows.Automation.PropertyCondition]::new(
+   [System.Windows.Automation.AutomationElement]::NameProperty,$name)
+  $targets=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$filter)
+  foreach($target in $targets){try{
+   $v=$target.Current;$q=$v.BoundingRectangle
+   if($v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+    !$v.IsOffscreen -and $v.IsEnabled -and !$q.IsEmpty -and
+    $q.Width -ge 8 -and $q.Height -ge 8 -and
+    $q.Left -ge $b.Left -and $q.Right -le $b.Right -and
+    $q.Top -ge $b.Top+3 -and $q.Bottom -le $b.Bottom-3){
+    Write-Host ('W253C_NATIVE_RAIL_KEYBOARD_ACCESS='+(@{
+     label=$name;native_tab_steps=$i;source_sha=$NewSHA;
+     genuine_Win32_mouse_and_keyboard=$true;wheel_exhausted=$true;
+     live_armed=$false}|ConvertTo-Json -Compress))
+    return $true
+   }
+  }catch{}}
+  if($i -eq 52){break}
+  # User-equivalent native keyboard traversal, which should also scroll
+  # the WebView2 focused control into view. Never press Enter/Space here.
+  [W83Native]::keybd_event(0x09,0,0,[UIntPtr]::Zero)
+  [W83Native]::keybd_event(0x09,0,2,[UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 85
+ }
+ Write-Host ('W253C_NATIVE_RAIL_KEYBOARD_ACCESS='+(@{
+  label=$name;native_tab_steps=52;source_sha=$NewSHA;
+  reached=$false;wheel_exhausted=$true;live_armed=$false
+ }|ConvertTo-Json -Compress))
+ return $false
+}
 function W253C-RevealRailControl([object]$shell,[string]$name){
  $leftWheel=[BitConverter]::ToUInt32([BitConverter]::GetBytes([int]-120),0)
  for($attempt=0;$attempt -le 24;$attempt++){
@@ -1560,8 +1625,11 @@ function W253C-RevealRailControl([object]$shell,[string]$name){
     target_bottom=if($null -eq $target){$null}else{[int]$target.Bottom};
     rail_top=[int]$scope.Top;rail_bottom=[int]$scope.Bottom;
     source_sha=$NewSHA;real_wheel_attempts=$attempt}|ConvertTo-Json -Compress))
+   # Wheel failure is not credited as success. An independent genuine
+   # keyboard path may still make the tool operator-reachable.
+   if(W253C-KeyboardRailReveal $shell $name){return}
    W41-SpectrumVisual $shell
-   throw ('W253C_RAIL_CONTROL_UNREACHABLE_'+$name)
+   throw ('W253C_RAIL_CONTROL_UNREACHABLE_BY_WHEEL_OR_KEYBOARD_'+$name)
   }
   [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
   Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W253C_RAIL_FOREIGN_FOCUS'
