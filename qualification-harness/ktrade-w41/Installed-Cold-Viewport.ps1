@@ -1635,7 +1635,7 @@ function W253C-RevealRailControl([object]$shell,[string]$name){
     target_top=if($null -eq $target){$null}else{[int]$target.Top};
     target_bottom=if($null -eq $target){$null}else{[int]$target.Bottom};
     rail_top=[int]$scope.Top;rail_bottom=[int]$scope.Bottom;
-    source_sha=$NewSHA;real_wheel_attempts=$attempt}|ConvertTo-Json -Compress))
+    source_sha=$NewSHA;real_wheel_attempts=$attempt;both_wheel_directions_tried=$true}|ConvertTo-Json -Compress))
    # Wheel failure is not credited as success. An independent genuine
    # keyboard path may still make the tool operator-reachable.
    if(W253C-KeyboardRailReveal $shell $name){return}
@@ -1649,8 +1649,16 @@ function W253C-RevealRailControl([object]$shell,[string]$name){
   # A control above the visible rail requires wheel-up; otherwise scroll down.
   # UIA may return Rect.Empty for an offscreen control, which has
   # bottom=0: that is not evidence the control is above the rail.
+  $topSafety=@('Lock all chart drawings','Snap drawing anchors to nearby candle OHLC',
+   'Review and remove one chart drawing','Manage trendlines')
+  $preferUp=$topSafety -ccontains $name
   $delta=if($found -and $null -ne $target -and !$target.IsEmpty -and
     $target.Height -ge 8 -and $target.Bottom -le $scope.Top+3){
+   [uint32]120
+  }elseif($found -and $null -ne $target -and !$target.IsEmpty -and
+    $target.Height -ge 8 -and $target.Top -ge $scope.Bottom-3){
+   $leftWheel
+  }elseif(($attempt -lt 12) -eq $preferUp){
    [uint32]120
   }else{$leftWheel}
   if($attempt -eq 0){
@@ -1660,6 +1668,7 @@ function W253C-RevealRailControl([object]$shell,[string]$name){
     target_bottom=if($null -eq $target){$null}else{[int]$target.Bottom};
     rail_top=[int]$scope.Top;rail_bottom=[int]$scope.Bottom;
     selected_scroll=if($delta -eq [uint32]120){'UP'}else{'DOWN'};
+    opposite_direction_after=12;
     source_sha=$NewSHA}|ConvertTo-Json -Compress))
   }
   [W83Native]::mouse_event(0x0800,0,0,$delta,[UIntPtr]::Zero)
