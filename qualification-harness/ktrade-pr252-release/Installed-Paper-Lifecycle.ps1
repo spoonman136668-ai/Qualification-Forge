@@ -319,6 +319,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
     pine_failure_class='not_observed';catalog_modal_visible=$false
     apply_button_found=$false;apply_button_visible=$false;apply_button_enabled=$false
     search_edit_present=$false;automation_unavailable=$false
+    catalog_apply_class='not_observed';market_chart_state='not_observed'
     scope='ownerless_ephemeral_uia_readonly_allowlisted_states_only'
    }
    try{
@@ -344,6 +345,22 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
         else{$diag.pine_failure_class='other_not_applied'}
        }elseif($name -ceq 'Source or market changed. Apply again.'){
         $diag.pine_failure_class='stale_request'
+       }elseif($name.StartsWith('Indicator not applied:',[StringComparison]::Ordinal)){
+        $diag.catalog_apply_class='other_not_applied'
+        if($name.Contains('Chart candles are not ready.')){$diag.catalog_apply_class='candles_not_ready'}
+        elseif($name.Contains('Pine candles differ from loaded chart.')){$diag.catalog_apply_class='candle_mismatch'}
+        elseif($name.Contains('Source or market changed.')){$diag.catalog_apply_class='stale_market_or_source'}
+        elseif($name.Contains('Pine plots unavailable')){$diag.catalog_apply_class='overlay_unavailable'}
+        elseif($name.Contains('Pine plots were not applied.')){$diag.catalog_apply_class='no_plot_result'}
+        elseif($name.Contains('Evaluating Pine plots...')){$diag.catalog_apply_class='superseded_in_flight'}
+       }elseif($name.StartsWith('Indicator applied:',[StringComparison]::Ordinal)){
+        $diag.catalog_apply_class='success_but_caption_absent'
+       }elseif($name.StartsWith('Applying ',[StringComparison]::Ordinal)){
+        $diag.catalog_apply_class='still_applying'
+       }elseif($name.StartsWith('Price chart drawing surface — viewport:',[StringComparison]::Ordinal)){
+        foreach($state in @('loading','history-verified','history-unavailable','record-unchecked','record-matched','record-unmatched','record-rejected','late-ranges-matched','late-price-drift','late-volume-drift')){
+         if($name.EndsWith(('viewport:'+$state),[StringComparison]::Ordinal)){$diag.market_chart_state=$state;break}
+        }
        }elseif($name -ceq 'Indicators, metrics, and strategies'){
         if(!$node.Current.IsOffscreen){$diag.catalog_modal_visible=$true}
        }elseif($name -ceq 'Apply Williams %R'){
