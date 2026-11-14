@@ -15,7 +15,7 @@ Require ($env:OS -ceq 'Windows_NT' -and $env:RUNNER_ENVIRONMENT -ceq 'github-hos
 Require ($env:RUNNER_TEMP -and (Test-Path -LiteralPath $env:RUNNER_TEMP -PathType Container)) 'W83_RUNNER_TEMP_REQUIRED'
 $expected=@(
  @{name='PREVIOUS';root=$PreviousCheckout;sha='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a';tree='989020f81a7c731acf3bfa830c06e7e929805bcd'},
- @{name='CANDIDATE';root=$CandidateCheckout;sha='59842e83f01fb6e1af780ede5a7395a9c7cce47a';tree='df46e1b6c9adf46eb9ba69e83ce4dbd8dc8feb97'}
+ @{name='CANDIDATE';root=$CandidateCheckout;sha='89b8d03a0a0c397a9031a7540fcc9d034fcf4274';tree='a0049813bfde27f48c6520f3402e7b71ea1c00a9'}
 )
 foreach($entry in $expected){
  $actualSHA=(& git -C $entry.root rev-parse HEAD).Trim()
@@ -70,12 +70,18 @@ $astTokens=$null;$astErrors=$null
 [void][Management.Automation.Language.Parser]::ParseFile($WitnessScript,[ref]$astTokens,[ref]$astErrors)
 Require ($astErrors.Count -eq 0) ('W83_NATIVE_WITNESS_POWERSHELL_SYNTAX_INVALID '+(($astErrors|ForEach-Object {$_.ToString()}) -join '; '))
 $ps51=(Get-Command pwsh.exe -ErrorAction Stop).Source
-Require ((& go env GOVERSION).Trim() -ceq 'go1.26.10') 'W83_PINNED_GO_REQUIRED'
+Require ((& go env GOVERSION).Trim() -ceq 'go1.26.11') 'W83_PINNED_GO_REQUIRED'
 Require (Test-Path -LiteralPath $ps51) 'W83_NATIVE_POWERSHELL_MISSING'
 $packages=@{}
 foreach($entry in $expected){
  Push-Location $entry.root
  try {
+  # Build each immutable source with its independently pinned Go patch release.
+  $savedToolchain=$env:GOTOOLCHAIN
+  $required=if($entry.name -ceq 'PREVIOUS'){'go1.26.10'}else{'go1.26.11'}
+  Require (([IO.File]::ReadAllText((Join-Path $entry.root 'windows/Go-Toolchain.version')).Trim()) -ceq $required) ('W83_'+$entry.name+'_REVIEWED_TOOLCHAIN_PIN_DRIFT')
+  $env:GOTOOLCHAIN=$required
+  Require ((& go env GOVERSION).Trim() -ceq $required) ('W83_'+$entry.name+'_COMPILER_PIN_DRIFT')
   & npm ci --ignore-scripts --no-audit --no-fund --silent
   Require ($LASTEXITCODE -eq 0) ('W83_'+$entry.name+'_NPM_STAGE_FAILED')
   & node scripts/stage_offline_vendor.cjs
@@ -91,7 +97,7 @@ foreach($entry in $expected){
   [IO.Compression.ZipFile]::ExtractToDirectory($zip,$distribution)
   $packages[$entry.name]=$distribution
   Write-Output ('W83_'+$entry.name+'_NATIVE_UNSIGNED_SETUP_BUILT=PASS')
- } finally { Pop-Location }
+ } finally { $env:GOTOOLCHAIN=$savedToolchain; Pop-Location }
 }
 $gateRoot=Join-Path $env:RUNNER_TEMP ('W83-qualified-'+[guid]::NewGuid().ToString('N'))
 & $ps51 -NoProfile -ExecutionPolicy Bypass -File $WitnessScript -PreviousBundle $packages['PREVIOUS'] -CandidateBundle $packages['CANDIDATE'] -QualificationRoot $gateRoot -NativeInputsPath $NativeInputsPath -PaperScenarioPath $PaperScenarioPath

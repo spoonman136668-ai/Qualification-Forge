@@ -19,7 +19,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '59842e83f01fb6e1af780ede5a7395a9c7cce47a'
+      KTRADE_EXPECTED_SOURCE: '89b8d03a0a0c397a9031a7540fcc9d034fcf4274'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
@@ -28,7 +28,7 @@ jobs:
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
       QFORGE_W05_ASSET_ROLLBACK_ONLY: ${{ contains(github.event.head_commit.message, 'W05_TEMP_ASSET_ROLLBACK_ONLY') }}
       QFORGE_W29C_DISPOSABLE_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_DISPOSABLE_INSTALL_ONLY') }}
-      KTRADE_EXPECTED_TREE: 'df46e1b6c9adf46eb9ba69e83ce4dbd8dc8feb97'
+      KTRADE_EXPECTED_TREE: 'a0049813bfde27f48c6520f3402e7b71ea1c00a9'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 59842e83f01fb6e1af780ede5a7395a9c7cce47a
+          ref: 89b8d03a0a0c397a9031a7540fcc9d034fcf4274
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -71,7 +71,7 @@ jobs:
       - name: Setup pinned supported Go and Node
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: false
       - uses: actions/setup-node@v4
         with:
@@ -184,7 +184,7 @@ jobs:
             ([IO.Path]::GetFullPath($env:RUNNER_TEMP)).TrimEnd('\')) 'QFORGE_TEMP_IDENTITY_DRIFT'
           Push-Location $p
           try{
-            Require ((& go env GOVERSION).Trim() -ceq 'go1.26.10') 'QFORGE_UNEXPECTED_GO_TOOLCHAIN'
+            Require ((& go env GOVERSION).Trim() -ceq 'go1.26.11') 'QFORGE_UNEXPECTED_GO_TOOLCHAIN'
             Write-Host 'QFORGE_PROVEN_NATIVE_RUNNER_ENV_PARITY=PASS'
             if($env:QFORGE_W29C_DISPOSABLE_INSTALL_ONLY -ceq 'true'){
               # Execute the authentic source-bound W29C installer ONLY into a
@@ -735,7 +735,7 @@ jobs:
                 (& git rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
                 ($w131Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w131_tick_keyboard.test.cjs') 'W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
               Write-Host 'QFORGE_W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA=PASS'
-            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '59842e83f01fb6e1af780ede5a7395a9c7cce47a'){
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '89b8d03a0a0c397a9031a7540fcc9d034fcf4274'){
               & git merge-base --is-ancestor '3bfdfac9152575dd47092b345145ed585780764c' HEAD
               Require ($LASTEXITCODE -eq 0) 'QFORGE_PR253_QUALIFIED_ANCESTOR_REQUIRED'
               Write-Host 'QFORGE_PR253_QUALIFIED_ANCESTOR=PASS'
@@ -847,9 +847,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '878598293641a8ad7f9f21920c7690d00d49d66c'
-      KTRADE_EXPECTED_TREE: 'f29ed057a8d59af86d976690c2601d8e79b1717c'
-      W01_EXPECTED_SHA: '878598293641a8ad7f9f21920c7690d00d49d66c'
+      KTRADE_EXPECTED_SOURCE: '89b8d03a0a0c397a9031a7540fcc9d034fcf4274'
+      KTRADE_EXPECTED_TREE: 'a0049813bfde27f48c6520f3402e7b71ea1c00a9'
+      W01_EXPECTED_SHA: '89b8d03a0a0c397a9031a7540fcc9d034fcf4274'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -864,14 +864,14 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 878598293641a8ad7f9f21920c7690d00d49d66c
+          ref: 89b8d03a0a0c397a9031a7540fcc9d034fcf4274
           fetch-depth: 0
           path: product
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.26.10'
+          go-version: '1.26.11'
           cache: false
       - uses: actions/setup-node@v4
         with:
