@@ -19,16 +19,16 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '75cb56c40bdcc150fdfa0c7e6a23ce9c714238a0'
+      KTRADE_EXPECTED_SOURCE: '98783a8b509d355c3d75ca9fe665517f13c9dc75'
       QFORGE_TARGETED_PKG_ONLY: '0'
-      QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '1'
+      QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_50_DIAG_ONLY: ${{ contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') }}
       QFORGE_NODE_BATCH_75_DIAG_ONLY: '0'
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
       QFORGE_W05_ASSET_ROLLBACK_ONLY: ${{ contains(github.event.head_commit.message, 'W05_TEMP_ASSET_ROLLBACK_ONLY') }}
       QFORGE_W29C_DISPOSABLE_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_DISPOSABLE_INSTALL_ONLY') }}
-      KTRADE_EXPECTED_TREE: '0768bf0362428746f1c517b09c7c82a77c8191e1'
+      KTRADE_EXPECTED_TREE: '32cba5d0679afcfe8348243ece0d870823ab55b2'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -49,7 +49,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 75cb56c40bdcc150fdfa0c7e6a23ce9c714238a0
+          ref: 98783a8b509d355c3d75ca9fe665517f13c9dc75
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -735,7 +735,7 @@ jobs:
                 (& git rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
                 ($w131Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w131_tick_keyboard.test.cjs') 'W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
               Write-Host 'QFORGE_W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA=PASS'
-            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '75cb56c40bdcc150fdfa0c7e6a23ce9c714238a0'){
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '98783a8b509d355c3d75ca9fe665517f13c9dc75'){
               & git merge-base --is-ancestor '3bfdfac9152575dd47092b345145ed585780764c' HEAD
               Require ($LASTEXITCODE -eq 0) 'QFORGE_PR253_QUALIFIED_ANCESTOR_REQUIRED'
               Write-Host 'QFORGE_PR253_QUALIFIED_ANCESTOR=PASS'
@@ -847,9 +847,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '75cb56c40bdcc150fdfa0c7e6a23ce9c714238a0'
-      KTRADE_EXPECTED_TREE: '0768bf0362428746f1c517b09c7c82a77c8191e1'
-      W01_EXPECTED_SHA: '75cb56c40bdcc150fdfa0c7e6a23ce9c714238a0'
+      KTRADE_EXPECTED_SOURCE: '98783a8b509d355c3d75ca9fe665517f13c9dc75'
+      KTRADE_EXPECTED_TREE: '32cba5d0679afcfe8348243ece0d870823ab55b2'
+      W01_EXPECTED_SHA: '98783a8b509d355c3d75ca9fe665517f13c9dc75'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -864,7 +864,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 75cb56c40bdcc150fdfa0c7e6a23ce9c714238a0
+          ref: 98783a8b509d355c3d75ca9fe665517f13c9dc75
           fetch-depth: 0
           path: product
           persist-credentials: false
