@@ -172,6 +172,22 @@ function ClickUI([object]$shell,[string]$label){
  Start-Sleep -Milliseconds 200
  Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W83_FOREIGN_FOCUS'
  Require ([W83Native]::SetCursorPos([int]($rect.Left+$rect.Width/2),[int]($rect.Top+$rect.Height/2))) 'W83_NATIVE_POINTER_REFUSED'
+ if($label -ceq 'Apply Williams %R'){
+  # Native UIA point-to-control witness; report bool only, no DOM access.
+  $isCorrectTarget=$false
+  try{
+   $pos=[System.Windows.Point]::new([double]($rect.Left+$rect.Width/2),[double]($rect.Top+$rect.Height/2))
+   $element=[System.Windows.Automation.AutomationElement]::FromPoint($pos)
+   for($d=0;$d -lt 5 -and $element;$d++){
+    if($element.Current.Name -ceq 'Apply Williams %R' -and
+       $element.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button){
+     $isCorrectTarget=$true;break
+    }
+    $element=[System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($element)
+   }
+  }catch{}
+  Write-Host ('W83_WILLIAMS_NATIVE_POINTER_HIT_TARGET='+([string]$isCorrectTarget).ToLowerInvariant())
+ }
  [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
  [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
 }
@@ -342,6 +358,62 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
      }
     }
    }catch{$diag.automation_unavailable=$true}
+   # The compiled Pine syntax check is separate from real chart-overlay evaluation.
+   # Re-evaluate the exact built-in indicator locally, without orders or profile access.
+   $diag.overlay_probe_attempted=$false
+   $diag.overlay_probe_success=$false
+   $diag.overlay_probe_candles_present=$false
+   $diag.overlay_probe_separate_pane=$false
+   $diag.overlay_probe_error=$false
+   try{
+    $probeCode=(@(
+     '//@version=5'
+     'indicator("Williams %R", overlay=false)'
+     'length = input.int(14, "Length")'
+     'windowHigh = ta.highest(high, length)'
+     'windowLow = ta.lowest(low, length)'
+     'span = windowHigh - windowLow'
+     'value = span == 0 ? na : -100 * (windowHigh - close) / span'
+     'plot(value, "Williams %R", linewidth=2)'
+    ) -join [Environment]::NewLine)+[Environment]::NewLine
+    $diag.overlay_probe_attempted=$true
+    $body=@{code=$probeCode;symbol='BTC-USD';timeframe='1m';limit=300}|ConvertTo-Json -Compress
+    $result=Invoke-RestMethod -Method Post -Uri ($origin+'/api/pine/overlay') -Headers $headers -ContentType 'application/json' -Body $body -TimeoutSec 20
+    $diag.overlay_probe_success=($result.success -eq $true)
+    $diag.overlay_probe_candles_present=(@($result.candles).Count -gt 0)
+    $diag.overlay_probe_separate_pane=(@($result.pane_model|Where-Object {$_.overlay -eq $false}).Count -gt 0)
+   }catch{$diag.overlay_probe_error=$true}
+   # UIA status nodes inside the closed editor are not visible in the base tree.
+   # Only after the original acceptance has already failed, open the original
+   # editor via a real native click to classify known status-message families.
+   $diag.pine_editor_diagnostic_opened=$false
+   try{
+    ClickUI $shell 'Pine Editor'
+    $diag.pine_editor_diagnostic_opened=$true
+    Start-Sleep -Milliseconds 450
+    $shell.Refresh()
+    $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+    $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+    foreach($node in $nodes){
+     try{
+      $name=[string]$node.Current.Name
+      if($name.Contains('Pine: Williams %R')){
+       $diag.pine_caption_found=$true
+       if(!$node.Current.IsOffscreen){$diag.pine_caption_visible=$true}
+      }elseif($name.StartsWith('Pine plots not applied:',[StringComparison]::Ordinal)){
+       $diag.pine_not_applied=$true
+       if($name.Contains('Chart candles are not ready.')){$diag.pine_failure_class='candles_not_ready'}
+       elseif($name.Contains('Pine candles differ from loaded chart.')){$diag.pine_failure_class='candle_mismatch'}
+       elseif($name.Contains('Pine plots unavailable')){$diag.pine_failure_class='overlay_unavailable'}
+       else{$diag.pine_failure_class='other_not_applied'}
+      }elseif($name.StartsWith('Pine plots applied.',[StringComparison]::Ordinal)){
+       $diag.pine_applied=$true
+      }elseif($name.StartsWith('Evaluating Pine plots...',[StringComparison]::Ordinal)){
+       $diag.pine_evaluating=$true
+      }
+     }catch{}
+    }
+   }catch{}
    Write-Host ('W83_WILLIAMS_RENDER_READONLY_DIAGNOSTIC='+($diag|ConvertTo-Json -Compress))
    throw
   }
