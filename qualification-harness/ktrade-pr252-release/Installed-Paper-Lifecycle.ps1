@@ -291,7 +291,60 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   Require ($search.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$value)) 'W90_NATIVE_SEARCH_VALUE_PATTERN_UNAVAILABLE'
   ([System.Windows.Automation.ValuePattern]$value).SetValue('Williams %R')
   ClickUI $shell 'Apply Williams %R'
-  $null=FindUI $shell 'Pine: Williams %R' $false 45
+  try{
+   $null=FindUI $shell 'Pine: Williams %R' $false 45
+  }catch{
+   # Read-only investigation of the exact W83 timed-out native WebView2 witness.
+   # Only boolean/enum classes of source-known UI labels leave the public runner.
+   $diag=[ordered]@{
+    schema='ktrade.w83.williams-render-observer.v1'
+    pine_caption_found=$false;pine_caption_visible=$false
+    pine_evaluating=$false;pine_applied=$false;pine_not_applied=$false
+    pine_failure_class='not_observed';catalog_modal_visible=$false
+    apply_button_found=$false;apply_button_visible=$false;apply_button_enabled=$false
+    search_edit_present=$false;automation_unavailable=$false
+    scope='ownerless_ephemeral_uia_readonly_allowlisted_states_only'
+   }
+   try{
+    $shell.Refresh()
+    if($shell.MainWindowHandle -ne [IntPtr]::Zero){
+     $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+     $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
+     foreach($node in $nodes){
+      try{
+       $name=[string]$node.Current.Name
+       if($name.Contains('Pine: Williams %R')){
+        $diag.pine_caption_found=$true
+        if(!$node.Current.IsOffscreen){$diag.pine_caption_visible=$true}
+       }elseif($name.StartsWith('Evaluating Pine plots...',[StringComparison]::Ordinal)){
+        $diag.pine_evaluating=$true
+       }elseif($name.StartsWith('Pine plots applied.',[StringComparison]::Ordinal)){
+        $diag.pine_applied=$true
+       }elseif($name.StartsWith('Pine plots not applied:',[StringComparison]::Ordinal)){
+        $diag.pine_not_applied=$true
+        if($name.Contains('Chart candles are not ready.')){$diag.pine_failure_class='candles_not_ready'}
+        elseif($name.Contains('Pine candles differ from loaded chart.')){$diag.pine_failure_class='candle_mismatch'}
+        elseif($name.Contains('Pine plots unavailable')){$diag.pine_failure_class='overlay_unavailable'}
+        else{$diag.pine_failure_class='other_not_applied'}
+       }elseif($name -ceq 'Source or market changed. Apply again.'){
+        $diag.pine_failure_class='stale_request'
+       }elseif($name -ceq 'Indicators, metrics, and strategies'){
+        if(!$node.Current.IsOffscreen){$diag.catalog_modal_visible=$true}
+       }elseif($name -ceq 'Apply Williams %R'){
+        $diag.apply_button_found=$true
+        $diag.apply_button_enabled=[bool]$node.Current.IsEnabled
+        if(!$node.Current.IsOffscreen){$diag.apply_button_visible=$true}
+       }elseif($name -ceq 'Search indicator catalog' -and
+        $node.Current.ControlType -eq [System.Windows.Automation.ControlType]::Edit){
+        $diag.search_edit_present=$true
+       }
+      }catch{}
+     }
+    }
+   }catch{$diag.automation_unavailable=$true}
+   Write-Host ('W83_WILLIAMS_RENDER_READONLY_DIAGNOSTIC='+($diag|ConvertTo-Json -Compress))
+   throw
+  }
   $catalogAfter=Invoke-RestMethod -Uri ($origin+'/api/operator/capabilities') -TimeoutSec 5
   Require ($catalogAfter.mode -ceq 'PAPER_STOPPED' -and $catalogAfter.paper_orders_enabled -eq $false -and $catalogAfter.live_orders_enabled -eq $false) 'W90_CATALOG_APPLY_CHANGED_TRADING_AUTHORITY'
   Write-Host '::notice::W90_NATIVE_CATALOG_DISABLED_ALIASES_EXPLICIT_WILLIAMS_APPLY_ORIGINAL_GO_RENDERED_NO_TRADING=PASS'
