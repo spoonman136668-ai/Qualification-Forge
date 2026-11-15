@@ -523,7 +523,7 @@ jobs:
                     elseif($e -match 'does not match'){'REGEX_MISMATCH'}
                     else {'OTHER'}
                   }|Select-Object -Unique)
-                  $sites=@([regex]::Matches($txt,'(?m)^\\s+at (?:async )?TestContext\\.<anonymous> \\(.*:(\\d+):\\d+\\)')|
+                  $sites=@([regex]::Matches($txt,'(?m)^\s+at (?:async )?TestContext\.<anonymous> \(.*:(\d+):\d+\)')|
                     ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique|Select-Object -First 10)
                   Write-Host ('QFORGE_NODE_BATCH0_FILE_ORDINAL='+$i+';failing_test_ordinals='+($bad -join ',')+';error_codes='+($errors -join ',')+';error_types='+($types -join ',')+';error_families='+($hints -join ',')+';stack_line_numbers='+($sites -join ',')+';private_output_withheld=true')
                   Remove-Variable sites -ErrorAction SilentlyContinue
