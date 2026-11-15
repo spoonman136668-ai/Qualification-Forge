@@ -501,7 +501,7 @@ jobs:
               Require ($all.Count -ge 25) 'QFORGE_NODE_FIRST_BATCH_TOO_SMALL'
               $failed=[Collections.Generic.List[int]]::new()
               $invalid=0
-              for($i=0;$i -lt 25;$i++){
+              for($i=0;$i -lt $all.Count;$i++){
                 & node --test --test-reporter=tap $all[$i] *> $log
                 if($LASTEXITCODE -ne 0){
                   $failed.Add($i)
@@ -529,7 +529,7 @@ jobs:
                   Remove-Variable txt -ErrorAction SilentlyContinue
                 }
               }
-              Write-Host ('QFORGE_NODE_FIRST_BATCH_FILE_COUNT=25;failed_ordinals='+
+              Write-Host ('QFORGE_NODE_ALL_FILES_COUNT='+$all.Count+';failed_ordinals='+
                 ($failed -join ',')+';oversized_reports='+$invalid)
               Write-Host 'QFORGE_NODE_FIRST_BATCH_DIAG=COMPLETE_NOT_FULL_REGRESSION'
               return
