@@ -507,6 +507,11 @@ jobs:
                   $failed.Add($i)
                   $txt=[IO.File]::ReadAllText($log)
                   if($txt.Length -gt 1000000){$invalid++}
+                  # TAP positions only. No private test names, source or assertions.
+                  $bad=@([regex]::Matches($txt,'(?m)^not ok\s+(\d+)')|ForEach-Object {$_.Groups[1].Value})
+                  $errors=@([regex]::Matches($txt,'(?m)^\s*code:\s*[''"]?([A-Z_]+)')|ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                  Write-Host ('QFORGE_NODE_BATCH0_FILE_ORDINAL='+$i+';failing_test_ordinals='+($bad -join ',')+';error_codes='+($errors -join ',')+';private_output_withheld=true')
+                  Remove-Variable bad,errors -ErrorAction SilentlyContinue
                   Remove-Variable txt -ErrorAction SilentlyContinue
                 }
               }
