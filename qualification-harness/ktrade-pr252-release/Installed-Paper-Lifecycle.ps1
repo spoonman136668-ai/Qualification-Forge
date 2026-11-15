@@ -224,7 +224,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
  $shell=Get-Process -Id $owner.pid
  $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
  Require ([string]::Equals($cim.ExecutablePath,(Join-Path $receipt.candidate_directory 'ktrade.exe'),[StringComparison]::OrdinalIgnoreCase)) 'W83_SHELL_EXE_DRIFT'
- if($receipt.source_sha -ceq $NewSHA){ClickUI $shell 'Desktop diagnostics'}
+ if($receipt.source_sha -ceq $NewSHA){try{ClickUI $shell 'Desktop diagnostics'}catch{ClassifyW83UI $shell $phase;throw}}
  $verified=$false
  for($attempt=1;$attempt -le 3;$attempt++){
   try{ClickUI $shell 'Verify chart UI'}
