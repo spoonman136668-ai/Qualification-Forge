@@ -228,7 +228,17 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
  $verified=$false
  for($attempt=1;$attempt -le 3;$attempt++){
   try{ClickUI $shell 'Verify chart UI'}
-  catch{ClassifyW83UI $shell $phase;throw}
+  catch{
+   $reason=$_.Exception.Message
+   ClassifyW83UI $shell $phase
+   # On the previous installed baseline, an observed enabled native button
+   # may become UIA-visible just after the first bounded FindUI window.
+   # Retry only this precise lookup race; retain the original trusted
+   # pointer/foreground/control checks, and fail closed for all other errors.
+   if($reason -cne 'W83_NATIVE_UI_NOT_OBSERVED_Verify chart UI'){throw}
+   Start-Sleep -Milliseconds 600
+   ClickUI $shell 'Verify chart UI'
+  }
   try{
    $null=FindUI $shell 'Original chart DOM, Monaco editor and preferences controls observed.' $false 12
    $verified=$true
