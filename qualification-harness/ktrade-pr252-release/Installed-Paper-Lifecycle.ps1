@@ -11,7 +11,7 @@ param(
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $OldSHA='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'
-$NewSHA='4a3091b385ce77c74a8a2c54d145b28608f38bb4'
+$NewSHA='e45fb91dd9cd3379bd515c315e622a82e8b16f49'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 function Hash([string]$f){return (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant()}
 function Ordinary([string]$f,[bool]$dir){
@@ -234,7 +234,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
    $verified=$true
    break
   }catch{
-   if($attempt -eq 3){throw ('W83_'+$phase+'_NATIVE_WEBVIEW2_NOT_VERIFIED')}
+   if($attempt -eq 3){ClassifyW83UI $shell $phase;throw ('W83_'+$phase+'_NATIVE_WEBVIEW2_NOT_VERIFIED')}
    Start-Sleep -Seconds 2
   }
  }
