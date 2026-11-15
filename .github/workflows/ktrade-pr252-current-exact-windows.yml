@@ -496,7 +496,7 @@ jobs:
                 & node --test --test-reporter=tap $focused[$ordinal] *> $log
                 $code=$LASTEXITCODE
                 $private=[IO.File]::ReadAllText($log)
-                $failed=@([regex]::Matches($private,'(?m)^not ok\\s+(\\d+)')|ForEach-Object{$_.Groups[1].Value})
+                $failed=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)')|ForEach-Object{$_.Groups[1].Value})
                 $count=$failed.Count
                 Write-Host ('QFORGE_FOCUSED_FILE_ORDINAL='+$ordinal+';exit='+$code+';failed_tests='+$count+';test_ordinals='+($failed -join ',')+';private_output_withheld=true')
                 Remove-Variable private,failed -ErrorAction SilentlyContinue
