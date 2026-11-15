@@ -510,7 +510,21 @@ jobs:
                   # TAP positions only. No private test names, source or assertions.
                   $bad=@([regex]::Matches($txt,'(?m)^not ok\s+(\d+)')|ForEach-Object {$_.Groups[1].Value})
                   $errors=@([regex]::Matches($txt,'(?m)^\s*code:\s*[''"]?([A-Z_]+)')|ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
-                  Write-Host ('QFORGE_NODE_BATCH0_FILE_ORDINAL='+$i+';failing_test_ordinals='+($bad -join ',')+';error_codes='+($errors -join ',')+';private_output_withheld=true')
+                  $types=@([regex]::Matches($txt,"(?m)^\s*name:\s*'?([A-Za-z]+)")|ForEach-Object {$_.Groups[1].Value}|Where-Object {$_ -in @('TypeError','ReferenceError','SyntaxError','AssertionError','Error')}|Select-Object -Unique)
+                  $hints=@([regex]::Matches($txt,"(?m)^\s*error:\s*'?([^\r\n]*)")|ForEach-Object {
+                    $e=$_.Groups[1].Value
+                    if($e -match 'Cannot read properties of undefined'){'UNDEFINED_PROPERTY'}
+                    elseif($e -match 'Cannot read properties of null'){'NULL_PROPERTY'}
+                    elseif($e -match 'is not a function'){'NONCALLABLE'}
+                    elseif($e -match 'is not defined'){'UNBOUND_SYMBOL'}
+                    elseif($e -match 'Unexpected token|Unexpected identifier|Invalid or unexpected token'){'INVALID_JS'}
+                    elseif($e -match 'Expected values to be strictly equal'){'STRICT_EQ'}
+                    elseif($e -match 'The expression evaluated to a falsy value'){'FALSY_ASSERTION'}
+                    elseif($e -match 'does not match'){'REGEX_MISMATCH'}
+                    else {'OTHER'}
+                  }|Select-Object -Unique)
+                  Write-Host ('QFORGE_NODE_BATCH0_FILE_ORDINAL='+$i+';failing_test_ordinals='+($bad -join ',')+';error_codes='+($errors -join ',')+';error_types='+($types -join ',')+';error_families='+($hints -join ',')+';private_output_withheld=true')
+                  Remove-Variable types,hints -ErrorAction SilentlyContinue
                   Remove-Variable bad,errors -ErrorAction SilentlyContinue
                   Remove-Variable txt -ErrorAction SilentlyContinue
                 }
