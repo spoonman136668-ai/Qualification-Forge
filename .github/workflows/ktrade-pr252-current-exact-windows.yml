@@ -986,9 +986,29 @@ jobs:
                   throw
                 }
           '@
-            $adapted=$text.Replace($from,$to).Replace($probeLine,$probeBlock)
+            # W41 historically passed on this very Windows host family.
+            # Classify a missing HWND before touching chart/HTTP: do not
+            # override, synthesize, or widen the original acceptance predicate.
+            $windowLine="  Require `$windowReady 'W41_REAL_WAILS_WINDOW_MISSING'"
+            Require ($text.Split([string[]]@($windowLine),[StringSplitOptions]::None).Count -eq 2) 'QFORGE_W41_NATIVE_WINDOW_DIAG_ANCHOR_REQUIRED'
+            $windowProbe=@(
+              '  if(-not $windowReady){',
+              '   $process.Refresh()',
+              '   $alive=(-not $process.HasExited)',
+              '   $pr=Get-Process -Id $process.Id -ErrorAction SilentlyContinue',
+              '   $sid=if($pr){[int]$pr.SessionId}else{-1}',
+              '   $threads=if($pr){[int]$pr.Threads.Count}else{0}',
+              '   $handles=if($pr){[int]$pr.HandleCount}else{0}',
+              '   $kids=@(Get-CimInstance Win32_Process -Filter ("ParentProcessId="+$process.Id) -ErrorAction SilentlyContinue)',
+              '   $engines=@($kids|Where-Object {$_.Name -eq "ktrade-engine.exe"}).Count',
+              '   $wv=@(Get-Process -Name msedgewebview2 -ErrorAction SilentlyContinue).Count',
+              '   Write-Host ("W41_NATIVE_WINDOW_BOOT_DIAG alive="+$alive+";session="+$sid+";threads="+$threads+";handles="+$handles+";engine_children="+$engines+";webview_processes="+$wv)',
+              '  }',
+              "  Require `$windowReady 'W41_REAL_WAILS_WINDOW_MISSING'"
+            ) -join [Environment]::NewLine
+            $adapted=$text.Replace($from,$to).Replace($probeLine,$probeBlock).Replace($windowLine,$windowProbe)
             Require ($adapted -cne $text -and
-              $adapted.Replace($probeBlock,$probeLine).Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_AND_DIAGNOSTIC_CHANGES_ALLOWED'
+              $adapted.Replace($windowProbe,$windowLine).Replace($probeBlock,$probeLine).Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_AND_DIAGNOSTIC_CHANGES_ALLOWED'
             try{
               [IO.File]::WriteAllText($adapter,$adapted,[Text.UTF8Encoding]::new($false))
               $tokens=$null;$parseErrors=$null
