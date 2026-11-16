@@ -949,7 +949,7 @@ jobs:
             $adapter=Join-Path $p 'windows/Test-KTRADE-W41-QForge-Adapter.ps1'
             $blob=(& git rev-parse 'HEAD:windows/Test-KTRADE-W41-ColdReopen.ps1').Trim()
             $checkoutBlob=(& git hash-object -- $original).Trim()
-            Require ($blob -ceq 'ce5e41b2afcd073d238e96e45c98333dddba0a35' -and
+            Require ($blob -ceq '1c13a0aa9011d3c85ea08771b827b4ddf69a0f3d' -and
               $checkoutBlob -ceq $blob -and !(Test-Path -LiteralPath $adapter)) 'QFORGE_W41_ORIGINAL_FROZEN_SOURCE_REQUIRED'
             $text=[IO.File]::ReadAllText($original)
             $from='refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
