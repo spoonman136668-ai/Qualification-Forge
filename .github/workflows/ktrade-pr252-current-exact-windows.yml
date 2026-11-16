@@ -21,6 +21,7 @@ jobs:
     env:
       KTRADE_EXPECTED_SOURCE: '914197e82a89ba8d1d2fb37545419dc5e8b0e33b'
       QFORGE_TARGETED_PKG_ONLY: '0'
+      QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_50_DIAG_ONLY: ${{ contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') }}
@@ -138,6 +139,24 @@ jobs:
                     ';unmatched_failure_count='+$need.Count+';candidate_test_files='+$files.Count)
                   Remove-Variable failed,need,files,filePositions -ErrorAction SilentlyContinue
                 }
+                if($label -eq 'GO_W41_FIXTURE_NEGATIVES'){
+                  # Print only stable numeric test ordinals. Private Go output,
+                  # test names, file paths and subtest values stay on runner.
+                  $failed=@([regex]::Matches($private,'(?m)^\s*--- FAIL:\s+(\S+)')|
+                    ForEach-Object {$_.Groups[1].Value.Split('/')[0]}|
+                    Select-Object -Unique)
+                  $tests=@(Get-ChildItem -LiteralPath (Join-Path $p 'cmd/ktrade') -Filter '*_test.go' -File |
+                    Sort-Object Name | ForEach-Object {
+                      $source=[IO.File]::ReadAllText($_.FullName)
+                      [regex]::Matches($source,'(?m)^func\s+(Test[A-Za-z0-9_]+)\s*\(')|
+                        ForEach-Object {$_.Groups[1].Value}
+                    })
+                  $positions=@($failed | ForEach-Object {[array]::IndexOf($tests,$_)} |
+                    Where-Object {$_ -ge 0} | Sort-Object -Unique)
+                  Write-Host ('QFORGE_W209_GO_W41_TEST_ORDINALS='+($positions -join ',')+
+                    ';unmatched='+($failed.Count-$positions.Count)+';candidate_tests='+$tests.Count)
+                  Remove-Variable failed,tests,positions -ErrorAction SilentlyContinue
+                }
                 if($label -eq 'GO_FULL_DEFAULT'){
                   $packageOrder=@(& go list -mod=readonly ./... 2>$null)
                   $failedPkgs=@([regex]::Matches($private,'(?m)^FAIL\s+(ktrade/\S+)')|
@@ -186,6 +205,14 @@ jobs:
           try{
             Require ((& go env GOVERSION).Trim() -ceq 'go1.26.11') 'QFORGE_UNEXPECTED_GO_TOOLCHAIN'
             Write-Host 'QFORGE_PROVEN_NATIVE_RUNNER_ENV_PARITY=PASS'
+            if($env:QFORGE_W209_GO_ONLY -ceq 'true'){
+              # Same exact-source native Windows environment, only the
+              # previously failed Go W41 gate; full regression remains
+              # mandatory after an actual correction.
+              Checked 'GO_W41_FIXTURE_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full,ktrade_w13_fixture,ktrade_w41_cold_fixture','./cmd/ktrade')
+              Write-Host 'QFORGE_W209_GO_W41_FOCUSED=PASS'
+              return
+            }
             if($env:QFORGE_W29C_DISPOSABLE_INSTALL_ONLY -ceq 'true'){
               # Execute the authentic source-bound W29C installer ONLY into a
               # fresh random directory under ephemeral GitHub RUNNER_TEMP.
@@ -865,7 +892,7 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY') && !contains(github.event.head_commit.message, 'W146_NATIVE_10T50T_ONLY') && !contains(github.event.head_commit.message, 'W147_NATIVE_LARGE_COUNTS_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY') && !contains(github.event.head_commit.message, 'W146_NATIVE_10T50T_ONLY') && !contains(github.event.head_commit.message, 'W147_NATIVE_LARGE_COUNTS_ONLY') && !contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
