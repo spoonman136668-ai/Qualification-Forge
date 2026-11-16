@@ -958,7 +958,7 @@ jobs:
               !$text.Contains($to)) 'QFORGE_W41_SINGLE_ALLOWLIST_REWRITE_REQUIRED'
             # Failure-only, read-only HTTP diagnostics in the existing W41
             # disposable witness; immutable KTRADE source and pass criteria stay fixed.
-            $probeLine='    $parts=@((Read-Receipt $geom 52).Split('',''))'
+            $probeLine='   $parts=@((Read-Receipt $geom 52).Split('',''))'
             Require ($text.Split([string[]]@($probeLine),[StringSplitOptions]::None).Count -eq 2) 'QFORGE_W41_PROBE_EXACT_INSERTION_ANCHOR_REQUIRED'
             $probeBlock=@'
                 try{$parts=@((Read-Receipt $geom 52).Split(','))}
