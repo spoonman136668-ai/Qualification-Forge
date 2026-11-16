@@ -1006,9 +1006,47 @@ jobs:
               '  }',
               "  Require `$windowReady 'W41_REAL_WAILS_WINDOW_MISSING'"
             ) -join [Environment]::NewLine
-            $adapted=$text.Replace($from,$to).Replace($probeLine,$probeBlock).Replace($windowLine,$windowProbe)
-            Require ($adapted -cne $text -and
-              $adapted.Replace($windowProbe,$windowLine).Replace($probeBlock,$probeLine).Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_AND_DIAGNOSTIC_CHANGES_ALLOWED'
+            # The PowerShell Process.MainWindowHandle accessor can report
+            # zero on hosted Windows even when Wails, its Go child, and
+            # WebView2 are alive. Accept only ONE genuine visible top-level
+            # Win32 HWND, owned by this exact ktrade PID, with the known Wails
+            # title and large client rect; otherwise retain the hard failure.
+            $nl=if($text.Contains("`r`n")){"`r`n"}else{"`n"}
+            $nativeWinCs='using System; using System.Text; using System.Runtime.InteropServices; public static class KTradeW41TopWindow { public delegate bool EnumProc(IntPtr hwnd, IntPtr user); [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc callback, IntPtr user); [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd,out uint pid); [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd); [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd,StringBuilder buffer,int capacity); [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr hwnd,out Rect area); [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd,uint msg,IntPtr a,IntPtr b); [StructLayout(LayoutKind.Sequential)] struct Rect {public int Left,Top,Right,Bottom;} public static IntPtr Find(int ownerPid){ IntPtr winner=IntPtr.Zero;int count=0; EnumWindows((h,unused)=>{ uint pid=0;GetWindowThreadProcessId(h,out pid); if(pid!=(uint)ownerPid || !IsWindowVisible(h))return true; var title=new StringBuilder(256);GetWindowText(h,title,256); if(title.ToString()!="KTRADE — Portable PAPER (LIVE Disarmed)")return true; Rect area;if(!GetClientRect(h,out area)||area.Right-area.Left<500||area.Bottom-area.Top<350)return true; winner=h;count++;return true; },IntPtr.Zero); return count==1?winner:IntPtr.Zero; } }'
+            $locator='Add-Type -TypeDefinition @'+[char]39+$nl+$nativeWinCs+$nl+[char]39+'@'+$nl
+            $nativeAnchor=[char]39+'@'+$nl+'try{'
+            Require ($text.Split([string[]]@($nativeAnchor),[StringSplitOptions]::None).Count -eq 2 -and
+              $text.Split([string[]]@('$process.MainWindowHandle'),[StringSplitOptions]::None).Count -eq 6) 'QFORGE_W41_NATIVE_ORIGINAL_PINS_REQUIRED'
+            $winInit='  $windowReady=$false'
+            $winInitAlt=$winInit+$nl+'  $verifiedW41Hwnd=[IntPtr]::Zero'
+            $winStart='   if($verifiedW41Hwnd -ne [IntPtr]::Zero){$windowReady=$true;break}'
+            $winStartAlt=@(
+              '   $w41Candidate=$process.MainWindowHandle',
+              '   if($w41Candidate -eq [IntPtr]::Zero){$w41Candidate=[KTradeW41TopWindow]::Find($process.Id)}',
+              '   if($w41Candidate -ne [IntPtr]::Zero){$verifiedW41Hwnd=$w41Candidate;$windowReady=$true;break}'
+            ) -join $nl
+            $winCloseOld="  Require (`$process.CloseMainWindow()) 'W41_NATIVE_WINDOW_CLOSE_REFUSED'"
+            $winCloseAlt=@(
+              '  if($process.MainWindowHandle -ne [IntPtr]::Zero){',
+              "   Require (`$process.CloseMainWindow()) 'W41_NATIVE_WINDOW_CLOSE_REFUSED'",
+              '  }else{',
+              '   Require ([KTradeW41TopWindow]::Find($process.Id) -eq $verifiedW41Hwnd) ''W41_VERIFIED_HWND_DRIFT''',
+              '   Require ([KTradeW41TopWindow]::PostMessage($verifiedW41Hwnd,0x10,[IntPtr]::Zero,[IntPtr]::Zero)) ''W41_VERIFIED_HWND_CLOSE_REFUSED''',
+              '  }'
+            ) -join $nl
+            $baseAdapter=$text.Replace($from,$to).Replace($probeLine,$probeBlock).Replace($windowLine,$windowProbe)
+            Require ($baseAdapter -cne $text -and
+              $baseAdapter.Replace($windowProbe,$windowLine).Replace($probeBlock,$probeLine).Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_AND_DIAGNOSTIC_CHANGES_ALLOWED'
+            $adapted=$baseAdapter.Replace($nativeAnchor,[char]39+'@'+$nl+$locator+'try{')
+            $adapted=$adapted.Replace('$process.MainWindowHandle','$verifiedW41Hwnd')
+            Require ($adapted.Split([string[]]@($winStart),[StringSplitOptions]::None).Count -eq 2 -and
+              $adapted.Split([string[]]@($winInit),[StringSplitOptions]::None).Count -eq 2 -and
+              $adapted.Split([string[]]@($winCloseOld),[StringSplitOptions]::None).Count -eq 2) 'QFORGE_W41_NATIVE_ADAPTER_ANCHORS_REQUIRED'
+            $adapted=$adapted.Replace($winStart,$winStartAlt).Replace($winInit,$winInitAlt).Replace($winCloseOld,$winCloseAlt)
+            $reversed=$adapted.Replace($winCloseAlt,$winCloseOld).Replace($winInitAlt,$winInit).Replace($winStartAlt,$winStart)
+            $reversed=$reversed.Replace('$verifiedW41Hwnd','$process.MainWindowHandle')
+            $reversed=$reversed.Replace($locator+'try{','try{')
+            Require ($reversed -ceq $baseAdapter) 'QFORGE_W41_ONLY_VERIFIED_HWND_ADAPTER_DELTA_REQUIRED'
             try{
               [IO.File]::WriteAllText($adapter,$adapted,[Text.UTF8Encoding]::new($false))
               $tokens=$null;$parseErrors=$null
