@@ -956,9 +956,39 @@ jobs:
             $to='refs/heads/qualification/ktrade-ui-workstation-refresh-20261108'
             Require ($text.Split([string[]]@($from),[StringSplitOptions]::None).Count -eq 2 -and
               !$text.Contains($to)) 'QFORGE_W41_SINGLE_ALLOWLIST_REWRITE_REQUIRED'
-            $adapted=$text.Replace($from,$to)
+            # Failure-only, read-only HTTP diagnostics in the existing W41
+            # disposable witness; immutable KTRADE source and pass criteria stay fixed.
+            $probeLine='    $parts=@((Read-Receipt $geom 52).Split('',''))'
+            Require ($text.Split([string[]]@($probeLine),[StringSplitOptions]::None).Count -eq 2) 'QFORGE_W41_PROBE_EXACT_INSERTION_ANCHOR_REQUIRED'
+            $probeBlock=@'
+                try{$parts=@((Read-Receipt $geom 52).Split(','))}
+                catch{
+                  # Classify original failure; emit bounded booleans, never response bodies.
+                  foreach($asset in @(
+                    @{label='CHART';path='/chart';mime='text/html';marker='w41_wails_cold_bridge.js'},
+                    @{label='COLD_BRIDGE';path='/static/w41_wails_cold_bridge.js';mime='javascript';marker='ktrade.w41.cold.reply.v1'},
+                    @{label='LWC';path='/static/vendor/lightweight-charts/lightweight-charts.standalone.production.js';mime='javascript';marker=''},
+                    @{label='MONACO';path='/static/vendor/monaco/vs/loader.js';mime='javascript';marker=''},
+                    @{label='DESIGN_CSS';path='/static/w95_design_system.css';mime='text/css';marker=''},
+                    @{label='FINISH_CSS';path='/static/workstation_finish.css';mime='text/css';marker=''}
+                  )){
+                    $status='REQUEST_FAILED';$mimeOk=$false;$markerOk=$false
+                    try{
+                      $response=Invoke-WebRequest -UseBasicParsing -Uri ($url+$asset.path) -TimeoutSec 5 -ErrorAction Stop
+                      $status=[string][int]$response.StatusCode
+                      $mimeOk=([string]$response.Headers['Content-Type']).Contains($asset.mime)
+                      $markerOk=(!$asset.marker -or ([string]$response.Content).Contains($asset.marker))
+                    }catch{}
+                    Write-Host ('W41_READONLY_HTTP_ASSET_DIAG name='+$asset.label+
+                      ';http='+$status+';mime_ok='+$mimeOk.ToString().ToLowerInvariant()+
+                      ';marker_ok='+$markerOk.ToString().ToLowerInvariant())
+                  }
+                  throw
+                }
+            '@
+            $adapted=$text.Replace($from,$to).Replace($probeLine,$probeBlock)
             Require ($adapted -cne $text -and
-              $adapted.Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_CHANGE_ALLOWED'
+              $adapted.Replace($probeBlock,$probeLine).Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_AND_DIAGNOSTIC_CHANGES_ALLOWED'
             try{
               [IO.File]::WriteAllText($adapter,$adapted,[Text.UTF8Encoding]::new($false))
               $tokens=$null;$parseErrors=$null
