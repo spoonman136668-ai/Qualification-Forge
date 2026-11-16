@@ -985,7 +985,7 @@ jobs:
                   }
                   throw
                 }
-            '@
+          '@
             $adapted=$text.Replace($from,$to).Replace($probeLine,$probeBlock)
             Require ($adapted -cne $text -and
               $adapted.Replace($probeBlock,$probeLine).Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_AND_DIAGNOSTIC_CHANGES_ALLOWED'
