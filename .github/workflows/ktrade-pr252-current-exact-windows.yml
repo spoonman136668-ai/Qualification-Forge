@@ -968,7 +968,20 @@ jobs:
             & node scripts/stage_offline_vendor.cjs *> $log
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_VENDOR_STAGE_FAILED'}
             & node --test tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w41_cold_bridge_pane_visibility.test.cjs tests/rb3_w41_cold_bridge_diagnostic.test.cjs tests/rb3_w41_cold_parent_late_iframe.test.cjs tests/rb3_w41_cold_restart_harness.test.cjs *> $log
-            if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_CHART_FOCUSED_TEST_FAILED'}
+            if($LASTEXITCODE -ne 0){
+              # Read-only, bounded TAP classification from the already-run
+              # focused suite. Never widen acceptance or replay test actions.
+              # No response bodies, credentials, environment or account data.
+              $tapLines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
+                Where-Object {$_ -match '^\s*(not ok [0-9]+|# (tests|pass|fail|cancelled|skipped|todo)|error:|message:|code:|failureType:|stack:)' } |
+                Select-Object -Last 50)
+              foreach($line in $tapLines){
+                $bounded=([string]$line).Trim()
+                if($bounded.Length -gt 240){$bounded=$bounded.Substring(0,240)}
+                Write-Host ('QFORGE_W41_FOCUSED_FAILURE_TAP='+$bounded)
+              }
+              throw 'QFORGE_WAILS_CHART_FOCUSED_TEST_FAILED'
+            }
             # Repair witness-scope mismatch only. Preserve the immutable product
             # source and full original test semantics; adapt one frozen branch
             # allowlist in an untracked, ephemeral witness beside its builder.
