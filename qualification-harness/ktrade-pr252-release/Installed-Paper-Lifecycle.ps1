@@ -127,6 +127,13 @@ function ClassifyW83UI([object]$shell,[string]$phase){
   verification_button=$false;diagnostics_section_seen=$false;
   workspace_starting_notice=$false;backend_refused_notice=$false;
   original_chart_verification_result=$false;
+  chart_navigation_finished_notice=$false;
+  chart_navigation_waiting_notice=$false;
+  chart_probe_pending_notice=$false;
+  chart_probe_timeout_notice=$false;
+  chart_probe_missing_controls_notice=$false;
+  chart_frame_message_failed_notice=$false;
+  chart_probe_identity_unavailable_notice=$false;
   scope='read_only_UIAutomation_allowlisted_booleans_no_raw_text'
  }
  try{
@@ -154,6 +161,20 @@ function ClassifyW83UI([object]$shell,[string]$phase){
       $flags.backend_refused_notice=$true
      }elseif($name.StartsWith('Original chart DOM, Monaco editor and preferences controls observed.',[StringComparison]::Ordinal)){
       $flags.original_chart_verification_result=$true
+     }elseif($name.StartsWith('Original chart navigation finished',[StringComparison]::Ordinal)){
+      $flags.chart_navigation_finished_notice=$true
+     }elseif($name.StartsWith('Loading original chart from verified loopback',[StringComparison]::Ordinal)){
+      $flags.chart_navigation_waiting_notice=$true
+     }elseif($name.StartsWith('Checking original chart DOM and editor',[StringComparison]::Ordinal)){
+      $flags.chart_probe_pending_notice=$true
+     }elseif($name.StartsWith('Original chart did not answer verified request',[StringComparison]::Ordinal)){
+      $flags.chart_probe_timeout_notice=$true
+     }elseif($name.StartsWith('Chart not fully ready:',[StringComparison]::Ordinal)){
+      $flags.chart_probe_missing_controls_notice=$true
+     }elseif($name.StartsWith('Chart frame message failed',[StringComparison]::Ordinal)){
+      $flags.chart_frame_message_failed_notice=$true
+     }elseif($name.StartsWith('Chart identity unavailable',[StringComparison]::Ordinal)){
+      $flags.chart_probe_identity_unavailable_notice=$true
      }
     }catch{}
    }
