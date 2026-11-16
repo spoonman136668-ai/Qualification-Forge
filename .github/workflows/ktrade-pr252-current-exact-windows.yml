@@ -918,6 +918,7 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_LOCKED_VENDOR_FAILED'}
             & node scripts/stage_offline_vendor.cjs *> $log
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_VENDOR_STAGE_FAILED'}
+            $w239KnownHistoricalContractGap=$false
             & node --test tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w41_cold_bridge_pane_visibility.test.cjs tests/rb3_w41_cold_bridge_diagnostic.test.cjs tests/rb3_w41_cold_parent_late_iframe.test.cjs tests/rb3_w41_cold_restart_harness.test.cjs *> $log
             if($LASTEXITCODE -ne 0){
               # W238: bounded diagnostic from the exact frozen test invocation.
@@ -931,7 +932,24 @@ jobs:
                 if($bounded.Length -gt 220){$bounded=$bounded.Substring(0,220)}
                 Write-Host ('QFORGE_W238_MIDPOINT_TAP='+$bounded)
               }
-              throw 'QFORGE_WAILS_CHART_FOCUSED_TEST_FAILED'
+              # W239 diagnostic: the historical W190 commit deliberately
+              # removed the inert Replay button but an older W41 UI contract
+              # still demands it. Observe the authentic native W41 witness,
+              # without declaring focused tests/acceptance PASS.
+              $tapAll=@(Get-Content -LiteralPath $log -ErrorAction Stop)
+              $failRows=@($tapAll|Where-Object {$_.Trim() -match '^not ok [0-9]+ - '})
+              $replayError=@($tapAll|Where-Object {$_.Trim() -match "^error: 'preserve original operator control replayBtn'"})
+              $pass36=@($tapAll|Where-Object {$_.Trim() -eq '# pass 36'})
+              $fail1=@($tapAll|Where-Object {$_.Trim() -eq '# fail 1'})
+              $originalChart=[IO.File]::ReadAllText((Join-Path $p 'templates/chart.tmpl'))
+              $oldTest=[IO.File]::ReadAllText((Join-Path $p 'tests/rb3_w41_chart_viewport_persistence.test.cjs'))
+              Require ($failRows.Count -eq 1 -and
+                $failRows[0].Trim().StartsWith('not ok 26 - compact chart toolbar retains every action') -and
+                $replayError.Count -eq 1 -and $pass36.Count -eq 1 -and $fail1.Count -eq 1 -and
+                !$originalChart.Contains('id="replayBtn"') -and
+                $oldTest.Contains('preserve original operator control ')) 'W239_UNKNOWN_HISTORICAL_TEST_FAILURE_REFUSED'
+              $w239KnownHistoricalContractGap=$true
+              Write-Host 'W239_HISTORICAL_W190_REPLAY_BUTTON_TEST_STALE=EXPECTED_FAIL_1_OF_37'
             }
             # Repair witness-scope mismatch only. Preserve the immutable product
             # source and full original test semantics; adapt one frozen branch
@@ -963,10 +981,12 @@ jobs:
             }
             Require (!(Test-Path -LiteralPath $adapter) -and
               (& git hash-object -- $original).Trim() -ceq $blob) 'QFORGE_W41_ADAPTER_CLEANUP_OR_SOURCE_DRIFT'
-            Write-Host 'QFORGE_W41_REAL_TWO_LAUNCH_EXACT_PR253=PASS'
+            Require $w239KnownHistoricalContractGap 'W239_DIAGNOSTIC_ONLY_REQUIRES_FOCUSED_TEST_FAILURE'
+            Write-Host 'W239_REAL_NATIVE_TWO_LAUNCH_WITNESS=OBSERVED_UNQUALIFIED'
             Require ((& git rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
               @(& git status --porcelain --untracked-files=no).Count -eq 0) 'QFORGE_WAILS_SOURCE_CHANGED'
-            Write-Host ('QFORGE_KTRADE_UI_REAL_WEBVIEW2_TWO_LAUNCHES=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
+            Write-Host ('W239_REAL_NATIVE_DIAGNOSTIC_UNQUALIFIED_SOURCE='+$env:KTRADE_EXPECTED_SOURCE)
+            throw 'W239_HISTORICAL_UI_CONTRACT_FAIL_PREVENTS_ACCEPTANCE'
           }finally{
             Pop-Location
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
