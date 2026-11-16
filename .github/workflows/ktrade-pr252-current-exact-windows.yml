@@ -1025,7 +1025,7 @@ jobs:
                   if(Test-Path -LiteralPath $observerFile -PathType Leaf){
                     try{
                       $seen=([string](Get-Content -LiteralPath $observerFile -Raw)).Trim()
-                      if($seen -cmatch '^(GO_ACTIVE|POLL|FRAME|ORIGIN|HEAD|POST_LWC|POST_MONACO|POST_HEAD|BODY_OPEN|POST_MAIN_SCRIPT|POST_CATALOG_SCRIPT|F(0[1-9]|1[01])|POST_FOOTER|DOM|LOAD|REQUEST|ORIGIN_REJECTED|CONTEXT_WAIT|CTX_(NO_APP|NO_CHART|NO_DATASET|BAD_DATASET|NO_HISTORY|NOT_READY|NO_API|NO_PANE|NO_RANGE|READY_NO_REPLY|READ_ERROR))$'){
+                      if($seen -cmatch '^(GO_ACTIVE|POLL|FRAME|ORIGIN|HEAD|POST_LWC|POST_MONACO|POST_HEAD|BODY_OPEN|POST_MAIN_SCRIPT|POST_CATALOG_SCRIPT|F(0[1-9]|1[01])|POST_FOOTER|DOM|LOAD|REQUEST|ORIGIN_REJECTED|CONTEXT_WAIT|BOOT_(DISPATCH|INIT)_(ENTER|RETURN)|CTX_(NO_APP|NO_CHART|NO_DATASET|BAD_DATASET|NO_HISTORY|NOT_READY|NO_API|NO_PANE|NO_RANGE|READY_NO_REPLY|READ_ERROR))$'){
                         $observerLastStage=$seen
                       }else{$observerLastStage='INVALID_OBSERVER_STAGE'}
                     }catch{$observerLastStage='UNREADABLE_OBSERVER'}
@@ -1116,6 +1116,17 @@ jobs:
             $reversed=$reversed.Replace('$verifiedW41Hwnd','$process.MainWindowHandle')
             $reversed=$reversed.Replace($locator+'try{','try{')
             Require ($reversed -ceq $baseAdapter) 'QFORGE_W41_ONLY_VERIFIED_HWND_ADAPTER_DELTA_REQUIRED'
+            # W235: diagnostic-only parser probes. Adapt disposable witness
+            # solely at exact W234 source; do not change frozen acceptance.
+            $w235Diagnostic=($env:KTRADE_EXPECTED_SOURCE -ceq 'a4f923f62c5585f3294296ffddb8b87b29359a31')
+            Require $w235Diagnostic 'QFORGE_W235_SOURCE_SCOPE_REQUIRED'
+            $w235BuilderLine='& $builder -OutputRoot $root -ExpectedSourceSha $ExpectedSourceSha -W13QualificationFixture -W41ColdFixture | Out-Null'
+            $w235DiagnosticBuilderLine='& $builder -OutputRoot $root -ExpectedSourceSha $ExpectedSourceSha -W13QualificationFixture -W41ColdFixture -W41ParserDiagnostics | Out-Null'
+            Require ($adapted.Split([string[]]@($w235BuilderLine),[StringSplitOptions]::None).Count -eq 2 -and
+              !$adapted.Contains($w235DiagnosticBuilderLine)) 'QFORGE_W235_EXACT_BUILDER_CALL_REQUIRED'
+            $adapted=$adapted.Replace($w235BuilderLine,$w235DiagnosticBuilderLine)
+            Write-Host 'QFORGE_W235_DIAGNOSTIC_ONLY_EARLY_PARSER_PROBES=ENABLED'
+
             try{
               [IO.File]::WriteAllText($adapter,$adapted,[Text.UTF8Encoding]::new($false))
               $tokens=$null;$parseErrors=$null
@@ -1129,10 +1140,10 @@ jobs:
             }
             Require (!(Test-Path -LiteralPath $adapter) -and
               (& git hash-object -- $original).Trim() -ceq $blob) 'QFORGE_W41_ADAPTER_CLEANUP_OR_SOURCE_DRIFT'
-            Write-Host 'QFORGE_W41_REAL_TWO_LAUNCH_EXACT_PR253=PASS'
+            Write-Host 'QFORGE_W235_DIAGNOSTIC_ONLY_COMPLETED_NOT_ACCEPTANCE'
             Require ((& git rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
               @(& git status --porcelain --untracked-files=no).Count -eq 0) 'QFORGE_WAILS_SOURCE_CHANGED'
-            Write-Host ('QFORGE_KTRADE_UI_REAL_WEBVIEW2_TWO_LAUNCHES=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
+            Write-Host ('QFORGE_W235_ONLY_RESULT=COMPLETE_NOT_RELEASE;sha='+$env:KTRADE_EXPECTED_SOURCE)
           }finally{
             Pop-Location
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
