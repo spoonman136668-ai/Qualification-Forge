@@ -2344,41 +2344,71 @@ try{
     ';real_OS_DPI=UNVERIFIED;installed_in_runner_temp=true;live_armed=false')
   return
  }
- # After W41 success, physical two-click annotation interaction and cold storage.
- W100-OpenDrawings $active.shell
- W42-ExpectedShapeActions $active.shell @() 'EMPTY_FRESH_INSTALL'
+ # W280: preserve every original W42 physical two-click/cold-reopen and
+ # one-at-a-time deletion invariant. The current product intentionally
+ # replaced unsafe direct Remove buttons with a two-step typed DELETE modal.
+ # Therefore use the already independently qualified native UIA read-only
+ # drawing-review witness and genuine mouse+keyboard confirmation helpers.
+ # No DOM script, UIA Invoke or storage manipulation; no acceptance waiver.
+ W253C-OpenDrawingManager $active.shell
+ W253-ReviewDrawingRows $active.shell @() 'W42_EMPTY_FRESH_INSTALL'
  ClickUI $active.shell 'Close drawings'
  W42-DrawNative $active.shell 'Draw rectangle zone' 0.30 0.31 0.55 0.58
  W42-DrawNative $active.shell 'Draw Fibonacci retracement' 0.39 0.64 0.71 0.27
- W100-OpenDrawings $active.shell
- W42-ExpectedShapeActions $active.shell @('Remove rect drawing 1','Remove fib drawing 2') 'AFTER_PHYSICAL_TWO_CLICK_DRAWINGS'
+ W253C-OpenDrawingManager $active.shell
+ W253-ReviewDrawingRows $active.shell @('Review removal · rect drawing 1','Review removal · fib drawing 2') 'W42_AFTER_PHYSICAL_TWO_CLICK_DRAWINGS'
  ClickUI $active.shell 'Close drawings'
  W41-SpectrumVisual $active.shell
  W41-Stop $active;$active=$null
  $active=W41-Start $installed.candidate_directory
- W100-OpenDrawings $active.shell
- W42-ExpectedShapeActions $active.shell @('Remove rect drawing 1','Remove fib drawing 2') 'COLD_REOPENED_BOTH_DRAWINGS'
- ClickUI $active.shell 'Remove rect drawing 1'
- W42-ExpectedShapeActions $active.shell @('Remove fib drawing 2') 'RECT_REMOVED_FIB_PRESERVED'
- ClickUI $active.shell 'Remove fib drawing 2'
- W42-ExpectedShapeActions $active.shell @() 'BOTH_DRAWINGS_REMOVED'
+ W253C-OpenDrawingManager $active.shell
+ W253-ReviewDrawingRows $active.shell @('Review removal · rect drawing 1','Review removal · fib drawing 2') 'W42_COLD_REOPENED_BOTH_DRAWINGS'
+ ClickUI $active.shell 'Close drawings'
+ # Explicitly select rectangle #1; deletion without the exact phrase
+ # must remain disabled. The matching Fibonacci record must survive.
+ W253C-ClickRail $active.shell 'Review and remove one chart drawing'
+ W253C-ClickPrefix $active.shell 'Select Rectangle/Fibonacci #1 '
+ Require (!(W253C-Enabled $active.shell 'Delete selected drawing')) 'W280_W42_RECT_DELETE_WITHOUT_PHRASE'
+ W253C-TypeDeletionPhrase $active.shell
+ ClickUI $active.shell 'Delete selected drawing'
+ ClickUI $active.shell 'Cancel'
+ W253C-OpenDrawingManager $active.shell
+ W253-ReviewDrawingRows $active.shell @('Review removal · fib drawing 2') 'W42_RECT_REMOVED_FIB_PRESERVED'
+ ClickUI $active.shell 'Close drawings'
+ W253C-ClickRail $active.shell 'Review and remove one chart drawing'
+ W253C-ClickPrefix $active.shell 'Select Rectangle/Fibonacci #2 '
+ Require (!(W253C-Enabled $active.shell 'Delete selected drawing')) 'W280_W42_FIB_DELETE_WITHOUT_PHRASE'
+ W253C-TypeDeletionPhrase $active.shell
+ ClickUI $active.shell 'Delete selected drawing'
+ ClickUI $active.shell 'Cancel'
+ W253C-OpenDrawingManager $active.shell
+ W253-ReviewDrawingRows $active.shell @() 'W42_BOTH_DRAWINGS_REMOVED'
  ClickUI $active.shell 'Close drawings'
  Write-Host '::notice::W42_REAL_NATIVE_RECT_FIB_DRAW_REOPEN_REMOVE=PASS'
- W100-OpenDrawings $active.shell
- W100-ExpectVertical $active.shell @() 'FRESH_NAMESPACE_EMPTY'
+ # Original W100 vertical one-click + cold reopen + exact one-item
+ # deletion is retained, with the current reviewed confirmation path.
+ W253C-OpenDrawingManager $active.shell
+ W253-ReviewDrawingRows $active.shell @() 'W100_FRESH_NAMESPACE_EMPTY'
  ClickUI $active.shell 'Close drawings'
- ClickUI $active.shell 'Draw vertical line'
+ W253C-ClickRail $active.shell 'Draw vertical line'
  W42-ShapeClick $active.shell 0.42 0.42
- W100-OpenDrawings $active.shell
- W100-ExpectVertical $active.shell @('Remove vertical line 1') 'PHYSICAL_ONE_CLICK_SAVED'
+ W253C-OpenDrawingManager $active.shell
+ W253-ReviewDrawingRows $active.shell @('Review removal · vertical line 1') 'W100_PHYSICAL_ONE_CLICK_SAVED'
  ClickUI $active.shell 'Close drawings'
  W41-SpectrumVisual $active.shell
  W41-Stop $active;$active=$null
  $active=W41-Start $installed.candidate_directory
- W100-OpenDrawings $active.shell
- W100-ExpectVertical $active.shell @('Remove vertical line 1') 'COLD_REOPEN_PRESERVED'
- ClickUI $active.shell 'Remove vertical line 1'
- W100-ExpectVertical $active.shell @() 'DELETED'
+ W253C-OpenDrawingManager $active.shell
+ W253-ReviewDrawingRows $active.shell @('Review removal · vertical line 1') 'W100_COLD_REOPEN_PRESERVED'
+ ClickUI $active.shell 'Close drawings'
+ W253C-ClickRail $active.shell 'Review and remove one chart drawing'
+ W253C-ClickPrefix $active.shell 'Select Vertical marker #1 '
+ Require (!(W253C-Enabled $active.shell 'Delete selected drawing')) 'W280_W100_VERTICAL_DELETE_WITHOUT_PHRASE'
+ W253C-TypeDeletionPhrase $active.shell
+ ClickUI $active.shell 'Delete selected drawing'
+ ClickUI $active.shell 'Cancel'
+ W253C-OpenDrawingManager $active.shell
+ W253-ReviewDrawingRows $active.shell @() 'W100_VERTICAL_DELETED'
  ClickUI $active.shell 'Close drawings'
  Write-Host '::notice::W100_NATIVE_VERTICAL_COLD_REOPEN_DELETE=PASS'
  W101-RealRangeButtons $active.shell
