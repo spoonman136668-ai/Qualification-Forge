@@ -1375,7 +1375,7 @@ function W102-RealZoom([object]$shell){
 # W103 / exercise real native WebView2 watchlist navigation and verify
 # pinned symbol continuity after process restart. UIA only; no order intent.
 function W103-RealWatchlist([object]$shell){
- ClickUI $shell 'Watchlist'
+ ClickUI $shell 'Watchlist, local chart symbols'
  $b=FindUI $shell 'Open chart BTC-USD' $true 12
  $e=FindUI $shell 'Open chart ETH-USD' $true 12
  $pin=FindUI $shell 'Remove SOL-USD from watchlist' $true 12
@@ -1395,7 +1395,7 @@ function W103-RealWatchlist([object]$shell){
  Write-Host '::notice::W103_REAL_NATIVE_MARKET_WATCHLIST_NAVIGATION=PASS'
 }
 function W103-VerifyWatchlistReopen([object]$shell){
- ClickUI $shell 'Watchlist'
+ ClickUI $shell 'Watchlist, local chart symbols'
  $row=FindUI $shell 'Open chart ETH-USD' $true 12
  Require (!$row.Current.IsOffscreen) 'W103_REOPEN_WATCHLIST_UNAVAILABLE'
  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
