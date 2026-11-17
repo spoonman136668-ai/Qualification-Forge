@@ -830,6 +830,53 @@ function W250-ClassifyW28I([object]$shell){
   }
  }catch{}
  Write-Host ('W250_INSTALLED_W28I_PARENT_CLASSIFICATION='+($s|ConvertTo-Json -Compress))
+ # W254: failed original Monaco-readiness receipt, read-only localhost
+ # asset classification. Never request user data, executable endpoints,
+ # account routes or payloads. This cannot change the positive UIA gate.
+ if($s.verified_parent_reply_missing_controls -and $s.missing_monaco_editor){
+  $a=[ordered]@{
+   schema='ktrade.w254.installed-monaco-assets.v1';
+   owned_engine_verified=$false;loopback_verified=$false;
+   chart_http200=$false;loader_http200=$false;
+   editor_js_http200=$false;editor_css_http200=$false;
+   js_mime_ok=$false;css_mime_ok=$false;
+   release_qualified=$false;acceptance_override=$false;
+   financial_state_used=$false;live_armed=$false;
+   scope='bounded_GET_127.0.0.1_verified_child_static_assets_only'
+  }
+  try{
+   $children=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|
+    Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
+   if($children.Count -eq 1){
+    $a.owned_engine_verified=$true
+    $ports=@(Get-NetTCPConnection -OwningProcess $children[0].ProcessId -State Listen|
+     Where-Object {$_.LocalAddress -ceq '127.0.0.1' -and
+      $_.LocalPort -ge 1 -and $_.LocalPort -le 65535})
+    if($ports.Count -eq 1){
+     $a.loopback_verified=$true
+     $url='http://127.0.0.1:'+$ports[0].LocalPort
+     foreach($item in @(
+       @('chart','/chart'),
+       @('loader','/static/vendor/monaco/vs/loader.js'),
+       @('editor_js','/static/vendor/monaco/vs/editor/editor.main.js'),
+       @('editor_css','/static/vendor/monaco/vs/editor/editor.main.css'))){
+      try{
+       $response=Invoke-WebRequest -UseBasicParsing -Method GET -Uri ($url+$item[1]) -TimeoutSec 8
+       $mime=[string]$response.Headers['Content-Type']
+       $ok=($response.StatusCode -eq 200 -and $response.RawContentLength -gt 200)
+       switch($item[0]){
+        'chart' {$a.chart_http200=$ok}
+        'loader' {$a.loader_http200=$ok;$a.js_mime_ok=($ok -and $mime -match '(javascript|ecmascript)')}
+        'editor_js' {$a.editor_js_http200=$ok;$a.js_mime_ok=($a.js_mime_ok -and $ok -and $mime -match '(javascript|ecmascript)')}
+        'editor_css' {$a.editor_css_http200=$ok;$a.css_mime_ok=($ok -and $mime -match 'text/css')}
+       }
+      }catch{}
+     }
+    }
+   }
+  }catch{}
+  Write-Host ('W254_MONACO_ASSETS_READONLY_DIAGNOSTIC='+($a|ConvertTo-Json -Compress))
+ }
 }
 
 function W41-Start([string]$candidate){
