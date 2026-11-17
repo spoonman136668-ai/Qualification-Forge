@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly,[switch]$NativeComparisonOnly,[switch]$NativePineEditorOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly,[switch]$NativeComparisonOnly,[switch]$NativePineEditorOnly,[switch]$NativePineApplyOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='078f872a4d5ba4144894429411d6b1022f7bec48'
@@ -2413,7 +2413,7 @@ function W287-NativeComparison([object]$installed,[object]$first){
 # Only original UI native Win32 clicks and original local HTTP capability reads.
 # No WebView script injection, source changes, strategies, orders or owner data.
 function W289-ExactButton([object]$shell,[string]$label,[int]$seconds=18){
- Require ($label -cin @('Pine Editor','Compile','Close Pine editor')) 'W289_CONTROL_OUTSIDE_ALLOWLIST'
+ Require ($label -cin @('Pine Editor','Compile','Close Pine editor','Add to chart')) 'W289_CONTROL_OUTSIDE_ALLOWLIST'
  $deadline=(Get-Date).AddSeconds($seconds)
  do{
   $shell.Refresh()
@@ -2484,6 +2484,99 @@ function W289-NativePineEditor([object]$installed,[object]$first){
  }finally{if($null -ne $run){W41-Stop $run}}
 }
 
+# W290 genuine WebView2 Pine Apply: real Monaco model -> original Go overlay
+# evaluator -> native separate-price pane pixels. PAPER_STOPPED, no strategy.
+function W290-ExactVisible([object]$shell,[string]$name,[int]$seconds=38){
+ Require ($name -cin @('Pine plots applied.','Pine indicator pane')) 'W290_UNEXPECTED_ORACLE'
+ $until=(Get-Date).AddSeconds($seconds)
+ do{
+  $shell.Refresh()
+  Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W290_NATIVE_SHELL_DIED'
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  foreach($item in $nodes){try{
+   if($item.Current.Name -ceq $name -and !$item.Current.IsOffscreen -and
+    $item.Current.BoundingRectangle.Width -ge 90 -and
+    $item.Current.BoundingRectangle.Height -ge 9){return $item}
+  }catch{}}
+  Start-Sleep -Milliseconds 200
+ }while((Get-Date) -lt $until)
+ throw ('W290_NATIVE_ORIGINAL_UI_NOT_VISIBLE_'+$name.Replace(' ','_'))
+}
+function W290-PineInk([object]$shell){
+ $pane=W290-ExactVisible $shell 'Pine indicator pane' 20
+ $r=$pane.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$r.IsEmpty -and $r.Width -ge 220 -and $r.Height -ge 95 -and
+  $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W290_NATIVE_PLOT_PANE_GEOMETRY'
+ # Exclude the caption and the right-hand price axis; only inspect plot body.
+ $rect=[System.Drawing.Rectangle]::new([int][Math]::Ceiling($r.Left+8),
+  [int][Math]::Ceiling($r.Top+42),
+  [int][Math]::Floor($r.Width-28),
+  [int][Math]::Floor($r.Height-52))
+ Require ($rect.Width -ge 180 -and $rect.Height -ge 43 -and
+  $rect.Width -le 1600 -and $rect.Height -le 1000) 'W290_NATIVE_PLOT_CROP_UNTRUSTED'
+ $bmp=[System.Drawing.Bitmap]::new($rect.Width,$rect.Height,
+  [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+ try{
+  $graphics=[System.Drawing.Graphics]::FromImage($bmp)
+  try{$graphics.CopyFromScreen($rect.Location,[System.Drawing.Point]::Empty,$rect.Size)}
+  finally{$graphics.Dispose()}
+  $blue=0;$sample=0
+  for($y=4;$y -lt $bmp.Height-3;$y++){
+   for($x=3;$x -lt $bmp.Width-4;$x++){
+    $c=$bmp.GetPixel($x,$y);$sample++
+    if($c.B -ge 165 -and $c.B -ge ($c.R+65) -and
+      $c.B -ge ($c.G+52) -and $c.G -ge 45 -and $c.R -lt 145){$blue++}
+   }
+  }
+  Write-Host ('W290_NATIVE_PINE_SEPARATE_PANE_PLOT_PIXELS='+(@{
+   samples=$sample;blue_plot_pixels=$blue;
+   scope='original_Wails_Pine_indicator_plot_body_no_file_export';
+   original_pane=$true;owner_data_read=$false;live_armed=$false
+  }|ConvertTo-Json -Compress))
+  Require ($sample -ge 8000 -and $blue -ge 24) 'W290_PINE_NATIVE_ACTUAL_BLUE_PLOT_NOT_RENDERED'
+ }finally{$bmp.Dispose()}
+}
+function W290-NativePineApply([object]$installed,[object]$first){
+ $run=$first
+ try{
+  $shell=$run.shell
+  $null=W41-WaitColdAxis $shell
+  ClickUI $shell '1h'
+  Start-Sleep -Milliseconds 1200
+  $before=W41-Candles $run.origin
+  Require ($before.count -ge 30) 'W290_FINALIZED_PRIMARY_MISSING'
+  W289-Disarmed $run 'BEFORE_APPLY'
+  W285-Click $shell (W289-ExactButton $shell 'Pine Editor') 'Pine Editor'
+  $editor=FindUI $shell 'Pine source editor' $false 20
+  Require (!$editor.Current.IsOffscreen) 'W290_ORIGINAL_MONACO_EDITOR_NOT_VISIBLE'
+  W285-Click $shell (W289-ExactButton $shell 'Compile') 'Compile'
+  $compiled=FindUI $shell 'Compiled. Not applied or started.' $false 40
+  Require ($compiled.Current.Name -ceq 'Compiled. Not applied or started.' -and
+    !$compiled.Current.IsOffscreen) 'W290_GO_COMPILE_FAILED'
+  W285-Click $shell (W289-ExactButton $shell 'Add to chart') 'Add to chart'
+  $null=W290-ExactVisible $shell 'Pine plots applied.' 40
+  $null=W290-ExactVisible $shell 'Pine indicator pane' 18
+  W290-PineInk $shell
+  $after=W41-Candles $run.origin
+  Require ($after.history -ceq $before.history -and
+   $after.count -eq $before.count) 'W290_PINE_RESULT_MUTATED_CANDLES'
+  W289-Disarmed $run 'AFTER_APPLY'
+  W285-Click $shell (W289-ExactButton $shell 'Close Pine editor') 'Close Pine editor'
+  W41-Stop $run;$run=$null
+  $run=W41-Start $installed.candidate_directory
+  W289-Disarmed $run 'AFTER_COLD_RESTART'
+  $cold=W41-Candles $run.origin
+  Require ($cold.history -ceq $before.history -and
+   $cold.count -eq $before.count) 'W290_PINE_APPLY_CHANGED_PERSISTED_HISTORY'
+  Write-Host ('W290_NATIVE_MONACO_GO_APPLY_SEPARATE_PANE_COLD_DISARMED=PASS;source='+$NewSHA+
+   ';real_native_mouse=true;original_Go_Pine_overlay=true;actual_Pine_pane_plot_pixels=true;primary_OHLC_immutable=true;PAPER_STOPPED=true;owner_data=false;real_OS_DPI=UNVERIFIED')
+ }finally{if($null -ne $run){W41-Stop $run}}
+}
+
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -2501,6 +2594,11 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ if($NativePineApplyOnly){
+  $current=$active;$active=$null
+  W290-NativePineApply $installed $current
+  return
+ }
  if($NativePineEditorOnly){
   $current=$active;$active=$null
   W289-NativePineEditor $installed $current
