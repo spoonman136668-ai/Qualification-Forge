@@ -2553,6 +2553,11 @@ try{
  W41-Stop $active;$active=$null
  W41-ObserveProfileKeys $installed.candidate_directory $beforeClose
  $active=W41-Start $installed.candidate_directory
+ # W288: after real cold restart, physically expose the original 1h in
+ # the horizontally scrollable native timeframe toolbar before observing it.
+ # This never reselects a timeframe, alters storage, or replaces the original
+ # full-history, viewport pixel, drawing, safety and negative-control checks.
+ W41-ExposeTimeframe $active.shell '1h'
  # Read-only UIA metadata can distinguish a lost timeframe preference from
  # viewport-only restoration failure; it cannot substitute for the pixel oracle.
  $reopenTimeframe=FindUI $active.shell '1h' $true 15

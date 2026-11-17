@@ -42,6 +42,7 @@ jobs:
       QFORGE_NATIVE_WORKSPACE_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_WORKSPACE_FOCUSED') }}
       QFORGE_NATIVE_DUAL_CHART_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_DUAL_CHART_FOCUSED') }}
       QFORGE_NATIVE_COMPARISON_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_COMPARISON_FOCUSED') || contains(github.event.head_commit.message, 'W287B') }}
+      QFORGE_NATIVE_FULL_COLD_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_FULL_COLD_FOCUSED') }}
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       KTRADE_SPECTRUM_PREVIEW: '1'
     steps:
@@ -198,7 +199,10 @@ jobs:
           $ErrorActionPreference='Stop'
           if([string]::IsNullOrEmpty($env:W41_PACKAGE_PATH)){throw 'W41_PACKAGE_CUSTODY_LOST'}
           $script=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w41/Installed-Cold-Viewport.ps1'
-          if($env:QFORGE_NATIVE_COMPARISON_FOCUSED -ceq 'true'){
+          if($env:QFORGE_NATIVE_FULL_COLD_FOCUSED -ceq 'true'){
+            Write-Host 'W288_FULL_NATIVE_COLD_SELECTED=TRUE'
+            & $script -PackageZip $env:W41_PACKAGE_PATH
+          }elseif($env:QFORGE_NATIVE_COMPARISON_FOCUSED -ceq 'true'){
             & $script -PackageZip $env:W41_PACKAGE_PATH -NativeComparisonOnly
           }elseif($env:QFORGE_NATIVE_DUAL_CHART_FOCUSED -ceq 'true'){
             & $script -PackageZip $env:W41_PACKAGE_PATH -NativeDualChartOnly
