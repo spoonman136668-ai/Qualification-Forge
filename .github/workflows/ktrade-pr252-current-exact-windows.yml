@@ -15,12 +15,13 @@ jobs:
   native-regression:
     # This follow-up only classifies W41's cold-reopen failure. Preserve the
     # independent native regression running on its prior exact source.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY') && !contains(github.event.head_commit.message, 'W146_NATIVE_10T50T_ONLY') && !contains(github.event.head_commit.message, 'W147_NATIVE_LARGE_COUNTS_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'wails-only') && !contains(github.event.head_commit.message, 'W116_NATIVE_ONLY') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY') && !contains(github.event.head_commit.message, 'W146_NATIVE_10T50T_ONLY') && !contains(github.event.head_commit.message, 'W147_NATIVE_LARGE_COUNTS_ONLY') && !contains(github.event.head_commit.message, 'W211_WAILS_DIAGNOSTIC_ONLY')
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '7f3dca8ca01c59522ba46237f175db66fcda4fe1'
+      KTRADE_EXPECTED_SOURCE: '13ebb11e130cd025d57b5d36e0693dc22947ec70'
       QFORGE_TARGETED_PKG_ONLY: '0'
+      QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_50_DIAG_ONLY: ${{ contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') }}
@@ -28,7 +29,7 @@ jobs:
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
       QFORGE_W05_ASSET_ROLLBACK_ONLY: ${{ contains(github.event.head_commit.message, 'W05_TEMP_ASSET_ROLLBACK_ONLY') }}
       QFORGE_W29C_DISPOSABLE_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_DISPOSABLE_INSTALL_ONLY') }}
-      KTRADE_EXPECTED_TREE: '830dc73644118f1c133d09505f6467bc39e44acc'
+      KTRADE_EXPECTED_TREE: 'aeb163e61729b09adc22f3c1295ac87e84477d23'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -49,7 +50,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 7f3dca8ca01c59522ba46237f175db66fcda4fe1
+          ref: 13ebb11e130cd025d57b5d36e0693dc22947ec70
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -138,6 +139,24 @@ jobs:
                     ';unmatched_failure_count='+$need.Count+';candidate_test_files='+$files.Count)
                   Remove-Variable failed,need,files,filePositions -ErrorAction SilentlyContinue
                 }
+                if($label -eq 'GO_W41_FIXTURE_NEGATIVES'){
+                  # Print only stable numeric test ordinals. Private Go output,
+                  # test names, file paths and subtest values stay on runner.
+                  $failed=@([regex]::Matches($private,'(?m)^\s*--- FAIL:\s+(\S+)')|
+                    ForEach-Object {$_.Groups[1].Value.Split('/')[0]}|
+                    Select-Object -Unique)
+                  $tests=@(Get-ChildItem -LiteralPath (Join-Path $p 'cmd/ktrade') -Filter '*_test.go' -File |
+                    Sort-Object Name | ForEach-Object {
+                      $source=[IO.File]::ReadAllText($_.FullName)
+                      [regex]::Matches($source,'(?m)^func\s+(Test[A-Za-z0-9_]+)\s*\(')|
+                        ForEach-Object {$_.Groups[1].Value}
+                    })
+                  $positions=@($failed | ForEach-Object {[array]::IndexOf($tests,$_)} |
+                    Where-Object {$_ -ge 0} | Sort-Object -Unique)
+                  Write-Host ('QFORGE_W209_GO_W41_TEST_ORDINALS='+($positions -join ',')+
+                    ';unmatched='+($failed.Count-$positions.Count)+';candidate_tests='+$tests.Count)
+                  Remove-Variable failed,tests,positions -ErrorAction SilentlyContinue
+                }
                 if($label -eq 'GO_FULL_DEFAULT'){
                   $packageOrder=@(& go list -mod=readonly ./... 2>$null)
                   $failedPkgs=@([regex]::Matches($private,'(?m)^FAIL\s+(ktrade/\S+)')|
@@ -166,6 +185,19 @@ jobs:
                   Write-Host ('QFORGE_GO_DEFAULT_PRIVATE_ORDINAL_BINS='+($bins -join ';'))
                   Remove-Variable packageOrder,failedPkgs,bins,packageName,relative -ErrorAction SilentlyContinue
                 }
+                # W230: classify the first failed Node batch once, from its
+                # existing TAP log, without exporting private names or paths.
+                if($label -eq 'NODE_BATCH_0'){
+                  $tapOrdinals=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)')|
+                    ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique -First 16)
+                  $tapCodes=@([regex]::Matches($private,"(?m)^\s*code:\s*'?([A-Z_]+)")|
+                    ForEach-Object {$_.Groups[1].Value}|
+                    Where-Object {$_ -in @('ERR_ASSERTION','ERR_TEST_FAILURE','MODULE_NOT_FOUND','ERR_MODULE_NOT_FOUND')}|
+                    Select-Object -Unique -First 6)
+                  Write-Host ('QFORGE_NODE_BATCH_0_FAILURE_ORDINALS='+($tapOrdinals -join ',')+
+                    ';known_error_codes='+($tapCodes -join ',')+';private_output_withheld=true')
+                  Remove-Variable tapOrdinals,tapCodes -ErrorAction SilentlyContinue
+                }
                 Remove-Variable private -ErrorAction SilentlyContinue
               }
               Write-Host ('QFORGE_'+$label+'_PRIVATE_CLASS: cases='+$failureCases+
@@ -186,6 +218,14 @@ jobs:
           try{
             Require ((& go env GOVERSION).Trim() -ceq 'go1.26.11') 'QFORGE_UNEXPECTED_GO_TOOLCHAIN'
             Write-Host 'QFORGE_PROVEN_NATIVE_RUNNER_ENV_PARITY=PASS'
+            if($env:QFORGE_W209_GO_ONLY -ceq 'true'){
+              # Same exact-source native Windows environment, only the
+              # previously failed Go W41 gate; full regression remains
+              # mandatory after an actual correction.
+              Checked 'GO_W41_FIXTURE_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full,ktrade_w13_fixture,ktrade_w41_cold_fixture','./cmd/ktrade')
+              Write-Host 'QFORGE_W209_GO_W41_FOCUSED=PASS'
+              return
+            }
             if($env:QFORGE_W29C_DISPOSABLE_INSTALL_ONLY -ceq 'true'){
               # Execute the authentic source-bound W29C installer ONLY into a
               # fresh random directory under ephemeral GitHub RUNNER_TEMP.
@@ -501,16 +541,39 @@ jobs:
               Require ($all.Count -ge 25) 'QFORGE_NODE_FIRST_BATCH_TOO_SMALL'
               $failed=[Collections.Generic.List[int]]::new()
               $invalid=0
-              for($i=0;$i -lt 25;$i++){
+              # Bound this diagnostic to the exact first 25 files of failed NODE_BATCH_0.
+              for($i=0;$i -lt [Math]::Min(25,$all.Count);$i++){
                 & node --test --test-reporter=tap $all[$i] *> $log
                 if($LASTEXITCODE -ne 0){
                   $failed.Add($i)
                   $txt=[IO.File]::ReadAllText($log)
                   if($txt.Length -gt 1000000){$invalid++}
+                  # TAP positions only. No private test names, source or assertions.
+                  $bad=@([regex]::Matches($txt,'(?m)^not ok\s+(\d+)')|ForEach-Object {$_.Groups[1].Value})
+                  $errors=@([regex]::Matches($txt,'(?m)^\s*code:\s*[''"]?([A-Z_]+)')|ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+                  $types=@([regex]::Matches($txt,"(?m)^\s*name:\s*'?([A-Za-z]+)")|ForEach-Object {$_.Groups[1].Value}|Where-Object {$_ -in @('TypeError','ReferenceError','SyntaxError','AssertionError','Error')}|Select-Object -Unique)
+                  $hints=@([regex]::Matches($txt,"(?m)^\s*error:\s*'?([^\r\n]*)")|ForEach-Object {
+                    $e=$_.Groups[1].Value
+                    if($e -match 'Cannot read properties of undefined'){'UNDEFINED_PROPERTY'}
+                    elseif($e -match 'Cannot read properties of null'){'NULL_PROPERTY'}
+                    elseif($e -match 'is not a function'){'NONCALLABLE'}
+                    elseif($e -match 'is not defined'){'UNBOUND_SYMBOL'}
+                    elseif($e -match 'Unexpected token|Unexpected identifier|Invalid or unexpected token'){'INVALID_JS'}
+                    elseif($e -match 'Expected values to be strictly equal'){'STRICT_EQ'}
+                    elseif($e -match 'The expression evaluated to a falsy value'){'FALSY_ASSERTION'}
+                    elseif($e -match 'does not match'){'REGEX_MISMATCH'}
+                    else {'OTHER'}
+                  }|Select-Object -Unique)
+                  $sites=@([regex]::Matches($txt,'(?m)^\s+at (?:async )?TestContext\.<anonymous> \(.*:(\d+):\d+\)')|
+                    ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique|Select-Object -First 10)
+                  Write-Host ('QFORGE_NODE_BATCH0_FILE_ORDINAL='+$i+';failing_test_ordinals='+($bad -join ',')+';error_codes='+($errors -join ',')+';error_types='+($types -join ',')+';error_families='+($hints -join ',')+';stack_line_numbers='+($sites -join ',')+';private_output_withheld=true')
+                  Remove-Variable sites -ErrorAction SilentlyContinue
+                  Remove-Variable types,hints -ErrorAction SilentlyContinue
+                  Remove-Variable bad,errors -ErrorAction SilentlyContinue
                   Remove-Variable txt -ErrorAction SilentlyContinue
                 }
               }
-              Write-Host ('QFORGE_NODE_FIRST_BATCH_FILE_COUNT=25;failed_ordinals='+
+              Write-Host ('QFORGE_NODE_ALL_FILES_COUNT='+$all.Count+';failed_ordinals='+
                 ($failed -join ',')+';oversized_reports='+$invalid)
               Write-Host 'QFORGE_NODE_FIRST_BATCH_DIAG=COMPLETE_NOT_FULL_REGRESSION'
               return
@@ -735,7 +798,7 @@ jobs:
                 (& git rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
                 ($w131Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w131_tick_keyboard.test.cjs') 'W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
               Write-Host 'QFORGE_W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA=PASS'
-            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '7f3dca8ca01c59522ba46237f175db66fcda4fe1'){
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '13ebb11e130cd025d57b5d36e0693dc22947ec70'){
               & git merge-base --is-ancestor '3bfdfac9152575dd47092b345145ed585780764c' HEAD
               Require ($LASTEXITCODE -eq 0) 'QFORGE_PR253_QUALIFIED_ANCESTOR_REQUIRED'
               Write-Host 'QFORGE_PR253_QUALIFIED_ANCESTOR=PASS'
@@ -843,13 +906,13 @@ jobs:
   wails-two-cold-launches:
     # The previous exact-source Wails process is already running; do not
     # duplicate it when repairing only the independent native Go test argv.
-    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY') && !contains(github.event.head_commit.message, 'W146_NATIVE_10T50T_ONLY') && !contains(github.event.head_commit.message, 'W147_NATIVE_LARGE_COUNTS_ONLY')
+    if: github.repository == 'spoonman136668-ai/Qualification-Forge' && github.ref == 'refs/heads/qualification/ktrade-ui-workstation-refresh-20261108' && !contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') && !contains(github.event.head_commit.message, 'native-only') && !contains(github.event.head_commit.message, 'W118_PUBLIC_FEED_ONESHOT') && !contains(github.event.head_commit.message, 'W118B_PUBLIC_DIAG_ONLY') && !contains(github.event.head_commit.message, 'W120_PUBLIC_MATCHES_ONLY') && !contains(github.event.head_commit.message, 'W122_PUBLIC_100T_ONESHOT') && !contains(github.event.head_commit.message, 'W123_REAL_NATIVE_UI_ONLY') && !contains(github.event.head_commit.message, 'W124_REAL_MULTI_TICK_UI_ONLY') && !contains(github.event.head_commit.message, 'W127_REAL_STALE_UI_ONLY') && !contains(github.event.head_commit.message, 'W128_NATIVE_RESELECT_ONLY') && !contains(github.event.head_commit.message, 'W130_NATIVE_CHART_GESTURES_ONLY') && !contains(github.event.head_commit.message, 'W132_NATIVE_KEYBOARD_ONLY') && !contains(github.event.head_commit.message, 'W134_NATIVE_SMA20_ONLY') && !contains(github.event.head_commit.message, 'W136_NATIVE_EMA20_ONLY') && !contains(github.event.head_commit.message, 'W138_NATIVE_RSI14_ONLY') && !contains(github.event.head_commit.message, 'W140_NATIVE_BB20_ONLY') && !contains(github.event.head_commit.message, 'W142_NATIVE_MACD_ONLY') && !contains(github.event.head_commit.message, 'W144_NATIVE_PANE_STACK_ONLY') && !contains(github.event.head_commit.message, 'W146_NATIVE_10T50T_ONLY') && !contains(github.event.head_commit.message, 'W147_NATIVE_LARGE_COUNTS_ONLY') && !contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') && !contains(github.event.head_commit.message, 'W210_FINAL_REGRESSION_ONLY') && !contains(github.event.head_commit.message, 'W230_NODE_FIRST_BATCH_DIAG_ONLY')
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '7f3dca8ca01c59522ba46237f175db66fcda4fe1'
-      KTRADE_EXPECTED_TREE: '830dc73644118f1c133d09505f6467bc39e44acc'
-      W01_EXPECTED_SHA: '7f3dca8ca01c59522ba46237f175db66fcda4fe1'
+      KTRADE_EXPECTED_SOURCE: '13ebb11e130cd025d57b5d36e0693dc22947ec70'
+      KTRADE_EXPECTED_TREE: 'aeb163e61729b09adc22f3c1295ac87e84477d23'
+      W01_EXPECTED_SHA: '13ebb11e130cd025d57b5d36e0693dc22947ec70'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -864,7 +927,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 7f3dca8ca01c59522ba46237f175db66fcda4fe1
+          ref: 13ebb11e130cd025d57b5d36e0693dc22947ec70
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -918,38 +981,20 @@ jobs:
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_LOCKED_VENDOR_FAILED'}
             & node scripts/stage_offline_vendor.cjs *> $log
             if($LASTEXITCODE -ne 0){throw 'QFORGE_WAILS_VENDOR_STAGE_FAILED'}
-            $w239KnownHistoricalContractGap=$false
             & node --test tests/rb3_w41_chart_viewport_persistence.test.cjs tests/rb3_w41_cold_bridge_pane_visibility.test.cjs tests/rb3_w41_cold_bridge_diagnostic.test.cjs tests/rb3_w41_cold_parent_late_iframe.test.cjs tests/rb3_w41_cold_restart_harness.test.cjs *> $log
             if($LASTEXITCODE -ne 0){
-              # W238: bounded diagnostic from the exact frozen test invocation.
-              # Do not discard failing tests, loosen native acceptance or
-              # print user data, request bodies, source or credentials.
-              $tap=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
-                Where-Object {$_ -match '^\s*(not ok [0-9]+|# (tests|pass|fail|cancelled|skipped|todo)|error:|message:|code:|failureType:|stack:|location:)' } |
-                Select-Object -Last 35)
-              foreach($line in $tap){
+              # Read-only, bounded TAP classification from the already-run
+              # focused suite. Never widen acceptance or replay test actions.
+              # No response bodies, credentials, environment or account data.
+              $tapLines=@(Get-Content -LiteralPath $log -ErrorAction SilentlyContinue |
+                Where-Object {$_ -match '^\s*(not ok [0-9]+|# (tests|pass|fail|cancelled|skipped|todo)|error:|message:|code:|failureType:|stack:)' } |
+                Select-Object -Last 50)
+              foreach($line in $tapLines){
                 $bounded=([string]$line).Trim()
-                if($bounded.Length -gt 220){$bounded=$bounded.Substring(0,220)}
-                Write-Host ('QFORGE_W238_MIDPOINT_TAP='+$bounded)
+                if($bounded.Length -gt 240){$bounded=$bounded.Substring(0,240)}
+                Write-Host ('QFORGE_W41_FOCUSED_FAILURE_TAP='+$bounded)
               }
-              # W239 diagnostic: the historical W190 commit deliberately
-              # removed the inert Replay button but an older W41 UI contract
-              # still demands it. Observe the authentic native W41 witness,
-              # without declaring focused tests/acceptance PASS.
-              $tapAll=@(Get-Content -LiteralPath $log -ErrorAction Stop)
-              $failRows=@($tapAll|Where-Object {$_.Trim() -match '^not ok [0-9]+ - '})
-              $replayError=@($tapAll|Where-Object {$_.Trim() -match "^error: 'preserve original operator control replayBtn'"})
-              $pass36=@($tapAll|Where-Object {$_.Trim() -eq '# pass 36'})
-              $fail1=@($tapAll|Where-Object {$_.Trim() -eq '# fail 1'})
-              $originalChart=[IO.File]::ReadAllText((Join-Path $p 'templates/chart.tmpl'))
-              $oldTest=[IO.File]::ReadAllText((Join-Path $p 'tests/rb3_w41_chart_viewport_persistence.test.cjs'))
-              Require ($failRows.Count -eq 1 -and
-                $failRows[0].Trim().StartsWith('not ok 26 - compact chart toolbar retains every action') -and
-                $replayError.Count -eq 1 -and $pass36.Count -eq 1 -and $fail1.Count -eq 1 -and
-                !$originalChart.Contains('id="replayBtn"') -and
-                $oldTest.Contains('preserve original operator control ')) 'W239_UNKNOWN_HISTORICAL_TEST_FAILURE_REFUSED'
-              $w239KnownHistoricalContractGap=$true
-              Write-Host 'W239_HISTORICAL_W190_REPLAY_BUTTON_TEST_STALE=EXPECTED_FAIL_1_OF_37'
+              throw 'QFORGE_WAILS_CHART_FOCUSED_TEST_FAILED'
             }
             # Repair witness-scope mismatch only. Preserve the immutable product
             # source and full original test semantics; adapt one frozen branch
@@ -958,16 +1003,119 @@ jobs:
             $adapter=Join-Path $p 'windows/Test-KTRADE-W41-QForge-Adapter.ps1'
             $blob=(& git rev-parse 'HEAD:windows/Test-KTRADE-W41-ColdReopen.ps1').Trim()
             $checkoutBlob=(& git hash-object -- $original).Trim()
-            Require ($blob -ceq 'ce5e41b2afcd073d238e96e45c98333dddba0a35' -and
+            Require ($blob -ceq '1c13a0aa9011d3c85ea08771b827b4ddf69a0f3d' -and
               $checkoutBlob -ceq $blob -and !(Test-Path -LiteralPath $adapter)) 'QFORGE_W41_ORIGINAL_FROZEN_SOURCE_REQUIRED'
             $text=[IO.File]::ReadAllText($original)
             $from='refs/heads/qualification/ktrade-pr252-w41-cold-viewport-20261107'
             $to='refs/heads/qualification/ktrade-ui-workstation-refresh-20261108'
             Require ($text.Split([string[]]@($from),[StringSplitOptions]::None).Count -eq 2 -and
               !$text.Contains($to)) 'QFORGE_W41_SINGLE_ALLOWLIST_REWRITE_REQUIRED'
-            $adapted=$text.Replace($from,$to)
-            Require ($adapted -cne $text -and
-              $adapted.Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_CHANGE_ALLOWED'
+            # Failure-only, read-only HTTP diagnostics in the existing W41
+            # disposable witness; immutable KTRADE source and pass criteria stay fixed.
+            $probeLine='   $parts=@((Read-Receipt $geom 52).Split('',''))'
+            Require ($text.Split([string[]]@($probeLine),[StringSplitOptions]::None).Count -eq 2) 'QFORGE_W41_PROBE_EXACT_INSERTION_ANCHOR_REQUIRED'
+            $probeBlock=@'
+                try{$parts=@((Read-Receipt $geom 52).Split(','))}
+                catch{
+                  # W226: inspect one diagnostic-only milestone from the original
+                  # disposable package root. Never change the frozen witness,
+                  # acceptance predicates, credentials, or user data.
+                  $observerLastStage='GO_NOT_STARTED'
+                  $observerFile=Join-Path $root 'w41-cold-observer.txt'
+                  if(Test-Path -LiteralPath $observerFile -PathType Leaf){
+                    try{
+                      $seen=([string](Get-Content -LiteralPath $observerFile -Raw)).Trim()
+                      if($seen -cmatch '^(GO_ACTIVE|POLL|FRAME|ORIGIN|HEAD|POST_LWC|POST_MONACO|POST_HEAD|BODY_OPEN|POST_MAIN_SCRIPT|POST_CATALOG_SCRIPT|F(0[1-9]|1[01])|POST_FOOTER|DOM|LOAD|REQUEST|ORIGIN_REJECTED|CONTEXT_WAIT|CTX_(NO_APP|NO_CHART|NO_DATASET|BAD_DATASET|NO_HISTORY|NOT_READY|NO_API|NO_PANE|NO_RANGE|READY_NO_REPLY|READ_ERROR))$'){
+                        $observerLastStage=$seen
+                      }else{$observerLastStage='INVALID_OBSERVER_STAGE'}
+                    }catch{$observerLastStage='UNREADABLE_OBSERVER'}
+                  }
+                  Write-Host ('W41_NATIVE_OBSERVER_LAST_STAGE='+$observerLastStage)
+                  # Classify original failure; emit bounded booleans, never response bodies.
+                  foreach($asset in @(
+                    @{label='CHART';path='/chart';mime='text/html';marker='w41_wails_cold_bridge.js'},
+                    @{label='COLD_BRIDGE';path='/static/w41_wails_cold_bridge.js';mime='javascript';marker='ktrade.w41.cold.reply.v1'},
+                    @{label='LWC';path='/static/vendor/lightweight-charts/lightweight-charts.standalone.production.js';mime='javascript';marker=''},
+                    @{label='MONACO';path='/static/vendor/monaco/vs/loader.js';mime='javascript';marker=''},
+                    @{label='DESIGN_CSS';path='/static/w95_design_system.css';mime='text/css';marker=''},
+                    @{label='FINISH_CSS';path='/static/workstation_finish.css';mime='text/css';marker=''}
+                  )){
+                    $status='REQUEST_FAILED';$mimeOk=$false;$markerOk=$false
+                    try{
+                      $response=Invoke-WebRequest -UseBasicParsing -Uri ($url+$asset.path) -TimeoutSec 5 -ErrorAction Stop
+                      $status=[string][int]$response.StatusCode
+                      $mimeOk=([string]$response.Headers['Content-Type']).Contains($asset.mime)
+                      $markerOk=(!$asset.marker -or ([string]$response.Content).Contains($asset.marker))
+                    }catch{}
+                    Write-Host ('W41_READONLY_HTTP_ASSET_DIAG name='+$asset.label+
+                      ';http='+$status+';mime_ok='+$mimeOk.ToString().ToLowerInvariant()+
+                      ';marker_ok='+$markerOk.ToString().ToLowerInvariant())
+                  }
+                  throw
+                }
+          '@
+            # W41 historically passed on this very Windows host family.
+            # Classify a missing HWND before touching chart/HTTP: do not
+            # override, synthesize, or widen the original acceptance predicate.
+            $windowLine="  Require `$windowReady 'W41_REAL_WAILS_WINDOW_MISSING'"
+            Require ($text.Split([string[]]@($windowLine),[StringSplitOptions]::None).Count -eq 2) 'QFORGE_W41_NATIVE_WINDOW_DIAG_ANCHOR_REQUIRED'
+            $windowProbe=@(
+              '  if(-not $windowReady){',
+              '   $process.Refresh()',
+              '   $alive=(-not $process.HasExited)',
+              '   $pr=Get-Process -Id $process.Id -ErrorAction SilentlyContinue',
+              '   $sid=if($pr){[int]$pr.SessionId}else{-1}',
+              '   $threads=if($pr){[int]$pr.Threads.Count}else{0}',
+              '   $handles=if($pr){[int]$pr.HandleCount}else{0}',
+              '   $kids=@(Get-CimInstance Win32_Process -Filter ("ParentProcessId="+$process.Id) -ErrorAction SilentlyContinue)',
+              '   $engines=@($kids|Where-Object {$_.Name -eq "ktrade-engine.exe"}).Count',
+              '   $wv=@(Get-Process -Name msedgewebview2 -ErrorAction SilentlyContinue).Count',
+              '   Write-Host ("W41_NATIVE_WINDOW_BOOT_DIAG alive="+$alive+";session="+$sid+";threads="+$threads+";handles="+$handles+";engine_children="+$engines+";webview_processes="+$wv)',
+              '   Write-Host ("W41_NATIVE_TOP_WINDOWS "+[KTradeW41TopWindow]::Diagnose($process.Id))',
+              '  }',
+              "  Require `$windowReady 'W41_REAL_WAILS_WINDOW_MISSING'"
+            ) -join [Environment]::NewLine
+            # The PowerShell Process.MainWindowHandle accessor can report
+            # zero on hosted Windows even when Wails, its Go child, and
+            # WebView2 are alive. Accept only ONE genuine visible top-level
+            # Win32 HWND, owned by this exact ktrade PID, with the known Wails
+            # title and large client rect; otherwise retain the hard failure.
+            $nl=if($text.Contains("`r`n")){"`r`n"}else{"`n"}
+            $nativeWinCs='using System; using System.Text; using System.Runtime.InteropServices; public static class KTradeW41TopWindow { public delegate bool EnumProc(IntPtr hwnd, IntPtr user); [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc callback, IntPtr user); [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr hwnd,out uint pid); [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr hwnd); [DllImport("user32.dll",CharSet=CharSet.Unicode)] static extern int GetWindowText(IntPtr hwnd,StringBuilder buffer,int capacity); [DllImport("user32.dll")] static extern bool GetClientRect(IntPtr hwnd,out Rect area); [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr hwnd,uint msg,IntPtr a,IntPtr b); [StructLayout(LayoutKind.Sequential)] struct Rect {public int Left,Top,Right,Bottom;} public static IntPtr Find(int ownerPid){ IntPtr winner=IntPtr.Zero;int count=0; EnumWindows((h,unused)=>{ uint pid=0;GetWindowThreadProcessId(h,out pid); if(pid!=(uint)ownerPid || !IsWindowVisible(h))return true; var title=new StringBuilder(256);GetWindowText(h,title,256); if(title.ToString()!="KTRADE — Portable PAPER (LIVE Disarmed)")return true; Rect area;if(!GetClientRect(h,out area)||area.Right-area.Left<500||area.Bottom-area.Top<350)return true; winner=h;count++;return true; },IntPtr.Zero); return count==1?winner:IntPtr.Zero; } public static string Diagnose(int ownerPid){ int owned=0,visible=0,titled=0,match=0,large=0; EnumWindows((h,unused)=>{ uint pid=0;GetWindowThreadProcessId(h,out pid);if(pid!=(uint)ownerPid)return true;owned++;var title=new StringBuilder(256);GetWindowText(h,title,256);if(title.Length>0)titled++;if(!IsWindowVisible(h))return true;visible++;if(title.ToString()!="KTRADE — Portable PAPER (LIVE Disarmed)")return true;match++;Rect area;if(GetClientRect(h,out area)&&area.Right-area.Left>=500&&area.Bottom-area.Top>=350)large++;return true;},IntPtr.Zero);return "owned="+owned+";visible="+visible+";titled="+titled+";matching="+match+";large="+large; } }'
+            $locator='Add-Type -TypeDefinition @'+[char]39+$nl+$nativeWinCs+$nl+[char]39+'@'+$nl
+            $nativeAnchor=[char]39+'@'+$nl+'try{'
+            Require ($text.Split([string[]]@($nativeAnchor),[StringSplitOptions]::None).Count -eq 2 -and
+              $text.Split([string[]]@('$process.MainWindowHandle'),[StringSplitOptions]::None).Count -eq 6) 'QFORGE_W41_NATIVE_ORIGINAL_PINS_REQUIRED'
+            $winInit='  $windowReady=$false'
+            $winInitAlt=$winInit+$nl+'  $verifiedW41Hwnd=[IntPtr]::Zero'
+            $winStart='   if($verifiedW41Hwnd -ne [IntPtr]::Zero){$windowReady=$true;break}'
+            $winStartAlt=@(
+              '   $w41Candidate=$process.MainWindowHandle',
+              '   if($w41Candidate -eq [IntPtr]::Zero){$w41Candidate=[KTradeW41TopWindow]::Find($process.Id)}',
+              '   if($w41Candidate -ne [IntPtr]::Zero){$verifiedW41Hwnd=$w41Candidate;$windowReady=$true;break}'
+            ) -join $nl
+            $winCloseOld="  Require (`$process.CloseMainWindow()) 'W41_NATIVE_WINDOW_CLOSE_REFUSED'"
+            $winCloseAlt=@(
+              '  if($process.MainWindowHandle -ne [IntPtr]::Zero){',
+              "   Require (`$process.CloseMainWindow()) 'W41_NATIVE_WINDOW_CLOSE_REFUSED'",
+              '  }else{',
+              '   Require ([KTradeW41TopWindow]::Find($process.Id) -eq $verifiedW41Hwnd) ''W41_VERIFIED_HWND_DRIFT''',
+              '   Require ([KTradeW41TopWindow]::PostMessage($verifiedW41Hwnd,0x10,[IntPtr]::Zero,[IntPtr]::Zero)) ''W41_VERIFIED_HWND_CLOSE_REFUSED''',
+              '  }'
+            ) -join $nl
+            $baseAdapter=$text.Replace($from,$to).Replace($probeLine,$probeBlock).Replace($windowLine,$windowProbe)
+            Require ($baseAdapter -cne $text -and
+              $baseAdapter.Replace($windowProbe,$windowLine).Replace($probeBlock,$probeLine).Replace($to,$from) -ceq $text) 'QFORGE_W41_ONLY_SCOPE_AND_DIAGNOSTIC_CHANGES_ALLOWED'
+            $adapted=$baseAdapter.Replace($nativeAnchor,[char]39+'@'+$nl+$locator+'try{')
+            $adapted=$adapted.Replace('$process.MainWindowHandle','$verifiedW41Hwnd')
+            Require ($adapted.Split([string[]]@($winStart),[StringSplitOptions]::None).Count -eq 2 -and
+              $adapted.Split([string[]]@($winInit),[StringSplitOptions]::None).Count -eq 2 -and
+              $adapted.Split([string[]]@($winCloseOld),[StringSplitOptions]::None).Count -eq 2) 'QFORGE_W41_NATIVE_ADAPTER_ANCHORS_REQUIRED'
+            $adapted=$adapted.Replace($winStart,$winStartAlt).Replace($winInit,$winInitAlt).Replace($winCloseOld,$winCloseAlt)
+            $reversed=$adapted.Replace($winCloseAlt,$winCloseOld).Replace($winInitAlt,$winInit).Replace($winStartAlt,$winStart)
+            $reversed=$reversed.Replace('$verifiedW41Hwnd','$process.MainWindowHandle')
+            $reversed=$reversed.Replace($locator+'try{','try{')
+            Require ($reversed -ceq $baseAdapter) 'QFORGE_W41_ONLY_VERIFIED_HWND_ADAPTER_DELTA_REQUIRED'
             try{
               [IO.File]::WriteAllText($adapter,$adapted,[Text.UTF8Encoding]::new($false))
               $tokens=$null;$parseErrors=$null
@@ -981,12 +1129,10 @@ jobs:
             }
             Require (!(Test-Path -LiteralPath $adapter) -and
               (& git hash-object -- $original).Trim() -ceq $blob) 'QFORGE_W41_ADAPTER_CLEANUP_OR_SOURCE_DRIFT'
-            Require $w239KnownHistoricalContractGap 'W239_DIAGNOSTIC_ONLY_REQUIRES_FOCUSED_TEST_FAILURE'
-            Write-Host 'W239_REAL_NATIVE_TWO_LAUNCH_WITNESS=OBSERVED_UNQUALIFIED'
+            Write-Host 'QFORGE_W41_REAL_TWO_LAUNCH_EXACT_PR253=PASS'
             Require ((& git rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
               @(& git status --porcelain --untracked-files=no).Count -eq 0) 'QFORGE_WAILS_SOURCE_CHANGED'
-            Write-Host ('W239_REAL_NATIVE_DIAGNOSTIC_UNQUALIFIED_SOURCE='+$env:KTRADE_EXPECTED_SOURCE)
-            throw 'W239_HISTORICAL_UI_CONTRACT_FAIL_PREVENTS_ACCEPTANCE'
+            Write-Host ('QFORGE_KTRADE_UI_REAL_WEBVIEW2_TWO_LAUNCHES=PASS;sha='+$env:KTRADE_EXPECTED_SOURCE)
           }finally{
             Pop-Location
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
