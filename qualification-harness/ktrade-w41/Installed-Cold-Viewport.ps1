@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='30a268ac657c6e823e424e4579df472c1eb931fd'
+$NewSHA='bc3ba97a17d55c251b6c52b7e22fac9a538f8ac9'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -788,6 +788,8 @@ function W250-ClassifyW28I([object]$shell){
   w256_amd_loader_ready=$false;
   w256_monaco_api_ready=$false;
   w256_pine_mount_ready=$false;
+  w257_monaco_callback_entered=$false;
+  w257_monaco_create_attempted=$false;
   scope='read_only_UIA_boolean_flags_disposable_native_Wails_only'
  }
  try{
@@ -823,6 +825,8 @@ function W250-ClassifyW28I([object]$shell){
         $s.w256_amd_loader_ready=$name.Contains(', AMD loader=ready,')
         $s.w256_monaco_api_ready=$name.Contains(', Monaco API=ready,')
         $s.w256_pine_mount_ready=$name.Contains(', Pine mount=ready')
+        $s.w257_monaco_callback_entered=$name.Contains(', callback=entered,')
+        $s.w257_monaco_create_attempted=$name.Contains(', create=attempted')
        }
      }
      elseif($name.StartsWith('Original chart did not answer verified request',
@@ -853,6 +857,8 @@ function W250-ClassifyW28I([object]$shell){
    amd_loader_ready=$s.w256_amd_loader_ready;
    monaco_api_ready=$s.w256_monaco_api_ready;
    pine_mount_ready=$s.w256_pine_mount_ready;
+   monaco_callback_entered=$s.w257_monaco_callback_entered;
+   monaco_create_attempted=$s.w257_monaco_create_attempted;
    release_qualified=$false;acceptance_override=$false;
    owner_data_used=$false;live_armed=$false;
    scope='read_only_original_UIA_boolean_categories_no_raw_text'
