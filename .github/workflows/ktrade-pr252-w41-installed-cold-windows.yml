@@ -1,4 +1,7 @@
 name: KTRADE W105 compact header native 200%-equivalent acceptance
+# W260: exact-source native W253 current four-drawing cold-restore qualification;
+# prior full installed W41 passed but obsolete W42 Close trendlines label failed.
+# No acceptance predicates are waived or changed by this selector.
 
 on:
   push:
