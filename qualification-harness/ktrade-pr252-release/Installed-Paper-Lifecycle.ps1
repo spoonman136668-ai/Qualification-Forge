@@ -321,7 +321,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
   # a visible indicator dialog from an unhandled native click before
   # interpreting a missing catalog category as a product feature failure.
   $dialogVisible=$false
-  try{$null=FindUI $shell 'Indicators, metrics, and strategies' $false 7;$dialogVisible=$true}catch{}
+  try{$null=FindUI $shell 'Indicators & strategies' $false 7;$dialogVisible=$true}catch{}
   $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
   $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
   $cats=@()
@@ -329,7 +329,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
     try{
       $name=[string]$item.Current.Name
       if($name -ceq 'Indicators' -or $name -ceq 'Technicals' -or
-         $name -ceq 'Indicators, metrics, and strategies' -or $name -ceq 'Search indicator catalog'){
+         $name -ceq 'Indicators & strategies' -or $name -ceq 'Search indicator catalog'){
         $cats+=@{name=$name;visible=(!$item.Current.IsOffscreen);enabled=$item.Current.IsEnabled;
           control_type=[string]$item.Current.ControlType.ProgrammaticName}
       }
@@ -408,7 +408,7 @@ function StartInstalled([string]$maintenance,[object]$receipt,[string]$phase){
         foreach($state in @('loading','history-verified','history-unavailable','record-unchecked','record-matched','record-unmatched','record-rejected','late-ranges-matched','late-price-drift','late-volume-drift')){
          if($name.EndsWith(('viewport:'+$state),[StringComparison]::Ordinal)){$diag.market_chart_state=$state;break}
         }
-       }elseif($name -ceq 'Indicators, metrics, and strategies'){
+       }elseif($name -ceq 'Indicators & strategies'){
         if(!$node.Current.IsOffscreen){$diag.catalog_modal_visible=$true}
        }elseif($name -ceq 'Apply Williams %R'){
         $diag.apply_button_found=$true
