@@ -1745,6 +1745,26 @@ function W253C-KeyboardRailReveal([object]$shell,[string]$name){
     $starter=$candidate;break
   }
  }catch{}}
+ if($null -eq $starter){
+  # W262: bounded read-only UIAutomation explanation for missing starter.
+  # No UIA action, focus modification, DOM access or acceptance waiver.
+  $buttons=0;$enabled=0;$offscreen=0;$geometric=0
+  foreach($candidate in $controls){try{
+   $v=$candidate.Current;$r=$v.BoundingRectangle
+   if($v.ControlType -ne [System.Windows.Automation.ControlType]::Button){continue}
+   $buttons++
+   if($v.IsEnabled){$enabled++}
+   if($v.IsOffscreen){$offscreen++}
+   if(!$r.IsEmpty -and $r.Width -ge 8 -and $r.Height -ge 8 -and
+    $r.Left -ge $bounds.Left -and $r.Right -le $bounds.Right -and
+    $r.Top -ge $bounds.Top+3 -and $r.Bottom -le $bounds.Bottom-3){$geometric++}
+  }catch{}}
+  Write-Host ('W262_NATIVE_RAIL_STARTER_DIAG='+(@{
+   source_sha=$NewSHA;uiA_buttons=$buttons;enabled=$enabled;
+   reported_offscreen=$offscreen;inside_rail=$geometric;
+   visible_usable=0;read_only=$true;live_armed=$false
+  }|ConvertTo-Json -Compress))
+ }
  Require ($null -ne $starter) 'W253C_KEYBOARD_NO_VISIBLE_START'
  $r=$starter.Current.BoundingRectangle
  [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
@@ -1819,6 +1839,23 @@ function W253C-RevealRailControl([object]$shell,[string]$name){
    }
   }catch{}}
   if($attempt -eq 24){
+   # W262: capture the real UIA flags behind the apparent in-rail rectangle.
+   # Count only the named target, never arbitrary owner text/values.
+   $targetFlags=@()
+   foreach($node in $nodes){try{
+    $v=$node.Current;$r=$v.BoundingRectangle
+    if($v.ControlType -ne [System.Windows.Automation.ControlType]::Button){continue}
+    $targetFlags+=@{enabled=[bool]$v.IsEnabled;
+     offscreen=[bool]$v.IsOffscreen;nonempty=(!$r.IsEmpty);
+     inside_x=(!$r.IsEmpty -and $r.Left -ge $scope.Left -and $r.Right -le $scope.Right);
+     inside_y=(!$r.IsEmpty -and $r.Top -ge $scope.Top+3 -and $r.Bottom -le $scope.Bottom-3);
+     min_size=(!$r.IsEmpty -and $r.Width -ge 8 -and $r.Height -ge 8)}
+    if($targetFlags.Count -ge 6){break}
+   }catch{}}
+   Write-Host ('W262_NATIVE_RAIL_TARGET_FLAGS='+(@{
+    source_sha=$NewSHA;label=$name;control_count=$targetFlags.Count;
+    controls=$targetFlags;read_only=$true;live_armed=$false
+   }|ConvertTo-Json -Compress -Depth 5))
    Write-Host ('W253C_NATIVE_RAIL_FAILED_GEOMETRY='+(@{
     label=$name;target_found=$found;target_empty=($null -eq $target -or $target.IsEmpty);
     target_top=if($null -eq $target){$null}else{[int]$target.Top};
