@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly,[switch]$NativeComparisonOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='078f872a4d5ba4144894429411d6b1022f7bec48'
@@ -2177,7 +2177,7 @@ function W285-FindMenu([object]$shell,[string]$label,[string]$type){
  throw ('W285_CONTROL_CLIPPED_'+$label.Replace(' ','_'))
 }
 function W285-Choose([object]$shell,[int]$ordinal){
- Require ($ordinal -cin @(0,3)) 'W285_MARKET_CHOICE_OUTSIDE_ALLOWLIST'
+ Require ($ordinal -cin @(0,3,4)) 'W285_MARKET_CHOICE_OUTSIDE_ALLOWLIST'
  W285-Click $shell (W285-FindMenu $shell 'Compare verified market performance' 'ComboBox') 'Compare verified market performance'
  W282-Key 0x24
  for($i=0;$i -lt $ordinal;$i++){W282-Key 0x28}
@@ -2315,6 +2315,59 @@ function W286-NativeDualChart([object]$installed,[object]$first){
  }finally{if($null -ne $run){W41-Stop $run}}
 }
 
+# W287: real native two-market percentage comparison; PAPER STOPPED only.
+function W287-Ink([object]$shell,[string]$phase){
+ $frame=MarkerCaptureChart $shell ('W287_'+$phase)
+ try{
+  $bmp=$frame.bitmap;$amber=0;$cyan=0;$samples=0
+  for($y=8;$y -lt ($bmp.Height-8);$y+=2){
+   for($x=8;$x -lt ($bmp.Width-12);$x+=2){
+    $p=$bmp.GetPixel($x,$y);$samples++
+    if([Math]::Abs([int]$p.R-255) -le 28 -and [Math]::Abs([int]$p.G-191) -le 28 -and [Math]::Abs([int]$p.B-131) -le 28){$amber++}
+    if([Math]::Abs([int]$p.R-19) -le 28 -and [Math]::Abs([int]$p.G-212) -le 28 -and [Math]::Abs([int]$p.B-212) -le 28){$cyan++}
+   }
+  }
+  return [pscustomobject]@{amber=$amber;cyan=$cyan;samples=$samples;width=$bmp.Width;height=$bmp.Height}
+ }finally{$frame.bitmap.Dispose()}
+}
+function W287-NativeComparison([object]$installed,[object]$first){
+ $run=$first
+ try{
+  $shell=$run.shell
+  $null=W41-WaitColdAxis $shell
+  ClickUI $shell '1h'
+  Start-Sleep -Milliseconds 1400
+  $original=W41-Candles $run.origin
+  Require ($original.count -ge 30) 'W287_PRIMARY_HISTORY_UNAVAILABLE'
+  $before=W287-Ink $shell 'SOURCE'
+  W285-Toggle $shell $true
+  W285-Choose $shell 4
+  $shown=FindUI $shell 'Historical BTC-USD vs ETH-USD ·' $false 25
+  Require (!$shown.Current.IsOffscreen -and
+   $shown.Current.Name -cmatch '^Historical BTC-USD vs ETH-USD · [0-9]+ matched closes · [0-9]+ gaps omitted · not live$') 'W287_VERIFIED_TWO_MARKET_COMPARISON_NOT_OBSERVED'
+  $overlay=W287-Ink $shell 'TWO_MARKETS'
+  Write-Host ('W287_NATIVE_COMPARISON_INK='+(@{before=$before;after=$overlay;scope='native_original_price_canvas_no_image_export';owner_data_read=$false;live_armed=$false}|ConvertTo-Json -Compress -Depth 5))
+  Require ($overlay.samples -ge 20000 -and $overlay.width -eq $before.width -and
+   $overlay.height -eq $before.height -and
+   ($overlay.amber-$before.amber) -ge 12 -and ($overlay.cyan-$before.cyan) -ge 12) 'W287_TWO_COMPARISON_COLORS_NOT_PAINTED'
+  W285-Choose $shell 0
+  $null=FindUI $shell 'Comparison off · time charts only' $false 10
+  $off=W287-Ink $shell 'OFF'
+  Require (($overlay.amber-$off.amber) -ge 10) 'W287_COMPARISON_OVERLAY_NOT_REMOVED'
+  $final=W41-Candles $run.origin
+  Require ($final.history -ceq $original.history -and $final.count -eq $original.count) 'W287_ORIGINAL_CANDLES_MUTATED'
+  W285-Toggle $shell $false
+  W41-Stop $run;$run=$null
+  $run=W41-Start $installed.candidate_directory
+  W285-Toggle $run.shell $true
+  $null=FindUI $run.shell 'Comparison off · time charts only' $false 10
+  $cap=Invoke-RestMethod -Method GET -Uri ($run.origin+'/api/operator/capabilities') -TimeoutSec 10
+  Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and $cap.live_orders_enabled -eq $false) 'W287_DISARMED_AUTHORITY_CHANGED'
+  Write-Host ('W287_NATIVE_BTC_ETH_OVERLAY_AND_COLD_OFF=PASS;sha='+$NewSHA+
+   ';mouse_keyboard=true;original_candles_preserved=true;real_OS_DPI=UNVERIFIED;live_armed=false')
+ }finally{if($null -ne $run){W41-Stop $run}}
+}
+
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -2332,6 +2385,11 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ if($NativeComparisonOnly){
+  $current=$active;$active=$null
+  W287-NativeComparison $installed $current
+  return
+ }
  if($NativeDualChartOnly){
   $current=$active;$active=$null
   W286-NativeDualChart $installed $current
