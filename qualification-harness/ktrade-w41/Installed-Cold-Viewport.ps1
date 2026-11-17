@@ -1726,12 +1726,23 @@ function W253C-TypeDeletionPhrase([object]$shell){
 # Genuine Windows keyboard accessibility fallback for a rail item omitted
 # from UIA when offscreen. No UIA Invoke/SetFocus, DOM, JS or hidden click.
 # This is a *separate* input path; wheel exhaustion remains recorded.
+# W263: use a bounded native-window left corridor when UIA's
+# nav-parent horizontal rectangle differs from the visibly rendered rail.
+# Exact-name, enabled, on-screen, vertical clipping and physical input remain.
+function W253C-ValidLeftRailX([object]$window,[object]$rail,[object]$rect){
+ if($rect.IsEmpty -or $window.IsEmpty -or $rail.IsEmpty){return $false}
+ $width=[Math]::Min(160,[Math]::Max(88,$rail.Width+48))
+ return ($rail.Left -ge $window.Left -and $rail.Right -le $window.Right -and
+  $rect.Left -ge ($window.Left+2) -and
+  $rect.Right -le ($window.Left+$width) -and $rect.Right -le $window.Right)
+}
 function W253C-KeyboardRailReveal([object]$shell,[string]$name){
  $shell.Refresh()
  Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W253C_KEYBOARD_SHELL_MISSING'
  $nav=FindUI $shell 'Drawing tools' $false 7
  $bounds=$nav.Current.BoundingRectangle
  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $window=$root.Current.BoundingRectangle
  $controls=$nav.FindAll([System.Windows.Automation.TreeScope]::Descendants,
   [System.Windows.Automation.Condition]::TrueCondition)
  $starter=$null
@@ -1740,7 +1751,7 @@ function W253C-KeyboardRailReveal([object]$shell,[string]$name){
   if($v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
    !$v.IsOffscreen -and $v.IsEnabled -and !$r.IsEmpty -and
    $r.Width -ge 8 -and $r.Height -ge 8 -and
-   $r.Left -ge $bounds.Left -and $r.Right -le $bounds.Right -and
+   (W253C-ValidLeftRailX $window $bounds $r) -and
    $r.Top -ge $bounds.Top+3 -and $r.Bottom -le $bounds.Bottom-3){
     $starter=$candidate;break
   }
@@ -1756,7 +1767,7 @@ function W253C-KeyboardRailReveal([object]$shell,[string]$name){
    if($v.IsEnabled){$enabled++}
    if($v.IsOffscreen){$offscreen++}
    if(!$r.IsEmpty -and $r.Width -ge 8 -and $r.Height -ge 8 -and
-    $r.Left -ge $bounds.Left -and $r.Right -le $bounds.Right -and
+    (W253C-ValidLeftRailX $window $bounds $r) -and
     $r.Top -ge $bounds.Top+3 -and $r.Bottom -le $bounds.Bottom-3){$geometric++}
   }catch{}}
   Write-Host ('W262_NATIVE_RAIL_STARTER_DIAG='+(@{
@@ -1778,6 +1789,7 @@ function W253C-KeyboardRailReveal([object]$shell,[string]$name){
   $nav=FindUI $shell 'Drawing tools' $false 5
   $b=$nav.Current.BoundingRectangle
   $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $window=$root.Current.BoundingRectangle
   $filter=[System.Windows.Automation.PropertyCondition]::new(
    [System.Windows.Automation.AutomationElement]::NameProperty,$name)
   $targets=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,$filter)
@@ -1786,7 +1798,7 @@ function W253C-KeyboardRailReveal([object]$shell,[string]$name){
    if($v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
     !$v.IsOffscreen -and $v.IsEnabled -and !$q.IsEmpty -and
     $q.Width -ge 8 -and $q.Height -ge 8 -and
-    $q.Left -ge $b.Left -and $q.Right -le $b.Right -and
+    (W253C-ValidLeftRailX $window $b $q) -and
     $q.Top -ge $b.Top+3 -and $q.Bottom -le $b.Bottom-3){
     Write-Host ('W253C_NATIVE_RAIL_KEYBOARD_ACCESS='+(@{
      label=$name;native_tab_steps=$i;source_sha=$NewSHA;
@@ -1830,11 +1842,11 @@ function W253C-RevealRailControl([object]$shell,[string]$name){
    $found=$true;$target=$rect
    if(!$v.IsOffscreen -and $v.IsEnabled -and !$rect.IsEmpty -and
     $rect.Width -ge 8 -and $rect.Height -ge 8 -and
-    $rect.Left -ge $scope.Left -and $rect.Right -le $scope.Right -and
+    (W253C-ValidLeftRailX $window $scope $rect) -and
     $rect.Top -ge $scope.Top+3 -and $rect.Bottom -le $scope.Bottom-3){
      Write-Host ('W253C_NATIVE_RAIL_CONTROL_VISIBLE='+(@{label=$name;
       real_wheel_steps=$attempt;source_sha=$NewSHA;inside_rail=$true;
-      input='Win32_vertical_wheel';live_armed=$false}|ConvertTo-Json -Compress))
+      input='Win32_vertical_wheel';x_scope='owned_window_left_bounded';live_armed=$false}|ConvertTo-Json -Compress))
      return
    }
   }catch{}}
