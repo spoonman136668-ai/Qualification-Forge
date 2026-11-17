@@ -2347,12 +2347,12 @@ try{
  # After W41 success, physical two-click annotation interaction and cold storage.
  W100-OpenDrawings $active.shell
  W42-ExpectedShapeActions $active.shell @() 'EMPTY_FRESH_INSTALL'
- ClickUI $active.shell 'Close trendlines'
+ ClickUI $active.shell 'Close drawings'
  W42-DrawNative $active.shell 'Draw rectangle zone' 0.30 0.31 0.55 0.58
  W42-DrawNative $active.shell 'Draw Fibonacci retracement' 0.39 0.64 0.71 0.27
  W100-OpenDrawings $active.shell
  W42-ExpectedShapeActions $active.shell @('Remove rect drawing 1','Remove fib drawing 2') 'AFTER_PHYSICAL_TWO_CLICK_DRAWINGS'
- ClickUI $active.shell 'Close trendlines'
+ ClickUI $active.shell 'Close drawings'
  W41-SpectrumVisual $active.shell
  W41-Stop $active;$active=$null
  $active=W41-Start $installed.candidate_directory
@@ -2362,16 +2362,16 @@ try{
  W42-ExpectedShapeActions $active.shell @('Remove fib drawing 2') 'RECT_REMOVED_FIB_PRESERVED'
  ClickUI $active.shell 'Remove fib drawing 2'
  W42-ExpectedShapeActions $active.shell @() 'BOTH_DRAWINGS_REMOVED'
- ClickUI $active.shell 'Close trendlines'
+ ClickUI $active.shell 'Close drawings'
  Write-Host '::notice::W42_REAL_NATIVE_RECT_FIB_DRAW_REOPEN_REMOVE=PASS'
  W100-OpenDrawings $active.shell
  W100-ExpectVertical $active.shell @() 'FRESH_NAMESPACE_EMPTY'
- ClickUI $active.shell 'Close trendlines'
+ ClickUI $active.shell 'Close drawings'
  ClickUI $active.shell 'Draw vertical line'
  W42-ShapeClick $active.shell 0.42 0.42
  W100-OpenDrawings $active.shell
  W100-ExpectVertical $active.shell @('Remove vertical line 1') 'PHYSICAL_ONE_CLICK_SAVED'
- ClickUI $active.shell 'Close trendlines'
+ ClickUI $active.shell 'Close drawings'
  W41-SpectrumVisual $active.shell
  W41-Stop $active;$active=$null
  $active=W41-Start $installed.candidate_directory
@@ -2379,7 +2379,7 @@ try{
  W100-ExpectVertical $active.shell @('Remove vertical line 1') 'COLD_REOPEN_PRESERVED'
  ClickUI $active.shell 'Remove vertical line 1'
  W100-ExpectVertical $active.shell @() 'DELETED'
- ClickUI $active.shell 'Close trendlines'
+ ClickUI $active.shell 'Close drawings'
  Write-Host '::notice::W100_NATIVE_VERTICAL_COLD_REOPEN_DELETE=PASS'
  W101-RealRangeButtons $active.shell
  W102-RealZoom $active.shell
