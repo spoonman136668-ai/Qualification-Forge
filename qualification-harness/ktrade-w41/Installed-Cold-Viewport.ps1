@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='13ebb11e130cd025d57b5d36e0693dc22947ec70'
+$NewSHA='f74e453ee84abcb1bc5c85c74914f90d141174be'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -767,6 +767,10 @@ function W250-ClassifyW28I([object]$shell){
   chart_frame_navigation_done=$false;
   chart_frame_loading_notice=$false;
   verified_parent_reply_missing_controls=$false;
+  missing_chart_canvas=$false;
+  missing_editor_mount=$false;
+  missing_monaco_editor=$false;
+  missing_preferences_controls=$false;
   verified_parent_reply_timeout=$false;
   parent_frame_message_failed=$false;
   parent_identity_unavailable=$false;
@@ -797,7 +801,15 @@ function W250-ClassifyW28I([object]$shell){
      elseif($name.StartsWith('Loading original chart from verified loopback',
          [StringComparison]::Ordinal)){$s.chart_frame_loading_notice=$true}
      elseif($name.StartsWith('Chart not fully ready:',
-         [StringComparison]::Ordinal)){$s.verified_parent_reply_missing_controls=$true}
+         [StringComparison]::Ordinal)){
+       $s.verified_parent_reply_missing_controls=$true
+       if($name.Contains('Missing checks: ')){
+        $s.missing_chart_canvas=$name.Contains('chart canvas')
+        $s.missing_editor_mount=$name.Contains('editor mount')
+        $s.missing_monaco_editor=$name.Contains('Monaco editor')
+        $s.missing_preferences_controls=$name.Contains('preferences controls')
+       }
+     }
      elseif($name.StartsWith('Original chart did not answer verified request',
          [StringComparison]::Ordinal)){$s.verified_parent_reply_timeout=$true}
      elseif($name.StartsWith('Chart frame message failed',
