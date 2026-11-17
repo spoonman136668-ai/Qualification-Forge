@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='078f872a4d5ba4144894429411d6b1022f7bec48'
@@ -2118,6 +2118,106 @@ function W282-NativeChartControls([object]$run){
  }finally{W41-Stop $run}
 }
 
+# W285 native Workspace acceptance in disposable Windows Wails only.
+function W285-Click([object]$shell,[object]$n,[string]$label){
+ Require ($n.Current.Name -ceq $label -and !$n.Current.IsOffscreen -and
+  $n.Current.IsEnabled) 'W285_WRONG_OR_HIDDEN_CONTROL'
+ $r=$n.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$r.IsEmpty -and $r.Width -ge 9 -and $r.Height -ge 9 -and
+  $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W285_CLICK_OUTSIDE_OWNED_WINDOW'
+ [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+ Start-Sleep -Milliseconds 160
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W285_FOREGROUND_LOST'
+ Require ([W83Native]::SetCursorPos([int]($r.Left+$r.Width/2),
+  [int]($r.Top+$r.Height/2))) 'W285_POINTER_REFUSED'
+ [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 300
+}
+function W285-Toggle([object]$shell,[bool]$open){
+ $summary=FindUI $shell 'Open workspace actions' $false 9
+ W285-Click $shell $summary 'Open workspace actions'
+ if($open){
+  $pane=FindUI $shell 'Workspace actions' $false 10
+  Require ($pane.Current.Name -ceq 'Workspace actions' -and
+   !$pane.Current.IsOffscreen) 'W285_WORKSPACE_NOT_OPEN'
+ }
+}
+function W285-FindMenu([object]$shell,[string]$label,[string]$type){
+ Require ($label -cin @('Save view','Restore view','Compare verified market performance') -and
+  $type -cin @('Button','ComboBox')) 'W285_MENU_UNALLOWLISTED'
+ $pane=FindUI $shell 'Workspace actions' $false 9
+ $box=$pane.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$box.IsEmpty -and $box.Width -gt 100 -and $box.Height -gt 75 -and
+  $box.Left -ge $outer.Left -and $box.Right -le $outer.Right -and
+  $box.Top -ge $outer.Top -and $box.Bottom -le $outer.Bottom) 'W285_MENU_GEOMETRY'
+ $down=[BitConverter]::ToUInt32([BitConverter]::GetBytes([int]-120),0)
+ for($i=0;$i -le 14;$i++){
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  foreach($n in $nodes){try{
+   if($n.Current.Name -cne $label -or $n.Current.IsOffscreen -or !$n.Current.IsEnabled -or
+    $n.Current.ControlType.ProgrammaticName -cne ('ControlType.'+$type)){continue}
+   $r=$n.Current.BoundingRectangle
+   if(!$r.IsEmpty -and $r.Width -gt 8 -and $r.Height -gt 14 -and
+    $r.Left -ge $box.Left -and $r.Right -le $box.Right -and
+    $r.Top -ge $box.Top+1 -and $r.Bottom -le $box.Bottom-1){return $n}
+  }catch{}}
+  [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+  Require ([W83Native]::SetCursorPos([int]($box.Left+$box.Width*.52),
+   [int]($box.Top+$box.Height*.55))) 'W285_SCROLL_MOUSE_REFUSED'
+  [W83Native]::mouse_event(0x0800,0,0,$down,[UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 230
+ }
+ throw ('W285_CONTROL_CLIPPED_'+$label.Replace(' ','_'))
+}
+function W285-Choose([object]$shell,[int]$ordinal){
+ Require ($ordinal -cin @(0,3)) 'W285_MARKET_CHOICE_OUTSIDE_ALLOWLIST'
+ W285-Click $shell (W285-FindMenu $shell 'Compare verified market performance' 'ComboBox') 'Compare verified market performance'
+ W282-Key 0x24
+ for($i=0;$i -lt $ordinal;$i++){W282-Key 0x28}
+ W282-Key 0x0D
+ Start-Sleep -Milliseconds 420
+}
+function W285-Trial([object]$installed,[object]$first){
+ $run=$first
+ try{
+  $shell=$run.shell
+  $null=W41-WaitColdAxis $shell
+  ClickUI $shell '1h'
+  Start-Sleep -Milliseconds 1250
+  Require ((W41-Candles $run.origin).count -ge 30) 'W285_MISSING_SOURCE'
+  W285-Toggle $shell $true
+  W285-Click $shell (W285-FindMenu $shell 'Save view' 'Button') 'Save view'
+  $null=FindUI $shell 'View 1 saved · presentation only' $false 8
+  W285-Choose $shell 3
+  $null=FindUI $shell 'Choose a different supported market' $false 8
+  W285-Choose $shell 0
+  $null=FindUI $shell 'Comparison off · time charts only' $false 8
+  W285-Toggle $shell $false
+  W282-ChooseNativeSelect $shell 'Price chart style' 2 'Close line · source OHLC retained'
+  W285-Toggle $shell $true
+  W285-Click $shell (W285-FindMenu $shell 'Restore view' 'Button') 'Restore view'
+  $null=FindUI $shell 'View 1 restored for this session' $false 8
+  W285-Toggle $shell $false
+  $null=FindUI $shell 'Original OHLC candles' $false 8
+  W41-Stop $run;$run=$null
+  $run=W41-Start $installed.candidate_directory
+  W285-Toggle $run.shell $true
+  W285-Click $run.shell (W285-FindMenu $run.shell 'Restore view' 'Button') 'Restore view'
+  $null=FindUI $run.shell 'View 1 restored for this session' $false 8
+  $cap=Invoke-RestMethod -Uri ($run.origin+'/api/operator/capabilities') -TimeoutSec 10
+  Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and
+   $cap.live_orders_enabled -eq $false) 'W285_TRADING_AUTHORITY_CHANGED'
+  Write-Host ('W285_NATIVE_WORKSPACE_SAVE_RESTORE_SELF_COMPARE=PASS;sha='+$NewSHA+
+   ';native_mouse_keyboard=true;cold_restore=true;real_OS_DPI=UNVERIFIED;owner_data_read=false;live_armed=false')
+ }finally{if($null -ne $run){W41-Stop $run}}
+}
+
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -2135,6 +2235,11 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ if($NativeWorkspaceOnly){
+  $current=$active;$active=$null
+  W285-Trial $installed $current
+  return
+ }
  if($NativeAdvancedChartOnly){
   $current=$active
   $active=$null
