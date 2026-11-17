@@ -790,6 +790,7 @@ function W250-ClassifyW28I([object]$shell){
   w256_pine_mount_ready=$false;
   w257_monaco_callback_entered=$false;
   w257_monaco_create_attempted=$false;
+  w258_monaco_phase='unavailable';
   scope='read_only_UIA_boolean_flags_disposable_native_Wails_only'
  }
  try{
@@ -827,6 +828,12 @@ function W250-ClassifyW28I([object]$shell){
         $s.w256_pine_mount_ready=$name.Contains(', Pine mount=ready')
         $s.w257_monaco_callback_entered=$name.Contains(', callback=entered,')
         $s.w257_monaco_create_attempted=$name.Contains(', create=attempted')
+        # W258: only exact predeclared categories from the authenticated
+        # negative W28I response. Never log raw UI text or exceptions.
+        foreach($phase in @('languages','register','tokens','configuration',
+            'theme','create','ready','unavailable')){
+         if($name.Contains(', phase='+$phase)){$s.w258_monaco_phase=$phase;break}
+        }
        }
      }
      elseif($name.StartsWith('Original chart did not answer verified request',
@@ -864,6 +871,14 @@ function W250-ClassifyW28I([object]$shell){
    scope='read_only_original_UIA_boolean_categories_no_raw_text'
   }
   Write-Host ('W256_MONACO_RUNTIME_READONLY_DIAGNOSTIC='+($r|ConvertTo-Json -Compress))
+  $p=[ordered]@{
+   schema='ktrade.w258.installed-monaco-stage.v1';
+   phase=$s.w258_monaco_phase;
+   diagnostic_only=$true;release_qualified=$false;acceptance_override=$false;
+   owner_data_used=$false;live_armed=$false;
+   scope='authenticated_UIA_fixed_enum_no_original_text'
+  }
+  Write-Host ('W258_MONACO_PHASE_READONLY_DIAGNOSTIC='+($p|ConvertTo-Json -Compress))
  }
  # W254: failed original Monaco-readiness receipt, read-only localhost
  # asset classification. Never request user data, executable endpoints,
