@@ -783,6 +783,11 @@ function W250-ClassifyW28I([object]$shell){
   chart_verify_button_seen=$false;
   owner_data_used=$false;live_armed=$false;
   acceptance_override=$false;
+  w256_runtime_diagnostic_seen=$false;
+  w256_chart_engine_ready=$false;
+  w256_amd_loader_ready=$false;
+  w256_monaco_api_ready=$false;
+  w256_pine_mount_ready=$false;
   scope='read_only_UIA_boolean_flags_disposable_native_Wails_only'
  }
  try{
@@ -809,6 +814,16 @@ function W250-ClassifyW28I([object]$shell){
         $s.missing_monaco_editor=$name.Contains('Monaco editor')
         $s.missing_preferences_controls=$name.Contains('preferences controls')
        }
+       # W256: read only the four strictly bounded runtime booleans which
+       # came through the original W28I child nonce/origin-verified negative
+       # response. Never treat these as positive chart/UI acceptance.
+       if($name.Contains(' Runtime: chart=')){
+        $s.w256_runtime_diagnostic_seen=$true
+        $s.w256_chart_engine_ready=$name.Contains(' Runtime: chart=ready,')
+        $s.w256_amd_loader_ready=$name.Contains(', AMD loader=ready,')
+        $s.w256_monaco_api_ready=$name.Contains(', Monaco API=ready,')
+        $s.w256_pine_mount_ready=$name.Contains(', Pine mount=ready')
+       }
      }
      elseif($name.StartsWith('Original chart did not answer verified request',
          [StringComparison]::Ordinal)){$s.verified_parent_reply_timeout=$true}
@@ -830,6 +845,20 @@ function W250-ClassifyW28I([object]$shell){
   }
  }catch{}
  Write-Host ('W250_INSTALLED_W28I_PARENT_CLASSIFICATION='+($s|ConvertTo-Json -Compress))
+ if($s.verified_parent_reply_missing_controls -and $s.missing_monaco_editor){
+  $r=[ordered]@{
+   schema='ktrade.w256.installed-runtime-categoricals.v1';
+   diagnostic_seen=$s.w256_runtime_diagnostic_seen;
+   chart_engine_ready=$s.w256_chart_engine_ready;
+   amd_loader_ready=$s.w256_amd_loader_ready;
+   monaco_api_ready=$s.w256_monaco_api_ready;
+   pine_mount_ready=$s.w256_pine_mount_ready;
+   release_qualified=$false;acceptance_override=$false;
+   owner_data_used=$false;live_armed=$false;
+   scope='read_only_original_UIA_boolean_categories_no_raw_text'
+  }
+  Write-Host ('W256_MONACO_RUNTIME_READONLY_DIAGNOSTIC='+($r|ConvertTo-Json -Compress))
+ }
  # W254: failed original Monaco-readiness receipt, read-only localhost
  # asset classification. Never request user data, executable endpoints,
  # account routes or payloads. This cannot change the positive UIA gate.
