@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='078f872a4d5ba4144894429411d6b1022f7bec48'
@@ -2146,7 +2146,8 @@ function W285-Toggle([object]$shell,[bool]$open){
  }
 }
 function W285-FindMenu([object]$shell,[string]$label,[string]$type){
- Require ($label -cin @('Save view','Restore view','Compare verified market performance') -and
+ Require ($label -cin @('Save view','Restore view','Compare verified market performance',
+  'Open second read-only price chart','Close second price chart','Secondary chart market') -and
   $type -cin @('Button','ComboBox')) 'W285_MENU_UNALLOWLISTED'
  $pane=FindUI $shell 'Workspace actions' $false 9
  $box=$pane.Current.BoundingRectangle
@@ -2218,6 +2219,102 @@ function W285-Trial([object]$installed,[object]$first){
  }finally{if($null -ne $run){W41-Stop $run}}
 }
 
+# W286: actual independent secondary market render, not source-metadata-only proof.
+# No JS injection, CDP, broker reads, trading, owner profile, or screen export.
+function W286-SecondPixelWitness([object]$shell){
+ $surface=FindUI $shell 'Secondary verified market price chart' $false 12
+ $r=$surface.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$r.IsEmpty -and !$surface.Current.IsOffscreen -and
+  $r.Width -ge 160 -and $r.Height -ge 110 -and
+  $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W286_SECONDARY_CHART_NOT_VISIBLE_IN_NATIVE_WINDOW'
+ $rect=[System.Drawing.Rectangle]::new([int][Math]::Ceiling($r.Left),
+  [int][Math]::Ceiling($r.Top),[int][Math]::Floor($r.Width),
+  [int][Math]::Floor($r.Height))
+ Require ($rect.Width -ge 160 -and $rect.Height -ge 110 -and
+  $rect.Width -le 1920 -and $rect.Height -le 1440) 'W286_CHART_CROP_OUT_OF_SCOPE'
+ $bitmap=[System.Drawing.Bitmap]::new($rect.Width,$rect.Height,
+  [System.Drawing.Imaging.PixelFormat]::Format24bppRgb)
+ try{
+  $draw=[System.Drawing.Graphics]::FromImage($bitmap)
+  try{$draw.CopyFromScreen($rect.Location,[System.Drawing.Point]::Empty,$rect.Size)}
+  finally{$draw.Dispose()}
+  $candleInk=0;$sampled=0
+  for($y=6;$y -lt ($bitmap.Height-6);$y+=2){
+   for($x=6;$x -lt ($bitmap.Width-6);$x+=2){
+    $c=$bitmap.GetPixel($x,$y);$sampled++
+    $up=([Math]::Abs([int]$c.R-57) -le 24 -and
+     [Math]::Abs([int]$c.G-186) -le 24 -and
+     [Math]::Abs([int]$c.B-152) -le 24)
+    $down=([Math]::Abs([int]$c.R-240) -le 24 -and
+     [Math]::Abs([int]$c.G-110) -le 24 -and
+     [Math]::Abs([int]$c.B-131) -le 24)
+    if($up -or $down){$candleInk++}
+   }
+  }
+  Write-Host ('W286_SECONDARY_REAL_PLOT_CANDLE_INK='+(@{
+   samples=$sampled;candle_pixels=$candleInk;
+   scope='test_owned_native_second_chart_screenshot_only_not_exported';
+   expected_colors='original_W272_green_and_red';owner_data_read=$false;
+   live_armed=$false}|ConvertTo-Json -Compress))
+  Require ($sampled -ge 3500 -and $candleInk -ge 18) 'W286_SECONDARY_NATIVE_CANDLE_PIXELS_NOT_PROVEN'
+ }finally{$bitmap.Dispose()}
+}
+function W286-NativeDualChart([object]$installed,[object]$first){
+ $run=$first
+ try{
+  $shell=$run.shell
+  $null=W41-WaitColdAxis $shell
+  ClickUI $shell '1h'
+  Start-Sleep -Milliseconds 1100
+  $primary=W41-Candles $run.origin
+  Require ($primary.count -ge 30) 'W286_PRIMARY_PUBLIC_CANDLES_MISSING'
+  # Check independently delivered secondary source identity before native view.
+  $response=Invoke-RestMethod -Method GET -Uri ($run.origin+'/api/candles?product=ETH-USD&tf=1h') -TimeoutSec 25
+  $rows=@($response.candles)
+  Require ($response.success -eq $true -and
+   $response.source -ceq 'coinbase_advanced_public_rest' -and
+   $response.finalized -eq $true -and $response.stale -eq $false -and
+   $rows.Count -ge 20 -and
+   @($rows|Where-Object {$_.product_id -cne 'ETH-USD'}).Count -eq 0) 'W286_INDEPENDENT_ETH_SOURCE_UNVERIFIED'
+  W285-Toggle $shell $true
+  $sel=W285-FindMenu $shell 'Secondary chart market' 'ComboBox'
+  W285-Click $shell $sel 'Secondary chart market'
+  W282-Key 0x24
+  for($n=0;$n -lt 3;$n++){W282-Key 0x28}
+  W282-Key 0x0D
+  Start-Sleep -Milliseconds 380
+  $toggle=W285-FindMenu $shell 'Open second read-only price chart' 'Button'
+  W285-Click $shell $toggle 'Open second read-only price chart'
+  W285-Toggle $shell $false
+  $status=FindUI $shell 'VERIFIED · ETH-USD · 1h ·' $false 24
+  Require ($status.Current.Name -cmatch 'VERIFIED · ETH-USD · 1h · [0-9]+ finalized bars' -and
+   !$status.Current.IsOffscreen) 'W286_NATIVE_INDEPENDENT_MARKET_NOT_VERIFIED'
+  W286-SecondPixelWitness $shell
+  $after=W41-Candles $run.origin
+  Require ($after.history -ceq $primary.history -and
+   $after.count -eq $primary.count) 'W286_SECONDARY_MUTATED_PRIMARY_HISTORY'
+  $cap=Invoke-RestMethod -Method GET -Uri ($run.origin+'/api/operator/capabilities') -TimeoutSec 10
+  Require ($cap.mode -ceq 'PAPER_STOPPED' -and
+   $cap.paper_orders_enabled -eq $false -and $cap.live_orders_enabled -eq $false) 'W286_NATIVE_SECONDARY_CHANGED_AUTHORITY'
+  W285-Toggle $shell $true
+  $close=W285-FindMenu $shell 'Close second price chart' 'Button'
+  W285-Click $shell $close 'Close second price chart'
+  W285-Toggle $shell $false
+  $null=FindUI $shell 'Price chart drawing surface' $false 10
+  W41-Stop $run;$run=$null
+  $run=W41-Start $installed.candidate_directory
+  W285-Toggle $run.shell $true
+  $null=W285-FindMenu $run.shell 'Open second read-only price chart' 'Button'
+  $coldCap=Invoke-RestMethod -Method GET -Uri ($run.origin+'/api/operator/capabilities') -TimeoutSec 10
+  Require ($coldCap.mode -ceq 'PAPER_STOPPED' -and
+   $coldCap.paper_orders_enabled -eq $false -and $coldCap.live_orders_enabled -eq $false) 'W286_SECONDARY_COLD_CHANGED_AUTHORITY'
+  Write-Host ('W286_NATIVE_INDEPENDENT_ETH_SECONDARY_RENDER_AND_COLD_OFF=PASS;sha='+$NewSHA+
+   ';physical_mouse_keyboard=true;source_product_bound=true;second_plot_pixels=true;primary_immutable=true;real_OS_DPI=UNVERIFIED;owner_data_read=false;live_armed=false')
+ }finally{if($null -ne $run){W41-Stop $run}}
+}
+
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -2235,6 +2332,11 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ if($NativeDualChartOnly){
+  $current=$active;$active=$null
+  W286-NativeDualChart $installed $current
+  return
+ }
  if($NativeWorkspaceOnly){
   $current=$active;$active=$null
   W285-Trial $installed $current
