@@ -93,7 +93,23 @@ function FindUI([object]$shell,[string]$label,[bool]$isButton,[int]$seconds=35){
  $until=(Get-Date).AddSeconds($seconds)
  do{
   $shell.Refresh()
-  Require (!$shell.HasExited) 'W83_SHELL_EXITED_BEFORE_UI_READY'
+  if($shell.HasExited){
+   # W249 read-only witness. The failing W247 attempt exited on
+   # PREVIOUS historical installed process, before candidate execution.
+   # Preserve the identical hard-refusal code and native UIA predicates.
+   Write-Host ('W249_EPHEMERAL_SHELL_EXIT_DIAGNOSTIC='+(@{
+     source_scope=if($label -ceq 'Desktop diagnostics'){'BEFORE_DIAGNOSTICS'}
+       elseif($label -ceq 'Verify chart UI'){'BEFORE_CHART_VERIFY'}
+       else{'OTHER'};
+     exit_code=[int]$shell.ExitCode;
+     had_window=($shell.MainWindowHandle -ne [IntPtr]::Zero);
+     previous_source=($script:OldSHA -ceq 'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a');
+     owner_data_used=$false;live_armed=$false;
+     authority='diagnostic_only_not_acceptance';
+     scope='ephemeral_runner_test_owned_process_no_paths_or_state'
+   }|ConvertTo-Json -Compress))
+   throw 'W83_SHELL_EXITED_BEFORE_UI_READY'
+  }
   if($shell.MainWindowHandle -ne [IntPtr]::Zero){
    $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
    $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,[System.Windows.Automation.Condition]::TrueCondition)
