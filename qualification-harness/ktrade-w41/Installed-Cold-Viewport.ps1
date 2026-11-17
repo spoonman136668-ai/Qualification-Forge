@@ -2330,6 +2330,47 @@ function W287-Ink([object]$shell,[string]$phase){
   return [pscustomobject]@{amber=$amber;cyan=$cyan;samples=$samples;width=$bmp.Width;height=$bmp.Height}
  }finally{$frame.bitmap.Dispose()}
 }
+# W287B: the compared market label sits after the market selector in a bounded
+# native scrollable menu. Cold UI opens with the menu at its top. Require the
+# actual exact original status text to become VISIBLE inside the native popup
+# through physical Windows wheel input; do not accept unseen UIA text, hidden
+# DOM or source metadata in place of actual cold-start observation.
+function W287-ObserveColdOffStatus([object]$shell){
+ $null=W285-FindMenu $shell 'Compare verified market performance' 'ComboBox'
+ $panel=FindUI $shell 'Workspace actions' $false 9
+ $box=$panel.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$box.IsEmpty -and $box.Width -gt 100 -and $box.Height -gt 75 -and
+  $box.Left -ge $outer.Left -and $box.Right -le $outer.Right -and
+  $box.Top -ge $outer.Top -and $box.Bottom -le $outer.Bottom) 'W287B_COLD_MENU_GEOMETRY_INVALID'
+ $down=[BitConverter]::ToUInt32([BitConverter]::GetBytes([int]-120),0)
+ for($n=0;$n -le 9;$n++){
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  foreach($item in $nodes){try{
+   if($item.Current.Name -cne 'Comparison off · time charts only' -or
+    $item.Current.IsOffscreen){continue}
+   $r=$item.Current.BoundingRectangle
+   if(!$r.IsEmpty -and $r.Width -ge 35 -and $r.Height -ge 9 -and
+    $r.Left -ge $box.Left -and $r.Right -le $box.Right -and
+    $r.Top -ge ($box.Top+1) -and $r.Bottom -le ($box.Bottom-1)){
+     Write-Host ('W287B_COLD_NATIVE_OFF_STATUS_VISIBLE=PASS;sha='+$NewSHA+
+      ';real_window=true;real_Win32_wheel_steps='+$n+
+      ';exact_unmodified_UIA_status=true;owner_data_read=false;live_armed=false')
+     return
+   }
+  }catch{}}
+  [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+  Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W287B_FOREIGN_FOCUS'
+  Require ([W83Native]::SetCursorPos([int]($box.Left+$box.Width*.52),
+   [int]($box.Top+$box.Height*.55))) 'W287B_NATIVE_SCROLL_POINTER_REFUSED'
+  [W83Native]::mouse_event(0x0800,0,0,$down,[UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 250
+ }
+ throw 'W287B_COLD_OFF_STATUS_NOT_VISUALLY_ACCESSIBLE_AFTER_NATIVE_SCROLL'
+}
+
 function W287-NativeComparison([object]$installed,[object]$first){
  $run=$first
  try{
@@ -2360,7 +2401,7 @@ function W287-NativeComparison([object]$installed,[object]$first){
   W41-Stop $run;$run=$null
   $run=W41-Start $installed.candidate_directory
   W285-Toggle $run.shell $true
-  $null=FindUI $run.shell 'Comparison off · time charts only' $false 10
+  W287-ObserveColdOffStatus $run.shell
   $cap=Invoke-RestMethod -Method GET -Uri ($run.origin+'/api/operator/capabilities') -TimeoutSec 10
   Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and $cap.live_orders_enabled -eq $false) 'W287_DISARMED_AUTHORITY_CHANGED'
   Write-Host ('W287_NATIVE_BTC_ETH_OVERLAY_AND_COLD_OFF=PASS;sha='+$NewSHA+
