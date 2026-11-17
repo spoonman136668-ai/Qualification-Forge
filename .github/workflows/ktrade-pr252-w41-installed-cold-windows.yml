@@ -38,6 +38,7 @@ jobs:
       QFORGE_NATIVE_DRAWING_CONTROLS: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWING_CONTROLS') }}
       QFORGE_NATIVE_TOOLBAR_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_TOOLBAR_FOCUSED') }}
       QFORGE_NATIVE_VIEWPORT_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_VIEWPORT_FOCUSED') }}
+      QFORGE_NATIVE_CHART_MODES_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_CHART_MODES_FOCUSED') }}
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       KTRADE_SPECTRUM_PREVIEW: '1'
     steps:
@@ -194,7 +195,9 @@ jobs:
           $ErrorActionPreference='Stop'
           if([string]::IsNullOrEmpty($env:W41_PACKAGE_PATH)){throw 'W41_PACKAGE_CUSTODY_LOST'}
           $script=Join-Path $env:GITHUB_WORKSPACE 'witness/qualification-harness/ktrade-w41/Installed-Cold-Viewport.ps1'
-          if($env:QFORGE_NATIVE_VIEWPORT_FOCUSED -ceq 'true'){
+          if($env:QFORGE_NATIVE_CHART_MODES_FOCUSED -ceq 'true'){
+            & $script -PackageZip $env:W41_PACKAGE_PATH -NativeAdvancedChartOnly
+          }elseif($env:QFORGE_NATIVE_VIEWPORT_FOCUSED -ceq 'true'){
             & $script -PackageZip $env:W41_PACKAGE_PATH -NativeViewportOnly
           }elseif($env:QFORGE_NATIVE_TOOLBAR_FOCUSED -ceq 'true'){
             & $script -PackageZip $env:W41_PACKAGE_PATH -NativeToolbarOnly

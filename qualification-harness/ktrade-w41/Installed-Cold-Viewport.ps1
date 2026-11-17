@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='5e0d31e76d2d2b2bc91fe02ec25abe71627a8518'
@@ -2019,6 +2019,92 @@ function W253-NativeDrawings([object]$installed,[object]$first,[switch]$Controls
   W41-Stop $second
  }
 }
+
+# W282: independent genuine native chart presentation witness.
+# No DOM scripts, UIA Invoke/SetFocus, CDP, JSON write or owner data.
+# The original real WebView2 chart supplies the pixels and UIA labels.
+function W282-Key([int]$vk){
+ Require ($vk -cin @(0x24,0x28,0x0D)) 'W282_KEY_NOT_ALLOWLISTED'
+ [W83Native]::keybd_event([byte]$vk,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 70
+ [W83Native]::keybd_event([byte]$vk,0,2,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 100
+}
+function W282-ChooseNativeSelect([object]$shell,[string]$label,[int]$index,[string]$expectedStatus){
+ Require ($label -cin @('Price chart style','Price scale mode') -and
+  $index -ge 0 -and $index -le 4) 'W282_SELECT_OUTSIDE_ALLOWLIST'
+ $control=FindUI $shell $label $false 12
+ $r=$control.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require ($control.Current.ControlType -eq [System.Windows.Automation.ControlType]::ComboBox -and
+  !$control.Current.IsOffscreen -and $control.Current.IsEnabled -and !$r.IsEmpty -and
+  $r.Width -ge 35 -and $r.Height -ge 18 -and
+  $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W282_NATIVE_SELECT_CLIPPED_OR_NOT_COMBOBOX'
+ [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W282_NATIVE_WINDOW_FOREGROUND_REQUIRED'
+ Require ([W83Native]::SetCursorPos([int]($r.Left+$r.Width/2),[int]($r.Top+$r.Height/2))) 'W282_COMBO_MOUSE_POSITION_REFUSED'
+ [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 220
+ W282-Key 0x24 # Home: first allowed value
+ for($n=0;$n -lt $index;$n++){W282-Key 0x28} # true physical Down keys
+ W282-Key 0x0D # Enter
+ Start-Sleep -Milliseconds 580
+ $observed=FindUI $shell $expectedStatus $false 8
+ Require (!$observed.Current.IsOffscreen) 'W282_NATIVE_STYLE_STATUS_NOT_VISIBLE'
+ Write-Host ('W282_NATIVE_SELECT_CONFIRMED='+(@{label=$label;ordinal=$index;
+   expected_status=$expectedStatus;true_mouse_and_keyboard=$true;
+   owner_data_read=$false;live_armed=$false;source_sha=$NewSHA}|ConvertTo-Json -Compress))
+}
+function W282-ChartDigest([object]$shell,[string]$phase){
+ $frame=MarkerCaptureChart $shell ('W282_'+$phase)
+ try{return $frame.digest}
+ finally{$frame.bitmap.Dispose()}
+}
+function W282-NativeChartControls([object]$run){
+ try{
+  $shell=$run.shell
+  $null=W41-WaitColdAxis $shell
+  ClickUI $shell '1h'
+  Start-Sleep -Milliseconds 1300
+  $feed=W41-Candles $run.origin
+  Require ($feed.count -ge 30) 'W282_REAL_FINALIZED_CANDLES_REQUIRED'
+  $cap=Invoke-RestMethod -Method Get -Uri ($run.origin+'/api/operator/capabilities') -TimeoutSec 10
+  Require ($cap.mode -ceq 'PAPER_STOPPED' -and $cap.paper_orders_enabled -eq $false -and
+   $cap.live_orders_enabled -eq $false) 'W282_CAPABILITY_NOT_DISARMED'
+  $baseline=W282-ChartDigest $shell 'SOURCE_CANDLES'
+  W282-ChooseNativeSelect $shell 'Price chart style' 2 'Close line · source OHLC retained'
+  $line=W282-ChartDigest $shell 'CLOSE_LINE'
+  Require ($line -cne $baseline) 'W282_REAL_LINE_VIEW_PIXELS_DID_NOT_CHANGE'
+  W282-ChooseNativeSelect $shell 'Price chart style' 3 'Close area · source OHLC retained'
+  $area=W282-ChartDigest $shell 'CLOSE_AREA'
+  Require ($area -cne $line) 'W282_REAL_AREA_VIEW_PIXELS_DID_NOT_CHANGE'
+  W282-ChooseNativeSelect $shell 'Price chart style' 4 'Heikin-Ashi · derived visual only'
+  $heikin=W282-ChartDigest $shell 'HEIKIN_DERIVED'
+  Require ($heikin -cne $area) 'W282_REAL_DERIVED_CANDLES_PIXELS_DID_NOT_CHANGE'
+  W282-ChooseNativeSelect $shell 'Price chart style' 0 'Original OHLC candles'
+  W282-ChooseNativeSelect $shell 'Price scale mode' 1 'Log scale · positive prices only'
+  W282-ChooseNativeSelect $shell 'Price scale mode' 0 'Linear price scale'
+  $before=FindUI $shell 'Price chart drawing surface' $false 12
+  $beforeRect=$before.Current.BoundingRectangle
+  ClickUI $shell 'Focus on price chart'
+  $toggle=FindUI $shell 'Restore volume and Pine panes' $true 10
+  $after=FindUI $shell 'Price chart drawing surface' $false 10
+  $afterRect=$after.Current.BoundingRectangle
+  Require (!$toggle.Current.IsOffscreen -and
+   $afterRect.Height -gt ($beforeRect.Height+8)) 'W282_FOCUS_DID_NOT_ENLARGE_PRICE_PLOT'
+  ClickUI $shell 'Restore volume and Pine panes'
+  $null=FindUI $shell 'Focus on price chart' $true 8
+  $final=Invoke-RestMethod -Method Get -Uri ($run.origin+'/api/operator/capabilities') -TimeoutSec 10
+  Require ($final.mode -ceq 'PAPER_STOPPED' -and $final.paper_orders_enabled -eq $false -and
+   $final.live_orders_enabled -eq $false) 'W282_NATIVE_CHART_CHANGED_TRADING_AUTHORITY'
+  Write-Host ('W282_REAL_NATIVE_CHART_PRESENTATIONS=PASS;sha='+$NewSHA+
+    ';line_area_heikin_pixels_distinct=true;original_source_preserved=true;log_scale=true;focus_reversible=true;real_OS_DPI=UNVERIFIED;installed_in_runner_temp=true;live_armed=false')
+  W41-SpectrumVisual $shell
+ }finally{W41-Stop $run}
+}
+
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -2036,6 +2122,12 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ if($NativeAdvancedChartOnly){
+  $current=$active
+  $active=$null
+  W282-NativeChartControls $current
+  return
+ }
  if($NativeToolbarOnly){
   $current=$active
   $active=$null
