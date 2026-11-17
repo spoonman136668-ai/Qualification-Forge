@@ -19,7 +19,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '5e0d31e76d2d2b2bc91fe02ec25abe71627a8518'
+      KTRADE_EXPECTED_SOURCE: '078f872a4d5ba4144894429411d6b1022f7bec48'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
@@ -29,7 +29,7 @@ jobs:
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
       QFORGE_W05_ASSET_ROLLBACK_ONLY: ${{ contains(github.event.head_commit.message, 'W05_TEMP_ASSET_ROLLBACK_ONLY') }}
       QFORGE_W29C_DISPOSABLE_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_DISPOSABLE_INSTALL_ONLY') }}
-      KTRADE_EXPECTED_TREE: '843cfcc0d3e25ee2b9c380ccc6baeaeeb716665d'
+      KTRADE_EXPECTED_TREE: '4b9aa2586bb1dbf5a5a1cf8dc3f8a4fa52b23b66'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 5e0d31e76d2d2b2bc91fe02ec25abe71627a8518
+          ref: 078f872a4d5ba4144894429411d6b1022f7bec48
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -798,6 +798,15 @@ jobs:
                 (& git rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
                 ($w131Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w131_tick_keyboard.test.cjs') 'W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
               Write-Host 'QFORGE_W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '078f872a4d5ba4144894429411d6b1022f7bec48'){
+              & git merge-base --is-ancestor '5e0d31e76d2d2b2bc91fe02ec25abe71627a8518' HEAD
+              Require ($LASTEXITCODE -eq 0) 'QFORGE_W280_ACCEPTED_W277_ANCESTRY_REQUIRED'
+              Require ((& git rev-parse 'HEAD^').Trim() -ceq '5e0d31e76d2d2b2bc91fe02ec25abe71627a8518') 'QFORGE_W280_EXACT_W277_PARENT_REQUIRED'
+              $w280Changed=@(& git diff --name-only '5e0d31e76d2d2b2bc91fe02ec25abe71627a8518' HEAD | Sort-Object)
+              Require (($w280Changed -join ';') -ceq 'static/w269_market_comparison.js;static/w270_candle_export.js;static/w272_dual_chart.js;tests/w267_w274_chart_ui_functionality.test.cjs;tests/w280_chart_product_binding.test.cjs') 'QFORGE_W280_EXACT_FIVE_FILE_SOURCE_BINDING_DELTA_REQUIRED'
+              Require ((& git rev-parse 'HEAD:templates/chart.tmpl').Trim() -ceq 'ee3f77b67e87dd1c9e3ffbc12c8eac5cd855b700') 'QFORGE_W280_ORIGINAL_CHART_SOURCE_CHANGED'
+              Write-Host 'QFORGE_W280_ORIGINAL_CHART_SOURCE_AND_FIVE_FILE_DELTA=PASS'
+              Write-Host 'QFORGE_PR253_QUALIFIED_ANCESTOR=PASS'
             }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '5e0d31e76d2d2b2bc91fe02ec25abe71627a8518'){
               & git merge-base --is-ancestor '0a16b8610d961d82ee805ce05973904e6736e32a' HEAD
               Require ($LASTEXITCODE -eq 0) 'QFORGE_W277_BASELINE_ANCESTRY_REQUIRED'
@@ -922,9 +931,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '5e0d31e76d2d2b2bc91fe02ec25abe71627a8518'
-      KTRADE_EXPECTED_TREE: '843cfcc0d3e25ee2b9c380ccc6baeaeeb716665d'
-      W01_EXPECTED_SHA: '5e0d31e76d2d2b2bc91fe02ec25abe71627a8518'
+      KTRADE_EXPECTED_SOURCE: '078f872a4d5ba4144894429411d6b1022f7bec48'
+      KTRADE_EXPECTED_TREE: '4b9aa2586bb1dbf5a5a1cf8dc3f8a4fa52b23b66'
+      W01_EXPECTED_SHA: '078f872a4d5ba4144894429411d6b1022f7bec48'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -939,7 +948,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 5e0d31e76d2d2b2bc91fe02ec25abe71627a8518
+          ref: 078f872a4d5ba4144894429411d6b1022f7bec48
           fetch-depth: 0
           path: product
           persist-credentials: false
