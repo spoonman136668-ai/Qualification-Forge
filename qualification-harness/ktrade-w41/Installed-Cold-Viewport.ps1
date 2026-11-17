@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly,[switch]$NativeComparisonOnly,[switch]$NativePineEditorOnly,[switch]$NativePineApplyOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly,[switch]$NativeComparisonOnly,[switch]$NativePineEditorOnly,[switch]$NativePineApplyOnly,[switch]$NativePineLibraryOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='078f872a4d5ba4144894429411d6b1022f7bec48'
@@ -2577,6 +2577,133 @@ function W290-NativePineApply([object]$installed,[object]$first){
  }finally{if($null -ne $run){W41-Stop $run}}
 }
 
+# W291: genuine native Pine revision save and cold reopen. The one initial
+# script is seeded exclusively through the original Go loopback library on
+# this freshly installed disposable Windows runner; only native clicks
+# and keyboard CHANGE and SAVE the existing revision. No owner/user files.
+function W291-PanelButton([object]$shell,[string]$name,[int]$seconds=22){
+ Require ($name -cin @('Open saved Pine library','Save',
+  'Open 000 W291 native roundtrip · indicator · source only, not applied to chart')) 'W291_BUTTON_OUTSIDE_ALLOWLIST'
+ $deadline=(Get-Date).AddSeconds($seconds)
+ do{
+  $panel=FindUI $shell 'Pine editor workbench' $false 7
+  $r=$panel.Current.BoundingRectangle
+  Require (!$panel.Current.IsOffscreen -and !$r.IsEmpty -and $r.Width -ge 240) 'W291_EDITOR_NOT_VISIBLE'
+  $items=$panel.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  foreach($v in $items){try{
+   if($v.Current.Name -cne $name -or
+      $v.Current.ControlType -ne [System.Windows.Automation.ControlType]::Button -or
+      $v.Current.IsOffscreen -or !$v.Current.IsEnabled){continue}
+   $b=$v.Current.BoundingRectangle
+   $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+   if(!$b.IsEmpty -and $b.Width -ge 10 -and $b.Height -ge 10 -and
+     $b.Left -ge $outer.Left -and $b.Right -le $outer.Right -and
+     $b.Top -ge $outer.Top -and $b.Bottom -le $outer.Bottom){return $v}
+  }catch{}}
+  Start-Sleep -Milliseconds 220
+ }while((Get-Date) -lt $deadline)
+ throw ('W291_ORIGINAL_PINE_BUTTON_NOT_VISIBLE_'+$name.Replace(' ','_'))
+}
+function W291-Key([int]$vk){
+ Require ($vk -cin @(0x23,0x0D,0xBF,0x58)) 'W291_UNAUTHORIZED_KEY'
+ [W83Native]::keybd_event([byte]$vk,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 65
+ [W83Native]::keybd_event([byte]$vk,0,2,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 90
+}
+function W291-TypeAppend([object]$shell){
+ $el=FindUI $shell 'Pine source editor' $false 12
+ Require (!$el.Current.IsOffscreen -and $el.Current.IsEnabled) 'W291_NOT_EDITABLE'
+ W285-Click $shell $el 'Pine source editor'
+ [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291_FOREIGN_KEYBOARD_FOCUS'
+ [W83Native]::keybd_event(0x11,0,0,[UIntPtr]::Zero) # Ctrl down
+ try{W291-Key 0x23}finally{[W83Native]::keybd_event(0x11,0,2,[UIntPtr]::Zero)}
+ Start-Sleep -Milliseconds 160
+ W291-Key 0x0D # new line
+ W291-Key 0xBF # /
+ W291-Key 0xBF # /
+ W291-Key 0x58 # x
+ $dirty=FindUI $shell 'Unsaved changes · save before paper review' $false 12
+ Require (!$dirty.Current.IsOffscreen) 'W291_PHYSICAL_KEYSTROKES_DID_NOT_EDIT_MONACO'
+}
+function W291-ReadUser([object]$run,[string]$id){
+ Require ($id -cmatch '^[a-f0-9]{32}$') 'W291_UNTRUSTED_RECORD_ID'
+ $value=Invoke-RestMethod -Method GET -Uri ($run.origin+'/api/pine-library/'+$id) -TimeoutSec 12
+ Require ($value.metadata.id -ceq $id -and
+  $value.metadata.ownership -ceq 'user' -and
+  $value.metadata.kind -ceq 'indicator' -and
+  $value.metadata.display_name -ceq '000 W291 native roundtrip' -and
+  $value.source -is [string]) 'W291_GO_DURABLE_LIBRARY_CUSTODY_UNVERIFIED'
+ return $value
+}
+function W291-NativeDurableSave([object]$installed,[object]$first){
+ $run=$first
+ $name='000 W291 native roundtrip'
+ $seedSource=(@('//@version=5','indicator("My script", overlay=false)','plot(close, "Close", linewidth=2)') -join [char]10)
+ try{
+  $shell=$run.shell
+  $null=W41-WaitColdAxis $shell
+  W289-Disarmed $run 'BEFORE_LIBRARY'
+  $before=W41-Candles $run.origin
+  Require ($before.count -ge 30) 'W291_FINALIZED_PRIMARY_MISSING'
+  $existing=Invoke-RestMethod -Method GET -Uri ($run.origin+'/api/pine-library') -TimeoutSec 12
+  Require (@($existing.scripts|Where-Object {$_.ownership -ceq 'user'}).Count -eq 0) 'W291_TEST_INSTALL_NOT_EMPTY'
+  $body=(@{display_name=$name;kind='indicator';source=$seedSource}|ConvertTo-Json -Compress)
+  $seed=Invoke-RestMethod -Method POST -Uri ($run.origin+'/api/pine-library') -ContentType 'application/json' -Headers @{Origin=$run.origin} -Body $body -TimeoutSec 18
+  $id=[string]$seed.metadata.id
+  Require ($id -cmatch '^[a-f0-9]{32}$' -and $seed.metadata.ownership -ceq 'user' -and
+   $seed.source -ceq $seedSource -and $seed.metadata.display_name -ceq $name) 'W291_TEST_OWNED_FIXTURE_INVALID'
+  W285-Click $shell (W289-ExactButton $shell 'Pine Editor') 'Pine Editor'
+  $editor=FindUI $shell 'Pine source editor' $false 20
+  Require (!$editor.Current.IsOffscreen) 'W291_MONACO_NOT_NATIVE_VISIBLE'
+  W285-Click $shell (W291-PanelButton $shell 'Open saved Pine library') 'Open saved Pine library'
+  $dialog=FindUI $shell 'Saved Pine scripts' $false 18
+  Require (!$dialog.Current.IsOffscreen) 'W291_NATIVE_LIBRARY_CHOOSER_MISSING'
+  $row='Open '+$name+' · indicator · source only, not applied to chart'
+  W285-Click $shell (W291-PanelButton $shell $row) $row
+  $opened=FindUI $shell 'Opened stored Pine script; not applied to chart' $false 18
+  Require ($opened.Current.Name -ceq 'Opened stored Pine script; not applied to chart' -and
+    !$opened.Current.IsOffscreen) 'W291_NATIVE_OPEN_DID_NOT_FETCH_GO_SOURCE'
+  W291-TypeAppend $shell
+  W285-Click $shell (W291-PanelButton $shell 'Save') 'Save'
+  $saved=FindUI $shell 'Pine script durably saved; not automatically applied' $false 22
+  Require ($saved.Current.Name -ceq 'Pine script durably saved; not automatically applied' -and
+   !$saved.Current.IsOffscreen) 'W291_NATIVE_REVISION_SAVE_UNCONFIRMED'
+  $stored=W291-ReadUser $run $id
+  $expected=$seedSource+([char]10)+'//x'
+  Require ($stored.source -ceq $expected) 'W291_KEYBOARD_EDIT_NOT_DURABLY_STORED'
+  $hash=[Security.Cryptography.SHA256]::Create()
+  try{$digest=[BitConverter]::ToString($hash.ComputeHash([Text.Encoding]::UTF8.GetBytes($stored.source))).Replace('-','').ToLowerInvariant()}
+  finally{$hash.Dispose()}
+  Write-Host ('W291_NATIVE_GO_PINE_SAVE_EDIT=PASS;source='+$NewSHA+
+   ';test_owned_source_digest='+$digest.Substring(0,16)+';native_edited_revision=true;authority=PAPER_STOPPED;owner_data=false;live_armed=false')
+  W289-Disarmed $run 'AFTER_SAVE'
+  $after=W41-Candles $run.origin
+  Require ($after.count -eq $before.count -and $after.history -ceq $before.history) 'W291_LIBRARY_SAVE_MUTATED_CHART_CANDLES'
+  W285-Click $shell (W289-ExactButton $shell 'Close Pine editor') 'Close Pine editor'
+  W41-Stop $run;$run=$null
+  $run=W41-Start $installed.candidate_directory
+  W289-Disarmed $run 'COLD_RESTART'
+  $cold=W291-ReadUser $run $id
+  Require ($cold.source -ceq $expected) 'W291_GO_LIBRARY_NOT_DURABLE_AFTER_COLD_RESTART'
+  W285-Click $run.shell (W289-ExactButton $run.shell 'Pine Editor') 'Pine Editor'
+  W285-Click $run.shell (W291-PanelButton $run.shell 'Open saved Pine library') 'Open saved Pine library'
+  W285-Click $run.shell (W291-PanelButton $run.shell $row) $row
+  $openedAgain=FindUI $run.shell 'Opened stored Pine script; not applied to chart' $false 18
+  Require (!$openedAgain.Current.IsOffscreen -and
+   $openedAgain.Current.Name -ceq 'Opened stored Pine script; not applied to chart') 'W291_COLD_NATIVE_LIBRARY_REOPEN_FAILED'
+  $fresh=W291-ReadUser $run $id
+  Require ($fresh.source -ceq $expected) 'W291_COLD_REOPEN_CHANGED_PINE_REVISION'
+  $hist=W41-Candles $run.origin
+  Require ($hist.count -eq $before.count -and $hist.history -ceq $before.history) 'W291_LIBRARY_REOPEN_CHANGED_ORIGINAL_CANDLES'
+  W289-Disarmed $run 'AFTER_NATIVE_REOPEN'
+  Write-Host ('W291_NATIVE_PINE_DURABLE_SAVE_COLD_REOPEN=PASS;source='+$NewSHA+
+   ';original_Go_library=true;native_edited_save=true;roundtrip_exact_source=true;fresh_installed_only=true;no_strategy_apply=true;PAPER_STOPPED=true;owner_data=false;real_OS_DPI=UNVERIFIED')
+ }finally{if($null -ne $run){W41-Stop $run}}
+}
+
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -2594,6 +2721,11 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ if($NativePineLibraryOnly){
+  $current=$active;$active=$null
+  W291-NativeDurableSave $installed $current
+  return
+ }
  if($NativePineApplyOnly){
   $current=$active;$active=$null
   W290-NativePineApply $installed $current
