@@ -3,7 +3,7 @@
 # Read-only evidence: original unsigned installed app, isolated RUNNER_TEMP only.
 # No owner data, no broker interaction, no live authority, no UI JS injection.
 [CmdletBinding()]
-param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly,[switch]$NativeComparisonOnly)
+param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly,[switch]$NativeComparisonOnly,[switch]$NativePineEditorOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $NewSHA='078f872a4d5ba4144894429411d6b1022f7bec48'
@@ -2409,6 +2409,74 @@ function W287-NativeComparison([object]$installed,[object]$first){
  }finally{if($null -ne $run){W41-Stop $run}}
 }
 
+# W289: real original Monaco -> Go Pine compiler via installed Wails.
+# Only original UI native Win32 clicks and original local HTTP capability reads.
+# No WebView script injection, source changes, strategies, orders or owner data.
+function W289-ExactButton([object]$shell,[string]$label,[int]$seconds=18){
+ Require ($label -cin @('Pine Editor','Compile','Close Pine editor')) 'W289_CONTROL_OUTSIDE_ALLOWLIST'
+ $deadline=(Get-Date).AddSeconds($seconds)
+ do{
+  $shell.Refresh()
+  Require (!$shell.HasExited -and $shell.MainWindowHandle -ne [IntPtr]::Zero) 'W289_WAILS_SHELL_EXITED'
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  foreach($node in $nodes){try{
+   if($node.Current.Name -ceq $label -and
+    $node.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+    !$node.Current.IsOffscreen -and $node.Current.IsEnabled){
+      return $node
+   }
+  }catch{}}
+  Start-Sleep -Milliseconds 180
+ }while((Get-Date) -lt $deadline)
+ throw ('W289_NATIVE_EXACT_BUTTON_NOT_VISIBLE_'+$label.Replace(' ','_'))
+}
+function W289-Disarmed([object]$run,[string]$stage){
+ $c=Invoke-RestMethod -Method GET -Uri ($run.origin+'/api/operator/capabilities') -TimeoutSec 10
+ Require ($c.mode -ceq 'PAPER_STOPPED' -and
+  $c.paper_orders_enabled -eq $false -and
+  $c.live_orders_enabled -eq $false) ('W289_TRADING_AUTHORITY_CHANGED_'+$stage)
+}
+function W289-NativePineEditor([object]$installed,[object]$first){
+ $run=$first
+ try{
+  $shell=$run.shell
+  $null=W41-WaitColdAxis $shell
+  $before=W41-Candles $run.origin
+  Require ($before.count -ge 30) 'W289_ORIGINAL_FINALIZED_HISTORY_REQUIRED'
+  W289-Disarmed $run 'BEFORE_PINE'
+  W285-Click $shell (W289-ExactButton $shell 'Pine Editor') 'Pine Editor'
+  $panel=FindUI $shell 'Pine editor workbench' $false 18
+  Require (!$panel.Current.IsOffscreen -and
+   $panel.Current.BoundingRectangle.Width -ge 250) 'W289_REAL_EDITOR_WORKBENCH_NOT_VISIBLE'
+  $editor=FindUI $shell 'Pine source editor' $false 22
+  Require (!$editor.Current.IsOffscreen -and
+   $editor.Current.BoundingRectangle.Width -ge 160) 'W289_MONACO_NATIVE_EDITABLE_NOT_VISIBLE'
+  $null=FindUI $shell 'Not compiled.' $false 9
+  W285-Click $shell (W289-ExactButton $shell 'Compile') 'Compile'
+  $done=FindUI $shell 'Compiled. Not applied or started.' $false 38
+  Require ($done.Current.Name -ceq 'Compiled. Not applied or started.' -and
+   !$done.Current.IsOffscreen) 'W289_REAL_GO_PINE_COMPILER_NOT_SUCCESSFUL'
+  $unapplied=FindUI $shell 'No Pine plots applied.' $false 9
+  Require (!$unapplied.Current.IsOffscreen) 'W289_COMPILER_SILENTLY_APPLIED_PLOT'
+  W289-Disarmed $run 'AFTER_GO_COMPILE'
+  $after=W41-Candles $run.origin
+  Require ($before.history -ceq $after.history -and
+   $before.count -eq $after.count) 'W289_PINE_COMPILE_ALTERED_SOURCE_CANDLES'
+  W285-Click $shell (W289-ExactButton $shell 'Close Pine editor') 'Close Pine editor'
+  W289-Disarmed $run 'AFTER_CLOSE'
+  W41-Stop $run;$run=$null
+  $run=W41-Start $installed.candidate_directory
+  W289-Disarmed $run 'COLD_RESTART'
+  $again=W41-Candles $run.origin
+  Require ($again.count -eq $before.count -and
+   $again.history -ceq $before.history) 'W289_PINE_COMPILE_CHANGED_COLD_HISTORY'
+  Write-Host ('W289_NATIVE_MONACO_GO_COMPILE_NOT_APPLIED_COLD_DISARMED=PASS;source='+$NewSHA+
+   ';real_UIA_button_mouse=true;real_Monaco_accessibility=true;original_Go_compile=true;persisted_primary_source_unchanged=true;orders_disabled=true;owner_data=false;real_OS_DPI=UNVERIFIED')
+ }finally{if($null -ne $run){W41-Stop $run}}
+}
+
 Require (!(Test-Path -LiteralPath (Join-Path $script:installedRoot '.ktrade-w29-install.json'))) 'W41_EXISTING_INSTALLED_DATA_NOT_ALLOWED'
 $distribution=Join-Path $QualificationRoot 'unsigned-distribution'
 $null=New-Item -ItemType Directory -Path $distribution
@@ -2426,6 +2494,11 @@ Require ($installed.schema -ceq 'ktrade.fresh-installation.v1' -and
 $active=$null
 try{
  $active=W41-Start $installed.candidate_directory
+ if($NativePineEditorOnly){
+  $current=$active;$active=$null
+  W289-NativePineEditor $installed $current
+  return
+ }
  if($NativeComparisonOnly){
   $current=$active;$active=$null
   W287-NativeComparison $installed $current
