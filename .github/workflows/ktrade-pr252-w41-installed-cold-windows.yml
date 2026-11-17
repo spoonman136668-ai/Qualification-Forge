@@ -41,7 +41,7 @@ jobs:
       QFORGE_NATIVE_CHART_MODES_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_CHART_MODES_FOCUSED') }}
       QFORGE_NATIVE_WORKSPACE_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_WORKSPACE_FOCUSED') }}
       QFORGE_NATIVE_DUAL_CHART_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_DUAL_CHART_FOCUSED') }}
-      QFORGE_NATIVE_COMPARISON_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_COMPARISON_FOCUSED') }}
+      QFORGE_NATIVE_COMPARISON_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_COMPARISON_FOCUSED') || contains(github.event.head_commit.message, 'W287B') }}
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       KTRADE_SPECTRUM_PREVIEW: '1'
     steps:
