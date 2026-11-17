@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 0a16b8610d961d82ee805ce05973904e6736e32a
+          ref: 5e0d31e76d2d2b2bc91fe02ec25abe71627a8518
           path: candidate
           persist-credentials: false
           token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
@@ -66,7 +66,7 @@ jobs:
           $old=Join-Path $env:GITHUB_WORKSPACE 'previous'
           $new=Join-Path $env:GITHUB_WORKSPACE 'candidate'
           Require ((& git -C $w rev-parse HEAD).Trim() -ceq $env:GITHUB_SHA) 'PR252_RELEASE_WITNESS_SOURCE_DRIFT'
-          foreach($source in @(@($old,'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a','989020f81a7c731acf3bfa830c06e7e929805bcd'),@($new,'0a16b8610d961d82ee805ce05973904e6736e32a','57795e1a561a3c121686219d589ab59596008214'))){
+          foreach($source in @(@($old,'b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a','989020f81a7c731acf3bfa830c06e7e929805bcd'),@($new,'5e0d31e76d2d2b2bc91fe02ec25abe71627a8518','843cfcc0d3e25ee2b9c380ccc6baeaeeb716665d'))){
             Require ((& git -C $source[0] rev-parse HEAD).Trim() -ceq $source[1] -and
               (& git -C $source[0] rev-parse 'HEAD^{tree}').Trim() -ceq $source[2] -and
               @(& git -C $source[0] status --porcelain --untracked-files=no).Count -eq 0 -and
@@ -121,7 +121,7 @@ jobs:
           $original=Join-Path $w 'qualification-harness/ktrade-w83'
           & (Join-Path $h 'Build-And-Qualify.ps1') -PreviousCheckout (Join-Path $env:GITHUB_WORKSPACE 'previous') -CandidateCheckout (Join-Path $env:GITHUB_WORKSPACE 'candidate') -WitnessScript (Join-Path $h 'Installed-Paper-Lifecycle.ps1') -NativeInputsPath (Join-Path $original 'Original-W40-Native-Inputs.ps1') -PaperScenarioPath (Join-Path $original 'Original-W40-Paper.ps1')
           if($LASTEXITCODE -ne 0 -or !$?){throw 'PR252_RELEASE_REAL_INSTALLED_PAPER_UPGRADE_ROLLBACK_FAILED'}
-          Write-Host '::notice::PR253_RELEASE_CURRENT_INSTALLED_PAPER_AND_ROLLBACK=PASS;source=0a16b8610d961d82ee805ce05973904e6736e32a'
+          Write-Host '::notice::PR253_RELEASE_CURRENT_INSTALLED_PAPER_AND_ROLLBACK=PASS;source=5e0d31e76d2d2b2bc91fe02ec25abe71627a8518'
       - name: Final disposable boundary and read-only source
         if: always()
         shell: pwsh
