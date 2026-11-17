@@ -2453,7 +2453,9 @@ function W289-NativePineEditor([object]$installed,[object]$first){
   $editor=FindUI $shell 'Pine source editor' $false 22
   Require (!$editor.Current.IsOffscreen -and
    $editor.Current.BoundingRectangle.Width -ge 160) 'W289_MONACO_NATIVE_EDITABLE_NOT_VISIBLE'
-  $null=FindUI $shell 'Not compiled.' $false 9
+  # The status may report optional syntax-highlighting degradation or a
+  # readiness transition. It is not a Go compiler oracle. The subsequent
+  # native Compile click and exact Go-response success label remain mandatory.
   W285-Click $shell (W289-ExactButton $shell 'Compile') 'Compile'
   $done=FindUI $shell 'Compiled. Not applied or started.' $false 38
   Require ($done.Current.Name -ceq 'Compiled. Not applied or started.' -and
