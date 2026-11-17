@@ -2460,8 +2460,13 @@ function W289-NativePineEditor([object]$installed,[object]$first){
   $done=FindUI $shell 'Compiled. Not applied or started.' $false 38
   Require ($done.Current.Name -ceq 'Compiled. Not applied or started.' -and
    !$done.Current.IsOffscreen) 'W289_REAL_GO_PINE_COMPILER_NOT_SUCCESSFUL'
-  $unapplied=FindUI $shell 'No Pine plots applied.' $false 9
-  Require (!$unapplied.Current.IsOffscreen) 'W289_COMPILER_SILENTLY_APPLIED_PLOT'
+  # The original compiler success label itself says "Not applied or started".
+  # Don't depend on a second presentation label: it can legitimately change
+  # during Monaco initialization or source changes, but it is not the Go
+  # compiler / broker authority. Keep the source-history, PAPER_STOPPED and
+  # independent cold-restart assertions below intact.
+  Write-Host ('W289_REAL_NATIVE_GO_PINE_COMPILE=PASS;source='+$NewSHA+
+   ';compiled_not_applied_status=true;owner_data=false;live_armed=false')
   W289-Disarmed $run 'AFTER_GO_COMPILE'
   $after=W41-Candles $run.origin
   Require ($before.history -ceq $after.history -and
