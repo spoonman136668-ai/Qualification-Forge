@@ -757,6 +757,69 @@ function W41-Candles([string]$origin){
  $digest=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes.ToArray())).ToLowerInvariant()
  return [pscustomobject]@{count=$rows.Count;first=[long]$rows[0].time;last=[long]$rows[$rows.Count-1].time;history=$digest}
 }
+
+# W250: read-only categorical classification ONLY after frozen W28I
+# authenticated positive UIA receipt is missing. Never print raw chart text,
+# nonce, URLs, DOM, account values or screenshot data; never accept substitutes.
+function W250-ClassifyW28I([object]$shell){
+ $s=[ordered]@{
+  schema='ktrade.w250.installed-parent-categorical.v1';
+  chart_frame_navigation_done=$false;
+  chart_frame_loading_notice=$false;
+  verified_parent_reply_missing_controls=$false;
+  verified_parent_reply_timeout=$false;
+  parent_frame_message_failed=$false;
+  parent_identity_unavailable=$false;
+  parent_probe_pending=$false;
+  parent_probe_ready_to_click=$false;
+  chart_surface_accessible=$false;
+  expected_full_verification_visible=$false;
+  backend_refused_notice=$false;
+  diagnostic_button_seen=$false;
+  chart_verify_button_seen=$false;
+  owner_data_used=$false;live_armed=$false;
+  acceptance_override=$false;
+  scope='read_only_UIA_boolean_flags_disposable_native_Wails_only'
+ }
+ try{
+  $shell.Refresh()
+  if($shell.MainWindowHandle -ne [IntPtr]::Zero){
+   $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+   $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+     [System.Windows.Automation.Condition]::TrueCondition)
+   foreach($node in $nodes){
+    try{
+     $name=[string]$node.Current.Name
+     if($name -ceq 'Desktop diagnostics'){$s.diagnostic_button_seen=$true}
+     elseif($name -ceq 'Verify chart UI'){$s.chart_verify_button_seen=$true}
+     elseif($name.StartsWith('Original chart navigation finished',
+         [StringComparison]::Ordinal)){$s.chart_frame_navigation_done=$true}
+     elseif($name.StartsWith('Loading original chart from verified loopback',
+         [StringComparison]::Ordinal)){$s.chart_frame_loading_notice=$true}
+     elseif($name.StartsWith('Chart not fully ready:',
+         [StringComparison]::Ordinal)){$s.verified_parent_reply_missing_controls=$true}
+     elseif($name.StartsWith('Original chart did not answer verified request',
+         [StringComparison]::Ordinal)){$s.verified_parent_reply_timeout=$true}
+     elseif($name.StartsWith('Chart frame message failed',
+         [StringComparison]::Ordinal)){$s.parent_frame_message_failed=$true}
+     elseif($name.StartsWith('Chart identity unavailable',
+         [StringComparison]::Ordinal)){$s.parent_identity_unavailable=$true}
+     elseif($name.StartsWith('Checking original chart DOM and editor',
+         [StringComparison]::Ordinal)){$s.parent_probe_pending=$true}
+     elseif($name.StartsWith('Chart loaded? Press Verify UI',
+         [StringComparison]::Ordinal)){$s.parent_probe_ready_to_click=$true}
+     elseif($name.Contains('Price chart drawing surface')){$s.chart_surface_accessible=$true}
+     elseif($name.StartsWith('Original chart DOM, Monaco editor and preferences controls observed.',
+         [StringComparison]::Ordinal)){$s.expected_full_verification_visible=$true}
+     elseif($name.StartsWith('Desktop refused unsafe or unavailable backend:',
+         [StringComparison]::Ordinal)){$s.backend_refused_notice=$true}
+    }catch{}
+   }
+  }
+ }catch{}
+ Write-Host ('W250_INSTALLED_W28I_PARENT_CLASSIFICATION='+($s|ConvertTo-Json -Compress))
+}
+
 function W41-Start([string]$candidate){
  $chosen=Join-Path $script:installedRoot '.ktrade-w29-install.json'
  Require (Test-Path -LiteralPath $chosen -PathType Leaf) 'W41_INSTALLED_SELECTION_ABSENT'
@@ -808,7 +871,7 @@ function W41-Start([string]$candidate){
    $verified=$true
    break
   }catch{
-   if($attempt -eq 3){throw}
+   if($attempt -eq 3){W250-ClassifyW28I $shell;throw}
    Start-Sleep -Seconds 2
   }
  }
