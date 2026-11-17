@@ -2051,9 +2051,13 @@ function W282-ChooseNativeSelect([object]$shell,[string]$label,[int]$index,[stri
  for($n=0;$n -lt $index;$n++){W282-Key 0x28} # true physical Down keys
  W282-Key 0x0D # Enter
  Start-Sleep -Milliseconds 580
- $observed=FindUI $shell $expectedStatus $false 8
- Require (!$observed.Current.IsOffscreen) 'W282_NATIVE_STYLE_STATUS_NOT_VISIBLE'
- Write-Host ('W282_NATIVE_SELECT_CONFIRMED='+(@{label=$label;ordinal=$index;
+ # The price-scale status intentionally uses display:none below 1220px;
+ # never claim a hidden UIA label is a native observation.
+ if(![string]::IsNullOrEmpty($expectedStatus)){
+  $observed=FindUI $shell $expectedStatus $false 8
+  Require (!$observed.Current.IsOffscreen) 'W282_NATIVE_STYLE_STATUS_NOT_VISIBLE'
+ }
+ Write-Host ('W282_NATIVE_SELECT_CONFIRMED=+(@{label=$label;ordinal=$index;
    expected_status=$expectedStatus;true_mouse_and_keyboard=$true;
    owner_data_read=$false;live_armed=$false;source_sha=$NewSHA}|ConvertTo-Json -Compress))
 }
@@ -2084,8 +2088,17 @@ function W282-NativeChartControls([object]$run){
   $heikin=W282-ChartDigest $shell 'HEIKIN_DERIVED'
   Require ($heikin -cne $area) 'W282_REAL_DERIVED_CANDLES_PIXELS_DID_NOT_CHANGE'
   W282-ChooseNativeSelect $shell 'Price chart style' 0 'Original OHLC candles'
-  W282-ChooseNativeSelect $shell 'Price scale mode' 1 'Log scale · positive prices only'
-  W282-ChooseNativeSelect $shell 'Price scale mode' 0 'Linear price scale'
+  # W283: at 1044x788 the CSS intentionally hides #chartScaleStatus.
+  # Require actual rendered candle-plot changes under physical Win32
+  # combo input instead of treating hidden status as a native oracle.
+  $linear=W282-ChartDigest $shell 'LINEAR_PRICE_AXIS'
+  W282-ChooseNativeSelect $shell 'Price scale mode' 1 ''
+  $logarithmic=W282-ChartDigest $shell 'LOG_PRICE_AXIS'
+  Require ($logarithmic -cne $linear) 'W283_REAL_LOG_PRICE_PLOT_PIXELS_DID_NOT_CHANGE'
+  W282-ChooseNativeSelect $shell 'Price scale mode' 0 ''
+  $linearAgain=W282-ChartDigest $shell 'RETURN_TO_LINEAR_AXIS'
+  Require ($linearAgain -cne $logarithmic) 'W283_REAL_LINEAR_PRICE_PLOT_NOT_RESTORED'
+  Write-Host 'W283_NATIVE_LINEAR_LOG_PRICE_PIXELS_CHANGED=PASS'
   $before=FindUI $shell 'Price chart drawing surface' $false 12
   $beforeRect=$before.Current.BoundingRectangle
   ClickUI $shell 'Focus on price chart'
