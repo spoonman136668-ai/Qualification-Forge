@@ -11,7 +11,7 @@ param(
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
 $OldSHA='b03dd6e58b6120cae3ffd39a79c6965ab8e91b9a'
-$NewSHA='5e23165ecb9925f0c86f731ea80af0949682ea22'
+$NewSHA='0a16b8610d961d82ee805ce05973904e6736e32a'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 function Hash([string]$f){return (Get-FileHash -LiteralPath $f -Algorithm SHA256).Hash.ToLowerInvariant()}
 function Ordinary([string]$f,[bool]$dir){
