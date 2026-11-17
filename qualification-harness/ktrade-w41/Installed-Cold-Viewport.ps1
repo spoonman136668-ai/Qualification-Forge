@@ -795,8 +795,25 @@ function W41-Start([string]$candidate){
  $cim=Get-CimInstance Win32_Process -Filter ('ProcessId='+$shell.Id)
  Require ([string]::Equals($cim.ExecutablePath,$exe,[StringComparison]::OrdinalIgnoreCase)) 'W41_FOREIGN_PROCESS_SOURCE'
  ClickUI $shell 'Desktop diagnostics'
- ClickUI $shell 'Verify chart UI'
- $null=FindUI $shell 'Original chart DOM, Monaco editor and preferences controls observed.' $false 28
+ # W248: the real Wails parent exposes Verify UI as soon as the original
+ # chart URL is known, before iframe DOM, Monaco and chart preferences may
+ # finish loading. Reuse W83's frozen bounded THREE authentic UIA clicks.
+ # Never accept a timeout, a status text substitute or a synthetic receipt:
+ # the exact original postMessage/nonce-verified positive signal is required.
+ $verified=$false
+ for($attempt=1;$attempt -le 3;$attempt++){
+  ClickUI $shell 'Verify chart UI'
+  try{
+   $null=FindUI $shell 'Original chart DOM, Monaco editor and preferences controls observed.' $false 12
+   $verified=$true
+   break
+  }catch{
+   if($attempt -eq 3){throw}
+   Start-Sleep -Seconds 2
+  }
+ }
+ Require $verified 'W248_ORIGINAL_CHART_AND_MONACO_AUTHENTIC_VERIFICATION_REQUIRED'
+ Write-Host ('W248_ORIGINAL_W28I_AUTHENTIC_RESPONSE_ATTEMPT='+$attempt)
  $null=FindUI $shell 'Price chart drawing surface' $false 25
  $children=@(Get-CimInstance Win32_Process -Filter ('ParentProcessId='+$shell.Id)|
   Where-Object {$_.Name -ceq 'ktrade-engine.exe'})
