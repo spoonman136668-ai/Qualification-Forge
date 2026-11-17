@@ -2057,7 +2057,7 @@ function W282-ChooseNativeSelect([object]$shell,[string]$label,[int]$index,[stri
   $observed=FindUI $shell $expectedStatus $false 8
   Require (!$observed.Current.IsOffscreen) 'W282_NATIVE_STYLE_STATUS_NOT_VISIBLE'
  }
- Write-Host ('W282_NATIVE_SELECT_CONFIRMED=+(@{label=$label;ordinal=$index;
+ Write-Host ('W282_NATIVE_SELECT_CONFIRMED='+(@{label=$label;ordinal=$index;
    expected_status=$expectedStatus;true_mouse_and_keyboard=$true;
    owner_data_read=$false;live_armed=$false;source_sha=$NewSHA}|ConvertTo-Json -Compress))
 }
