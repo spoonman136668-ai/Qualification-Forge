@@ -2853,6 +2853,65 @@ function W291-ResolveOriginalDiscard([object]$shell){
       owner_data_read=$false;live_armed=$false
     }|ConvertTo-Json -Compress -Depth 4))
     Require ([Math]::Abs($dx) -le 5 -and [Math]::Abs($dy) -le 5) 'W291M_PHYSICAL_CURSOR_DPI_MISMATCH'
+    # W291P: bounded read-only verification of alternative clickable points
+    # *inside the same original OK rectangle*. Never click an inferred target.
+    $mouseVerifiedSample='none';$sampleCount=0
+    if(!$matchingNativeOK){
+     $samples=[Collections.Generic.List[object]]::new()
+     $uiClickable=[System.Windows.Point]::new(0,0)
+     try{
+      if($ok.TryGetClickablePoint([ref]$uiClickable)){
+       $samples.Add([pscustomobject]@{X=[int]$uiClickable.X;Y=[int]$uiClickable.Y;source='uia_clickable'})
+      }
+     }catch{}
+     foreach($fx in @(0.25,0.5,0.75)){
+      foreach($fy in @(0.25,0.5,0.75)){
+       $samples.Add([pscustomobject]@{
+        X=[int]($or.Left+$or.Width*$fx);
+        Y=[int]($or.Top+$or.Height*$fy);source='rect_grid'})
+      }
+     }
+     $identity=[string]::Join(',',([int[]]$ok.GetRuntimeId()))
+     foreach($sample in $samples){
+      if($sampleCount -ge 10){break}
+      if($sample.X -lt $or.Left+2 -or $sample.X -gt $or.Right-2 -or
+       $sample.Y -lt $or.Top+2 -or $sample.Y -gt $or.Bottom-2 -or
+       $sample.X -lt $bounds.Left -or $sample.X -gt $bounds.Right -or
+       $sample.Y -lt $bounds.Top -or $sample.Y -gt $bounds.Bottom){continue}
+      $sampleCount++
+      try{
+       $at=[System.Windows.Automation.AutomationElement]::FromPoint(
+        [System.Windows.Point]::new([double]$sample.X,[double]$sample.Y))
+       $walk=[System.Windows.Automation.TreeWalker]::RawViewWalker
+       for($d=0;$d -le 10 -and $null -ne $at;$d++){
+        $v=$at.Current
+        if($v.Name -ceq 'OK' -and $v.IsEnabled -and !$v.IsOffscreen -and
+         $v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+         [string]::Join(',',([int[]]$at.GetRuntimeId())) -ceq $identity){
+         Require ([W83Native]::SetCursorPos($sample.X,$sample.Y)) 'W291P_VERIFIED_POINTER_SET_FAILED'
+         $observed=[W83Native+PhysicalPoint]::new()
+         Require ([W83Native]::GetPhysicalCursorPos([ref]$observed)) 'W291P_VERIFIED_POINTER_READ_FAILED'
+         Require ([Math]::Abs($observed.X-$sample.X) -le 5 -and
+          [Math]::Abs($observed.Y-$sample.Y) -le 5) 'W291P_VERIFIED_POINTER_OFFSET'
+         $matchingNativeOK=$true
+         $mouseVerifiedSample=$sample.source
+         break
+        }
+        $at=$walk.GetParent($at)
+       }
+      }catch{
+       if($_.Exception.Message -match '^W291P_'){throw}
+      }
+      if($matchingNativeOK){break}
+     }
+     Write-Host ('W291P_MOUSE_POINT_PROBE='+(@{
+      source=$NewSHA;samples_checked=$sampleCount;
+      exact_original_ok_hit_verified=$matchingNativeOK;
+      sample_source=$mouseVerifiedSample;
+      original_rect_only=$true;no_unverified_click=$true;
+      owner_data_read=$false;live_armed=$false
+     }|ConvertTo-Json -Compress))
+    }
     # W291O: the physical hit test found WebView2 content, not the visible
     # browser-confirm OK. Try one original native keyboard activation only
     # if the exact enabled OK accepts focus with an identical runtime ID.
