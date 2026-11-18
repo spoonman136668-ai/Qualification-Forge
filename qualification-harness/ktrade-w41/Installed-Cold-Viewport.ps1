@@ -6,7 +6,7 @@
 param([Parameter(Mandatory=$true)][string]$PackageZip,[switch]$NativeDrawingsOnly,[switch]$NativeToolbarOnly,[switch]$NativeViewportOnly,[switch]$NativeDrawingControlsOnly,[switch]$NativeAdvancedChartOnly,[switch]$NativeWorkspaceOnly,[switch]$NativeDualChartOnly,[switch]$NativeComparisonOnly,[switch]$NativePineEditorOnly,[switch]$NativePineApplyOnly,[switch]$NativePineLibraryOnly)
 $ErrorActionPreference='Stop'
 Set-StrictMode -Version Latest
-$NewSHA='078f872a4d5ba4144894429411d6b1022f7bec48'
+$NewSHA='3edef57ae56d167ef6eec2039b77f74e069b6572'
 function Require([bool]$ok,[string]$name){if(!$ok){throw $name}}
 Require ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
  $env:OS -ceq 'Windows_NT' -and $env:GITHUB_REPOSITORY -ceq 'spoonman136668-ai/Qualification-Forge' -and
@@ -2735,293 +2735,80 @@ function W291-ReadUser([object]$run,[string]$id){
 # confirmation, synthesize DOM events, replace window.confirm, or accept an
 # unrelated modal. Confirm only exact original text, within the isolated
 # installed Wails window, through a real pointer click on the native OK.
-function W291-ResolveOriginalDiscard([object]$shell){
- $msg='Discard unsaved editor changes to open this script?'
- $bounds=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
- Require (!$bounds.IsEmpty -and $bounds.Width -ge 600 -and $bounds.Height -ge 400) 'W291G_WAILS_WINDOW_UNTRUSTED'
- $deadline=(Get-Date).AddSeconds(9)
- $clickedOnce=$false
+# W292: WebView2's old native confirm is replaced by an app-owned, explicit
+# alertdialog. Verify original text, safe initial focus, and a real mouse hit
+# on the exact enabled DOM button before one irreversible confirmation.
+function W292-ResolveAppDiscard([object]$shell){
+ $message='Discard unsaved editor changes to open this script?'
+ $acceptLabel='Discard changes and open script'
+ $keepLabel='Keep editing'
+ $prompt=FindUI $shell $message $false 12
+ $keep=FindUI $shell $keepLabel $true 12
+ $accept=FindUI $shell $acceptLabel $true 12
+ Require ($prompt.Current.Name -ceq $message -and !$prompt.Current.IsOffscreen -and
+  $keep.Current.Name -ceq $keepLabel -and $keep.Current.IsEnabled -and
+  !$keep.Current.IsOffscreen -and $accept.Current.Name -ceq $acceptLabel -and
+  $accept.Current.IsEnabled -and !$accept.Current.IsOffscreen) 'W292_ORIGINAL_APP_CONSENT_CONTROLS_MISSING'
+ $focus=[System.Windows.Automation.AutomationElement]::FocusedElement
+ Require ($null -ne $focus -and $focus.Current.Name -ceq $keepLabel -and
+  $focus.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button) 'W292_SAFE_CANCEL_INITIAL_FOCUS_MISSING'
+ $r=$accept.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$r.IsEmpty -and $r.Width -ge 80 -and $r.Height -ge 30 -and
+  $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W292_APP_BUTTON_GEOMETRY_INVALID'
+ Require ([W83Native]::SetForegroundWindow($shell.MainWindowHandle)) 'W292_APP_WINDOW_FOREGROUND_REFUSED'
+ Start-Sleep -Milliseconds 180
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W292_APP_WINDOW_NOT_FOREGROUND'
+ $targetX=[int]($r.Left+$r.Width/2);$targetY=[int]($r.Top+$r.Height/2)
+ Require ([W83Native]::SetCursorPos($targetX,$targetY)) 'W292_APP_MOUSE_POINTER_REFUSED'
+ $actual=[W83Native+PhysicalPoint]::new()
+ Require ([W83Native]::GetPhysicalCursorPos([ref]$actual) -and
+  [Math]::Abs($actual.X-$targetX) -le 5 -and
+  [Math]::Abs($actual.Y-$targetY) -le 5) 'W292_APP_MOUSE_POINTER_MISMATCH'
+ $identity=[string]::Join(',',([int[]]$accept.GetRuntimeId()))
+ $hit=[System.Windows.Automation.AutomationElement]::FromPoint(
+  [System.Windows.Point]::new([double]$actual.X,[double]$actual.Y))
+ $walker=[System.Windows.Automation.TreeWalker]::RawViewWalker
+ $verified=$false
+ for($i=0;$i -le 10 -and $null -ne $hit;$i++){
+  $h=$hit.Current
+  if($h.Name -ceq $acceptLabel -and
+   $h.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+   $h.IsEnabled -and !$h.IsOffscreen -and
+   [string]::Join(',',([int[]]$hit.GetRuntimeId())) -ceq $identity){
+   $verified=$true;break
+  }
+  $hit=$walker.GetParent($hit)
+ }
+ Write-Host ('W292_APP_NATIVE_MOUSE_TARGET='+(@{
+  exact_app_button_under_pointer=$verified;
+  original_message_verified=$true;cancel_first_focus_verified=$true;
+  verified_click_count=if($verified){1}else{0};
+  source=$NewSHA;synthetic_test_only=$true;owner_data_read=$false;live_armed=$false
+ }|ConvertTo-Json -Compress))
+ Require ($verified) 'W292_APP_MOUSE_HIT_TARGET_NOT_VERIFIED'
+ # One physical click only; absence or ambiguous effect MUST fail, never retry.
+ [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ $until=(Get-Date).AddSeconds(5)
+ $stillVisible=$true
  do{
-  $roots=@([System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle))
-  $desktop=[System.Windows.Automation.AutomationElement]::RootElement
-  $windows=$desktop.FindAll([System.Windows.Automation.TreeScope]::Children,
+  Start-Sleep -Milliseconds 200
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
    [System.Windows.Automation.Condition]::TrueCondition)
-  foreach($window in $windows){
-   try{
-    $w=$window.Current.BoundingRectangle
-    if($w.IsEmpty -or $w.Width -lt 170 -or $w.Width -gt $bounds.Width+24 -or
-      $w.Height -lt 60 -or $w.Height -gt $bounds.Height+24 -or
-      $w.Left -lt $bounds.Left-15 -or $w.Right -gt $bounds.Right+15 -or
-      $w.Top -lt $bounds.Top-15 -or $w.Bottom -gt $bounds.Bottom+15){continue}
-    $roots+=,$window
-   }catch{}
-  }
-  foreach($root in $roots){
-   try{
-    $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-     [System.Windows.Automation.Condition]::TrueCondition)
-    $prompt=$null;$ok=$null
-    foreach($node in $all){
-     try{
-      $p=$node.Current
-      if($p.IsOffscreen){continue}
-      if($p.Name -ceq $msg){$prompt=$node}
-      if($p.Name -ceq 'OK' -and $p.IsEnabled -and
-       $p.ControlType -eq [System.Windows.Automation.ControlType]::Button){$ok=$node}
-     }catch{}
-    }
-    if($null -eq $prompt -or $null -eq $ok){continue}
-    $mr=$prompt.Current.BoundingRectangle;$or=$ok.Current.BoundingRectangle
-    if($mr.IsEmpty -or $or.IsEmpty -or $mr.Width -lt 145 -or
-     $or.Width -lt 20 -or $or.Height -lt 14 -or
-     $or.Left -lt $bounds.Left-10 -or $or.Right -gt $bounds.Right+10 -or
-     $or.Top -lt $bounds.Top-10 -or $or.Bottom -gt $bounds.Bottom+10){continue}
-    # W291L: the exact original prompt and OK are already verified in this
-    # test-owned window. Foreground its distinct native dialog host first;
-    # never use a foreign desktop root or invoke/synthesize a button.
-    $modalHost=[IntPtr]$root.Current.NativeWindowHandle
-    $distinctHost=($modalHost -ne [IntPtr]::Zero -and
-     $modalHost -ne $shell.MainWindowHandle)
-    if($distinctHost){
-     [void][W83Native]::SetForegroundWindow($modalHost)
-     Start-Sleep -Milliseconds 190
-     Require ([W83Native]::GetForegroundWindow() -eq $modalHost) 'W291L_NATIVE_DIALOG_FOREGROUND_FAILED'
-    }
-    Write-Host ('W291L_NATIVE_DIALOG_TARGET='+(@{
-     distinct_dialog_host=$distinctHost;
-     foreground_matched=(!$distinctHost -or
-      [W83Native]::GetForegroundWindow() -eq $modalHost);
-     exact_prompt_and_ok=true;test_owned_only=true;
-     owner_data_read=$false;live_armed=$false
-    }|ConvertTo-Json -Compress))
-    $targetX=[int]($or.Left+$or.Width/2)
-    $targetY=[int]($or.Top+$or.Height/2)
-    Require ([W83Native]::SetCursorPos($targetX,$targetY)) 'W291G_NATIVE_OK_POINTER_REFUSED'
-    # W291M: compare UIA screen bounds with the actual physical pointer and
-    # hit-tested underlying control before sending any mouse button input.
-    $actual=[W83Native+PhysicalPoint]::new()
-    Require ([W83Native]::GetPhysicalCursorPos([ref]$actual)) 'W291M_PHYSICAL_CURSOR_UNAVAILABLE'
-    $dx=[int]($actual.X-$targetX);$dy=[int]($actual.Y-$targetY)
-    # W291N: one bounded original-control hit-test, then stop on mismatch.
-    # Report only fixed control categories, never native titles or script text.
-    $nativeHwnd=[W83Native]::WindowFromPoint($actual)
-    [uint32]$nativePid=0
-    if($nativeHwnd -ne [IntPtr]::Zero){
-     [void][W83Native]::GetWindowThreadProcessId($nativeHwnd,[ref]$nativePid)
-    }
-    $hit='none';$matchingNativeOK=$false;$hitOKAnywhere=$false
-    $hitPath=[Collections.Generic.List[string]]::new()
-    try{
-     $elem=[System.Windows.Automation.AutomationElement]::FromPoint(
-      [System.Windows.Point]::new([double]$actual.X,[double]$actual.Y))
-     $walker=[System.Windows.Automation.TreeWalker]::RawViewWalker
-     for($depth=0;$depth -le 8 -and $null -ne $elem;$depth++){
-      $p=$elem.Current
-      $kind=if($p.ControlType -eq [System.Windows.Automation.ControlType]::Button){'Button'}
-       elseif($p.ControlType -eq [System.Windows.Automation.ControlType]::Window){'Window'}
-       elseif($p.ControlType -eq [System.Windows.Automation.ControlType]::Pane){'Pane'}
-       elseif($p.ControlType -eq [System.Windows.Automation.ControlType]::Text){'Text'}
-       elseif($p.ControlType -eq [System.Windows.Automation.ControlType]::Document){'Document'}
-       else{'Other'}
-      $label=if($p.Name -ceq 'OK'){'OK'}
-       elseif($p.Name -ceq 'Cancel'){'Cancel'}
-       elseif($p.Name -ceq $msg){'Prompt'}
-       else{'Other'}
-      $hitPath.Add($kind+':'+$label)
-      if($label -ceq 'OK' -and $kind -ceq 'Button' -and $p.IsEnabled -and !$p.IsOffscreen){
-       $hitOKAnywhere=$true
-       $b=$p.BoundingRectangle
-       if($b.Left -ge $or.Left-3 -and $b.Right -le $or.Right+3 -and
-        $b.Top -ge $or.Top-3 -and $b.Bottom -le $or.Bottom+3){
-        $matchingNativeOK=$true;$hit='verified_ok';break
-       }
-      }
-      $elem=$walker.GetParent($elem)
-     }
-     if(!$matchingNativeOK){$hit='other'}
-    }catch{$hit='unavailable'}
-    Write-Host ('W291N_NATIVE_DIALOG_TARGET_CLASSIFICATION='+(@{
-      physical_delta_x=$dx;physical_delta_y=$dy;
-      target_width=[int]$or.Width;target_height=[int]$or.Height;
-      hit=$hit;ok_ancestor_anywhere=$hitOKAnywhere;
-      hit_path=@($hitPath.ToArray());
-      native_hit_same_host=($nativeHwnd -eq $shell.MainWindowHandle);
-      native_hit_child_of_host=($nativeHwnd -ne [IntPtr]::Zero -and
-       [W83Native]::IsChild($shell.MainWindowHandle,$nativeHwnd));
-      native_hit_same_process=($nativePid -eq [uint32]$shell.Id);
-      foreground_wails=([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle);
-      owner_data_read=$false;live_armed=$false
-    }|ConvertTo-Json -Compress -Depth 4))
-    Require ([Math]::Abs($dx) -le 5 -and [Math]::Abs($dy) -le 5) 'W291M_PHYSICAL_CURSOR_DPI_MISMATCH'
-    # W291P: bounded read-only verification of alternative clickable points
-    # *inside the same original OK rectangle*. Never click an inferred target.
-    $mouseVerifiedSample='none';$sampleCount=0
-    if(!$matchingNativeOK){
-     $samples=[Collections.Generic.List[object]]::new()
-     $uiClickable=[System.Windows.Point]::new(0,0)
-     try{
-      if($ok.TryGetClickablePoint([ref]$uiClickable)){
-       $samples.Add([pscustomobject]@{X=[int]$uiClickable.X;Y=[int]$uiClickable.Y;source='uia_clickable'})
-      }
-     }catch{}
-     foreach($fx in @(0.25,0.5,0.75)){
-      foreach($fy in @(0.25,0.5,0.75)){
-       $samples.Add([pscustomobject]@{
-        X=[int]($or.Left+$or.Width*$fx);
-        Y=[int]($or.Top+$or.Height*$fy);source='rect_grid'})
-      }
-     }
-     $identity=[string]::Join(',',([int[]]$ok.GetRuntimeId()))
-     foreach($sample in $samples){
-      if($sampleCount -ge 10){break}
-      if($sample.X -lt $or.Left+2 -or $sample.X -gt $or.Right-2 -or
-       $sample.Y -lt $or.Top+2 -or $sample.Y -gt $or.Bottom-2 -or
-       $sample.X -lt $bounds.Left -or $sample.X -gt $bounds.Right -or
-       $sample.Y -lt $bounds.Top -or $sample.Y -gt $bounds.Bottom){continue}
-      $sampleCount++
-      try{
-       $at=[System.Windows.Automation.AutomationElement]::FromPoint(
-        [System.Windows.Point]::new([double]$sample.X,[double]$sample.Y))
-       $walk=[System.Windows.Automation.TreeWalker]::RawViewWalker
-       for($d=0;$d -le 10 -and $null -ne $at;$d++){
-        $v=$at.Current
-        if($v.Name -ceq 'OK' -and $v.IsEnabled -and !$v.IsOffscreen -and
-         $v.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
-         [string]::Join(',',([int[]]$at.GetRuntimeId())) -ceq $identity){
-         Require ([W83Native]::SetCursorPos($sample.X,$sample.Y)) 'W291P_VERIFIED_POINTER_SET_FAILED'
-         $observed=[W83Native+PhysicalPoint]::new()
-         Require ([W83Native]::GetPhysicalCursorPos([ref]$observed)) 'W291P_VERIFIED_POINTER_READ_FAILED'
-         Require ([Math]::Abs($observed.X-$sample.X) -le 5 -and
-          [Math]::Abs($observed.Y-$sample.Y) -le 5) 'W291P_VERIFIED_POINTER_OFFSET'
-         $matchingNativeOK=$true
-         $mouseVerifiedSample=$sample.source
-         break
-        }
-        $at=$walk.GetParent($at)
-       }
-      }catch{
-       if($_.Exception.Message -match '^W291P_'){throw}
-      }
-      if($matchingNativeOK){break}
-     }
-     Write-Host ('W291P_MOUSE_POINT_PROBE='+(@{
-      source=$NewSHA;samples_checked=$sampleCount;
-      exact_original_ok_hit_verified=$matchingNativeOK;
-      sample_source=$mouseVerifiedSample;
-      original_rect_only=$true;no_unverified_click=$true;
-      owner_data_read=$false;live_armed=$false
-     }|ConvertTo-Json -Compress))
-    }
-    # W291O: the physical hit test found WebView2 content, not the visible
-    # browser-confirm OK. Try one original native keyboard activation only
-    # if the exact enabled OK accepts focus with an identical runtime ID.
-    $nativeConfirmationMode='mouse'
-    if(!$matchingNativeOK){
-     $focusable=$false;$verifiedFocus=$false;$controlOwnerOK=$false
-     try{
-      $okCurrent=$ok.Current
-      $focusable=$okCurrent.IsKeyboardFocusable
-      $okHwnd=[IntPtr]$okCurrent.NativeWindowHandle
-      $controlOwnerOK=($okHwnd -eq [IntPtr]::Zero -or
-       $okHwnd -eq $shell.MainWindowHandle -or
-       [W83Native]::IsChild($shell.MainWindowHandle,$okHwnd))
-      if($focusable -and $controlOwnerOK -and
-       $prompt.Current.Name -ceq $msg -and !$prompt.Current.IsOffscreen){
-       $ok.SetFocus()
-       Start-Sleep -Milliseconds 180
-       $focused=[System.Windows.Automation.AutomationElement]::FocusedElement
-       if($null -ne $focused){
-        $f=$focused.Current
-        $fb=$f.BoundingRectangle
-        $targetId=[string]::Join(',',([int[]]$ok.GetRuntimeId()))
-        $focusId=[string]::Join(',',([int[]]$focused.GetRuntimeId()))
-        $verifiedFocus=($f.Name -ceq 'OK' -and
-         $f.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
-         $f.IsEnabled -and !$f.IsOffscreen -and
-         $targetId -ceq $focusId -and
-         $fb.Left -ge $or.Left-3 -and $fb.Right -le $or.Right+3 -and
-         $fb.Top -ge $or.Top-3 -and $fb.Bottom -le $or.Bottom+3)
-       }
-      }
-     }catch{$verifiedFocus=$false}
-     Write-Host ('W291O_ORIGINAL_NATIVE_OK_FOCUS='+(@{
-      source=$NewSHA;focusable=$focusable;owner_bounded=$controlOwnerOK;
-      verified_exact_ok_focus=$verifiedFocus;
-      physical_ok_hittest=$matchingNativeOK;synthetic_test_only=$true;
-      owner_data_read=$false;live_armed=$false
-     }|ConvertTo-Json -Compress))
-     Require ($verifiedFocus) 'W291O_ORIGINAL_OK_NATIVE_FOCUS_NOT_VERIFIED'
-     $nativeConfirmationMode='keyboard'
-    }
-    $clickedOnce=$true # one native action maximum, no uncertain-effect replay
-    if($nativeConfirmationMode -ceq 'keyboard'){
-     [W83Native]::keybd_event(0x0D,0,0,[UIntPtr]::Zero)
-     Start-Sleep -Milliseconds 75
-     [W83Native]::keybd_event(0x0D,0,2,[UIntPtr]::Zero)
-    }else{
-     [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
-     [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
-    }
-    # W291J: one read-only native-dialog dismissal check before refocusing.
-    # A click receipt is not evidence that browser confirm returned. Never
-    # click a second time or synthesize a decision after uncertain effect.
-    # W291K: a single native click is followed by bounded read-only polling.
-    # Never replay consent if the dialog is slow to dismiss.
-    $observeUntil=(Get-Date).AddSeconds(3)
-    do{
-     Start-Sleep -Milliseconds 260
-     $nativeDialogPresent=$false
-     $roots=@([System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle))
-     $desktop=[System.Windows.Automation.AutomationElement]::RootElement
-     $wins=$desktop.FindAll([System.Windows.Automation.TreeScope]::Children,
-      [System.Windows.Automation.Condition]::TrueCondition)
-     foreach($win in $wins){try{
-      $wr=$win.Current.BoundingRectangle
-      if($wr.IsEmpty -or $wr.Width -lt 170 -or $wr.Width -gt $bounds.Width+24 -or
-       $wr.Height -lt 60 -or $wr.Height -gt $bounds.Height+24 -or
-       $wr.Left -lt $bounds.Left-15 -or $wr.Right -gt $bounds.Right+15 -or
-       $wr.Top -lt $bounds.Top-15 -or $wr.Bottom -gt $bounds.Bottom+15){continue}
-      $roots+=,$win
-     }catch{}}
-     foreach($r in $roots){try{
-      $cond=[System.Windows.Automation.PropertyCondition]::new(
-       [System.Windows.Automation.AutomationElement]::NameProperty,$msg)
-      $hits=$r.FindAll([System.Windows.Automation.TreeScope]::Descendants,$cond)
-      foreach($node in $hits){if(!$node.Current.IsOffscreen){$nativeDialogPresent=$true}}
-     }catch{}}
-    }while($nativeDialogPresent -and (Get-Date) -lt $observeUntil)
-    Write-Host ('W291K_NATIVE_DISCARD_VISIBILITY='+(@{
-     original_prompt_still_visible=$nativeDialogPresent;
-     observation='bounded_readonly_UIA_after_single_verified_native_input';
-     native_confirmation_mode=$nativeConfirmationMode;
-     owner_data_read=$false;live_armed=$false
-    }|ConvertTo-Json -Compress))
-    Require (!$nativeDialogPresent) 'W291K_NATIVE_CONFIRM_STILL_VISIBLE_AFTER_SINGLE_CLICK'
-    # W291I: restore only this verified test-owned Wails host before observing.
-    [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
-    Start-Sleep -Milliseconds 220
-    $shell.Refresh()
-    Require (!$shell.HasExited) 'W291I_SHELL_EXITED_AFTER_NATIVE_DISCARD'
-    Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291I_NATIVE_WAILS_FOREGROUND_NOT_RESTORED'
-    Write-Host ('W291I_NATIVE_WAILS_FOREGROUND_RESTORED=PASS;source='+$NewSHA+
-     ';original_window_only=true;owner_data=false;live_armed=false')
-    Write-Host ('W291G_EXACT_ORIGINAL_DISCARD_PROMPT_ACCEPTED=PASS;source='+$NewSHA+
-     ';native_input_mode='+$nativeConfirmationMode+
-     ';physically_clicked_native_OK='+[string]($nativeConfirmationMode -ceq 'mouse')+
-     ';native_enter_on_original_OK='+[string]($nativeConfirmationMode -ceq 'keyboard')+
-     ';isolated_test_profile=true;owner_data=false;live_armed=false')
-    return
-   }catch{
-    if($clickedOnce -or $_.Exception.Message -match '^(W291G|W291M|W291N|W291O)_'){throw}
+  $stillVisible=$false
+  foreach($node in $nodes){try{
+   if($node.Current.Name -ceq $acceptLabel -and !$node.Current.IsOffscreen){
+    $stillVisible=$true
    }
-  }
-  Start-Sleep -Milliseconds 250
- }while((Get-Date) -lt $deadline)
- throw 'W291G_EXPECTED_ORIGINAL_DISCARD_PROMPT_NOT_ACCESSIBLE'
+  }catch{}}
+ }while($stillVisible -and (Get-Date) -lt $until)
+ Require (!$stillVisible) 'W292_APP_CONFIRM_STILL_VISIBLE_AFTER_SINGLE_MOUSE_CLICK'
+ Write-Host ('W292_APP_NATIVE_MOUSE_DISCARD=PASS;source='+$NewSHA+
+  ';physical_mouse=true;single_confirm=true;explicit_consent=true;PAPER_STOPPED=true;owner_data=false;live_armed=false')
 }
-# W291H: diagnostic-only original-UIA observation after a failed state witness.
-# Never read owner profiles, dump editor source, synthesize events, or replace
-# the existing exact positive native acceptance requirement.
 function W291H-NativeOpenDiagnostic([object]$shell,[string]$stage,[string]$expectedSource){
  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
@@ -3136,7 +2923,7 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   Require (!$dialog.Current.IsOffscreen) 'W291_NATIVE_LIBRARY_CHOOSER_MISSING'
   $row='Open '+$name+' · indicator · source only, not applied to chart'
   W285-Click $shell (W291-PanelButton $shell $row) $row
-  W291-ResolveOriginalDiscard $shell
+  W292-ResolveAppDiscard $shell
   W291-AssertNativeLibraryState $shell 'opened' $seedSource
   $readOpened=W291-ReadUser $run $id
   Require ($readOpened.source -ceq $seedSource) 'W291_INITIAL_NATIVE_OPEN_SOURCE_CUSTODY_CHANGED'
@@ -3164,7 +2951,7 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   W291-ClearDisposableStarter $run.shell
   W285-Click $run.shell (W291-PanelButton $run.shell 'Open saved Pine library') 'Open saved Pine library'
   W285-Click $run.shell (W291-PanelButton $run.shell $row) $row
-  W291-ResolveOriginalDiscard $run.shell
+  W292-ResolveAppDiscard $run.shell
   W291-AssertNativeLibraryState $run.shell 'opened' $expected
   $fresh=W291-ReadUser $run $id
   Require ($fresh.source -ceq $expected) 'W291_COLD_REOPEN_CHANGED_PINE_REVISION'

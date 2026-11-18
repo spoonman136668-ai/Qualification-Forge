@@ -33,7 +33,7 @@ jobs:
       GOTOOLCHAIN: 'local'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
-      KTRADE_EXPECTED_SOURCE: '078f872a4d5ba4144894429411d6b1022f7bec48'
+      KTRADE_EXPECTED_SOURCE: '3edef57ae56d167ef6eec2039b77f74e069b6572'
       QFORGE_NATIVE_DRAWINGS_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWINGS_FOCUSED') }}
       QFORGE_NATIVE_DRAWING_CONTROLS: ${{ contains(github.event.head_commit.message, 'NATIVE_DRAWING_CONTROLS') }}
       QFORGE_NATIVE_TOOLBAR_FOCUSED: ${{ contains(github.event.head_commit.message, 'NATIVE_TOOLBAR_FOCUSED') }}
@@ -59,7 +59,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 078f872a4d5ba4144894429411d6b1022f7bec48
+          ref: 3edef57ae56d167ef6eec2039b77f74e069b6572
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -76,7 +76,7 @@ jobs:
           $w=Join-Path $env:GITHUB_WORKSPACE 'witness'
           $source=(& git -C $p rev-parse HEAD).Trim()
           $tree=(& git -C $p rev-parse 'HEAD^{tree}').Trim()
-          if($source -cne '078f872a4d5ba4144894429411d6b1022f7bec48' -or $tree -cne '4b9aa2586bb1dbf5a5a1cf8dc3f8a4fa52b23b66' -or
+          if($source -cne '3edef57ae56d167ef6eec2039b77f74e069b6572' -or $tree -cne 'b8ffefc49b0b2fdce00bf8230b4a00eeb0b40a85' -or
              @(& git -C $p status --porcelain).Count -ne 0 -or (Test-Path (Join-Path $p '.env'))){
             throw 'W41_INSTALLED_EXACT_CLEAN_SOURCE_REQUIRED'
           }
@@ -177,6 +177,27 @@ jobs:
             Pop-Location
             Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
           }
+      - name: W292 exact-source app-owned Pine discard negative controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p=Join-Path $env:GITHUB_WORKSPACE 'product'
+          $log=Join-Path $env:RUNNER_TEMP 'w292-pine-library-private.log'
+          Push-Location $p
+          try{
+            & node --test --test-reporter=tap tests/pine_library_compat_browser.test.cjs *> $log
+            if($LASTEXITCODE -ne 0){
+              $private=Get-Content -LiteralPath $log -Raw
+              $cases=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)')|
+                ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique)
+              Write-Host ('W292_SANITIZED_BROWSER_TEST_FAILURE_ORDINALS='+($cases -join ','))
+              throw 'W292_PINE_LIBRARY_NODE_NEGATIVES_FAILED_PRIVATE_OUTPUT_WITHHELD'
+            }
+            Write-Host 'W292_APP_OWNED_PINE_LIBRARY_BROWSER_NEGATIVES=PASS'
+          }finally{
+            Pop-Location
+            Remove-Item -LiteralPath $log -Force -ErrorAction SilentlyContinue
+          }
       - name: Build unsigned original Wails installer from exact qualified candidate
         shell: pwsh
         run: |
@@ -189,7 +210,7 @@ jobs:
             & node scripts/stage_offline_vendor.cjs
             if($LASTEXITCODE -ne 0){throw 'W41_NATIVE_ASSETS_VENDOR_REFUSED'}
             $dest=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
-            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '078f872a4d5ba4144894429411d6b1022f7bec48'
+            & ./windows/Build-KTRADE-FreshInstaller.ps1 -OutputRoot $dest -ExpectedSourceSha '3edef57ae56d167ef6eec2039b77f74e069b6572'
             if($LASTEXITCODE -ne 0){throw 'W41_REAL_NATIVE_INSTALLER_BUILD_FAILED'}
             $zip=Join-Path $dest 'KTRADE-SetupBundle.zip'
             if(!(Test-Path -LiteralPath $zip -PathType Leaf)){throw 'W41_REAL_NATIVE_INSTALLER_MISSING'}
@@ -235,7 +256,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ktrade-spectrum-native-ui-078f872a4d5ba4144894429411d6b1022f7bec48
+          name: ktrade-spectrum-native-ui-3edef57ae56d167ef6eec2039b77f74e069b6572
           path: ${{ runner.temp }}/ktrade-pr253-spectrum-native-workstation.png
           if-no-files-found: warn
           retention-days: 3
