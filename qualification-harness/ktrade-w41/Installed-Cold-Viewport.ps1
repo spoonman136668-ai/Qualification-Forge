@@ -2772,6 +2772,24 @@ function W291-ResolveOriginalDiscard([object]$shell){
      $or.Width -lt 20 -or $or.Height -lt 14 -or
      $or.Left -lt $bounds.Left-10 -or $or.Right -gt $bounds.Right+10 -or
      $or.Top -lt $bounds.Top-10 -or $or.Bottom -gt $bounds.Bottom+10){continue}
+    # W291L: the exact original prompt and OK are already verified in this
+    # test-owned window. Foreground its distinct native dialog host first;
+    # never use a foreign desktop root or invoke/synthesize a button.
+    $modalHost=[IntPtr]$root.Current.NativeWindowHandle
+    $distinctHost=($modalHost -ne [IntPtr]::Zero -and
+     $modalHost -ne $shell.MainWindowHandle)
+    if($distinctHost){
+     [void][W83Native]::SetForegroundWindow($modalHost)
+     Start-Sleep -Milliseconds 190
+     Require ([W83Native]::GetForegroundWindow() -eq $modalHost) 'W291L_NATIVE_DIALOG_FOREGROUND_FAILED'
+    }
+    Write-Host ('W291L_NATIVE_DIALOG_TARGET='+(@{
+     distinct_dialog_host=$distinctHost;
+     foreground_matched=(!$distinctHost -or
+      [W83Native]::GetForegroundWindow() -eq $modalHost);
+     exact_prompt_and_ok=true;test_owned_only=true;
+     owner_data_read=$false;live_armed=$false
+    }|ConvertTo-Json -Compress))
     Require ([W83Native]::SetCursorPos([int]($or.Left+$or.Width/2),
      [int]($or.Top+$or.Height/2))) 'W291G_NATIVE_OK_POINTER_REFUSED'
     $clickedOnce=$true # no uncertain-effect replay after this point
