@@ -78,6 +78,8 @@ Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
 public static class W83Native {
+ [StructLayout(LayoutKind.Sequential)] public struct PhysicalPoint { public int X; public int Y; }
+ [DllImport("user32.dll")] public static extern bool GetPhysicalCursorPos(out PhysicalPoint p);
  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
@@ -2790,8 +2792,42 @@ function W291-ResolveOriginalDiscard([object]$shell){
      exact_prompt_and_ok=true;test_owned_only=true;
      owner_data_read=$false;live_armed=$false
     }|ConvertTo-Json -Compress))
-    Require ([W83Native]::SetCursorPos([int]($or.Left+$or.Width/2),
-     [int]($or.Top+$or.Height/2))) 'W291G_NATIVE_OK_POINTER_REFUSED'
+    $targetX=[int]($or.Left+$or.Width/2)
+    $targetY=[int]($or.Top+$or.Height/2)
+    Require ([W83Native]::SetCursorPos($targetX,$targetY)) 'W291G_NATIVE_OK_POINTER_REFUSED'
+    # W291M: compare UIA screen bounds with the actual physical pointer and
+    # hit-tested underlying control before sending any mouse button input.
+    $actual=[W83Native+PhysicalPoint]::new()
+    Require ([W83Native]::GetPhysicalCursorPos([ref]$actual)) 'W291M_PHYSICAL_CURSOR_UNAVAILABLE'
+    $dx=[int]($actual.X-$targetX);$dy=[int]($actual.Y-$targetY)
+    $hit='none';$matchingNativeOK=$false
+    try{
+     $elem=[System.Windows.Automation.AutomationElement]::FromPoint(
+      [System.Windows.Point]::new([double]$actual.X,[double]$actual.Y))
+     $walker=[System.Windows.Automation.TreeWalker]::RawViewWalker
+     for($depth=0;$depth -le 4 -and $null -ne $elem;$depth++){
+      $p=$elem.Current
+      if($p.Name -ceq 'OK' -and $p.IsEnabled -and !$p.IsOffscreen -and
+       $p.ControlType -eq [System.Windows.Automation.ControlType]::Button){
+       $b=$p.BoundingRectangle
+       if($b.Left -ge $or.Left-3 -and $b.Right -le $or.Right+3 -and
+        $b.Top -ge $or.Top-3 -and $b.Bottom -le $or.Bottom+3){
+        $matchingNativeOK=$true;$hit='verified_ok';break
+       }
+      }
+      $elem=$walker.GetParent($elem)
+     }
+     if(!$matchingNativeOK){$hit='other'}
+    }catch{$hit='unavailable'}
+    Write-Host ('W291M_NATIVE_DIALOG_PHYSICAL_HITTEST='+(@{
+      physical_delta_x=$dx;physical_delta_y=$dy;
+      target_width=[int]$or.Width;target_height=[int]$or.Height;
+      hit=$hit;ok_verified=$matchingNativeOK;
+      foreground_wails=([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle);
+      owner_data_read=$false;live_armed=$false
+    }|ConvertTo-Json -Compress))
+    Require ([Math]::Abs($dx) -le 5 -and [Math]::Abs($dy) -le 5) 'W291M_PHYSICAL_CURSOR_DPI_MISMATCH'
+    Require ($matchingNativeOK) 'W291M_NATIVE_DIALOG_OK_HITTEST_FAILED'
     $clickedOnce=$true # no uncertain-effect replay after this point
     [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
     [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
