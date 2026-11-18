@@ -80,6 +80,8 @@ using System.Runtime.InteropServices;
 public static class W83Native {
  [StructLayout(LayoutKind.Sequential)] public struct PhysicalPoint { public int X; public int Y; }
  [DllImport("user32.dll")] public static extern bool GetPhysicalCursorPos(out PhysicalPoint p);
+ [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(PhysicalPoint p);
+ [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h,out uint pid);
  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
  [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x,int y);
@@ -2800,15 +2802,34 @@ function W291-ResolveOriginalDiscard([object]$shell){
     $actual=[W83Native+PhysicalPoint]::new()
     Require ([W83Native]::GetPhysicalCursorPos([ref]$actual)) 'W291M_PHYSICAL_CURSOR_UNAVAILABLE'
     $dx=[int]($actual.X-$targetX);$dy=[int]($actual.Y-$targetY)
-    $hit='none';$matchingNativeOK=$false
+    # W291N: one bounded original-control hit-test, then stop on mismatch.
+    # Report only fixed control categories, never native titles or script text.
+    $nativeHwnd=[W83Native]::WindowFromPoint($actual)
+    [uint32]$nativePid=0
+    if($nativeHwnd -ne [IntPtr]::Zero){
+     [void][W83Native]::GetWindowThreadProcessId($nativeHwnd,[ref]$nativePid)
+    }
+    $hit='none';$matchingNativeOK=$false;$hitOKAnywhere=$false
+    $hitPath=[Collections.Generic.List[string]]::new()
     try{
      $elem=[System.Windows.Automation.AutomationElement]::FromPoint(
       [System.Windows.Point]::new([double]$actual.X,[double]$actual.Y))
      $walker=[System.Windows.Automation.TreeWalker]::RawViewWalker
-     for($depth=0;$depth -le 4 -and $null -ne $elem;$depth++){
+     for($depth=0;$depth -le 8 -and $null -ne $elem;$depth++){
       $p=$elem.Current
-      if($p.Name -ceq 'OK' -and $p.IsEnabled -and !$p.IsOffscreen -and
-       $p.ControlType -eq [System.Windows.Automation.ControlType]::Button){
+      $kind=if($p.ControlType -eq [System.Windows.Automation.ControlType]::Button){'Button'}
+       elseif($p.ControlType -eq [System.Windows.Automation.ControlType]::Window){'Window'}
+       elseif($p.ControlType -eq [System.Windows.Automation.ControlType]::Pane){'Pane'}
+       elseif($p.ControlType -eq [System.Windows.Automation.ControlType]::Text){'Text'}
+       elseif($p.ControlType -eq [System.Windows.Automation.ControlType]::Document){'Document'}
+       else{'Other'}
+      $label=if($p.Name -ceq 'OK'){'OK'}
+       elseif($p.Name -ceq 'Cancel'){'Cancel'}
+       elseif($p.Name -ceq $msg){'Prompt'}
+       else{'Other'}
+      $hitPath.Add($kind+':'+$label)
+      if($label -ceq 'OK' -and $kind -ceq 'Button' -and $p.IsEnabled -and !$p.IsOffscreen){
+       $hitOKAnywhere=$true
        $b=$p.BoundingRectangle
        if($b.Left -ge $or.Left-3 -and $b.Right -le $or.Right+3 -and
         $b.Top -ge $or.Top-3 -and $b.Bottom -le $or.Bottom+3){
@@ -2819,15 +2840,20 @@ function W291-ResolveOriginalDiscard([object]$shell){
      }
      if(!$matchingNativeOK){$hit='other'}
     }catch{$hit='unavailable'}
-    Write-Host ('W291M_NATIVE_DIALOG_PHYSICAL_HITTEST='+(@{
+    Write-Host ('W291N_NATIVE_DIALOG_TARGET_CLASSIFICATION='+(@{
       physical_delta_x=$dx;physical_delta_y=$dy;
       target_width=[int]$or.Width;target_height=[int]$or.Height;
-      hit=$hit;ok_verified=$matchingNativeOK;
+      hit=$hit;ok_ancestor_anywhere=$hitOKAnywhere;
+      hit_path=@($hitPath.ToArray());
+      native_hit_same_host=($nativeHwnd -eq $shell.MainWindowHandle);
+      native_hit_child_of_host=($nativeHwnd -ne [IntPtr]::Zero -and
+       [W83Native]::IsChild($shell.MainWindowHandle,$nativeHwnd));
+      native_hit_same_process=($nativePid -eq [uint32]$shell.Id);
       foreground_wails=([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle);
       owner_data_read=$false;live_armed=$false
-    }|ConvertTo-Json -Compress))
+    }|ConvertTo-Json -Compress -Depth 4))
     Require ([Math]::Abs($dx) -le 5 -and [Math]::Abs($dy) -le 5) 'W291M_PHYSICAL_CURSOR_DPI_MISMATCH'
-    Require ($matchingNativeOK) 'W291M_NATIVE_DIALOG_OK_HITTEST_FAILED'
+    Require ($matchingNativeOK) 'W291N_NATIVE_DIALOG_OK_HITTEST_FAILED'
     $clickedOnce=$true # no uncertain-effect replay after this point
     [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
     [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
@@ -2877,7 +2903,7 @@ function W291-ResolveOriginalDiscard([object]$shell){
      ';physically_clicked_native_OK=true;isolated_test_profile=true;owner_data=false;live_armed=false')
     return
    }catch{
-    if($clickedOnce -or $_.Exception.Message -match '^W291G_'){throw}
+    if($clickedOnce -or $_.Exception.Message -match '^(W291G|W291M|W291N)_'){throw}
    }
   }
   Start-Sleep -Milliseconds 250
