@@ -2786,7 +2786,50 @@ function W291-ResolveOriginalDiscard([object]$shell){
  }while((Get-Date) -lt $deadline)
  throw 'W291G_EXPECTED_ORIGINAL_DISCARD_PROMPT_NOT_ACCESSIBLE'
 }
-function W291-AssertNativeLibraryState([object]$shell,[string]$stage){
+# W291H: diagnostic-only original-UIA observation after a failed state witness.
+# Never read owner profiles, dump editor source, synthesize events, or replace
+# the existing exact positive native acceptance requirement.
+function W291H-NativeOpenDiagnostic([object]$shell,[string]$stage,[string]$expectedSource){
+ $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+ $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+  [System.Windows.Automation.Condition]::TrueCondition)
+ $diag=[ordered]@{
+  stage=$stage;editor_visible=$false;chooser_visible=$false;
+  workbench_visible=$false;native_editor_value='unavailable';
+  allowlisted_error='none';test_owned_only=$true;
+  owner_data_read=$false;live_armed=$false
+ }
+ $errors=@('Editor changed while opening; newer edits preserved',
+  'Saved script identity mismatch; editor preserved',
+  'Pine editor not ready','Library operation failed (HTTP 404)',
+  'Library operation failed (HTTP 500)')
+ foreach($node in $nodes){try{
+  $v=$node.Current
+  if($v.IsOffscreen){continue}
+  if($v.Name -ceq 'Saved Pine scripts'){$diag.chooser_visible=$true}
+  if($v.Name -ceq 'Pine editor workbench'){$diag.workbench_visible=$true}
+  if($errors -ccontains $v.Name){$diag.allowlisted_error=$v.Name}
+  if($v.Name -is [string] -and $v.Name.Contains('Pine source editor') -and
+   $v.ControlType -eq [System.Windows.Automation.ControlType]::Edit){
+   $diag.editor_visible=$true
+   $pattern=$null
+   if($node.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,
+    [ref]$pattern)){
+    $value=([System.Windows.Automation.ValuePattern]$pattern).Current.Value
+    if($value -is [string] -and $value.Length -le 20000){
+     $normalized=$value.Replace(([string][char]13+[char]10),[string][char]10)
+     $diag.native_editor_value=if([string]::IsNullOrEmpty($expectedSource)){
+      'available_uncompared'
+     }elseif($normalized -ceq $expectedSource){'exact_expected'}
+     else{'different_or_partial'}
+    }else{$diag.native_editor_value='unsupported_length'}
+   }
+  }
+ }catch{}}
+ Write-Host ('W291H_NATIVE_OPEN_READONLY_DIAGNOSTIC='+
+  ($diag|ConvertTo-Json -Compress))
+}
+function W291-AssertNativeLibraryState([object]$shell,[string]$stage,[string]$expectedSource=''){
  Require ($stage -cin @('opened','saved')) 'W291F_UNEXPECTED_STAGE'
  $good=if($stage -ceq 'opened'){
   @('Pine source durably opened','Opened stored Pine script; not applied to chart')
@@ -2826,6 +2869,7 @@ function W291-AssertNativeLibraryState([object]$shell,[string]$stage){
     [pscustomobject]@{name=$_.name;visible=$_.visible}
   });original_Go_library=true;owner_data_read=$false;live_armed=$false
  }|ConvertTo-Json -Compress -Depth 5))
+ if(!$matched){W291H-NativeOpenDiagnostic $shell $stage $expectedSource}
  Require ($matched) ('W291F_NATIVE_PINE_'+$stage.ToUpperInvariant()+'_POSITIVE_NOT_OBSERVED')
 }
 function W291-NativeDurableSave([object]$installed,[object]$first){
@@ -2855,7 +2899,7 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   $row='Open '+$name+' · indicator · source only, not applied to chart'
   W285-Click $shell (W291-PanelButton $shell $row) $row
   W291-ResolveOriginalDiscard $shell
-  W291-AssertNativeLibraryState $shell 'opened'
+  W291-AssertNativeLibraryState $shell 'opened' $seedSource
   $readOpened=W291-ReadUser $run $id
   Require ($readOpened.source -ceq $seedSource) 'W291_INITIAL_NATIVE_OPEN_SOURCE_CUSTODY_CHANGED'
   W291-TypeAppend $shell
@@ -2883,7 +2927,7 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   W285-Click $run.shell (W291-PanelButton $run.shell 'Open saved Pine library') 'Open saved Pine library'
   W285-Click $run.shell (W291-PanelButton $run.shell $row) $row
   W291-ResolveOriginalDiscard $run.shell
-  W291-AssertNativeLibraryState $run.shell 'opened'
+  W291-AssertNativeLibraryState $run.shell 'opened' $expected
   $fresh=W291-ReadUser $run $id
   Require ($fresh.source -ceq $expected) 'W291_COLD_REOPEN_CHANGED_PINE_REVISION'
   $hist=W41-Candles $run.origin
