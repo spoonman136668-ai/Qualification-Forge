@@ -2726,6 +2726,66 @@ function W291-ReadUser([object]$run,[string]$id){
 # to Windows UIA in prior native runs. Require at least one exact visible
 # original success indicator, backed independently by durable Go source
 # receipts. Enumerate only fixed non-sensitive status names for diagnosis.
+# W291G: original Pine library prompts to discard a dirty Monaco source
+# even after this disposable test cleared it. Do not silently bypass browser
+# confirmation, synthesize DOM events, replace window.confirm, or accept an
+# unrelated modal. Confirm only exact original text, within the isolated
+# installed Wails window, through a real pointer click on the native OK.
+function W291-ResolveOriginalDiscard([object]$shell){
+ $msg='Discard unsaved editor changes to open this script?'
+ $bounds=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require (!$bounds.IsEmpty -and $bounds.Width -ge 600 -and $bounds.Height -ge 400) 'W291G_WAILS_WINDOW_UNTRUSTED'
+ $deadline=(Get-Date).AddSeconds(9)
+ do{
+  $roots=@([System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle))
+  $desktop=[System.Windows.Automation.AutomationElement]::RootElement
+  $windows=$desktop.FindAll([System.Windows.Automation.TreeScope]::Children,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  foreach($window in $windows){
+   try{
+    $w=$window.Current.BoundingRectangle
+    if($w.IsEmpty -or $w.Width -lt 170 -or $w.Width -gt $bounds.Width+24 -or
+      $w.Height -lt 60 -or $w.Height -gt $bounds.Height+24 -or
+      $w.Left -lt $bounds.Left-15 -or $w.Right -gt $bounds.Right+15 -or
+      $w.Top -lt $bounds.Top-15 -or $w.Bottom -gt $bounds.Bottom+15){continue}
+    $roots+=,$window
+   }catch{}
+  }
+  foreach($root in $roots){
+   try{
+    $all=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+     [System.Windows.Automation.Condition]::TrueCondition)
+    $prompt=$null;$ok=$null
+    foreach($node in $all){
+     try{
+      $p=$node.Current
+      if($p.IsOffscreen){continue}
+      if($p.Name -ceq $msg){$prompt=$node}
+      if($p.Name -ceq 'OK' -and $p.IsEnabled -and
+       $p.ControlType -eq [System.Windows.Automation.ControlType]::Button){$ok=$node}
+     }catch{}
+    }
+    if($null -eq $prompt -or $null -eq $ok){continue}
+    $mr=$prompt.Current.BoundingRectangle;$or=$ok.Current.BoundingRectangle
+    if($mr.IsEmpty -or $or.IsEmpty -or $mr.Width -lt 145 -or
+     $or.Width -lt 20 -or $or.Height -lt 14 -or
+     $or.Left -lt $bounds.Left-10 -or $or.Right -gt $bounds.Right+10 -or
+     $or.Top -lt $bounds.Top-10 -or $or.Bottom -gt $bounds.Bottom+10){continue}
+    Require ([W83Native]::SetCursorPos([int]($or.Left+$or.Width/2),
+     [int]($or.Top+$or.Height/2))) 'W291G_NATIVE_OK_POINTER_REFUSED'
+    [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+    [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+    Write-Host ('W291G_EXACT_ORIGINAL_DISCARD_PROMPT_ACCEPTED=PASS;source='+$NewSHA+
+     ';physically_clicked_native_OK=true;isolated_test_profile=true;owner_data=false;live_armed=false')
+    return
+   }catch{
+    if($_.Exception.Message -match '^W291G_'){throw}
+   }
+  }
+  Start-Sleep -Milliseconds 250
+ }while((Get-Date) -lt $deadline)
+ throw 'W291G_EXPECTED_ORIGINAL_DISCARD_PROMPT_NOT_ACCESSIBLE'
+}
 function W291-AssertNativeLibraryState([object]$shell,[string]$stage){
  Require ($stage -cin @('opened','saved')) 'W291F_UNEXPECTED_STAGE'
  $good=if($stage -ceq 'opened'){
@@ -2794,6 +2854,7 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   Require (!$dialog.Current.IsOffscreen) 'W291_NATIVE_LIBRARY_CHOOSER_MISSING'
   $row='Open '+$name+' · indicator · source only, not applied to chart'
   W285-Click $shell (W291-PanelButton $shell $row) $row
+  W291-ResolveOriginalDiscard $shell
   W291-AssertNativeLibraryState $shell 'opened'
   $readOpened=W291-ReadUser $run $id
   Require ($readOpened.source -ceq $seedSource) 'W291_INITIAL_NATIVE_OPEN_SOURCE_CUSTODY_CHANGED'
@@ -2821,6 +2882,7 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   W291-ClearDisposableStarter $run.shell
   W285-Click $run.shell (W291-PanelButton $run.shell 'Open saved Pine library') 'Open saved Pine library'
   W285-Click $run.shell (W291-PanelButton $run.shell $row) $row
+  W291-ResolveOriginalDiscard $run.shell
   W291-AssertNativeLibraryState $run.shell 'opened'
   $fresh=W291-ReadUser $run $id
   Require ($fresh.source -ceq $expected) 'W291_COLD_REOPEN_CHANGED_PINE_REVISION'
