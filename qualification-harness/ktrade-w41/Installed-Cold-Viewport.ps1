@@ -2775,6 +2775,16 @@ function W291-ResolveOriginalDiscard([object]$shell){
      [int]($or.Top+$or.Height/2))) 'W291G_NATIVE_OK_POINTER_REFUSED'
     [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
     [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+    # W291I: browser-owned native confirm may leave the original Wails host
+    # unfocused. Restore only this verified test-owned shell before observing.
+    Start-Sleep -Milliseconds 260
+    [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+    Start-Sleep -Milliseconds 220
+    $shell.Refresh()
+    Require (!$shell.HasExited) 'W291I_SHELL_EXITED_AFTER_NATIVE_DISCARD'
+    Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291I_NATIVE_WAILS_FOREGROUND_NOT_RESTORED'
+    Write-Host ('W291I_NATIVE_WAILS_FOREGROUND_RESTORED=PASS;source='+$NewSHA+
+     ';original_window_only=true;owner_data=false;live_armed=false')
     Write-Host ('W291G_EXACT_ORIGINAL_DISCARD_PROMPT_ACCEPTED=PASS;source='+$NewSHA+
      ';physically_clicked_native_OK=true;isolated_test_profile=true;owner_data=false;live_armed=false')
     return
@@ -2796,6 +2806,9 @@ function W291H-NativeOpenDiagnostic([object]$shell,[string]$stage,[string]$expec
  $diag=[ordered]@{
   stage=$stage;editor_visible=$false;chooser_visible=$false;
   workbench_visible=$false;native_editor_value='unavailable';
+  chart_ui_visible=$false;editor_toggle_visible=$false;
+  ui_descendant_count=$nodes.Count;
+  native_wails_foreground=([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle);
   allowlisted_error='none';test_owned_only=$true;
   owner_data_read=$false;live_armed=$false
  }
@@ -2808,6 +2821,8 @@ function W291H-NativeOpenDiagnostic([object]$shell,[string]$stage,[string]$expec
   if($v.IsOffscreen){continue}
   if($v.Name -ceq 'Saved Pine scripts'){$diag.chooser_visible=$true}
   if($v.Name -ceq 'Pine editor workbench'){$diag.workbench_visible=$true}
+  if($v.Name -ceq 'Chart tools and navigation'){$diag.chart_ui_visible=$true}
+  if($v.Name -ceq 'Pine Editor' -or $v.Name -ceq 'Close Pine editor'){$diag.editor_toggle_visible=$true}
   if($errors -ccontains $v.Name){$diag.allowlisted_error=$v.Name}
   if($v.Name -is [string] -and $v.Name.Contains('Pine source editor') -and
    $v.ControlType -eq [System.Windows.Automation.ControlType]::Edit){
