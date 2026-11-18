@@ -2616,11 +2616,37 @@ function W291-Key([int]$vk){
 # prompts before replacing any unsaved source; this test avoids that browser
 # confirmation by physically clearing only its own disposable starter first.
 # Never click through a discard dialog, send virtual DOM events or alter Go data.
+# W291C: UIA can expose Monaco as an enabled or disabled *container* even
+# when the original editable textbox is visibly rendered. Never infer keyboard
+# interactability from container.IsEnabled or exact container.Name. Bound the
+# physical click to the genuine installed Wails window and its visible editor.
+function W291-FocusEditorNative([object]$shell){
+ $node=FindUI $shell 'Pine source editor' $false 13
+ $v=$node.Current;$r=$v.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ $matches=($v.Name -is [string] -and $v.Name.Contains('Pine source editor'))
+ Write-Host ('W291C_NATIVE_EDITOR_METADATA='+(@{
+  matched_editor_name=$matches;exact_editor_name=($v.Name -ceq 'Pine source editor');
+  uia_container_enabled=$v.IsEnabled;uia_offscreen=$v.IsOffscreen;
+  native_rect_in_bounds=(!$r.IsEmpty -and $r.Left -ge $outer.Left -and
+   $r.Right -le $outer.Right -and $r.Top -ge $outer.Top -and
+   $r.Bottom -le $outer.Bottom);
+  owner_data_read=$false;live_armed=$false
+ }|ConvertTo-Json -Compress))
+ Require ($matches -and !$v.IsOffscreen -and !$r.IsEmpty -and
+  $r.Width -ge 120 -and $r.Height -ge 35 -and
+  $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W291C_ORIGINAL_EDITOR_NOT_IN_VISIBLE_NATIVE_WINDOW'
+ [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291C_FOREIGN_WINDOW'
+ Require ([W83Native]::SetCursorPos([int]($r.Left+$r.Width*.52),
+  [int]($r.Top+$r.Height*.49))) 'W291C_MONACO_NATIVE_POINTER_REFUSED'
+ [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+ [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 240
+}
 function W291-ClearDisposableStarter([object]$shell){
- $el=FindUI $shell 'Pine source editor' $false 14
- Require ($el.Current.Name -ceq 'Pine source editor' -and
-  !$el.Current.IsOffscreen -and $el.Current.IsEnabled) 'W291B_ORIGINAL_MONACO_NOT_ACCESSIBLE'
- W285-Click $shell $el 'Pine source editor'
+ W291-FocusEditorNative $shell
  Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291B_FOREIGN_INPUT_FOCUS'
  [W83Native]::keybd_event(0x11,0,0,[UIntPtr]::Zero) # Ctrl down
  try{
@@ -2639,9 +2665,7 @@ function W291-ClearDisposableStarter([object]$shell){
   ';physical_Ctrl_A_Backspace=true;no_prompt_accepted=true;owner_data=false;live_armed=false')
 }
 function W291-TypeAppend([object]$shell){
- $el=FindUI $shell 'Pine source editor' $false 12
- Require (!$el.Current.IsOffscreen -and $el.Current.IsEnabled) 'W291_NOT_EDITABLE'
- W285-Click $shell $el 'Pine source editor'
+ W291-FocusEditorNative $shell
  [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
  Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291_FOREIGN_KEYBOARD_FOCUS'
  [W83Native]::keybd_event(0x11,0,0,[UIntPtr]::Zero) # Ctrl down
