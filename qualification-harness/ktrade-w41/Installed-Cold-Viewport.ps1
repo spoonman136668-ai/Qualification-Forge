@@ -2736,6 +2736,7 @@ function W291-ResolveOriginalDiscard([object]$shell){
  $bounds=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
  Require (!$bounds.IsEmpty -and $bounds.Width -ge 600 -and $bounds.Height -ge 400) 'W291G_WAILS_WINDOW_UNTRUSTED'
  $deadline=(Get-Date).AddSeconds(9)
+ $clickedOnce=$false
  do{
   $roots=@([System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle))
   $desktop=[System.Windows.Automation.AutomationElement]::RootElement
@@ -2773,37 +2774,43 @@ function W291-ResolveOriginalDiscard([object]$shell){
      $or.Top -lt $bounds.Top-10 -or $or.Bottom -gt $bounds.Bottom+10){continue}
     Require ([W83Native]::SetCursorPos([int]($or.Left+$or.Width/2),
      [int]($or.Top+$or.Height/2))) 'W291G_NATIVE_OK_POINTER_REFUSED'
+    $clickedOnce=$true # no uncertain-effect replay after this point
     [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
     [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
     # W291J: one read-only native-dialog dismissal check before refocusing.
     # A click receipt is not evidence that browser confirm returned. Never
     # click a second time or synthesize a decision after uncertain effect.
-    Start-Sleep -Milliseconds 300
-    $nativeDialogPresent=$false
-    $roots=@([System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle))
-    $desktop=[System.Windows.Automation.AutomationElement]::RootElement
-    $wins=$desktop.FindAll([System.Windows.Automation.TreeScope]::Children,
-     [System.Windows.Automation.Condition]::TrueCondition)
-    foreach($win in $wins){try{
-     $wr=$win.Current.BoundingRectangle
-     if($wr.IsEmpty -or $wr.Width -lt 170 -or $wr.Width -gt $bounds.Width+24 -or
-      $wr.Height -lt 60 -or $wr.Height -gt $bounds.Height+24 -or
-      $wr.Left -lt $bounds.Left-15 -or $wr.Right -gt $bounds.Right+15 -or
-      $wr.Top -lt $bounds.Top-15 -or $wr.Bottom -gt $bounds.Bottom+15){continue}
-     $roots+=,$win
-    }catch{}}
-    foreach($r in $roots){try{
-     $cond=[System.Windows.Automation.PropertyCondition]::new(
-      [System.Windows.Automation.AutomationElement]::NameProperty,$msg)
-     $hits=$r.FindAll([System.Windows.Automation.TreeScope]::Descendants,$cond)
-     foreach($node in $hits){if(!$node.Current.IsOffscreen){$nativeDialogPresent=$true}}
-    }catch{}}
-    Write-Host ('W291J_NATIVE_DISCARD_VISIBILITY='+(@{
+    # W291K: a single native click is followed by bounded read-only polling.
+    # Never replay consent if the dialog is slow to dismiss.
+    $observeUntil=(Get-Date).AddSeconds(3)
+    do{
+     Start-Sleep -Milliseconds 260
+     $nativeDialogPresent=$false
+     $roots=@([System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle))
+     $desktop=[System.Windows.Automation.AutomationElement]::RootElement
+     $wins=$desktop.FindAll([System.Windows.Automation.TreeScope]::Children,
+      [System.Windows.Automation.Condition]::TrueCondition)
+     foreach($win in $wins){try{
+      $wr=$win.Current.BoundingRectangle
+      if($wr.IsEmpty -or $wr.Width -lt 170 -or $wr.Width -gt $bounds.Width+24 -or
+       $wr.Height -lt 60 -or $wr.Height -gt $bounds.Height+24 -or
+       $wr.Left -lt $bounds.Left-15 -or $wr.Right -gt $bounds.Right+15 -or
+       $wr.Top -lt $bounds.Top-15 -or $wr.Bottom -gt $bounds.Bottom+15){continue}
+      $roots+=,$win
+     }catch{}}
+     foreach($r in $roots){try{
+      $cond=[System.Windows.Automation.PropertyCondition]::new(
+       [System.Windows.Automation.AutomationElement]::NameProperty,$msg)
+      $hits=$r.FindAll([System.Windows.Automation.TreeScope]::Descendants,$cond)
+      foreach($node in $hits){if(!$node.Current.IsOffscreen){$nativeDialogPresent=$true}}
+     }catch{}}
+    }while($nativeDialogPresent -and (Get-Date) -lt $observeUntil)
+    Write-Host ('W291K_NATIVE_DISCARD_VISIBILITY='+(@{
      original_prompt_still_visible=$nativeDialogPresent;
-     observation='bounded_readonly_UIA_after_one_physical_click';
+     observation='bounded_readonly_UIA_after_single_physical_click';
      owner_data_read=$false;live_armed=$false
     }|ConvertTo-Json -Compress))
-    Require (!$nativeDialogPresent) 'W291J_NATIVE_CONFIRM_STILL_VISIBLE_AFTER_CLICK'
+    Require (!$nativeDialogPresent) 'W291K_NATIVE_CONFIRM_STILL_VISIBLE_AFTER_SINGLE_CLICK'
     # W291I: restore only this verified test-owned Wails host before observing.
     [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
     Start-Sleep -Milliseconds 220
@@ -2816,7 +2823,7 @@ function W291-ResolveOriginalDiscard([object]$shell){
      ';physically_clicked_native_OK=true;isolated_test_profile=true;owner_data=false;live_armed=false')
     return
    }catch{
-    if($_.Exception.Message -match '^W291G_'){throw}
+    if($clickedOnce -or $_.Exception.Message -match '^W291G_'){throw}
    }
   }
   Start-Sleep -Milliseconds 250
