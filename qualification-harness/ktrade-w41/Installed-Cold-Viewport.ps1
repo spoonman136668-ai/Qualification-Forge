@@ -2633,14 +2633,32 @@ function W291-FocusEditorNative([object]$shell){
    $r.Bottom -le $outer.Bottom);
   owner_data_read=$false;live_armed=$false
  }|ConvertTo-Json -Compress))
- Require ($matches -and !$v.IsOffscreen -and !$r.IsEmpty -and
-  $r.Width -ge 120 -and $r.Height -ge 35 -and
+ # Monaco UIA exposes a small caret textarea, not the full editor canvas;
+ # prior W291C observed name+enable+visibility+window-custody PASS, but its
+ # hard-coded 120x35 textarea assumption failed. Target the actual visible
+ # original editor workbench body with a physical in-window pointer click.
+ $panel=FindUI $shell 'Pine editor workbench' $false 10
+ $pane=$panel.Current.BoundingRectangle
+ Require ($matches -and $v.IsEnabled -and !$v.IsOffscreen -and !$r.IsEmpty -and
   $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
-  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom) 'W291C_ORIGINAL_EDITOR_NOT_IN_VISIBLE_NATIVE_WINDOW'
+  $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom -and
+  !$panel.Current.IsOffscreen -and !$pane.IsEmpty -and
+  $pane.Width -ge 260 -and $pane.Height -ge 230 -and
+  $pane.Left -ge $outer.Left -and $pane.Right -le $outer.Right -and
+  $pane.Top -ge $outer.Top -and $pane.Bottom -le $outer.Bottom) 'W291D_ORIGINAL_WORKBENCH_NOT_VISIBLE'
+ $px=[int]($pane.Left+$pane.Width*.56)
+ $py=[int]($pane.Top+$pane.Height*.55)
+ Require ($px -ge ($pane.Left+40) -and $px -le ($pane.Right-40) -and
+  $py -ge ($pane.Top+100) -and $py -le ($pane.Bottom-32)) 'W291D_PHYSICAL_EDITOR_TARGET_OUTSIDE_BODY'
+ Write-Host ('W291D_NATIVE_EDITOR_GEOMETRY='+(@{
+   uia_caret_width_class=($(if($r.Width -lt 120){'small'}else{'large'}));
+   uia_caret_height_class=($(if($r.Height -lt 35){'small'}else{'large'}));
+   original_workbench_width=[int]$pane.Width;original_workbench_height=[int]$pane.Height;
+   target_is_visible_native_editor_body=$true;owner_data_read=$false;live_armed=$false
+ }|ConvertTo-Json -Compress))
  [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
- Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291C_FOREIGN_WINDOW'
- Require ([W83Native]::SetCursorPos([int]($r.Left+$r.Width*.52),
-  [int]($r.Top+$r.Height*.49))) 'W291C_MONACO_NATIVE_POINTER_REFUSED'
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291D_FOREIGN_WINDOW'
+ Require ([W83Native]::SetCursorPos($px,$py)) 'W291D_MONACO_NATIVE_POINTER_REFUSED'
  [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
  [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
  Start-Sleep -Milliseconds 240
