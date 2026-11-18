@@ -2853,10 +2853,56 @@ function W291-ResolveOriginalDiscard([object]$shell){
       owner_data_read=$false;live_armed=$false
     }|ConvertTo-Json -Compress -Depth 4))
     Require ([Math]::Abs($dx) -le 5 -and [Math]::Abs($dy) -le 5) 'W291M_PHYSICAL_CURSOR_DPI_MISMATCH'
-    Require ($matchingNativeOK) 'W291N_NATIVE_DIALOG_OK_HITTEST_FAILED'
-    $clickedOnce=$true # no uncertain-effect replay after this point
-    [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
-    [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+    # W291O: the physical hit test found WebView2 content, not the visible
+    # browser-confirm OK. Try one original native keyboard activation only
+    # if the exact enabled OK accepts focus with an identical runtime ID.
+    $nativeConfirmationMode='mouse'
+    if(!$matchingNativeOK){
+     $focusable=$false;$verifiedFocus=$false;$controlOwnerOK=$false
+     try{
+      $okCurrent=$ok.Current
+      $focusable=$okCurrent.IsKeyboardFocusable
+      $okHwnd=[IntPtr]$okCurrent.NativeWindowHandle
+      $controlOwnerOK=($okHwnd -eq [IntPtr]::Zero -or
+       $okHwnd -eq $shell.MainWindowHandle -or
+       [W83Native]::IsChild($shell.MainWindowHandle,$okHwnd))
+      if($focusable -and $controlOwnerOK -and
+       $prompt.Current.Name -ceq $msg -and !$prompt.Current.IsOffscreen){
+       $ok.SetFocus()
+       Start-Sleep -Milliseconds 180
+       $focused=[System.Windows.Automation.AutomationElement]::FocusedElement
+       if($null -ne $focused){
+        $f=$focused.Current
+        $fb=$f.BoundingRectangle
+        $targetId=[string]::Join(',',([int[]]$ok.GetRuntimeId()))
+        $focusId=[string]::Join(',',([int[]]$focused.GetRuntimeId()))
+        $verifiedFocus=($f.Name -ceq 'OK' -and
+         $f.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
+         $f.IsEnabled -and !$f.IsOffscreen -and
+         $targetId -ceq $focusId -and
+         $fb.Left -ge $or.Left-3 -and $fb.Right -le $or.Right+3 -and
+         $fb.Top -ge $or.Top-3 -and $fb.Bottom -le $or.Bottom+3)
+       }
+      }
+     }catch{$verifiedFocus=$false}
+     Write-Host ('W291O_ORIGINAL_NATIVE_OK_FOCUS='+(@{
+      source=$NewSHA;focusable=$focusable;owner_bounded=$controlOwnerOK;
+      verified_exact_ok_focus=$verifiedFocus;
+      physical_ok_hittest=$matchingNativeOK;synthetic_test_only=$true;
+      owner_data_read=$false;live_armed=$false
+     }|ConvertTo-Json -Compress))
+     Require ($verifiedFocus) 'W291O_ORIGINAL_OK_NATIVE_FOCUS_NOT_VERIFIED'
+     $nativeConfirmationMode='keyboard'
+    }
+    $clickedOnce=$true # one native action maximum, no uncertain-effect replay
+    if($nativeConfirmationMode -ceq 'keyboard'){
+     [W83Native]::keybd_event(0x0D,0,0,[UIntPtr]::Zero)
+     Start-Sleep -Milliseconds 75
+     [W83Native]::keybd_event(0x0D,0,2,[UIntPtr]::Zero)
+    }else{
+     [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+     [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+    }
     # W291J: one read-only native-dialog dismissal check before refocusing.
     # A click receipt is not evidence that browser confirm returned. Never
     # click a second time or synthesize a decision after uncertain effect.
@@ -2887,7 +2933,8 @@ function W291-ResolveOriginalDiscard([object]$shell){
     }while($nativeDialogPresent -and (Get-Date) -lt $observeUntil)
     Write-Host ('W291K_NATIVE_DISCARD_VISIBILITY='+(@{
      original_prompt_still_visible=$nativeDialogPresent;
-     observation='bounded_readonly_UIA_after_single_physical_click';
+     observation='bounded_readonly_UIA_after_single_verified_native_input';
+     native_confirmation_mode=$nativeConfirmationMode;
      owner_data_read=$false;live_armed=$false
     }|ConvertTo-Json -Compress))
     Require (!$nativeDialogPresent) 'W291K_NATIVE_CONFIRM_STILL_VISIBLE_AFTER_SINGLE_CLICK'
@@ -2900,10 +2947,13 @@ function W291-ResolveOriginalDiscard([object]$shell){
     Write-Host ('W291I_NATIVE_WAILS_FOREGROUND_RESTORED=PASS;source='+$NewSHA+
      ';original_window_only=true;owner_data=false;live_armed=false')
     Write-Host ('W291G_EXACT_ORIGINAL_DISCARD_PROMPT_ACCEPTED=PASS;source='+$NewSHA+
-     ';physically_clicked_native_OK=true;isolated_test_profile=true;owner_data=false;live_armed=false')
+     ';native_input_mode='+$nativeConfirmationMode+
+     ';physically_clicked_native_OK='+[string]($nativeConfirmationMode -ceq 'mouse')+
+     ';native_enter_on_original_OK='+[string]($nativeConfirmationMode -ceq 'keyboard')+
+     ';isolated_test_profile=true;owner_data=false;live_armed=false')
     return
    }catch{
-    if($clickedOnce -or $_.Exception.Message -match '^(W291G|W291M|W291N)_'){throw}
+    if($clickedOnce -or $_.Exception.Message -match '^(W291G|W291M|W291N|W291O)_'){throw}
    }
   }
   Start-Sleep -Milliseconds 250
