@@ -2720,6 +2720,54 @@ function W291-ReadUser([object]$run,[string]$id){
   $value.source -is [string]) 'W291_GO_DURABLE_LIBRARY_CUSTODY_UNVERIFIED'
  return $value
 }
+# W291F: the original Go-backed Pine editor advertises success in TWO
+# distinct original UI elements: aria-label on the saved-state role=img,
+# and the adjacent aria-live footer text. The footer alone was not visible
+# to Windows UIA in prior native runs. Require at least one exact visible
+# original success indicator, backed independently by durable Go source
+# receipts. Enumerate only fixed non-sensitive status names for diagnosis.
+function W291-AssertNativeLibraryState([object]$shell,[string]$stage){
+ Require ($stage -cin @('opened','saved')) 'W291F_UNEXPECTED_STAGE'
+ $good=if($stage -ceq 'opened'){
+  @('Pine source durably opened','Opened stored Pine script; not applied to chart')
+ }else{
+  @('Pine source durably saved','Pine script durably saved; not automatically applied')
+ }
+ $known=@('Pine source durably opened',
+  'Opened stored Pine script; not applied to chart',
+  'Pine source durably saved',
+  'Pine script durably saved; not automatically applied',
+  'Unsaved changes · save before paper review',
+  'Opening saved source…',
+  'No saved scripts — use Save.')
+ $end=(Get-Date).AddSeconds(15);$matched=$false;$visible=@()
+ do{
+  $root=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle)
+  $nodes=$root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+   [System.Windows.Automation.Condition]::TrueCondition)
+  $found=@()
+  foreach($node in $nodes){try{
+   $state=$node.Current
+   foreach($label in $known){
+    if($state.Name -ceq $label){
+     $found+=([pscustomobject]@{name=$label;visible=(!$state.IsOffscreen);
+      enabled=$state.IsEnabled})
+     if($label -cin $good -and !$state.IsOffscreen){$matched=$true}
+    }
+   }
+  }catch{}}
+  $visible=@($found)
+  if($matched){break}
+  Start-Sleep -Milliseconds 250
+ }while((Get-Date) -lt $end)
+ Write-Host ('W291F_NATIVE_PINE_STATE='+(@{
+  stage=$stage;positive_visible=$matched;
+  known_original_state_presence=@($visible|ForEach-Object {
+    [pscustomobject]@{name=$_.name;visible=$_.visible}
+  });original_Go_library=true;owner_data_read=$false;live_armed=$false
+ }|ConvertTo-Json -Compress -Depth 5))
+ Require ($matched) ('W291F_NATIVE_PINE_'+$stage.ToUpperInvariant()+'_POSITIVE_NOT_OBSERVED')
+}
 function W291-NativeDurableSave([object]$installed,[object]$first){
  $run=$first
  $name='000 W291 native roundtrip'
@@ -2746,14 +2794,12 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   Require (!$dialog.Current.IsOffscreen) 'W291_NATIVE_LIBRARY_CHOOSER_MISSING'
   $row='Open '+$name+' · indicator · source only, not applied to chart'
   W285-Click $shell (W291-PanelButton $shell $row) $row
-  $opened=FindUI $shell 'Opened stored Pine script; not applied to chart' $false 18
-  Require ($opened.Current.Name -ceq 'Opened stored Pine script; not applied to chart' -and
-    !$opened.Current.IsOffscreen) 'W291_NATIVE_OPEN_DID_NOT_FETCH_GO_SOURCE'
+  W291-AssertNativeLibraryState $shell 'opened'
+  $readOpened=W291-ReadUser $run $id
+  Require ($readOpened.source -ceq $seedSource) 'W291_INITIAL_NATIVE_OPEN_SOURCE_CUSTODY_CHANGED'
   W291-TypeAppend $shell
   W285-Click $shell (W291-PanelButton $shell 'Save') 'Save'
-  $saved=FindUI $shell 'Pine script durably saved; not automatically applied' $false 22
-  Require ($saved.Current.Name -ceq 'Pine script durably saved; not automatically applied' -and
-   !$saved.Current.IsOffscreen) 'W291_NATIVE_REVISION_SAVE_UNCONFIRMED'
+  W291-AssertNativeLibraryState $shell 'saved'
   $stored=W291-ReadUser $run $id
   $expected=$seedSource+([char]10)+'//x'
   Require ($stored.source -ceq $expected) 'W291_KEYBOARD_EDIT_NOT_DURABLY_STORED'
@@ -2775,9 +2821,7 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   W291-ClearDisposableStarter $run.shell
   W285-Click $run.shell (W291-PanelButton $run.shell 'Open saved Pine library') 'Open saved Pine library'
   W285-Click $run.shell (W291-PanelButton $run.shell $row) $row
-  $openedAgain=FindUI $run.shell 'Opened stored Pine script; not applied to chart' $false 18
-  Require (!$openedAgain.Current.IsOffscreen -and
-   $openedAgain.Current.Name -ceq 'Opened stored Pine script; not applied to chart') 'W291_COLD_NATIVE_LIBRARY_REOPEN_FAILED'
+  W291-AssertNativeLibraryState $run.shell 'opened'
   $fresh=W291-ReadUser $run $id
   Require ($fresh.source -ceq $expected) 'W291_COLD_REOPEN_CHANGED_PINE_REVISION'
   $hist=W41-Candles $run.origin
