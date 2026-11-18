@@ -2612,6 +2612,32 @@ function W291-Key([int]$vk){
  [W83Native]::keybd_event([byte]$vk,0,2,[UIntPtr]::Zero)
  Start-Sleep -Milliseconds 90
 }
+# W291B: Monaco opens with a nonempty unsaved starter. The product correctly
+# prompts before replacing any unsaved source; this test avoids that browser
+# confirmation by physically clearing only its own disposable starter first.
+# Never click through a discard dialog, send virtual DOM events or alter Go data.
+function W291-ClearDisposableStarter([object]$shell){
+ $el=FindUI $shell 'Pine source editor' $false 14
+ Require ($el.Current.Name -ceq 'Pine source editor' -and
+  !$el.Current.IsOffscreen -and $el.Current.IsEnabled) 'W291B_ORIGINAL_MONACO_NOT_ACCESSIBLE'
+ W285-Click $shell $el 'Pine source editor'
+ Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291B_FOREIGN_INPUT_FOCUS'
+ [W83Native]::keybd_event(0x11,0,0,[UIntPtr]::Zero) # Ctrl down
+ try{
+  [W83Native]::keybd_event(0x41,0,0,[UIntPtr]::Zero) # A down
+  Start-Sleep -Milliseconds 90
+  [W83Native]::keybd_event(0x41,0,2,[UIntPtr]::Zero) # A up
+ }finally{[W83Native]::keybd_event(0x11,0,2,[UIntPtr]::Zero)}
+ Start-Sleep -Milliseconds 160
+ [W83Native]::keybd_event(0x08,0,0,[UIntPtr]::Zero) # Backspace
+ Start-Sleep -Milliseconds 85
+ [W83Native]::keybd_event(0x08,0,2,[UIntPtr]::Zero)
+ Start-Sleep -Milliseconds 280
+ $dirty=FindUI $shell 'Unsaved changes · save before paper review' $false 13
+ Require (!$dirty.Current.IsOffscreen) 'W291B_NATIVE_EDITOR_RESET_NOT_VISIBLE'
+ Write-Host ('W291B_TEST_ONLY_UNSAVED_STARTER_CLEARED=PASS;source='+$NewSHA+
+  ';physical_Ctrl_A_Backspace=true;no_prompt_accepted=true;owner_data=false;live_armed=false')
+}
 function W291-TypeAppend([object]$shell){
  $el=FindUI $shell 'Pine source editor' $false 12
  Require (!$el.Current.IsOffscreen -and $el.Current.IsEnabled) 'W291_NOT_EDITABLE'
@@ -2658,6 +2684,7 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   W285-Click $shell (W289-ExactButton $shell 'Pine Editor') 'Pine Editor'
   $editor=FindUI $shell 'Pine source editor' $false 20
   Require (!$editor.Current.IsOffscreen) 'W291_MONACO_NOT_NATIVE_VISIBLE'
+  W291-ClearDisposableStarter $shell
   W285-Click $shell (W291-PanelButton $shell 'Open saved Pine library') 'Open saved Pine library'
   $dialog=FindUI $shell 'Saved Pine scripts' $false 18
   Require (!$dialog.Current.IsOffscreen) 'W291_NATIVE_LIBRARY_CHOOSER_MISSING'
@@ -2689,6 +2716,7 @@ function W291-NativeDurableSave([object]$installed,[object]$first){
   $cold=W291-ReadUser $run $id
   Require ($cold.source -ceq $expected) 'W291_GO_LIBRARY_NOT_DURABLE_AFTER_COLD_RESTART'
   W285-Click $run.shell (W289-ExactButton $run.shell 'Pine Editor') 'Pine Editor'
+  W291-ClearDisposableStarter $run.shell
   W285-Click $run.shell (W291-PanelButton $run.shell 'Open saved Pine library') 'Open saved Pine library'
   W285-Click $run.shell (W291-PanelButton $run.shell $row) $row
   $openedAgain=FindUI $run.shell 'Opened stored Pine script; not applied to chart' $false 18
