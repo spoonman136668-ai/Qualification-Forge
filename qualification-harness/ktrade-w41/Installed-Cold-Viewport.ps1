@@ -2620,48 +2620,62 @@ function W291-Key([int]$vk){
 # when the original editable textbox is visibly rendered. Never infer keyboard
 # interactability from container.IsEnabled or exact container.Name. Bound the
 # physical click to the genuine installed Wails window and its visible editor.
+# W291E: real original Monaco accessible caret is a wide single-line
+# textarea, while the containing workbench is large. Try bounded physical
+# clicks on the actual caret first and on the original editor body only if
+# no native keyboard focus is proven. Never use UIA Invoke, JS, CDP or
+# an unverified focused process.
 function W291-FocusEditorNative([object]$shell){
  $node=FindUI $shell 'Pine source editor' $false 13
  $v=$node.Current;$r=$v.BoundingRectangle
- $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
- $matches=($v.Name -is [string] -and $v.Name.Contains('Pine source editor'))
- Write-Host ('W291C_NATIVE_EDITOR_METADATA='+(@{
-  matched_editor_name=$matches;exact_editor_name=($v.Name -ceq 'Pine source editor');
-  uia_container_enabled=$v.IsEnabled;uia_offscreen=$v.IsOffscreen;
-  native_rect_in_bounds=(!$r.IsEmpty -and $r.Left -ge $outer.Left -and
-   $r.Right -le $outer.Right -and $r.Top -ge $outer.Top -and
-   $r.Bottom -le $outer.Bottom);
-  owner_data_read=$false;live_armed=$false
- }|ConvertTo-Json -Compress))
- # Monaco UIA exposes a small caret textarea, not the full editor canvas;
- # prior W291C observed name+enable+visibility+window-custody PASS, but its
- # hard-coded 120x35 textarea assumption failed. Target the actual visible
- # original editor workbench body with a physical in-window pointer click.
  $panel=FindUI $shell 'Pine editor workbench' $false 10
- $pane=$panel.Current.BoundingRectangle
- Require ($matches -and $v.IsEnabled -and !$v.IsOffscreen -and !$r.IsEmpty -and
+ $p=$panel.Current.BoundingRectangle
+ $outer=[System.Windows.Automation.AutomationElement]::FromHandle($shell.MainWindowHandle).Current.BoundingRectangle
+ Require ($v.Name -is [string] -and $v.Name.Contains('Pine source editor') -and
+  $v.IsEnabled -and !$v.IsOffscreen -and !$r.IsEmpty -and
+  $r.Width -ge 120 -and $r.Height -ge 2 -and
   $r.Left -ge $outer.Left -and $r.Right -le $outer.Right -and
   $r.Top -ge $outer.Top -and $r.Bottom -le $outer.Bottom -and
-  !$panel.Current.IsOffscreen -and !$pane.IsEmpty -and
-  $pane.Width -ge 260 -and $pane.Height -ge 230 -and
-  $pane.Left -ge $outer.Left -and $pane.Right -le $outer.Right -and
-  $pane.Top -ge $outer.Top -and $pane.Bottom -le $outer.Bottom) 'W291D_ORIGINAL_WORKBENCH_NOT_VISIBLE'
- $px=[int]($pane.Left+$pane.Width*.56)
- $py=[int]($pane.Top+$pane.Height*.55)
- Require ($px -ge ($pane.Left+40) -and $px -le ($pane.Right-40) -and
-  $py -ge ($pane.Top+100) -and $py -le ($pane.Bottom-32)) 'W291D_PHYSICAL_EDITOR_TARGET_OUTSIDE_BODY'
- Write-Host ('W291D_NATIVE_EDITOR_GEOMETRY='+(@{
-   uia_caret_width_class=($(if($r.Width -lt 120){'small'}else{'large'}));
-   uia_caret_height_class=($(if($r.Height -lt 35){'small'}else{'large'}));
-   original_workbench_width=[int]$pane.Width;original_workbench_height=[int]$pane.Height;
-   target_is_visible_native_editor_body=$true;owner_data_read=$false;live_armed=$false
+  !$panel.Current.IsOffscreen -and !$p.IsEmpty -and
+  $p.Width -ge 260 -and $p.Height -ge 230 -and
+  $p.Left -ge $outer.Left -and $p.Right -le $outer.Right -and
+  $p.Top -ge $outer.Top -and $p.Bottom -le $outer.Bottom) 'W291E_ORIGINAL_EDITOR_OR_CARET_NOT_VISIBLE'
+ $targets=@(
+  [pscustomobject]@{x=[int]($r.Left+$r.Width*.50);y=[int]($r.Top+$r.Height*.50);role='native_caret_center'},
+  [pscustomobject]@{x=[int]($r.Left+[Math]::Min(44,$r.Width*.15));y=[int]($r.Top+$r.Height*.50);role='native_caret_left'},
+  [pscustomobject]@{x=[int]($p.Left+$p.Width*.31);y=[int]($p.Top+$p.Height*.34);role='editor_upper_body'}
+ )
+ $focused=$false;$used='none'
+ foreach($target in $targets){
+  if($target.x -lt $outer.Left -or $target.x -gt $outer.Right -or
+    $target.y -lt $outer.Top -or $target.y -gt $outer.Bottom){continue}
+  [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
+  Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291E_FOREIGN_WINDOW'
+  Require ([W83Native]::SetCursorPos($target.x,$target.y)) 'W291E_NATIVE_POINTER_REFUSED'
+  [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
+  [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
+  Start-Sleep -Milliseconds 210
+  try{
+   $f=[System.Windows.Automation.AutomationElement]::FocusedElement
+   if($null -ne $f){
+    $fv=$f.Current;$fr=$fv.BoundingRectangle
+    $owned=(!$fr.IsEmpty -and $fr.Left -ge $p.Left-2 -and
+      $fr.Right -le $p.Right+2 -and $fr.Top -ge $p.Top-2 -and
+      $fr.Bottom -le $p.Bottom+2)
+    if($owned -and (([string]$fv.Name).Contains('Pine source editor') -or
+      $fv.ControlType -eq [System.Windows.Automation.ControlType]::Edit)){
+      $focused=$true;$used=$target.role;break
+    }
+   }
+  }catch{}
+ }
+ Write-Host ('W291E_REAL_MONACO_FOCUS='+(@{
+  focus_proven=$focused;target=$used;original_caret_short=($r.Height -lt 35);
+  actual_edit_focus_inside_editor=$focused;
+  synthetic_test_only=$true;owner_data_read=$false;live_armed=$false
  }|ConvertTo-Json -Compress))
- [void][W83Native]::SetForegroundWindow($shell.MainWindowHandle)
- Require ([W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291D_FOREIGN_WINDOW'
- Require ([W83Native]::SetCursorPos($px,$py)) 'W291D_MONACO_NATIVE_POINTER_REFUSED'
- [W83Native]::mouse_event(2,0,0,0,[UIntPtr]::Zero)
- [W83Native]::mouse_event(4,0,0,0,[UIntPtr]::Zero)
- Start-Sleep -Milliseconds 240
+ Require ($focused -and
+  [W83Native]::GetForegroundWindow() -eq $shell.MainWindowHandle) 'W291E_MONACO_KEYBOARD_FOCUS_NOT_PROVEN'
 }
 function W291-ClearDisposableStarter([object]$shell){
  W291-FocusEditorNative $shell
