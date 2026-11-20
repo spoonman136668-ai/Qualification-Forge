@@ -569,7 +569,7 @@ jobs:
                 }
               }
               Write-Host ('QFORGE_NODE_REMAINDER_DIAG='+(@{
-                checked=$selected.Count;source=$env:KTRADE_EXPECTED_SOURCE;
+                checked=@($selected).Count;source=$env:KTRADE_EXPECTED_SOURCE;
                 failed_ordinals=($failed -join ',');failures=$failed.Count;
                 oversized_reports=$oversized;raw_private_output_exported=$false;
                 qualifier_not_final=$true
