@@ -28,6 +28,7 @@ jobs:
       KTRADE_EXPECTED_SOURCE: '07d7e41063a0c1506a290d1497f84de8173da292'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
+      QFORGE_W179_VERSIONED_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W179_VERSIONED_INSTALL_ONLY') }}
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
       QFORGE_NODE_SELECTED_FOCUSED_ONLY: '0'
@@ -76,6 +77,16 @@ jobs:
             /static/layout_manager.js
             /static/indicator_library.js
             /static/indicator_browser.js
+      - name: Checkout immutable W280 different chart version for W179 synthetic installed upgrade
+        if: contains(github.event.head_commit.message, 'W179_VERSIONED_INSTALL_ONLY')
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: spoonman136668-ai/ktrade
+          ref: 078f872a4d5ba4144894429411d6b1022f7bec48
+          fetch-depth: 0
+          path: previous
+          persist-credentials: false
+          token: ${{ secrets.KTRADE_SOURCE_READ_TOKEN }}
       - name: Setup pinned supported Go and Node
         uses: actions/setup-go@v5
         with:
@@ -231,6 +242,128 @@ jobs:
               # mandatory after an actual correction.
               Checked 'GO_W41_FIXTURE_NEGATIVES' 'go' @('test','-mod=readonly','-count=1','-tags','ktrade_full,ktrade_w13_fixture,ktrade_w41_cold_fixture','./cmd/ktrade')
               Write-Host 'QFORGE_W209_GO_W41_FOCUSED=PASS'
+              return
+            }
+            if($env:QFORGE_W179_VERSIONED_INSTALL_ONLY -ceq 'true'){
+              # Genuine compiled EXE-to-EXE update between two distinct
+              # immutable real KTRADE chart sources, not a same-binary asset
+              # swap. Everything lives under ephemeral GitHub RUNNER_TEMP.
+              $oldSHA='078f872a4d5ba4144894429411d6b1022f7bec48'
+              $oldTree='4b9aa2586bb1dbf5a5a1cf8dc3f8a4fa52b23b66'
+              $previous=Join-Path $env:GITHUB_WORKSPACE 'previous'
+              Require ((& git -C $previous rev-parse HEAD).Trim() -ceq $oldSHA -and
+                (& git -C $previous rev-parse 'HEAD^{tree}').Trim() -ceq $oldTree -and
+                @(& git -C $previous status --porcelain).Count -eq 0 -and
+                !(Test-Path -LiteralPath (Join-Path $previous '.env'))) 'QFORGE_W179_OLD_SOURCE_CUSTODY_REFUSED'
+              Require ((& git -C $previous rev-parse 'HEAD:windows/Build-KTRADE-FreshInstaller.ps1').Trim() -ceq
+                (& git -C $p rev-parse 'HEAD:windows/Build-KTRADE-FreshInstaller.ps1').Trim() -and
+                (& git -C $previous rev-parse 'HEAD:tools/wails-pilot/backend/installed_update.go').Trim() -ceq
+                (& git -C $p rev-parse 'HEAD:tools/wails-pilot/backend/installed_update.go').Trim() -and
+                (& git -C $previous rev-parse 'HEAD:templates/chart.tmpl').Trim() -cne
+                (& git -C $p rev-parse 'HEAD:templates/chart.tmpl').Trim()) 'QFORGE_W179_SHARED_RELEASE_CODE_DISTINCT_CHART_REQUIRED'
+              $oldRoot=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
+              $newRoot=Join-Path $env:RUNNER_TEMP ('ktrade-setup-package-'+[guid]::NewGuid().ToString('N'))
+              $installed=Join-Path $env:RUNNER_TEMP ('ktrade-w179-install-'+[guid]::NewGuid().ToString('N'))
+              Require (!(Test-Path -LiteralPath $oldRoot) -and !(Test-Path -LiteralPath $newRoot) -and
+                !(Test-Path -LiteralPath $installed)) 'QFORGE_W179_DISPOSABLE_ROOT_COLLISION'
+              Push-Location $previous
+              try{
+                Checked 'W179_PREVIOUS_VENDOR_NPM_CI' 'npm.cmd' @('ci','--ignore-scripts','--no-audit','--no-fund','--silent')
+                Checked 'W179_PREVIOUS_OFFLINE_VENDOR' 'node' @('scripts/stage_offline_vendor.cjs')
+                Checked 'W179_PREVIOUS_UNSIGNED_SETUP_BUILD' 'pwsh' @('-NoProfile','-NonInteractive','-File',
+                  (Join-Path $previous 'windows/Build-KTRADE-FreshInstaller.ps1'),
+                  '-OutputRoot',$oldRoot,'-ExpectedSourceSha',$oldSHA)
+              }finally{Pop-Location}
+              Checked 'W179_CURRENT_VENDOR_NPM_CI' 'npm.cmd' @('ci','--ignore-scripts','--no-audit','--no-fund','--silent')
+              Checked 'W179_CURRENT_OFFLINE_VENDOR' 'node' @('scripts/stage_offline_vendor.cjs')
+              Checked 'W179_CURRENT_UNSIGNED_SETUP_BUILD' 'pwsh' @('-NoProfile','-NonInteractive','-File',
+                (Join-Path $p 'windows/Build-KTRADE-FreshInstaller.ps1'),
+                '-OutputRoot',$newRoot,'-ExpectedSourceSha',$env:KTRADE_EXPECTED_SOURCE)
+              $oldBundle=Join-Path $oldRoot 'KTRADE-SetupBundle'
+              $newBundle=Join-Path $newRoot 'KTRADE-SetupBundle'
+              $oldExe=Join-Path $oldBundle 'release-setup.exe'
+              $newExe=Join-Path $newBundle 'release-setup.exe'
+              Require ((Test-Path -LiteralPath $oldExe -PathType Leaf) -and
+                (Test-Path -LiteralPath $newExe -PathType Leaf) -and
+                (Get-FileHash -LiteralPath $oldExe -Algorithm SHA256).Hash -cne
+                (Get-FileHash -LiteralPath $newExe -Algorithm SHA256).Hash) 'QFORGE_W179_DISTINCT_SOURCE_NATIVE_SETUP_BINARIES_REQUIRED'
+              & $oldExe install $oldBundle $installed *> $log
+              Require ($LASTEXITCODE -eq 0) 'QFORGE_W179_ORIGINAL_NATIVE_FRESH_INSTALL_REFUSED'
+              $prior=(Get-Content -LiteralPath $log -Raw | ConvertFrom-Json)
+              Require ($prior.schema -ceq 'ktrade.fresh-installation.v1' -and
+                $prior.root -ceq $installed -and $prior.source_sha -ceq $oldSHA -and
+                $prior.app_launched -eq $false -and $prior.orders_enabled -eq $false -and
+                $prior.live_armed -eq $false -and $prior.release_accepted -eq $false) 'QFORGE_W179_OLD_INSTALL_AUTHORITY_MISMATCH'
+              $oldData=Join-Path $prior.candidate_directory 'data'
+              $pine=Join-Path $oldData 'pine-library/operator.pine'
+              $strategy=Join-Path $oldData 'strategies/operator.json'
+              $unknown=Join-Path $oldData 'unknown/historical-ledger.bin'
+              $browser=Join-Path $oldData 'webview2-profile/Default/Preferences'
+              foreach($path in @($pine,$strategy,$unknown,$browser)){
+                New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($path)) -Force | Out-Null
+                Require (!(Test-Path -LiteralPath $path)) 'QFORGE_W179_SYNTHETIC_COLLISION'
+              }
+              $fixture=@{}
+              $fixture[$pine]="//@version=6" + [Environment]::NewLine + "indicator('synthetic only')"
+              $fixture[$strategy]='{"paper_only":true,"source":"synthetic"}'
+              $fixture[$unknown]='NO-OWNER-DATA;UNKNOWN-BYTES-RETAIN'
+              $fixture[$browser]='SYNTHETIC WEBVIEW2 PROFILE;NO IMPORT'
+              foreach($path in @($pine,$strategy,$unknown,$browser)){
+                [IO.File]::WriteAllText($path,$fixture[$path],[Text.UTF8Encoding]::new($false))
+              }
+              $hash=@{}
+              foreach($path in @($pine,$strategy,$unknown,$browser)){
+                $hash[$path]=(Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+              }
+              & $newExe update $newBundle $installed *> $log
+              Require ($LASTEXITCODE -eq 0) 'QFORGE_W179_DISTINCT_NATIVE_EXE_UPDATE_REFUSED'
+              $transition=(Get-Content -LiteralPath $log -Raw | ConvertFrom-Json)
+              Require ($transition.schema -ceq 'ktrade.installed-transition.v1' -and
+                $transition.action -ceq 'select' -and
+                $transition.before.source_sha -ceq $oldSHA -and
+                $transition.after.source_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and
+                $transition.after.candidate_directory -cne $prior.candidate_directory -and
+                $transition.live_armed -eq $false -and
+                $transition.after.orders_enabled -eq $false -and
+                $transition.after.app_launched -eq $false) 'QFORGE_W179_VERSIONED_SELECTION_AUTHORITY_MISMATCH'
+              $newData=Join-Path $transition.after.candidate_directory 'data'
+              foreach($path in @($pine,$strategy,$unknown,$browser)){
+                Require ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ceq $hash[$path]) 'QFORGE_W179_PREDECESSOR_BYTES_MODIFIED'
+              }
+              foreach($rel in @('pine-library/operator.pine','strategies/operator.json')){
+                $copied=Join-Path $newData $rel
+                Require ((Test-Path -LiteralPath $copied -PathType Leaf) -and
+                  [IO.File]::ReadAllText($copied) -ceq $fixture[(Join-Path $oldData $rel)]) 'QFORGE_W179_SUPPORTED_PINE_RESTORE_MISSING'
+              }
+              foreach($rel in @('unknown/historical-ledger.bin','webview2-profile/Default/Preferences')){
+                Require (!(Test-Path -LiteralPath (Join-Path $newData $rel))) 'QFORGE_W179_UNKNOWN_PRIVATE_BYTES_ACTIVATED'
+              }
+              & $newExe update $newBundle $installed *> $log
+              Require ($LASTEXITCODE -ne 0) 'QFORGE_W179_SAME_VERSION_REPLAY_ADMITTED'
+              & $newExe rollback $installed *> $log
+              Require ($LASTEXITCODE -eq 0) 'QFORGE_W179_NATIVE_RELEASE_ROLLBACK_REFUSED'
+              $rollback=(Get-Content -LiteralPath $log -Raw | ConvertFrom-Json)
+              Require ($rollback.schema -ceq 'ktrade.installed-transition.v1' -and
+                $rollback.action -ceq 'rollback' -and
+                $rollback.before.source_sha -ceq $env:KTRADE_EXPECTED_SOURCE -and
+                $rollback.after.source_sha -ceq $oldSHA -and
+                $rollback.after.live_armed -eq $false) 'QFORGE_W179_ROLLBACK_SELECTION_MISMATCH'
+              & $oldExe inspect $installed *> $log
+              Require ($LASTEXITCODE -eq 0) 'QFORGE_W179_PREDECESSOR_COLD_INSPECTION_FAILED'
+              $verified=(Get-Content -LiteralPath $log -Raw | ConvertFrom-Json)
+              Require ($verified.source_sha -ceq $oldSHA -and
+                $verified.candidate_directory -ceq $prior.candidate_directory -and
+                $verified.live_armed -eq $false) 'QFORGE_W179_BACK_TO_PREDECESSOR_REFUSED'
+              foreach($path in @($pine,$strategy,$unknown,$browser)){
+                Require ((Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash -ceq $hash[$path]) 'QFORGE_W179_ROLLBACK_OWNER_BYTES_DRIFT'
+              }
+              Require ((& git -C $previous rev-parse HEAD).Trim() -ceq $oldSHA -and
+                (& git -C $p rev-parse HEAD).Trim() -ceq $env:KTRADE_EXPECTED_SOURCE -and
+                @(& git -C $previous status --porcelain --untracked-files=no).Count -eq 0 -and
+                @(& git -C $p status --porcelain --untracked-files=no).Count -eq 0) 'QFORGE_W179_CHECKOUTS_CHANGED'
+              Write-Host ('QFORGE_W179_GENUINE_TWO_SOURCE_NATIVE_EXE_UPDATE_AND_ROLLBACK=PASS;old_source='+$oldSHA+
+                ';new_source='+$env:KTRADE_EXPECTED_SOURCE+
+                ';private_predecessor_data_retained=true;unsupported_private_state_not_activated=true;live_armed=false;owner_data_accessed=false;release_authority=none')
               return
             }
             if($env:QFORGE_W29C_DISPOSABLE_INSTALL_ONLY -ceq 'true'){
