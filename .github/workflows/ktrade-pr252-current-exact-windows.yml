@@ -19,7 +19,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: 'fa53a8007d6413e829ac4869ffb228ae834342c5'
+      KTRADE_EXPECTED_SOURCE: 'a9897be764f4cc2480423c88f89903e6e0968170'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
@@ -30,7 +30,7 @@ jobs:
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
       QFORGE_W05_ASSET_ROLLBACK_ONLY: ${{ contains(github.event.head_commit.message, 'W05_TEMP_ASSET_ROLLBACK_ONLY') }}
       QFORGE_W29C_DISPOSABLE_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_DISPOSABLE_INSTALL_ONLY') }}
-      KTRADE_EXPECTED_TREE: '25907de499a615b92c534bf1a303b9ef604b2ce3'
+      KTRADE_EXPECTED_TREE: 'eaf785c076fbc8d3103f198432ca1ab738617d32'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -51,7 +51,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: fa53a8007d6413e829ac4869ffb228ae834342c5
+          ref: a9897be764f4cc2480423c88f89903e6e0968170
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -515,19 +515,19 @@ jobs:
                 # The original ordinal ordering differs from PowerShell's
                 # Sort-Object FullName on hosted Windows. Select the exact same
                 # 3 allowlisted file leaves and refuse missing/duplicate hits.
-                $expectedNames=@('w157_freehand_brush.test.cjs','w158_drawing_lock.test.cjs','w159_drawing_trash.test.cjs')
-                Require ($env:KTRADE_EXPECTED_SOURCE -ceq 'fa53a8007d6413e829ac4869ffb228ae834342c5' -and
+                $expectedNames=@('w17d1_chart_favorite_continuity.test.cjs','w17d6_chart_horizontal_lines.test.cjs','w17d7_original_trendlines.test.cjs')
+                Require ($env:KTRADE_EXPECTED_SOURCE -ceq 'a9897be764f4cc2480423c88f89903e6e0968170' -and
                   $expectedNames.Count -eq 3 -and
-                  @($expectedNames | Sort-Object -Unique).Count -eq 3) 'QFORGE_W159_FOCUSED_SOURCE_REFUSED'
+                  @($expectedNames | Sort-Object -Unique).Count -eq 3) 'QFORGE_W162_FOCUSED_SOURCE_REFUSED'
                 $focus=@()
                 foreach($expected in $expectedNames){
                   $hits=@(for($i=0;$i -lt $specs.Count;$i++){
                     if((Split-Path -Leaf $specs[$i]) -ceq $expected){$i}
                   })
-                  Require ($hits.Count -eq 1) 'QFORGE_W159_EXACT_FILENAME_MAP_REFUSED'
+                  Require ($hits.Count -eq 1) 'QFORGE_W162_EXACT_FILENAME_MAP_REFUSED'
                   $focus += [int]$hits[0]
                 }
-                Require ($focus.Count -eq 3) 'QFORGE_W159_FOCUSED_SCOPE_DRIFT'
+                Require ($focus.Count -eq 3) 'QFORGE_W162_FOCUSED_SCOPE_DRIFT'
                 @($focus)
               }else{
                 @(25..($specs.Count-1))
@@ -667,7 +667,7 @@ jobs:
               $w159Unknown=@($w159Paths | Where-Object {-not ($w159Allowed -ccontains $_)})
               Require ($w159Paths.Count -eq $w159Allowed.Count -and
                 $w159Missing.Count -eq 0 -and $w159Unknown.Count -eq 0) 'W159_CHART_ONLY_DELTA_REFUSED'
-              Write-Host 'QFORGE_W159_EXACT_ACCEPTED_ANCESTOR_AND_CHART_ONLY_19_PATHS=PASS'
+              Write-Host 'QFORGE_W162_EXACT_ACCEPTED_ANCESTOR_AND_CHART_ONLY_19_PATHS=PASS'
             }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'bdc6e5a8a54a3ed6b4183af95e54c047311ad1c2'){
               # Exact W148 two-file source continuity patch; all previous
               # W145 certified feed/UI and frozen financial controls remain.
@@ -865,7 +865,7 @@ jobs:
                 (& git rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
                 ($w131Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w131_tick_keyboard.test.cjs') 'W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
               Write-Host 'QFORGE_W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA=PASS'
-            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'fa53a8007d6413e829ac4869ffb228ae834342c5'){
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'a9897be764f4cc2480423c88f89903e6e0968170'){
               # Existing advanced-drawing test contract only; no product behavior edits.
               Require ((& git rev-parse 'HEAD^').Trim() -ceq 'e9000c26051ec3d8038fb514237b7b76c1f67f79' -and
                 (& git rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE) 'QFORGE_PR253_W149_TEST_FIX_PARENT_TREE_REQUIRED'
@@ -1113,9 +1113,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: 'fa53a8007d6413e829ac4869ffb228ae834342c5'
-      KTRADE_EXPECTED_TREE: '25907de499a615b92c534bf1a303b9ef604b2ce3'
-      W01_EXPECTED_SHA: 'fa53a8007d6413e829ac4869ffb228ae834342c5'
+      KTRADE_EXPECTED_SOURCE: 'a9897be764f4cc2480423c88f89903e6e0968170'
+      KTRADE_EXPECTED_TREE: 'eaf785c076fbc8d3103f198432ca1ab738617d32'
+      W01_EXPECTED_SHA: 'a9897be764f4cc2480423c88f89903e6e0968170'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -1130,7 +1130,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: fa53a8007d6413e829ac4869ffb228ae834342c5
+          ref: a9897be764f4cc2480423c88f89903e6e0968170
           fetch-depth: 0
           path: product
           persist-credentials: false
