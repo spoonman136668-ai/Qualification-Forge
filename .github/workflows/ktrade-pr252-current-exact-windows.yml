@@ -512,12 +512,12 @@ jobs:
               $failed=[Collections.Generic.List[int]]::new()
               $oversized=0
               $selected=if($env:QFORGE_NODE_SELECTED_FOCUSED_ONLY -ceq '1'){
-                $focus=@(57,58,59)
-                $expectedNames=@('w149_advanced_drawings.test.cjs','w150_advanced_drawing_history.test.cjs','w151_parallel_channel.test.cjs')
+                $focus=@(31,60,62,63,64,68,74,75,76,77,78,80,81,83,84,85,88)
+                $expectedNames=@('rb3_w85_desktop_operator_shell.test.cjs','w153_magnet_snap.test.cjs','w157_freehand_brush.test.cjs','w158_drawing_lock.test.cjs','w159_drawing_trash.test.cjs','w17d1_chart_favorite_continuity.test.cjs','w17d6_chart_horizontal_lines.test.cjs','w17d7_original_trendlines.test.cjs','w17d8_chart_shapes.test.cjs','w17d8_trendline_geometry.test.cjs','w17d9_market_context.test.cjs','w19_paper_failure_feedback.test.cjs','w21_market_readout_integrity.test.cjs','w267_w274_chart_ui_functionality.test.cjs','w280_chart_product_binding.test.cjs','w322_primary_bar_inspector.test.cjs','w327_chart_recovery.test.cjs')
                 Require ($env:KTRADE_EXPECTED_SOURCE -ceq 'ceb9544af3dd14b1af5448a2d0eae3ceaf7a6ceb' -and
-                  $focus.Count -eq $expectedNames.Count) 'QFORGE_W152_FOCUSED_SOURCE_REFUSED'
+                  $focus.Count -eq $expectedNames.Count) 'QFORGE_W154_FOCUSED_SOURCE_REFUSED'
                 for($j=0;$j -lt $focus.Count;$j++){
-                  Require ((Split-Path -Leaf $specs[$focus[$j]]) -ceq $expectedNames[$j]) 'QFORGE_W152_FOCUSED_ORDINAL_MAP_CHANGED'
+                  Require ((Split-Path -Leaf $specs[$focus[$j]]) -ceq $expectedNames[$j]) 'QFORGE_W154_FOCUSED_ORDINAL_MAP_CHANGED'
                 }
                 @($focus)
               }else{
