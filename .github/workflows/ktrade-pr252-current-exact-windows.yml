@@ -2,6 +2,8 @@
 # Retain old accepted UI/Pine/TradeGuard negative controls; LIVE disarmed; no installation.
 # W176 check: native-only, source-pinned disposable fresh-install/tamper
 # qualification; no owner installation, signing, release, account or LIVE.
+# W177 check: isolated W05 asset upgrade/rollback negative controls use
+# synthetic data under Windows RUNNER_TEMP; never touch installed owner state.
 on:
   push:
     branches:
