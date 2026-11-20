@@ -515,7 +515,7 @@ jobs:
                 # The original ordinal ordering differs from PowerShell's
                 # Sort-Object FullName on hosted Windows. Select the exact same
                 # 1 allowlisted file leaf and refuse missing/duplicate hits.
-                $expectedNames=@('w17d9_market_context.test.cjs')
+                $expectedNames=@('rb3_w85_desktop_operator_shell.test.cjs')
                 Require ($env:KTRADE_EXPECTED_SOURCE -ceq '04f0653cbc57a18703631b276c95e4cabade1068' -and
                   $expectedNames.Count -eq 1 -and
                   @($expectedNames | Sort-Object -Unique).Count -eq 1) 'QFORGE_W174_FOCUSED_SOURCE_REFUSED'
@@ -543,8 +543,15 @@ jobs:
                   $private=[IO.File]::ReadAllText($log)
                   if($private.Length -gt 1000000){
                     $oversized++
+                    # Oversized private TAP output must remain private. Export
+                    # only bounded numeric subtest positions, never names,
+                    # assertions, source paths, or complete diagnostic text.
+                    $bad=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)') |
+                      ForEach-Object {$_.Groups[1].Value} | Select-Object -Unique -First 30)
                     Write-Host ('QFORGE_NODE_REMAINDER_FAILED_FILE_ORDINAL='+$i+
-                      ';oversized=true;private_output_withheld=true')
+                      ';oversized=true;failing_test_ordinals='+($bad -join ',')+
+                      ';private_output_withheld=true')
+                    Remove-Variable bad -ErrorAction SilentlyContinue
                   }else{
                     $bad=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)')|
                       ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique -First 12)
