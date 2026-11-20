@@ -529,7 +529,7 @@ jobs:
                 }
                 Require ($focus.Count -eq 1) 'QFORGE_W167_FOCUSED_SCOPE_DRIFT'
                 $w167Files=@(& git -C $p diff --name-only 'HEAD^' 'HEAD')
-                Require ((& git -C $p rev-parse HEAD^).Trim() -ceq '12d4971dab7e5728ee453631fde8ff6bc9065c34' -and
+                Require ((& git -C $p rev-parse HEAD^).Trim() -ceq 'ae4fa77aa5fb2854e3c1f9720b815fba9c1be48d' -and
                   $w167Files.Count -eq 1 -and
                   $w167Files[0] -ceq 'tests/w327_chart_recovery.test.cjs') 'QFORGE_W167_EXACT_TEST_ONLY_PARENT_SCOPE_REFUSED'
                 @($focus)
