@@ -512,13 +512,22 @@ jobs:
               $failed=[Collections.Generic.List[int]]::new()
               $oversized=0
               $selected=if($env:QFORGE_NODE_SELECTED_FOCUSED_ONLY -ceq '1'){
-                $focus=@(31,60,62,63,64,68,74,75,76,77,78,80,81,83,84,85,88)
+                # The original ordinal ordering differs from PowerShell's
+                # Sort-Object FullName on hosted Windows. Select the exact same
+                # 17 allowlisted file leaves and refuse missing/duplicate hits.
                 $expectedNames=@('rb3_w85_desktop_operator_shell.test.cjs','w153_magnet_snap.test.cjs','w157_freehand_brush.test.cjs','w158_drawing_lock.test.cjs','w159_drawing_trash.test.cjs','w17d1_chart_favorite_continuity.test.cjs','w17d6_chart_horizontal_lines.test.cjs','w17d7_original_trendlines.test.cjs','w17d8_chart_shapes.test.cjs','w17d8_trendline_geometry.test.cjs','w17d9_market_context.test.cjs','w19_paper_failure_feedback.test.cjs','w21_market_readout_integrity.test.cjs','w267_w274_chart_ui_functionality.test.cjs','w280_chart_product_binding.test.cjs','w322_primary_bar_inspector.test.cjs','w327_chart_recovery.test.cjs')
                 Require ($env:KTRADE_EXPECTED_SOURCE -ceq 'ceb9544af3dd14b1af5448a2d0eae3ceaf7a6ceb' -and
-                  $focus.Count -eq $expectedNames.Count) 'QFORGE_W154_FOCUSED_SOURCE_REFUSED'
-                for($j=0;$j -lt $focus.Count;$j++){
-                  Require ((Split-Path -Leaf $specs[$focus[$j]]) -ceq $expectedNames[$j]) 'QFORGE_W154_FOCUSED_ORDINAL_MAP_CHANGED'
+                  $expectedNames.Count -eq 17 -and
+                  @($expectedNames | Sort-Object -Unique).Count -eq 17) 'QFORGE_W154_FOCUSED_SOURCE_REFUSED'
+                $focus=@()
+                foreach($expected in $expectedNames){
+                  $hits=@(for($i=0;$i -lt $specs.Count;$i++){
+                    if((Split-Path -Leaf $specs[$i]) -ceq $expected){$i}
+                  })
+                  Require ($hits.Count -eq 1) 'QFORGE_W154_EXACT_FILENAME_MAP_REFUSED'
+                  $focus += [int]$hits[0]
                 }
+                Require ($focus.Count -eq 17) 'QFORGE_W154_FOCUSED_SCOPE_DRIFT'
                 @($focus)
               }else{
                 @(25..($specs.Count-1))
