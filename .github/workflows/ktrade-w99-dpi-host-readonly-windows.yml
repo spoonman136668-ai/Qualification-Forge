@@ -17,8 +17,8 @@ jobs:
     timeout-minutes: 8
     env:
       KTRADE_LIVE_TRADING: 'false'
-      KTRADE_EXACT_SOURCE: '24595734900c97b3dc80e6465b54e8c31ca23476'
-      KTRADE_EXACT_TREE: '7f495b338413e5fb39873ec3d5e5ce61ce5ef8ef'
+      KTRADE_EXACT_SOURCE: '07d7e41063a0c1506a290d1497f84de8173da292'
+      KTRADE_EXACT_TREE: '07ab753cfc02dd24b6e27c1c106f821f14c62534'
     steps:
       - name: Verify actual OS DPI without modifying display or touching application
         shell: pwsh
@@ -78,11 +78,118 @@ jobs:
           if(@($matched).Count -eq 0){Write-Host '::notice::W99_REAL_HIDPI_125_150_200=UNVERIFIED_HOST_DPI_DOES_NOT_MATCH'}
           else{Write-Host '::notice::W99_REAL_HIDPI_125_150_200=UNVERIFIED_NO_APP_ACCEPTANCE'}
           $json|Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'w99-dpi-host-readonly.json') -Encoding utf8
+      - name: Probe and reversibly adjust available isolated Windows display resolution (never DPI)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          function Need([bool]$ok,[string]$code){if(!$ok){throw $code}}
+          Need ($env:RUNNER_ENVIRONMENT -ceq 'github-hosted' -and
+            $env:RUNNER_OS -ceq 'Windows' -and
+            $env:KTRADE_LIVE_TRADING -ceq 'false' -and
+            $env:RUNNER_TEMP -and !(Test-Path -LiteralPath (Join-Path $env:RUNNER_TEMP 'w180-display-mode-probe.json'))) 'W180_EPHEMERAL_NO_OWNER_STATE_REQUIRED'
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          [StructLayout(LayoutKind.Sequential, CharSet=CharSet.Unicode)]
+          public struct W180DEVMODE {
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string dmDeviceName;
+            public ushort dmSpecVersion,dmDriverVersion,dmSize,dmDriverExtra;
+            public uint dmFields;
+            public int dmPositionX,dmPositionY;
+            public uint dmDisplayOrientation,dmDisplayFixedOutput;
+            public short dmColor,dmDuplex,dmYResolution,dmTTOption,dmCollate;
+            [MarshalAs(UnmanagedType.ByValTStr, SizeConst=32)] public string dmFormName;
+            public ushort dmLogPixels;
+            public uint dmBitsPerPel,dmPelsWidth,dmPelsHeight,dmDisplayFlags,dmDisplayFrequency;
+            public uint dmICMMethod,dmICMIntent,dmMediaType,dmDitherType,dmReserved1,dmReserved2,dmPanningWidth,dmPanningHeight;
+          }
+          public static class W180Display {
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
+            public static extern bool EnumDisplaySettings(string device, int mode, ref W180DEVMODE dm);
+            [DllImport("user32.dll", CharSet=CharSet.Unicode)]
+            public static extern int ChangeDisplaySettingsEx(string device, ref W180DEVMODE dm, IntPtr window, uint flags, IntPtr parameters);
+            [DllImport("user32.dll")] public static extern int GetSystemMetrics(int metric);
+            [DllImport("user32.dll")] public static extern uint GetDpiForSystem();
+          }
+          '@
+          $baseline=New-Object W180DEVMODE
+          $baseline.dmSize=[Runtime.InteropServices.Marshal]::SizeOf([type][W180DEVMODE])
+          Need ([W180Display]::EnumDisplaySettings($null,-1,[ref]$baseline)) 'W180_CURRENT_DISPLAY_UNAVAILABLE'
+          $origW=[int]$baseline.dmPelsWidth;$origH=[int]$baseline.dmPelsHeight
+          $dpiBefore=[int][W180Display]::GetDpiForSystem()
+          $modes=New-Object 'System.Collections.Generic.List[object]'
+          for($i=0;$i -lt 256;$i++){
+            $mode=New-Object W180DEVMODE
+            $mode.dmSize=[Runtime.InteropServices.Marshal]::SizeOf([type][W180DEVMODE])
+            if(![W180Display]::EnumDisplaySettings($null,$i,[ref]$mode)){break}
+            if($mode.dmPelsWidth -ge 1024 -and $mode.dmPelsHeight -ge 720 -and
+              @('1280x720','1366x768','1600x900','1920x1080') -contains
+                ($mode.dmPelsWidth.ToString()+'x'+$mode.dmPelsHeight.ToString())){
+              $modes.Add($mode)
+            }
+          }
+          # CDS_TEST=2: non-mutating driver support query. A display mode
+          # switch does not change Windows display scaling or application DPI.
+          $chosen=$null
+          foreach($target in @('1280x720','1366x768','1600x900','1920x1080')){
+            foreach($mode in $modes){
+              $label=$mode.dmPelsWidth.ToString()+'x'+$mode.dmPelsHeight.ToString()
+              if($label -ne $target -or ($mode.dmPelsWidth -eq $origW -and $mode.dmPelsHeight -eq $origH)){continue}
+              if([W180Display]::ChangeDisplaySettingsEx($null,[ref]$mode,[IntPtr]::Zero,2,[IntPtr]::Zero) -eq 0){
+                $chosen=$mode;break
+              }
+            }
+            if($null -ne $chosen){break}
+          }
+          $applied=$false;$changed=$false;$revertCode=-999
+          try{
+            if($null -ne $chosen){
+              $code=[W180Display]::ChangeDisplaySettingsEx($null,[ref]$chosen,[IntPtr]::Zero,0,[IntPtr]::Zero)
+              if($code -eq 0){
+                $applied=$true
+                $currentW=[W180Display]::GetSystemMetrics(0)
+                $currentH=[W180Display]::GetSystemMetrics(1)
+                $changed=($currentW -eq [int]$chosen.dmPelsWidth -and
+                  $currentH -eq [int]$chosen.dmPelsHeight)
+              }
+            }
+          }finally{
+            if($applied){
+              $revertCode=[W180Display]::ChangeDisplaySettingsEx($null,[ref]$baseline,[IntPtr]::Zero,0,[IntPtr]::Zero)
+            }
+          }
+          $after=New-Object W180DEVMODE
+          $after.dmSize=[Runtime.InteropServices.Marshal]::SizeOf([type][W180DEVMODE])
+          Need ([W180Display]::EnumDisplaySettings($null,-1,[ref]$after)) 'W180_POST_DISPLAY_UNAVAILABLE'
+          Need (([int]$after.dmPelsWidth -eq $origW) -and ([int]$after.dmPelsHeight -eq $origH) -and
+            ([W180Display]::GetSystemMetrics(0) -eq $origW) -and
+            ([W180Display]::GetSystemMetrics(1) -eq $origH) -and
+            ([W180Display]::GetDpiForSystem() -eq $dpiBefore)) 'W180_DISPLAY_RESTORE_OR_DPI_DRIFT'
+          $receipt=[ordered]@{
+            schema='ktrade.w180.ephemeral-win32-display-mode.v1'
+            exact_product_source=$env:KTRADE_EXACT_SOURCE
+            exact_product_tree=$env:KTRADE_EXACT_TREE
+            host='github-hosted-windows-2025'
+            baseline_resolution=($origW.ToString()+'x'+$origH.ToString())
+            baseline_system_dpi=$dpiBefore
+            target_resolution=$(if($null -eq $chosen){'none'}else{$chosen.dmPelsWidth.ToString()+'x'+$chosen.dmPelsHeight.ToString()})
+            resolution_changed=$changed
+            original_display_restored=$true
+            physical_dpi_150_200_qualified=$false
+            app_installed_or_tested=$false
+            owner_display_or_data_accessed=$false
+            live_armed=$false
+            conclusion=$(if($changed){'EPHEMERAL_RESOLUTION_ADJUSTMENT_PASS_DPI_UNVERIFIED'}else{'NO_ALTERNATE_PHYSICAL_DISPLAY_MODE_DPI_UNVERIFIED'})
+          }
+          Write-Host ('W180_EPHEMERAL_DISPLAY_MODE_PROBE='+($receipt|ConvertTo-Json -Compress))
+          $receipt|ConvertTo-Json -Compress|Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'w180-display-mode-probe.json') -Encoding utf8
       - name: Retain nonsensitive host DPI capability receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: ktrade-w99-dpi-host-readonly-2459573
-          path: ${{ runner.temp }}/w99-dpi-host-readonly.json
+          name: ktrade-w180-w175-ephemeral-display-capability
+          path: |
+            ${{ runner.temp }}/w99-dpi-host-readonly.json
+            ${{ runner.temp }}/w180-display-mode-probe.json
           if-no-files-found: warn
           retention-days: 3
