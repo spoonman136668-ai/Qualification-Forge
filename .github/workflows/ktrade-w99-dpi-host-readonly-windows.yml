@@ -114,11 +114,21 @@ jobs:
           '@
           $baseline=New-Object W180DEVMODE
           $baseline.dmSize=[Runtime.InteropServices.Marshal]::SizeOf([type][W180DEVMODE])
-          Need ([W180Display]::EnumDisplaySettings($null,-1,[ref]$baseline)) 'W180_CURRENT_DISPLAY_UNAVAILABLE'
-          $origW=[int]$baseline.dmPelsWidth;$origH=[int]$baseline.dmPelsHeight
+          # Hosted Windows can expose system/monitor metrics while its display
+          # driver refuses EnumDisplaySettings. This is a genuine capability
+          # gap, not a KTRADE code error; do not attempt mutation without a
+          # verified baseline that can be restored.
+          $modeAvailable=[W180Display]::EnumDisplaySettings($null,-1,[ref]$baseline)
+          $origW=[W180Display]::GetSystemMetrics(0)
+          $origH=[W180Display]::GetSystemMetrics(1)
+          Need ($origW -ge 800 -and $origH -ge 600) 'W180_METRICS_UNAVAILABLE'
+          if($modeAvailable){
+            Need ([int]$baseline.dmPelsWidth -eq $origW -and
+              [int]$baseline.dmPelsHeight -eq $origH) 'W180_BASELINE_INCONSISTENT'
+          }
           $dpiBefore=[int][W180Display]::GetDpiForSystem()
           $modes=New-Object 'System.Collections.Generic.List[object]'
-          for($i=0;$i -lt 256;$i++){
+          for($i=0;$modeAvailable -and $i -lt 256;$i++){
             $mode=New-Object W180DEVMODE
             $mode.dmSize=[Runtime.InteropServices.Marshal]::SizeOf([type][W180DEVMODE])
             if(![W180Display]::EnumDisplaySettings($null,$i,[ref]$mode)){break}
@@ -160,9 +170,12 @@ jobs:
           }
           $after=New-Object W180DEVMODE
           $after.dmSize=[Runtime.InteropServices.Marshal]::SizeOf([type][W180DEVMODE])
-          Need ([W180Display]::EnumDisplaySettings($null,-1,[ref]$after)) 'W180_POST_DISPLAY_UNAVAILABLE'
-          Need (([int]$after.dmPelsWidth -eq $origW) -and ([int]$after.dmPelsHeight -eq $origH) -and
-            ([W180Display]::GetSystemMetrics(0) -eq $origW) -and
+          if($modeAvailable){
+            Need ([W180Display]::EnumDisplaySettings($null,-1,[ref]$after) -and
+              [int]$after.dmPelsWidth -eq $origW -and
+              [int]$after.dmPelsHeight -eq $origH) 'W180_POST_DISPLAY_MODE_DRIFT'
+          }
+          Need (([W180Display]::GetSystemMetrics(0) -eq $origW) -and
             ([W180Display]::GetSystemMetrics(1) -eq $origH) -and
             ([W180Display]::GetDpiForSystem() -eq $dpiBefore)) 'W180_DISPLAY_RESTORE_OR_DPI_DRIFT'
           $receipt=[ordered]@{
@@ -172,6 +185,8 @@ jobs:
             host='github-hosted-windows-2025'
             baseline_resolution=($origW.ToString()+'x'+$origH.ToString())
             baseline_system_dpi=$dpiBefore
+            win32_current_mode_available=$modeAvailable
+            display_driver_alternate_mode_count=$modes.Count
             target_resolution=$(if($null -eq $chosen){'none'}else{$chosen.dmPelsWidth.ToString()+'x'+$chosen.dmPelsHeight.ToString()})
             resolution_changed=$changed
             original_display_restored=$true
@@ -179,7 +194,7 @@ jobs:
             app_installed_or_tested=$false
             owner_display_or_data_accessed=$false
             live_armed=$false
-            conclusion=$(if($changed){'EPHEMERAL_RESOLUTION_ADJUSTMENT_PASS_DPI_UNVERIFIED'}else{'NO_ALTERNATE_PHYSICAL_DISPLAY_MODE_DPI_UNVERIFIED'})
+            conclusion=$(if($changed){'EPHEMERAL_RESOLUTION_ADJUSTMENT_PASS_DPI_UNVERIFIED'}elseif(!$modeAvailable){'HOSTED_DISPLAY_MODE_API_UNAVAILABLE_DPI_UNVERIFIED'}else{'NO_ALTERNATE_PHYSICAL_DISPLAY_MODE_DPI_UNVERIFIED'})
           }
           Write-Host ('W180_EPHEMERAL_DISPLAY_MODE_PROBE='+($receipt|ConvertTo-Json -Compress))
           $receipt|ConvertTo-Json -Compress|Set-Content -LiteralPath (Join-Path $env:RUNNER_TEMP 'w180-display-mode-probe.json') -Encoding utf8
