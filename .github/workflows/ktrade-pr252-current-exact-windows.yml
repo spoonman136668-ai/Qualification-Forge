@@ -1,5 +1,7 @@
 # Exact-source KTRADE chart-first UI redesign full regression and genuine Wails acceptance.
 # Retain old accepted UI/Pine/TradeGuard negative controls; LIVE disarmed; no installation.
+# W176 check: native-only, source-pinned disposable fresh-install/tamper
+# qualification; no owner installation, signing, release, account or LIVE.
 on:
   push:
     branches:
