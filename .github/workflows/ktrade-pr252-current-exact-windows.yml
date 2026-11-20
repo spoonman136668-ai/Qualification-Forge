@@ -19,7 +19,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: 'f8e7885b01e649040e28d3998e07e68e0739ec5e'
+      KTRADE_EXPECTED_SOURCE: '9865663581cc74463b0ef14c67ee6303d5cae695'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
@@ -29,7 +29,7 @@ jobs:
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
       QFORGE_W05_ASSET_ROLLBACK_ONLY: ${{ contains(github.event.head_commit.message, 'W05_TEMP_ASSET_ROLLBACK_ONLY') }}
       QFORGE_W29C_DISPOSABLE_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_DISPOSABLE_INSTALL_ONLY') }}
-      KTRADE_EXPECTED_TREE: '74cc3ed99cd77050b233d6c99cea3f36eb9c0410'
+      KTRADE_EXPECTED_TREE: '1007e4dd3c506fad04d9717eee39aca7682d8b13'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: f8e7885b01e649040e28d3998e07e68e0739ec5e
+          ref: 9865663581cc74463b0ef14c67ee6303d5cae695
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -798,6 +798,14 @@ jobs:
                 (& git rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
                 ($w131Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w131_tick_keyboard.test.cjs') 'W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
               Write-Host 'QFORGE_W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '9865663581cc74463b0ef14c67ee6303d5cae695'){
+              # Release freeze candidate: only the known eleven test DOM fixtures changed.
+              Require ((& git rev-parse 'HEAD^').Trim() -ceq 'f8e7885b01e649040e28d3998e07e68e0739ec5e' -and
+                (& git rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE) 'QFORGE_PR253_FINAL_FROZEN_PARENT_TREE_REQUIRED'
+              $only=@(& git diff --name-only 'HEAD^' 'HEAD' | Sort-Object)
+              $expected=@('tests/w115_tick_navigation.test.cjs','tests/w126_stale_tick_chart.test.cjs','tests/w129_tick_interaction.test.cjs','tests/w131_tick_keyboard.test.cjs','tests/w133_tick_sma20.test.cjs','tests/w135_tick_ema20.test.cjs','tests/w137_tick_rsi14.test.cjs','tests/w139_tick_bb20.test.cjs','tests/w141_tick_macd.test.cjs','tests/w145_tick_intervals.test.cjs','tests/w148_sma20_continuity.test.cjs')
+              Require (($only -join ';') -ceq ($expected -join ';')) 'QFORGE_PR253_FINAL_ELEVEN_TEST_ONLY_SCOPE_REQUIRED'
+              Write-Host 'QFORGE_PR253_FINAL_TEST_ONLY_SCOPE=PASS'
             }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'f8e7885b01e649040e28d3998e07e68e0739ec5e'){
               # W114 source-test-only document fixture correction.
               & git merge-base --is-ancestor '78c69d1e9f9bda4238c96431f829c1664adb28ca' HEAD
@@ -1007,9 +1015,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: 'f8e7885b01e649040e28d3998e07e68e0739ec5e'
-      KTRADE_EXPECTED_TREE: '74cc3ed99cd77050b233d6c99cea3f36eb9c0410'
-      W01_EXPECTED_SHA: 'f8e7885b01e649040e28d3998e07e68e0739ec5e'
+      KTRADE_EXPECTED_SOURCE: '9865663581cc74463b0ef14c67ee6303d5cae695'
+      KTRADE_EXPECTED_TREE: '1007e4dd3c506fad04d9717eee39aca7682d8b13'
+      W01_EXPECTED_SHA: '9865663581cc74463b0ef14c67ee6303d5cae695'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -1024,7 +1032,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: f8e7885b01e649040e28d3998e07e68e0739ec5e
+          ref: 9865663581cc74463b0ef14c67ee6303d5cae695
           fetch-depth: 0
           path: product
           persist-credentials: false
