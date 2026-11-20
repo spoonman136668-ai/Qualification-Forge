@@ -4,6 +4,8 @@
 # qualification; no owner installation, signing, release, account or LIVE.
 # W177 check: isolated W05 asset upgrade/rollback negative controls use
 # synthetic data under Windows RUNNER_TEMP; never touch installed owner state.
+# W178 check: setup bundle manifest/ZIP SHA-256, exact file list, unsigned
+# release authority NONE under disposable runner root, no installation.
 on:
   push:
     branches:
