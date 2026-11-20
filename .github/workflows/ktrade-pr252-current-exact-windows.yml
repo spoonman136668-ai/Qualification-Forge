@@ -23,7 +23,7 @@ jobs:
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
-      QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
+      QFORGE_NODE_BATCH_25_DIAG_ONLY: '1'
       QFORGE_NODE_BATCH_50_DIAG_ONLY: ${{ contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') }}
       QFORGE_NODE_BATCH_75_DIAG_ONLY: '0'
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
@@ -496,28 +496,73 @@ jobs:
               return
             }
             if($env:QFORGE_NODE_BATCH_25_DIAG_ONLY -ceq '1'){
-              # Diagnose the previously failing second Node batch alone.
-              # Only ordinal file positions and counts leave this private runner.
+              # Candidate's first 25 Node files already passed. Sweep only the
+              # remaining original files independently, once, to find the
+              # complete failing set before another costly full Go regression.
+              # Never print private paths, test names, assertions or source.
               Checked 'NPM_LOCKED_ASSETS' 'npm.cmd' @('ci','--ignore-scripts','--no-audit','--no-fund','--silent')
               Checked 'OFFLINE_VENDOR' 'node' @('scripts/stage_offline_vendor.cjs')
               $specs=@(Get-ChildItem -LiteralPath (Join-Path $p 'tests') -File -Filter '*.test.cjs' |
                 Sort-Object FullName | ForEach-Object {$_.FullName})
               $special=Join-Path $p 'tests/rb3_w28f_original_browser_state.test.cjs'
-              Require ($specs -ccontains $special) 'QFORGE_NODE_DIAG_TWO_ROOT_SPEC_MISSING'
+              Require ($specs -ccontains $special) 'QFORGE_NODE_REMAINDER_TWO_ROOT_SPEC_MISSING'
               $specs=@($specs | Where-Object {$_ -cne $special})
-              Require ($specs.Count -ge 50) 'QFORGE_NODE_DIAG_SCOPE_UNQUALIFIED'
-              $fail=[Collections.Generic.List[int]]::new()
-              for($i=25;$i -lt 50;$i++){
+              Require ($specs.Count -ge 90) 'QFORGE_NODE_REMAINDER_SCOPE_UNQUALIFIED'
+              $failed=[Collections.Generic.List[int]]::new()
+              $oversized=0
+              for($i=25;$i -lt $specs.Count;$i++){
                 & node --test --test-reporter=tap $specs[$i] *> $log
-                if($LASTEXITCODE -ne 0){$fail.Add($i)}
+                if($LASTEXITCODE -ne 0){
+                  $failed.Add($i)
+                  $private=[IO.File]::ReadAllText($log)
+                  if($private.Length -gt 1000000){
+                    $oversized++
+                    Write-Host ('QFORGE_NODE_REMAINDER_FAILED_FILE_ORDINAL='+$i+
+                      ';oversized=true;private_output_withheld=true')
+                  }else{
+                    $bad=@([regex]::Matches($private,'(?m)^not ok\s+(\d+)')|
+                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique -First 12)
+                    $codes=@([regex]::Matches($private,"(?m)^\s*code:\s*'?([A-Z_]+)")|
+                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique -First 8)
+                    $types=@([regex]::Matches($private,"(?m)^\s*name:\s*'?([A-Za-z]+)")|
+                      ForEach-Object {$_.Groups[1].Value}|
+                      Where-Object {$_ -in @('TypeError','ReferenceError','SyntaxError','AssertionError','Error')}|
+                      Select-Object -Unique)
+                    $hints=@([regex]::Matches($private,"(?m)^\s*error:\s*'?([^\r\n]*)")|
+                      ForEach-Object {
+                        $err=$_.Groups[1].Value
+                        if($err -match 'Cannot read properties of undefined'){'UNDEFINED_PROPERTY'}
+                        elseif($err -match 'Cannot read properties of null'){'NULL_PROPERTY'}
+                        elseif($err -match 'is not a function'){'NONCALLABLE'}
+                        elseif($err -match 'is not defined'){'UNBOUND_SYMBOL'}
+                        elseif($err -match 'Unexpected token|Unexpected identifier|Invalid or unexpected token'){'INVALID_JS'}
+                        elseif($err -match 'Expected values to be strictly equal'){'STRICT_EQ'}
+                        elseif($err -match 'The expression evaluated to a falsy value'){'FALSY_ASSERTION'}
+                        elseif($err -match 'does not match'){'REGEX_MISMATCH'}
+                        else{'OTHER'}
+                      }|Select-Object -Unique)
+                    $sites=@([regex]::Matches($private,'(?m)^\s+at (?:async )?TestContext\.<anonymous> \(.*:(\d+):\d+\)')|
+                      ForEach-Object {$_.Groups[1].Value}|Select-Object -Unique -First 10)
+                    Write-Host ('QFORGE_NODE_REMAINDER_FAILED_FILE_ORDINAL='+$i+
+                      ';failing_test_ordinals='+($bad -join ',')+
+                      ';error_codes='+($codes -join ',')+
+                      ';error_types='+($types -join ',')+
+                      ';error_families='+($hints -join ',')+
+                      ';stack_line_numbers='+($sites -join ',')+
+                      ';private_output_withheld=true')
+                    Remove-Variable bad,codes,types,hints,sites -ErrorAction SilentlyContinue
+                  }
+                  Remove-Variable private -ErrorAction SilentlyContinue
+                }
               }
-              Write-Host ('QFORGE_NODE_BATCH_25_DIAG='+(@{
-                checked=25;source=$env:KTRADE_EXPECTED_SOURCE;
-                failed_ordinals=($fail -join ',');failures=$fail.Count;
-                raw_private_output_exported=$false
-              } | ConvertTo-Json -Compress))
-              Require ($fail.Count -eq 0) 'QFORGE_NODE_BATCH_25_DIAGNOSTIC_FAILURES_NOT_FINAL'
-              Write-Host 'QFORGE_NODE_BATCH_25_DIAGNOSTIC=PASS_NOT_FINAL'
+              Write-Host ('QFORGE_NODE_REMAINDER_DIAG='+(@{
+                checked=($specs.Count-25);source=$env:KTRADE_EXPECTED_SOURCE;
+                failed_ordinals=($failed -join ',');failures=$failed.Count;
+                oversized_reports=$oversized;raw_private_output_exported=$false;
+                qualifier_not_final=$true
+              }|ConvertTo-Json -Compress))
+              Require ($failed.Count -eq 0) 'QFORGE_NODE_REMAINDER_DIAGNOSTIC_FAILURES_NOT_FINAL'
+              Write-Host 'QFORGE_NODE_REMAINDER_DIAGNOSTIC=PASS_NOT_FINAL'
               return
             }
 
