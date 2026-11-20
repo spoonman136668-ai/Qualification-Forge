@@ -30,7 +30,7 @@ jobs:
       QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
       QFORGE_W179_VERSIONED_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W179_VERSIONED_INSTALL_ONLY') }}
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
-      QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
+      QFORGE_NODE_BATCH_25_DIAG_ONLY: '1'
       QFORGE_NODE_SELECTED_FOCUSED_ONLY: '0'
       QFORGE_NODE_BATCH_50_DIAG_ONLY: ${{ contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') }}
       QFORGE_NODE_BATCH_75_DIAG_ONLY: '0'
