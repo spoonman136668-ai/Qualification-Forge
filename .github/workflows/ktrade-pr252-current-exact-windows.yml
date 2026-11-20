@@ -529,7 +529,7 @@ jobs:
                 }
                 Require ($focus.Count -eq 1) 'QFORGE_W168_FOCUSED_SCOPE_DRIFT'
                 $w168Files=@(& git -C $p diff --name-only 'HEAD^' 'HEAD')
-                Require ((& git -C $p rev-parse HEAD^).Trim() -ceq 'ae4fa77aa5fb2854e3c1f9720b815fba9c1be48d' -and
+                Require ((& git -C $p rev-parse HEAD^).Trim() -ceq 'c67696096dbfb839cbe87928e55407600f8d72b2' -and
                   $w168Files.Count -eq 1 -and
                   $w168Files[0] -ceq 'tests/w17d8_trendline_geometry.test.cjs') 'QFORGE_W168_EXACT_TEST_ONLY_PARENT_SCOPE_REFUSED'
                 @($focus)
