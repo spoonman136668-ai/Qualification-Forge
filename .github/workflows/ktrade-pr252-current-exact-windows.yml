@@ -19,7 +19,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: '1e92a78a2e657560f2740c383d21874ac6463e6c'
+      KTRADE_EXPECTED_SOURCE: 'f4dca5adff8299fae6c83b07302cc889b2ec1c60'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
       QFORGE_NODE_FIRST_BATCH_DIAG_ONLY: '0'
@@ -29,7 +29,7 @@ jobs:
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
       QFORGE_W05_ASSET_ROLLBACK_ONLY: ${{ contains(github.event.head_commit.message, 'W05_TEMP_ASSET_ROLLBACK_ONLY') }}
       QFORGE_W29C_DISPOSABLE_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_DISPOSABLE_INSTALL_ONLY') }}
-      KTRADE_EXPECTED_TREE: '3f1a95537865e2c45b51ab15ae9454647f9aeae0'
+      KTRADE_EXPECTED_TREE: '0702c06a21d7da76d7553af3a1df6dab674afca4'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1e92a78a2e657560f2740c383d21874ac6463e6c
+          ref: f4dca5adff8299fae6c83b07302cc889b2ec1c60
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -798,6 +798,15 @@ jobs:
                 (& git rev-parse 'HEAD:tests/w131_tick_keyboard.test.cjs').Trim() -ceq '938c15111b9e947429562ad4db882f13c0b0ddd3' -and
                 ($w131Changed -join ';') -ceq 'static/w114_tick_chart.js;templates/chart.tmpl;tests/w131_tick_keyboard.test.cjs') 'W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA_REQUIRED'
               Write-Host 'QFORGE_W131_EXACT_W129_PARENT_AND_THREE_FILE_DELTA=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'f4dca5adff8299fae6c83b07302cc889b2ec1c60'){
+              # One-file DOM fixture correction to the prior frozen candidate.
+              # Preserve all W41 behavior and source-bound controls.
+              & git merge-base --is-ancestor '1e92a78a2e657560f2740c383d21874ac6463e6c' HEAD
+              Require ($LASTEXITCODE -eq 0) 'QFORGE_PR253_DOM_FIX_PARENT_REQUIRED'
+              Require ((& git rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE) 'QFORGE_PR253_DOM_FIX_TREE_REQUIRED'
+              $only=@(& git diff --name-only '1e92a78a2e657560f2740c383d21874ac6463e6c' 'HEAD')
+              Require ($only.Count -eq 1 -and $only[0] -ceq 'tests/rb3_w41_chart_viewport_persistence.test.cjs') 'QFORGE_PR253_DOM_TEST_ONLY_SCOPE_REQUIRED'
+              Write-Host 'QFORGE_PR253_DOM_FIX_SOURCE_SCOPE=PASS'
             }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '1e92a78a2e657560f2740c383d21874ac6463e6c'){
               # Exact test-only descendant of the frozen release candidate.
               & git merge-base --is-ancestor 'd635f3c685eb2f2b098b8bf38bf62b10a1ee35be' HEAD
@@ -964,9 +973,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: '1e92a78a2e657560f2740c383d21874ac6463e6c'
-      KTRADE_EXPECTED_TREE: '3f1a95537865e2c45b51ab15ae9454647f9aeae0'
-      W01_EXPECTED_SHA: '1e92a78a2e657560f2740c383d21874ac6463e6c'
+      KTRADE_EXPECTED_SOURCE: 'f4dca5adff8299fae6c83b07302cc889b2ec1c60'
+      KTRADE_EXPECTED_TREE: '0702c06a21d7da76d7553af3a1df6dab674afca4'
+      W01_EXPECTED_SHA: 'f4dca5adff8299fae6c83b07302cc889b2ec1c60'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -981,7 +990,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: 1e92a78a2e657560f2740c383d21874ac6463e6c
+          ref: f4dca5adff8299fae6c83b07302cc889b2ec1c60
           fetch-depth: 0
           path: product
           persist-credentials: false
