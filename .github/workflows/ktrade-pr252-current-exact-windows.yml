@@ -1014,6 +1014,17 @@ jobs:
               Require (($w264Paths -join ';') -ceq 'tests/rb3_w98_pine_native_accessibility.test.cjs') 'QFORGE_W264_EXACT_TEST_EXPECTATION_DELTA_REQUIRED'
               Write-Host 'QFORGE_W264_NATIVE_PINE_A11Y_EXACT_SOURCE_DELTA=PASS'
               Write-Host 'QFORGE_PR253_QUALIFIED_ANCESTOR=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq '07d7e41063a0c1506a290d1497f84de8173da292'){
+              # W175 remains the exact historical W170 frozen UI product
+              # with five original test-only corrections. Do NOT fall through
+              # to the unrelated legacy W129 ancestor/blob custody contract.
+              & git merge-base --is-ancestor 'ff90ab26848df6000bba1c98254826cab36303a4' HEAD
+              Require ($LASTEXITCODE -eq 0 -and
+                (& git rev-parse HEAD^).Trim() -ceq '04f0653cbc57a18703631b276c95e4cabade1068' -and
+                (& git rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE) 'QFORGE_W175_FROZEN_SOURCE_CUSTODY_REQUIRED'
+              $only=@(& git diff --name-only 'ff90ab26848df6000bba1c98254826cab36303a4' HEAD | Sort-Object)
+              Require (($only -join ';') -ceq 'tests/rb3_w85_desktop_operator_shell.test.cjs;tests/w17d9_market_context.test.cjs;tests/w196_command_palette.test.cjs;tests/w21_market_readout_integrity.test.cjs;tests/w322_primary_bar_inspector.test.cjs') 'QFORGE_W175_FIVE_ORIGINAL_TEST_FILES_ONLY_REQUIRED'
+              Write-Host 'QFORGE_W175_EXACT_PRODUCT_AND_FIVE_TEST_ONLY_DELTA=PASS'
             }else{
             Require ((& git rev-parse HEAD^).Trim() -ceq '1450075012b686e1d87bf101f8206d7c2e22c2d8' -and
               (& git rev-parse 'HEAD^^').Trim() -ceq '8e99dddb26e9d869012d1ceec000e219e727e7bf' -and
