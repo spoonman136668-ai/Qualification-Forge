@@ -25,7 +25,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 65
     env:
-      KTRADE_EXPECTED_SOURCE: 'd55f83bf29cca5a37e4e8dcc167ba93cc3a9c61d'
+      KTRADE_EXPECTED_SOURCE: 'f7f5772e0490b618e5a5772c02a1ced0d0bec77e'
       QFORGE_TARGETED_PKG_ONLY: '0'
       QFORGE_W209_GO_ONLY: ${{ contains(github.event.head_commit.message, 'W209_GO_ORDINAL_ONLY') }}
       QFORGE_W179_VERSIONED_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W179_VERSIONED_INSTALL_ONLY') }}
@@ -33,11 +33,11 @@ jobs:
       QFORGE_NODE_BATCH_25_DIAG_ONLY: '0'
       QFORGE_NODE_SELECTED_FOCUSED_ONLY: '0'
       QFORGE_NODE_BATCH_50_DIAG_ONLY: ${{ contains(github.event.head_commit.message, 'W164_NODE_BATCH_50_DIAG_ONLY') }}
-      QFORGE_NODE_BATCH_75_DIAG_ONLY: '1'
+      QFORGE_NODE_BATCH_75_DIAG_ONLY: '0'
       QFORGE_W29C_SETUP_BUILD_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_SETUP_BUNDLE_ONLY') }}
       QFORGE_W05_ASSET_ROLLBACK_ONLY: ${{ contains(github.event.head_commit.message, 'W05_TEMP_ASSET_ROLLBACK_ONLY') }}
       QFORGE_W29C_DISPOSABLE_INSTALL_ONLY: ${{ contains(github.event.head_commit.message, 'W29C_DISPOSABLE_INSTALL_ONLY') }}
-      KTRADE_EXPECTED_TREE: 'b1c61b906295581997836ee04a3191f076e9ee70'
+      KTRADE_EXPECTED_TREE: '2691e4389bce91fa32c938ae278c02d6f6078c8a'
       KTRADE_LIVE_TRADING: 'false'
       KTRADE_CI_LIVE_AUTHORITY: '0'
       KTRADE_CI_PROMOTION_ALLOWED: '0'
@@ -58,7 +58,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: d55f83bf29cca5a37e4e8dcc167ba93cc3a9c61d
+          ref: f7f5772e0490b618e5a5772c02a1ced0d0bec77e
           fetch-depth: 0
           path: product
           persist-credentials: false
@@ -1153,6 +1153,16 @@ jobs:
               Require (($w264Paths -join ';') -ceq 'tests/rb3_w98_pine_native_accessibility.test.cjs') 'QFORGE_W264_EXACT_TEST_EXPECTATION_DELTA_REQUIRED'
               Write-Host 'QFORGE_W264_NATIVE_PINE_A11Y_EXACT_SOURCE_DELTA=PASS'
               Write-Host 'QFORGE_PR253_QUALIFIED_ANCESTOR=PASS'
+            }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'f7f5772e0490b618e5a5772c02a1ced0d0bec77e'){
+              # W336: exactly one historical-alert test expectation repair.
+              # Original runtime source and financial authority remain unchanged.
+              Require ((& git rev-parse HEAD^).Trim() -ceq 'd55f83bf29cca5a37e4e8dcc167ba93cc3a9c61d' -and
+                (& git rev-parse 'HEAD^{tree}').Trim() -ceq $env:KTRADE_EXPECTED_TREE -and
+                (& git rev-parse 'HEAD:tests/w331_pine_alert_history.test.cjs').Trim() -ceq '367a98872d43d354d97339c882f90170e916785b') 'QFORGE_W336_EXACT_TEST_FIX_SOURCE_REFUSED'
+              $only=@(& git diff --name-only 'd55f83bf29cca5a37e4e8dcc167ba93cc3a9c61d' HEAD)
+              Require ($only.Count -eq 1 -and
+                $only[0] -ceq 'tests/w331_pine_alert_history.test.cjs') 'QFORGE_W336_TEST_ONLY_DELTA_REQUIRED'
+              Write-Host 'QFORGE_W336_EXACT_TEST_ONLY_SOURCE_AND_ORIGINAL_PRODUCT=PASS'
             }elseif($env:KTRADE_EXPECTED_SOURCE -ceq 'd55f83bf29cca5a37e4e8dcc167ba93cc3a9c61d'){
               # W335: only the stale source-observer distance assertion changed.
               # Keep W334 native product and real WebView2 semantics unchanged.
@@ -1325,9 +1335,9 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     env:
-      KTRADE_EXPECTED_SOURCE: 'd55f83bf29cca5a37e4e8dcc167ba93cc3a9c61d'
-      KTRADE_EXPECTED_TREE: 'b1c61b906295581997836ee04a3191f076e9ee70'
-      W01_EXPECTED_SHA: 'd55f83bf29cca5a37e4e8dcc167ba93cc3a9c61d'
+      KTRADE_EXPECTED_SOURCE: 'f7f5772e0490b618e5a5772c02a1ced0d0bec77e'
+      KTRADE_EXPECTED_TREE: '2691e4389bce91fa32c938ae278c02d6f6078c8a'
+      W01_EXPECTED_SHA: 'f7f5772e0490b618e5a5772c02a1ced0d0bec77e'
       KTRADE_RECOVERY_ISOLATED: '0'
       KTRADE_PORTABLE_DISARMED: '1'
       KTRADE_USE_LEGACY_CDP_CONFIG: '0'
@@ -1342,7 +1352,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           repository: spoonman136668-ai/ktrade
-          ref: d55f83bf29cca5a37e4e8dcc167ba93cc3a9c61d
+          ref: f7f5772e0490b618e5a5772c02a1ced0d0bec77e
           fetch-depth: 0
           path: product
           persist-credentials: false
